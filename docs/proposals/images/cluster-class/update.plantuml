@@ -1,0 +1,52 @@
+@startuml
+title Figure 2. Cluster update with ClusterClass process
+actor User
+
+' -- GROUPS START ---
+
+box #LightGreen
+participant "API Server"
+end box
+
+box #LightBlue
+participant "Cluster Controller"
+end box
+
+' -- GROUPS END ---
+
+User -> "API Server" : Update Cluster object with\n""Cluster.Spec.Class""
+"API Server" --> "Cluster Controller": Existing Cluster
+opt #FFFFFFCC Required only if Cluster.Spec.Class is set
+  "Cluster Controller" -> "Cluster Controller": Fetches the InfrastructureCluster object\nset in Cluster.spec.infrastructureRef
+  opt Update the InfrastructureCluster
+    "Cluster Controller" -> "Cluster Controller": Updates InfrastructureCluster fields
+    "Cluster Controller" -> "API Server": Updates InfrastructureCluster object
+  end
+
+  "Cluster Controller" -> "Cluster Controller": Fetches the ControlPlane object\nset in Cluster.spec.controlPlaneRef
+  opt Update the ControlPlane
+    "Cluster Controller" -> "Cluster Controller": Rotates the InfrastructureMachineTemplate
+    "Cluster Controller" -> "Cluster Controller": Updates ControlPlane fields, replicas, version
+    "Cluster Controller" -> "API Server": Updates ControlPlane object
+  end
+
+  "Cluster Controller" -> "API Server": Fetches the MachineDeployments for worker node pools
+  opt For each worker node pool
+    alt If worker node pool was removed from topology
+      "Cluster Controller" -> "API Server": Delete MachineDeployment
+    else If new worker node pool was added to topology
+      "Cluster Controller" -> "API Server": Create MachineDeployment
+    end
+  end
+  opt For the remaining worker node pools
+    loop For each worker
+      "Cluster Controller" -> "Cluster Controller": Rotates InfrastructureMachineTemplate and BootstrapTemplate
+      "Cluster Controller" -> "Cluster Controller": Updates replicas, labels, annotations and version\n for MachineDeployment
+      "Cluster Controller" -> "API Server": Updates MachineDeployment
+    end
+  end
+end
+
+
+hide footbox
+@enduml

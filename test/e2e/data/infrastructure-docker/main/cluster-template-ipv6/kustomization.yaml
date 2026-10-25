@@ -1,0 +1,8 @@
+resources:
+- ../bases/cluster-with-kcp.yaml
+- ../bases/md.yaml
+- ../bases/crs.yaml
+patches:
+- path: cluster-ipv6.yaml
+- path: md-ipv6.yaml
+- path: kcp-ipv6.yaml

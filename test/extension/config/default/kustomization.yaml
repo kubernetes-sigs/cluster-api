@@ -1,0 +1,60 @@
+namespace: test-extension-system
+
+namePrefix: test-extension-
+
+labels:
+- includeSelectors: true
+  pairs:
+    # Label to identify all the providers objects; As per the clusterctl contract the value should be unique.
+    cluster.x-k8s.io/provider: runtime-extension-test-extension
+
+resources:
+- namespace.yaml
+- manager.yaml
+- service.yaml
+- ../certmanager
+- ../rbac
+
+patches:
+# Enable webhook with corresponding certificate mount.
+- path: manager_webhook_patch.yaml
+# Provide customizable hook for make targets.
+- path: manager_image_patch.yaml
+- path: manager_pull_policy.yaml
+
+
+replacements:
+- source: # Add cert-manager annotation to the webhook Service
+    kind: Service
+    version: v1
+    name: webhook-service
+    fieldPath: .metadata.name # namespace of the service
+  targets:
+    - select:
+        kind: Certificate
+        group: cert-manager.io
+        version: v1
+      fieldPaths:
+        - .spec.dnsNames.0
+        - .spec.dnsNames.1
+      options:
+        delimiter: '.'
+        index: 0
+        create: true
+- source:
+    kind: Service
+    version: v1
+    name: webhook-service
+    fieldPath: .metadata.namespace # namespace of the service
+  targets:
+    - select:
+        kind: Certificate
+        group: cert-manager.io
+        version: v1
+      fieldPaths:
+        - .spec.dnsNames.0
+        - .spec.dnsNames.1
+      options:
+        delimiter: '.'
+        index: 1
+        create: true

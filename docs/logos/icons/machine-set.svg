@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="702.85" height="681.97" viewBox="0 0 702.85 681.97">
+  <title>machine-set</title>
+  <g>
+    <path d="M349,.06a47,47,0,0,0-17.91,4.53L86.74,121.34a46.41,46.41,0,0,0-25.28,31.44L1.17,415a46,46,0,0,0,6.35,35.53c.82,1.27,1.71,2.5,2.65,3.69L179.3,664.53A46.89,46.89,0,0,0,215.83,682l271.22-.07a46.86,46.86,0,0,0,36.53-17.4L692.64,454.19a46,46,0,0,0,9-39.22L641.3,152.72A46.43,46.43,0,0,0,616,121.28L371.64,4.59A47,47,0,0,0,349,.06Z" style="fill: #326ce5"/>
+    <g>
+      <g>
+        <g style="opacity: 0.9400000000000001">
+          <g>
+            <polyline points="585.41 384.98 585.41 390.98 579.41 390.98" style="fill: none;stroke: #fff;stroke-width: 6px"/>
+            <line x1="567.72" y1="390.98" x2="129.28" y2="390.98" style="fill: none;stroke: #fff;stroke-width: 6px;stroke-dasharray: 11.691864013671875,11.691864013671875"/>
+            <polyline points="123.43 390.98 117.43 390.98 117.43 384.98" style="fill: none;stroke: #fff;stroke-width: 6px"/>
+            <line x1="117.43" y1="372.41" x2="117.43" y2="303.27" style="fill: none;stroke: #fff;stroke-width: 6px;stroke-dasharray: 12.571428298950195,12.571428298950195"/>
+            <polyline points="117.43 296.98 117.43 290.98 123.43 290.98" style="fill: none;stroke: #fff;stroke-width: 6px"/>
+            <line x1="135.12" y1="290.98" x2="573.57" y2="290.98" style="fill: none;stroke: #fff;stroke-width: 6px;stroke-dasharray: 11.691864013671875,11.691864013671875"/>
+            <polyline points="579.41 290.98 585.41 290.98 585.41 296.98" style="fill: none;stroke: #fff;stroke-width: 6px"/>
+            <line x1="585.41" y1="309.55" x2="585.41" y2="378.7" style="fill: none;stroke: #fff;stroke-width: 6px;stroke-dasharray: 12.571428298950195,12.571428298950195"/>
+          </g>
+        </g>
+        <circle cx="530.05" cy="340.98" r="34.82" style="fill: none;stroke: #fff;stroke-width: 6px;stroke-dasharray: 12"/>
+      </g>
+      <path d="M117.43,419.38v100h468v-100Zm412.62,84.81a34.82,34.82,0,1,1,34.82-34.81A34.81,34.81,0,0,1,530.05,504.19Z" style="fill: #fff;stroke: #fff;stroke-width: 6px"/>
+      <g>
+        <g style="opacity: 0.9400000000000001">
+          <g>
+            <polyline points="585.41 256.58 585.41 262.58 579.41 262.58" style="fill: none;stroke: #fff;stroke-width: 6px"/>
+            <line x1="567.72" y1="262.58" x2="129.28" y2="262.58" style="fill: none;stroke: #fff;stroke-width: 6px;stroke-dasharray: 11.691864013671875,11.691864013671875"/>
+            <polyline points="123.43 262.58 117.43 262.58 117.43 256.58" style="fill: none;stroke: #fff;stroke-width: 6px"/>
+            <line x1="117.43" y1="244.01" x2="117.43" y2="174.87" style="fill: none;stroke: #fff;stroke-width: 6px;stroke-dasharray: 12.571428298950195,12.571428298950195"/>
+            <polyline points="117.43 168.59 117.43 162.59 123.43 162.59" style="fill: none;stroke: #fff;stroke-width: 6px"/>
+            <line x1="135.12" y1="162.58" x2="573.57" y2="162.58" style="fill: none;stroke: #fff;stroke-width: 6px;stroke-dasharray: 11.691864013671875,11.691864013671875"/>
+            <polyline points="579.41 162.59 585.41 162.59 585.41 168.59" style="fill: none;stroke: #fff;stroke-width: 6px"/>
+            <line x1="585.41" y1="181.16" x2="585.41" y2="250.3" style="fill: none;stroke: #fff;stroke-width: 6px;stroke-dasharray: 12.571428298950195,12.571428298950195"/>
+          </g>
+        </g>
+        <circle cx="530.05" cy="212.58" r="34.82" style="fill: none;stroke: #fff;stroke-width: 6px;stroke-dasharray: 12"/>
+      </g>
+    </g>
+  </g>
+</svg>

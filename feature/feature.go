@@ -1,0 +1,114 @@
+/*
+Copyright 2020 The Kubernetes Authors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+// Package feature implements feature functionality.
+package feature
+
+import (
+	"k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/component-base/featuregate"
+)
+
+const (
+	// Every feature gate should add method here following this template:
+	//
+	// // owner: @username
+	// // alpha: v1.X
+	// MyFeature featuregate.Feature = "MyFeature".
+
+	// MachinePool is a feature gate for MachinePool functionality.
+	//
+	// alpha: v0.3
+	// beta: v1.7
+	MachinePool featuregate.Feature = "MachinePool"
+
+	// ClusterTopology is a feature gate for the ClusterClass and managed topologies functionality.
+	//
+	// alpha: v0.4
+	ClusterTopology featuregate.Feature = "ClusterTopology"
+
+	// ClusterClassInlineTemplates is a feature gate for the ClusterClass inline templates functionality.
+	//
+	// alpha: v1.15
+	ClusterClassInlineTemplates featuregate.Feature = "ClusterClassInlineTemplates"
+
+	// RuntimeSDK is a feature gate for the Runtime hooks and extensions functionality.
+	//
+	// alpha: v1.2
+	RuntimeSDK featuregate.Feature = "RuntimeSDK"
+
+	// KubeadmBootstrapFormatIgnition is a feature gate for the Ignition bootstrap format
+	// functionality.
+	//
+	// alpha: v1.1
+	KubeadmBootstrapFormatIgnition featuregate.Feature = "KubeadmBootstrapFormatIgnition"
+
+	// MachineSetPreflightChecks is a feature gate for the MachineSet preflight checks functionality.
+	//
+	// alpha: v1.5
+	// beta: v1.9
+	MachineSetPreflightChecks featuregate.Feature = "MachineSetPreflightChecks"
+
+	// PriorityQueue is a feature gate that controls if the controller uses the controller-runtime PriorityQueue
+	// instead of the default queue implementation.
+	//
+	// alpha: v1.10
+	// beta: v1.13
+	// GA: v1.15
+	//
+	// Deprecated: PriorityQueue feature is now GA and the corresponding feature flag will be removed in the v1.17 release.
+	PriorityQueue featuregate.Feature = "PriorityQueue"
+
+	// ReconcilerRateLimiting is a feature gate that controls if reconcilers are rate-limited.
+	// Note: Currently the feature gate is rate-limiting to 1 request / 1 second.
+	// Note: If this feature gate is enabled the PriorityQueue feature gate must be enabled as well.
+	//
+	// alpha: v1.12
+	// beta: v1.13
+	// GA: v1.15
+	//
+	// Deprecated: ReconcilerRateLimiting feature is now GA and the corresponding feature flag will be removed in the v1.17 release.
+	ReconcilerRateLimiting featuregate.Feature = "ReconcilerRateLimiting"
+
+	// InPlaceUpdates is a feature gate for the in-place machine updates functionality.
+	// alpha: v1.12
+	InPlaceUpdates featuregate.Feature = "InPlaceUpdates"
+
+	// MachineTaintPropagation is a feature gate for the machine taint propagation functionality.
+	//
+	// alpha: v1.12
+	MachineTaintPropagation featuregate.Feature = "MachineTaintPropagation"
+)
+
+func init() {
+	runtime.Must(MutableGates.Add(defaultClusterAPIFeatureGates))
+}
+
+// defaultClusterAPIFeatureGates consists of all known cluster-api-specific feature keys.
+// To add a new feature, define a key for it above and add it here.
+var defaultClusterAPIFeatureGates = map[featuregate.Feature]featuregate.FeatureSpec{
+	// Every feature should be initiated here:
+	PriorityQueue:                  {Default: true, PreRelease: featuregate.GA},
+	ReconcilerRateLimiting:         {Default: true, PreRelease: featuregate.GA},
+	MachinePool:                    {Default: true, PreRelease: featuregate.Beta},
+	MachineSetPreflightChecks:      {Default: true, PreRelease: featuregate.Beta},
+	ClusterTopology:                {Default: false, PreRelease: featuregate.Alpha},
+	KubeadmBootstrapFormatIgnition: {Default: false, PreRelease: featuregate.Alpha},
+	RuntimeSDK:                     {Default: false, PreRelease: featuregate.Alpha},
+	InPlaceUpdates:                 {Default: false, PreRelease: featuregate.Alpha},
+	MachineTaintPropagation:        {Default: false, PreRelease: featuregate.Alpha},
+	ClusterClassInlineTemplates:    {Default: false, PreRelease: featuregate.Alpha},
+}

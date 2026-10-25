@@ -1,0 +1,63 @@
+apiVersion: cluster.x-k8s.io/v1beta2
+kind: ClusterClass
+metadata:
+  name: in-memory
+spec:
+  controlPlane:
+    metadata:
+      labels:
+        ClusterClass.controlPlane.label: "ClusterClass.controlPlane.labelValue"
+      annotations:
+        ClusterClass.controlPlane.annotation: "ClusterClass.controlPlane.annotationValue"
+    machineInfrastructure:
+      template:
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+        kind: DevMachineTemplate
+    template:
+      apiVersion: controlplane.cluster.x-k8s.io/v1beta2
+      kind: KubeadmControlPlaneTemplate
+    healthCheck:
+      checks:
+        unhealthyExpressions:
+          - expression: >-
+              node.has_condition_since("Ready", "Unknown", "5m") || node.has_condition_since("Ready", "False", "5m")
+            message: "Node is unhealthy"
+  infrastructure:
+    template:
+      apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+      kind: DevClusterTemplate
+  workers:
+    machineDeployments:
+      - class: default-worker
+        metadata:
+          labels:
+            ClusterClass.machineDeployment.label: "ClusterClass.machineDeployment.labelValue"
+          annotations:
+            ClusterClass.machineDeployment.annotation: "ClusterClass.machineDeployment.annotationValue"
+        bootstrap:
+          template:
+            apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
+            kind: KubeadmConfigTemplate
+        infrastructure:
+          template:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+            kind: DevMachineTemplate
+        healthCheck:
+          checks:
+            unhealthyNodeConditions:
+              - type: Ready
+                status: "Unknown"
+                timeoutSeconds: 300
+              - type: Ready
+                status: "False"
+                timeoutSeconds: 300
+  patches:
+    - name: test-patch
+      external:
+        generatePatchesExtension: generate-patches.${EXTENSION_CONFIG_NAME:-"scale"}
+        discoverVariablesExtension: discover-variables.${EXTENSION_CONFIG_NAME:-"scale"}
+        settings:
+          backend: inMemory
+  upgrade:
+    external:
+      generateUpgradePlanExtension: generate-upgrade-plan.${EXTENSION_CONFIG_NAME:-"scale"}

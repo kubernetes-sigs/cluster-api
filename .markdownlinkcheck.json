@@ -1,0 +1,22 @@
+{
+    "ignorePatterns": [{
+        "pattern": "^http://localhost"
+    },{
+        "pattern": "https://azure.microsoft.com/en-us/products/kubernetes-service"
+    },{
+        "pattern": "https://kubernetes.slack.com"
+    }],
+    "httpHeaders": [{
+        "comment": "Workaround as suggested here: https://github.com/tcort/markdown-link-check/issues/201",
+        "urls": ["https://docs.github.com/"],
+        "headers": {
+            "Accept-Encoding": "zstd, br, gzip, deflate"
+        }
+    }],
+    "timeout": "10s",
+    "retryOn429": true,
+    "retryCount": 5,
+    "fallbackRetryDelay": "30s",
+    "comment_aliveStatusCodes": "502/503/504 added because github.com/.../compare links intermittently fail with these from CI, not because the link is actually dead; see #14366.",
+    "aliveStatusCodes": [200, 206, 502, 503, 504]
+}

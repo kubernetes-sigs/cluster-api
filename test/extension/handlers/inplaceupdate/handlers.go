@@ -1,0 +1,454 @@
+/*
+Copyright 2025 The Kubernetes Authors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+// Package inplaceupdate contains the handlers for the in-place update hooks.
+//
+// The implementation of the handlers is specifically designed for Cluster API E2E test use cases.
+// When implementing custom RuntimeExtension, it is only required to expose HandlerFunc with the
+// signature defined in sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1.
+package inplaceupdate
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"reflect"
+	"sync"
+	"time"
+
+	pkgerrors "github.com/pkg/errors"
+	"gomodules.xyz/jsonpatch/v2"
+	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/serializer"
+	"k8s.io/apimachinery/pkg/util/rand"
+	"k8s.io/klog/v2"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/yaml"
+
+	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
+	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	runtimecatalog "sigs.k8s.io/cluster-api/api/runtime/catalog"
+	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
+	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta2"
+)
+
+const (
+	extensionConfigNameKey = "extensionConfigName"
+)
+
+// ExtensionHandlers provides a common struct shared across the in-place update hook handlers.
+type ExtensionHandlers struct {
+	decoder runtime.Decoder
+	client  client.Client
+	state   sync.Map
+}
+
+// NewExtensionHandlers returns a new ExtensionHandlers for the in-place update hook handlers.
+func NewExtensionHandlers(client client.Client) *ExtensionHandlers {
+	scheme := runtime.NewScheme()
+	_ = infrav1.AddToScheme(scheme)
+	_ = bootstrapv1.AddToScheme(scheme)
+	_ = controlplanev1.AddToScheme(scheme)
+	return &ExtensionHandlers{
+		client: client,
+		decoder: serializer.NewCodecFactory(scheme).UniversalDecoder(
+			infrav1.GroupVersion,
+			bootstrapv1.GroupVersion,
+		),
+	}
+}
+
+// canUpdateMachineSpec declares that this extension can update:
+// * MachineSpec.FailureDomain
+// * MachineSpec.Version.
+func canUpdateMachineSpec(current, desired *clusterv1.MachineSpec) bool {
+	affectsAvailability := false
+	if current.FailureDomain != desired.FailureDomain {
+		current.FailureDomain = desired.FailureDomain
+		affectsAvailability = true
+	}
+	// TBD if we should keep this, but for now using it to test KCP machinery as this
+	// is the only field on Machine that KCP will try to roll out in-place.
+	if current.Version != desired.Version {
+		current.Version = desired.Version
+		affectsAvailability = true
+	}
+	return affectsAvailability
+}
+
+// canUpdateKubeadmConfigSpec declares that this extension can update:
+// * KubeadmConfigSpec.ClusterConfiguration.Etcd.Local.ImageTag
+// * KubeadmConfigSpec.Files.
+func canUpdateKubeadmConfigSpec(current, desired *bootstrapv1.KubeadmConfigSpec) bool {
+	affectsAvailability := false
+	if current.ClusterConfiguration.Etcd.Local.ImageTag != desired.ClusterConfiguration.Etcd.Local.ImageTag {
+		current.ClusterConfiguration.Etcd.Local.ImageTag = desired.ClusterConfiguration.Etcd.Local.ImageTag
+		affectsAvailability = true
+	}
+	if !reflect.DeepEqual(current.Files, desired.Files) {
+		current.Files = desired.Files
+		// Does not affect availability.
+	}
+	return affectsAvailability
+}
+
+// canUpdateDevMachineSpec declares that this extension can update:
+// * DevMachineSpec.Backend.Docker.BootstrapTimeout.
+func canUpdateDevMachineSpec(current, desired *infrav1.DevMachineSpec) bool {
+	affectsAvailability := false
+	if current.Backend.Docker != nil && desired.Backend.Docker != nil {
+		if current.Backend.Docker.BootstrapTimeout != desired.Backend.Docker.BootstrapTimeout {
+			current.Backend.Docker.BootstrapTimeout = desired.Backend.Docker.BootstrapTimeout
+			// Does not affect availability.
+		}
+	}
+	return affectsAvailability
+}
+
+// DoCanUpdateMachine implements the CanUpdateMachine hook.
+func (h *ExtensionHandlers) DoCanUpdateMachine(ctx context.Context, req *runtimehooksv1.CanUpdateMachineRequest, resp *runtimehooksv1.CanUpdateMachineResponse) {
+	log := ctrl.LoggerFrom(ctx).WithValues("Machine", klog.KObj(&req.Desired.Machine))
+	log.Info("CanUpdateMachine is called")
+
+	if req.Settings["disableInPlaceUpdates"] == "true" {
+		resp.Status = runtimehooksv1.ResponseStatusSuccess
+		return
+	}
+
+	// If a response is preloaded for this hook, return it as is. This allows E2E tests to control the hook behaviour during a test.
+	found, err := h.readResponseFromConfigMap(ctx, &req.Desired.Machine, runtimehooksv1.CanUpdateMachine, req.Settings, resp)
+	if err != nil {
+		resp.Status = runtimehooksv1.ResponseStatusFailure
+		resp.Message = err.Error()
+		return
+	}
+	if found {
+		return
+	}
+
+	currentMachine, desiredMachine,
+		currentBootstrapConfig, desiredBootstrapConfig,
+		currentInfraMachine, desiredInfraMachine, err := h.getObjectsFromCanUpdateMachineRequest(req)
+	if err != nil {
+		resp.Status = runtimehooksv1.ResponseStatusFailure
+		resp.Message = err.Error()
+		return
+	}
+
+	// Declare changes that this Runtime Extension can update in-place.
+
+	// Machine
+	affectsAvailability := canUpdateMachineSpec(&currentMachine.Spec, &desiredMachine.Spec)
+
+	// BootstrapConfig (we can only update KubeadmConfigs)
+	currentKubeadmConfig, isCurrentKubeadmConfig := currentBootstrapConfig.(*bootstrapv1.KubeadmConfig)
+	desiredKubeadmConfig, isDesiredKubeadmConfig := desiredBootstrapConfig.(*bootstrapv1.KubeadmConfig)
+	if isCurrentKubeadmConfig && isDesiredKubeadmConfig {
+		affectsAvailability = affectsAvailability || canUpdateKubeadmConfigSpec(&currentKubeadmConfig.Spec, &desiredKubeadmConfig.Spec)
+	}
+
+	// InfraMachine (we can only update DevMachines)
+	currentDevMachine, isCurrentDevMachine := currentInfraMachine.(*infrav1.DevMachine)
+	desiredDevMachine, isDesiredDevMachine := desiredInfraMachine.(*infrav1.DevMachine)
+	if isCurrentDevMachine && isDesiredDevMachine {
+		affectsAvailability = affectsAvailability || canUpdateDevMachineSpec(&currentDevMachine.Spec, &desiredDevMachine.Spec)
+	}
+
+	if err := h.computeCanUpdateMachineResponse(req, resp, currentMachine, currentBootstrapConfig, currentInfraMachine); err != nil {
+		resp.Status = runtimehooksv1.ResponseStatusFailure
+		resp.Message = err.Error()
+		return
+	}
+
+	resp.AffectsAvailability = new(affectsAvailability)
+	resp.Status = runtimehooksv1.ResponseStatusSuccess
+}
+
+// DoCanUpdateMachineSet implements the CanUpdateMachineSet hook.
+func (h *ExtensionHandlers) DoCanUpdateMachineSet(ctx context.Context, req *runtimehooksv1.CanUpdateMachineSetRequest, resp *runtimehooksv1.CanUpdateMachineSetResponse) {
+	log := ctrl.LoggerFrom(ctx).WithValues("MachineSet", klog.KObj(&req.Desired.MachineSet))
+	log.Info("CanUpdateMachineSet is called")
+
+	if req.Settings["disableInPlaceUpdates"] == "true" {
+		resp.Status = runtimehooksv1.ResponseStatusSuccess
+		return
+	}
+
+	currentMachineSet, desiredMachineSet,
+		currentBootstrapConfigTemplate, desiredBootstrapConfigTemplate,
+		currentInfraMachineTemplate, desiredInfraMachineTemplate, err := h.getObjectsFromCanUpdateMachineSetRequest(req)
+	if err != nil {
+		resp.Status = runtimehooksv1.ResponseStatusFailure
+		resp.Message = err.Error()
+		return
+	}
+
+	// Declare changes that this Runtime Extension can update in-place.
+
+	// Machine
+	affectsAvailability := canUpdateMachineSpec(&currentMachineSet.Spec.Template.Spec, &desiredMachineSet.Spec.Template.Spec)
+
+	// BootstrapConfig (we can only update KubeadmConfigs)
+	currentKubeadmConfigTemplate, isCurrentKubeadmConfigTemplate := currentBootstrapConfigTemplate.(*bootstrapv1.KubeadmConfigTemplate)
+	desiredKubeadmConfigTemplate, isDesiredKubeadmConfigTemplate := desiredBootstrapConfigTemplate.(*bootstrapv1.KubeadmConfigTemplate)
+	if isCurrentKubeadmConfigTemplate && isDesiredKubeadmConfigTemplate {
+		affectsAvailability = affectsAvailability || canUpdateKubeadmConfigSpec(&currentKubeadmConfigTemplate.Spec.Template.Spec, &desiredKubeadmConfigTemplate.Spec.Template.Spec)
+	}
+
+	// InfraMachine (we can only update DevMachines)
+	currentDevMachineTemplate, isCurrentDevMachineTemplate := currentInfraMachineTemplate.(*infrav1.DevMachineTemplate)
+	desiredDevMachineTemplate, isDesiredDevMachineTemplate := desiredInfraMachineTemplate.(*infrav1.DevMachineTemplate)
+	if isCurrentDevMachineTemplate && isDesiredDevMachineTemplate {
+		affectsAvailability = affectsAvailability || canUpdateDevMachineSpec(&currentDevMachineTemplate.Spec.Template.Spec, &desiredDevMachineTemplate.Spec.Template.Spec)
+	}
+
+	if err := h.computeCanUpdateMachineSetResponse(req, resp, currentMachineSet, currentBootstrapConfigTemplate, currentInfraMachineTemplate); err != nil {
+		resp.Status = runtimehooksv1.ResponseStatusFailure
+		resp.Message = err.Error()
+		return
+	}
+
+	resp.AffectsAvailability = new(affectsAvailability)
+	resp.Status = runtimehooksv1.ResponseStatusSuccess
+}
+
+// DoUpdateMachine implements the UpdateMachine hook.
+// Note: We are intentionally not actually applying any in-place changes we are just faking them,
+// which is good enough for test purposes.
+func (h *ExtensionHandlers) DoUpdateMachine(ctx context.Context, req *runtimehooksv1.UpdateMachineRequest, resp *runtimehooksv1.UpdateMachineResponse) {
+	log := ctrl.LoggerFrom(ctx).WithValues("Machine", klog.KObj(&req.Desired.Machine))
+	log.Info("UpdateMachine is called")
+	defer func() {
+		log.Info("UpdateMachine response", "Machine", klog.KObj(&req.Desired.Machine), "status", resp.Status, "updateStatus", resp.UpdateStatus, "message", resp.Message, "retryAfterSeconds", resp.RetryAfterSeconds)
+	}()
+
+	if req.Settings["disableInPlaceUpdates"] == "true" {
+		resp.Status = runtimehooksv1.ResponseStatusFailure
+		resp.Message = "Unexpected call to UpdateMachine hook after CanUpdateMachine or CanUpdateMachineSet did not return any patches"
+		return
+	}
+
+	// If a response is preloaded for this hook, return it as is. This allows E2E tests to control the hook behaviour during a test.
+	found, err := h.readResponseFromConfigMap(ctx, &req.Desired.Machine, runtimehooksv1.UpdateMachine, req.Settings, resp)
+	if err != nil {
+		resp.Status = runtimehooksv1.ResponseStatusFailure
+		resp.Message = err.Error()
+		return
+	}
+	if found {
+		return
+	}
+
+	key := klog.KObj(&req.Desired.Machine).String()
+
+	// Note: We are intentionally not actually applying any in-place changes we are just faking them,
+	// which is good enough for test purposes.
+	if firstTimeCalled, ok := h.state.Load(key); ok {
+		if time.Since(firstTimeCalled.(time.Time)) > time.Duration(15+rand.Intn(5))*time.Second {
+			h.state.Delete(key)
+			resp.Status = runtimehooksv1.ResponseStatusSuccess
+			resp.UpdateStatus = runtimehooksv1.MachineUpdateStatusCompleted
+			resp.Message = "Extension completed updating Machine"
+			resp.RetryAfterSeconds = 0
+			return
+		}
+	} else {
+		h.state.Store(key, time.Now())
+	}
+
+	resp.Status = runtimehooksv1.ResponseStatusSuccess
+	resp.UpdateStatus = runtimehooksv1.MachineUpdateStatusInProgress
+	resp.Message = "Extension is updating Machine"
+	resp.RetryAfterSeconds = 5
+}
+
+// readResponseFromConfigMap reads the response that is preloaded for the given hook from a well known ConfigMap
+// (<cluster name>-<extensionConfigName>-test-extension-hookresponses, the same ConfigMap that is used by the lifecycle hooks)
+// and unmarshals it into response.
+// The response must be stored under the key <hook name>-preloadedResponse, e.g. for the CanUpdateMachine hook:
+// `{"Status": "Success", "RetryAfterSeconds": 10, "Message": "waiting for the update plan"}`.
+// It returns true if a response could be read from the ConfigMap, false if the ConfigMap does not exist
+// or if there is no preloaded response for the hook.
+func (h *ExtensionHandlers) readResponseFromConfigMap(ctx context.Context, machine *clusterv1.Machine, hook runtimecatalog.Hook, settings map[string]string, response runtimehooksv1.ResponseObject) (bool, error) {
+	hookName := runtimecatalog.HookName(hook)
+	if _, ok := settings[extensionConfigNameKey]; !ok {
+		return false, pkgerrors.New(extensionConfigNameKey + " must be set in settings")
+	}
+	configMapName := configMapName(machine.Spec.ClusterName, settings[extensionConfigNameKey])
+	log := ctrl.LoggerFrom(ctx)
+	configMap := &corev1.ConfigMap{}
+	if err := h.client.Get(ctx, client.ObjectKey{Namespace: machine.Namespace, Name: configMapName}, configMap); err != nil {
+		if apierrors.IsNotFound(err) {
+			// A ConfigMap of responses does not exist, so there is no preloaded response.
+			return false, nil
+		}
+		return false, pkgerrors.Wrapf(err, "failed to read the ConfigMap %s", klog.KRef(machine.Namespace, configMapName))
+	}
+
+	data, ok := configMap.Data[hookName+"-preloadedResponse"]
+	if !ok {
+		return false, nil
+	}
+
+	if err := yaml.Unmarshal([]byte(data), response); err != nil {
+		return false, pkgerrors.Wrapf(err, "failed to read %q response information from ConfigMap", hookName)
+	}
+	if r, ok := response.(runtimehooksv1.RetryResponseObject); ok {
+		log.Info(fmt.Sprintf("%s response is %s. retry: %v", hookName, r.GetStatus(), r.GetRetryAfterSeconds()))
+	}
+	return true, nil
+}
+
+func configMapName(clusterName, extensionConfigName string) string {
+	return fmt.Sprintf("%s-%s-test-extension-hookresponses", clusterName, extensionConfigName)
+}
+
+func (h *ExtensionHandlers) getObjectsFromCanUpdateMachineRequest(req *runtimehooksv1.CanUpdateMachineRequest) (*clusterv1.Machine, *clusterv1.Machine, runtime.Object, runtime.Object, runtime.Object, runtime.Object, error) { //nolint:gocritic // accepting high number of return parameters for now
+	currentMachine := req.Current.Machine.DeepCopy()
+	desiredMachine := req.Desired.Machine.DeepCopy()
+	currentBootstrapConfig, _, err := h.decoder.Decode(req.Current.BootstrapConfig.Raw, nil, req.Current.BootstrapConfig.Object)
+	if err != nil {
+		return nil, nil, nil, nil, nil, nil, err
+	}
+	desiredBootstrapConfig, _, err := h.decoder.Decode(req.Desired.BootstrapConfig.Raw, nil, req.Desired.BootstrapConfig.Object)
+	if err != nil {
+		return nil, nil, nil, nil, nil, nil, err
+	}
+	currentInfraMachine, _, err := h.decoder.Decode(req.Current.InfrastructureMachine.Raw, nil, req.Current.InfrastructureMachine.Object)
+	if err != nil {
+		return nil, nil, nil, nil, nil, nil, err
+	}
+	desiredInfraMachine, _, err := h.decoder.Decode(req.Desired.InfrastructureMachine.Raw, nil, req.Desired.InfrastructureMachine.Object)
+	if err != nil {
+		return nil, nil, nil, nil, nil, nil, err
+	}
+
+	return currentMachine, desiredMachine, currentBootstrapConfig, desiredBootstrapConfig, currentInfraMachine, desiredInfraMachine, nil
+}
+
+func (h *ExtensionHandlers) computeCanUpdateMachineResponse(req *runtimehooksv1.CanUpdateMachineRequest, resp *runtimehooksv1.CanUpdateMachineResponse, currentMachine *clusterv1.Machine, currentBootstrapConfig, currentInfraMachine runtime.Object) error {
+	marshalledCurrentMachine, err := json.Marshal(req.Current.Machine)
+	if err != nil {
+		return err
+	}
+	machinePatch, err := createJSONPatch(marshalledCurrentMachine, currentMachine)
+	if err != nil {
+		return err
+	}
+	bootstrapConfigPatch, err := createJSONPatch(req.Current.BootstrapConfig.Raw, currentBootstrapConfig)
+	if err != nil {
+		return err
+	}
+	infraMachinePatch, err := createJSONPatch(req.Current.InfrastructureMachine.Raw, currentInfraMachine)
+	if err != nil {
+		return err
+	}
+
+	resp.MachinePatch = runtimehooksv1.Patch{
+		PatchType: runtimehooksv1.JSONPatchType,
+		Patch:     machinePatch,
+	}
+	resp.BootstrapConfigPatch = runtimehooksv1.Patch{
+		PatchType: runtimehooksv1.JSONPatchType,
+		Patch:     bootstrapConfigPatch,
+	}
+	resp.InfrastructureMachinePatch = runtimehooksv1.Patch{
+		PatchType: runtimehooksv1.JSONPatchType,
+		Patch:     infraMachinePatch,
+	}
+	return nil
+}
+
+func (h *ExtensionHandlers) getObjectsFromCanUpdateMachineSetRequest(req *runtimehooksv1.CanUpdateMachineSetRequest) (*clusterv1.MachineSet, *clusterv1.MachineSet, runtime.Object, runtime.Object, runtime.Object, runtime.Object, error) { //nolint:gocritic // accepting high number of return parameters for now
+	currentMachineSet := req.Current.MachineSet.DeepCopy()
+	desiredMachineSet := req.Desired.MachineSet.DeepCopy()
+	currentBootstrapConfigTemplate, _, err := h.decoder.Decode(req.Current.BootstrapConfigTemplate.Raw, nil, req.Current.BootstrapConfigTemplate.Object)
+	if err != nil {
+		return nil, nil, nil, nil, nil, nil, err
+	}
+	desiredBootstrapConfigTemplate, _, err := h.decoder.Decode(req.Desired.BootstrapConfigTemplate.Raw, nil, req.Desired.BootstrapConfigTemplate.Object)
+	if err != nil {
+		return nil, nil, nil, nil, nil, nil, err
+	}
+	currentInfraMachineTemplate, _, err := h.decoder.Decode(req.Current.InfrastructureMachineTemplate.Raw, nil, req.Current.InfrastructureMachineTemplate.Object)
+	if err != nil {
+		return nil, nil, nil, nil, nil, nil, err
+	}
+	desiredInfraMachineTemplate, _, err := h.decoder.Decode(req.Desired.InfrastructureMachineTemplate.Raw, nil, req.Desired.InfrastructureMachineTemplate.Object)
+	if err != nil {
+		return nil, nil, nil, nil, nil, nil, err
+	}
+
+	return currentMachineSet, desiredMachineSet, currentBootstrapConfigTemplate, desiredBootstrapConfigTemplate, currentInfraMachineTemplate, desiredInfraMachineTemplate, nil
+}
+
+func (h *ExtensionHandlers) computeCanUpdateMachineSetResponse(req *runtimehooksv1.CanUpdateMachineSetRequest, resp *runtimehooksv1.CanUpdateMachineSetResponse, currentMachineSet *clusterv1.MachineSet, currentBootstrapConfigTemplate, currentInfraMachineTemplate runtime.Object) error {
+	marshalledCurrentMachineSet, err := json.Marshal(req.Current.MachineSet)
+	if err != nil {
+		return err
+	}
+	machineSetPatch, err := createJSONPatch(marshalledCurrentMachineSet, currentMachineSet)
+	if err != nil {
+		return err
+	}
+	bootstrapConfigTemplatePatch, err := createJSONPatch(req.Current.BootstrapConfigTemplate.Raw, currentBootstrapConfigTemplate)
+	if err != nil {
+		return err
+	}
+	infraMachineTemplatePatch, err := createJSONPatch(req.Current.InfrastructureMachineTemplate.Raw, currentInfraMachineTemplate)
+	if err != nil {
+		return err
+	}
+
+	resp.MachineSetPatch = runtimehooksv1.Patch{
+		PatchType: runtimehooksv1.JSONPatchType,
+		Patch:     machineSetPatch,
+	}
+	resp.BootstrapConfigTemplatePatch = runtimehooksv1.Patch{
+		PatchType: runtimehooksv1.JSONPatchType,
+		Patch:     bootstrapConfigTemplatePatch,
+	}
+	resp.InfrastructureMachineTemplatePatch = runtimehooksv1.Patch{
+		PatchType: runtimehooksv1.JSONPatchType,
+		Patch:     infraMachineTemplatePatch,
+	}
+	return nil
+}
+
+// createJSONPatch creates a RFC 6902 JSON patch from the original and the modified object.
+func createJSONPatch(marshalledOriginal []byte, modified runtime.Object) ([]byte, error) {
+	// TODO: avoid producing patches for status (although they will be ignored by the KCP / MD controllers anyway)
+	marshalledModified, err := json.Marshal(modified)
+	if err != nil {
+		return nil, pkgerrors.Errorf("failed to marshal modified object: %v", err)
+	}
+
+	patch, err := jsonpatch.CreatePatch(marshalledOriginal, marshalledModified)
+	if err != nil {
+		return nil, pkgerrors.Errorf("failed to create patch: %v", err)
+	}
+
+	patchBytes, err := json.Marshal(patch)
+	if err != nil {
+		return nil, pkgerrors.Errorf("failed to marshal patch: %v", err)
+	}
+
+	return patchBytes, nil
+}

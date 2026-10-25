@@ -1,0 +1,56 @@
+@startuml
+title Figure 1. Cluster topology reconciliation
+
+
+' -- GROUPS START ---
+
+box #LightGreen
+participant "API Server"
+end box
+
+box #LightBlue
+participant "Cluster Topology Controller"
+end box
+
+box #LightBlue
+participant "External Patch Extensions"
+end box
+
+' -- GROUPS END ---
+
+"API Server" --> "Cluster Topology Controller": Cluster reconcile event
+activate "Cluster Topology Controller"
+
+"Cluster Topology Controller" -> "API Server": Get current Cluster topology
+activate "API Server"
+"API Server" -> "Cluster Topology Controller":
+deactivate "API Server"
+
+group #FFFFFFCC Compute desired State
+  "Cluster Topology Controller" -> "Cluster Topology Controller": Compute desired State
+  loop Ordered list of Patches
+    alt
+      "Cluster Topology Controller" -> "Cluster Topology Controller": Generate inline patches
+    else
+      "Cluster Topology Controller" -> "External Patch Extensions": Generate external patches
+      activate "External Patch Extensions"
+      "External Patch Extensions" -> "Cluster Topology Controller":
+      deactivate "External Patch Extensions"
+    end
+    "Cluster Topology Controller" -> "Cluster Topology Controller": Apply patches to desired State
+  end loop
+
+  loop External Patches
+    "Cluster Topology Controller" -> "External Patch Extensions": ValidateTopology
+    activate "External Patch Extensions"
+    "External Patch Extensions" -> "Cluster Topology Controller":
+    deactivate "External Patch Extensions"
+  end loop
+end group
+
+"Cluster Topology Controller" -> "API Server": Reconcile Cluster topology
+
+deactivate "Cluster Topology Controller"
+
+hide footbox
+@enduml

@@ -1,0 +1,20 @@
+# invalid samples.
+config/samples
+
+# vscode
+.vscode
+
+# goland
+.idea
+
+# ignore build output
+dist
+bin
+manager_image_patch.yaml-e
+cover.out
+manager
+
+# test results
+*.xml
+
+e2e/resources/**

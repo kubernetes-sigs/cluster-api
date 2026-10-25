@@ -1,0 +1,837 @@
+/*
+Copyright 2020 The Kubernetes Authors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+package framework
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"net"
+	"net/url"
+	"os"
+	"path"
+	goruntime "runtime"
+	"sync"
+	"time"
+
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
+	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
+	kerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/client-go/tools/clientcmd/api"
+	"k8s.io/klog/v2"
+	ctrlcache "sigs.k8s.io/controller-runtime/pkg/cache"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	"sigs.k8s.io/cluster-api/controllers/external"
+	"sigs.k8s.io/cluster-api/test/framework/internal/log"
+	"sigs.k8s.io/cluster-api/test/infrastructure/container"
+	inmemoryproxy "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/server/proxy"
+	"sigs.k8s.io/cluster-api/util/yaml"
+)
+
+const (
+	retryableOperationInterval = 3 * time.Second
+	// retryableOperationTimeout requires a higher value especially for self-hosted upgrades.
+	// Short unavailability of the Kube APIServer due to joining etcd members paired with unreachable conversion webhooks due to
+	// failed leader election and thus controller restarts lead to longer taking retries.
+	// The timeout occurs when listing machines in `GetControlPlaneMachinesByCluster`.
+	retryableOperationTimeout = 3 * time.Minute
+
+	initialCacheSyncTimeout = time.Minute
+)
+
+// ClusterProxy defines the behavior of a type that acts as an intermediary with an existing Kubernetes cluster.
+// It should work with any Kubernetes cluster, no matter if the Cluster was created by a bootstrap.ClusterProvider,
+// by Cluster API (a workload cluster or a self-hosted cluster) or else.
+type ClusterProxy interface {
+	// GetName returns the name of the cluster.
+	GetName() string
+
+	// GetKubeconfigPath returns the path to the kubeconfig file to be used to access the Kubernetes cluster.
+	GetKubeconfigPath() string
+
+	// GetScheme returns the scheme defining the types hosted in the Kubernetes cluster.
+	// It is used when creating a controller-runtime client.
+	GetScheme() *runtime.Scheme
+
+	// GetClient returns a controller-runtime client to the Kubernetes cluster.
+	GetClient() client.Client
+
+	// GetClientSet returns a client-go client to the Kubernetes cluster.
+	GetClientSet() *kubernetes.Clientset
+
+	// GetRESTConfig returns the REST config for direct use with client-go if needed.
+	GetRESTConfig() *rest.Config
+
+	// GetCache returns a controller-runtime cache to create informer from.
+	GetCache(ctx context.Context) ctrlcache.Cache
+
+	// GetLogCollector returns the machine log collector for the Kubernetes cluster.
+	GetLogCollector() ClusterLogCollector
+
+	// Create creates objects using the clusterProxy client.
+	// It will return an error if any object already exists.
+	Create(ctx context.Context, resources []byte, options ...CreateOption) error
+
+	// CreateOrUpdate creates or updates objects using the clusterProxy client
+	CreateOrUpdate(ctx context.Context, resources []byte, options ...CreateOrUpdateOption) error
+
+	// GetWorkloadCluster returns a proxy to a workload cluster defined in the Kubernetes cluster.
+	GetWorkloadCluster(ctx context.Context, namespace, name string, options ...Option) ClusterProxy
+
+	// CollectWorkloadClusterLogs collects machines and infrastructure logs from the workload cluster.
+	CollectWorkloadClusterLogs(ctx context.Context, namespace, name, outputPath string)
+
+	// Dispose proxy's internal resources (the operation does not affects the Kubernetes cluster).
+	// This should be implemented as a synchronous function.
+	Dispose(context.Context)
+}
+
+// createConfig contains options for use with Create.
+type createConfig struct {
+	labelSelector             labels.Selector
+	createOpts                []client.CreateOption
+	pollTimeout, pollInterval time.Duration
+}
+
+// CreateOption is a configuration option supplied to Create.
+type CreateOption func(*createConfig)
+
+// CreateWithLabelSelector allows definition of the LabelSelector to be used in Create.
+func CreateWithLabelSelector(labelSelector labels.Selector) CreateOption {
+	return func(c *createConfig) {
+		c.labelSelector = labelSelector
+	}
+}
+
+// CreateWithCreateOpts allows definition of the Create options to be used in resource Create.
+func CreateWithCreateOpts(createOpts ...client.CreateOption) CreateOption {
+	return func(c *createConfig) {
+		c.createOpts = createOpts
+	}
+}
+
+// CreateWithPolling enables retries over the specified interval.
+func CreateWithPolling(pollTimeout, pollInterval time.Duration) CreateOption {
+	return func(c *createConfig) {
+		c.pollTimeout = pollTimeout
+		c.pollInterval = pollInterval
+	}
+}
+
+// createOrUpdateConfig contains options for use with CreateOrUpdate.
+type createOrUpdateConfig struct {
+	createConfig
+	updateOpts []client.UpdateOption
+}
+
+// CreateOrUpdateOption is a configuration option supplied to CreateOrUpdate.
+type CreateOrUpdateOption func(*createOrUpdateConfig)
+
+// WithLabelSelector allows definition of the LabelSelector to be used in CreateOrUpdate.
+func WithLabelSelector(labelSelector labels.Selector) CreateOrUpdateOption {
+	return func(c *createOrUpdateConfig) {
+		c.labelSelector = labelSelector
+	}
+}
+
+// WithCreateOpts allows definition of the Create options to be used in resource Create.
+func WithCreateOpts(createOpts ...client.CreateOption) CreateOrUpdateOption {
+	return func(c *createOrUpdateConfig) {
+		c.createOpts = createOpts
+	}
+}
+
+// WithUpdateOpts allows definition of the Update options to be used in resource Update.
+func WithUpdateOpts(updateOpts ...client.UpdateOption) CreateOrUpdateOption {
+	return func(c *createOrUpdateConfig) {
+		c.updateOpts = updateOpts
+	}
+}
+
+// WithPolling enables retries over the specified interval.
+func WithPolling(pollTimeout, pollInterval time.Duration) CreateOrUpdateOption {
+	return func(c *createOrUpdateConfig) {
+		c.pollTimeout = pollTimeout
+		c.pollInterval = pollInterval
+	}
+}
+
+// ClusterLogCollector defines an object that can collect logs from a machine.
+type ClusterLogCollector interface {
+	// CollectMachineLog collects log from a machine.
+	// TODO: describe output folder struct
+	CollectMachineLog(ctx context.Context, managementClusterClient client.Client, m *clusterv1.Machine, outputPath string) error
+	CollectMachinePoolLog(ctx context.Context, managementClusterClient client.Client, m *clusterv1.MachinePool, outputPath string) error
+	// CollectInfrastructureLogs collects log from the infrastructure.
+	CollectInfrastructureLogs(ctx context.Context, managementClusterClient client.Client, c *clusterv1.Cluster, outputPath string) error
+}
+
+// Option is a configuration option supplied to NewClusterProxy.
+type Option func(*clusterProxy)
+
+// WithMachineLogCollector allows to define the machine log collector to be used with this Cluster.
+func WithMachineLogCollector(logCollector ClusterLogCollector) Option {
+	return func(c *clusterProxy) {
+		c.logCollector = logCollector
+	}
+}
+
+// WithRESTConfigModifier allows to modify the rest config in GetRESTConfig.
+// Using this function it is possible to create ClusterProxy that can work with workload clusters hosted in places
+// not directly accessible from the machine where we run the E2E tests, e.g. inside kind.
+func WithRESTConfigModifier(f func(*rest.Config)) Option {
+	return func(c *clusterProxy) {
+		c.restConfigModifier = f
+	}
+}
+
+// WithCacheOptionsModifier allows to modify the options passed to cache.New the first time it's created.
+func WithCacheOptionsModifier(f func(*ctrlcache.Options)) Option {
+	return func(c *clusterProxy) {
+		c.cacheOptionsModifier = f
+	}
+}
+
+// clusterProxy provides a base implementation of the ClusterProxy interface.
+type clusterProxy struct {
+	name                    string
+	kubeconfigPath          string
+	scheme                  *runtime.Scheme
+	shouldCleanupKubeconfig bool
+	logCollector            ClusterLogCollector
+	cache                   ctrlcache.Cache
+	onceCache               sync.Once
+
+	restConfigModifier   func(*rest.Config)
+	cacheOptionsModifier func(*ctrlcache.Options)
+}
+
+// NewClusterProxy returns a clusterProxy given a KubeconfigPath and the scheme defining the types hosted in the cluster.
+// If a kubeconfig file isn't provided, standard kubeconfig locations will be used (first with in-cluster, then kubectl loading rules apply).
+func NewClusterProxy(name string, kubeconfigPath string, scheme *runtime.Scheme, options ...Option) ClusterProxy {
+	Expect(scheme).NotTo(BeNil(), "scheme is required for NewClusterProxy")
+
+	if kubeconfigPath == "" {
+		if _, err := rest.InClusterConfig(); err != nil {
+			kubeconfigPath = clientcmd.NewDefaultClientConfigLoadingRules().GetDefaultFilename()
+		}
+	}
+
+	proxy := &clusterProxy{
+		name:                    name,
+		kubeconfigPath:          kubeconfigPath,
+		scheme:                  scheme,
+		shouldCleanupKubeconfig: false,
+	}
+
+	for _, o := range options {
+		o(proxy)
+	}
+
+	return proxy
+}
+
+// newFromAPIConfig returns a clusterProxy given a api.Config and the scheme defining the types hosted in the cluster.
+func newFromAPIConfig(name string, config *api.Config, scheme *runtime.Scheme, options ...Option) ClusterProxy {
+	// NB. the ClusterProvider is responsible for the cleanup of this file
+	f, err := os.CreateTemp("", "e2e-kubeconfig")
+	Expect(err).ToNot(HaveOccurred(), "Failed to create kubeconfig file for the kind cluster %q")
+	kubeconfigPath := f.Name()
+
+	err = clientcmd.WriteToFile(*config, kubeconfigPath)
+	Expect(err).ToNot(HaveOccurred(), "Failed to write kubeconfig for the kind cluster to a file %q")
+
+	proxy := &clusterProxy{
+		name:                    name,
+		kubeconfigPath:          kubeconfigPath,
+		scheme:                  scheme,
+		shouldCleanupKubeconfig: true,
+	}
+	for _, o := range options {
+		o(proxy)
+	}
+	return proxy
+}
+
+// GetName returns the name of the cluster.
+func (p *clusterProxy) GetName() string {
+	return p.name
+}
+
+// GetKubeconfigPath returns the path to the kubeconfig file for the cluster.
+func (p *clusterProxy) GetKubeconfigPath() string {
+	return p.kubeconfigPath
+}
+
+// GetScheme returns the scheme defining the types hosted in the cluster.
+func (p *clusterProxy) GetScheme() *runtime.Scheme {
+	return p.scheme
+}
+
+// GetClient returns a controller-runtime client for the cluster.
+func (p *clusterProxy) GetClient() client.Client {
+	config := p.GetRESTConfig()
+
+	var c client.Client
+	var newClientErr error
+	err := wait.PollUntilContextTimeout(context.TODO(), retryableOperationInterval, retryableOperationTimeout, true, func(context.Context) (bool, error) {
+		c, newClientErr = client.New(config, client.Options{Scheme: p.scheme})
+		if newClientErr != nil {
+			return false, nil //nolint:nilerr
+		}
+		return true, nil
+	})
+	errorString := "Failed to get controller-runtime client"
+	Expect(newClientErr).ToNot(HaveOccurred(), errorString)
+	Expect(err).ToNot(HaveOccurred(), errorString)
+
+	return c
+}
+
+// GetClientSet returns a client-go client for the cluster.
+func (p *clusterProxy) GetClientSet() *kubernetes.Clientset {
+	restConfig := p.GetRESTConfig()
+
+	cs, err := kubernetes.NewForConfig(restConfig)
+	Expect(err).ToNot(HaveOccurred(), "Failed to get client-go client")
+
+	return cs
+}
+
+func (p *clusterProxy) GetCache(ctx context.Context) ctrlcache.Cache {
+	p.onceCache.Do(func() {
+		opts := &ctrlcache.Options{
+			Scheme: p.scheme,
+			Mapper: p.GetClient().RESTMapper(),
+		}
+		if p.cacheOptionsModifier != nil {
+			p.cacheOptionsModifier(opts)
+		}
+
+		var err error
+		p.cache, err = ctrlcache.New(p.GetRESTConfig(), *opts)
+		Expect(err).ToNot(HaveOccurred(), "Failed to create controller-runtime cache")
+
+		go func() {
+			defer GinkgoRecover()
+			Expect(p.cache.Start(ctx)).To(Succeed())
+		}()
+
+		cacheSyncCtx, cacheSyncCtxCancel := context.WithTimeout(ctx, initialCacheSyncTimeout)
+		defer cacheSyncCtxCancel()
+		Expect(p.cache.WaitForCacheSync(cacheSyncCtx)).
+			To(BeTrue(), fmt.Sprintf("failed waiting for cache for cluster proxy to sync: %v", ctx.Err()))
+	})
+
+	return p.cache
+}
+
+// Create creates objects using the clusterProxy client.
+// It will return an error if any object already exists.
+// Defaults to use FieldValidation: strict, which can be overwritten with CreateOptions.
+func (p *clusterProxy) Create(ctx context.Context, resources []byte, opts ...CreateOption) error {
+	Expect(ctx).NotTo(BeNil(), "ctx is required for CreateOrUpdate")
+	Expect(resources).NotTo(BeNil(), "resources is required for CreateOrUpdate")
+	labelSelector := labels.Everything()
+	config := &createConfig{}
+	for _, opt := range opts {
+		opt(config)
+	}
+	if config.labelSelector != nil {
+		labelSelector = config.labelSelector
+	}
+	// Prepending field validation strict so that it is used per default, but can still be overwritten.
+	config.createOpts = append([]client.CreateOption{client.FieldValidation("Strict")}, config.createOpts...)
+	objs, err := yaml.ToUnstructured(resources)
+	if err != nil {
+		return err
+	}
+
+	retryDisabled := config.pollTimeout == 0 && config.pollInterval == 0
+	var retErrs []error
+	for _, o := range objs {
+		labels := labels.Set(o.GetLabels())
+		if labelSelector.Matches(labels) {
+			var err error
+			if retryDisabled {
+				err = p.GetClient().Create(ctx, &o, config.createOpts...)
+			} else {
+				err = wait.PollUntilContextTimeout(ctx, config.pollInterval, config.pollTimeout, true /*immediate*/, func(ctx context.Context) (bool, error) {
+					if err := p.GetClient().Create(ctx, &o, config.createOpts...); err != nil {
+						if apierrors.IsAlreadyExists(err) {
+							// Retrying won't help. Abort early.
+							return false, fmt.Errorf("create %s %s %s: %v", o.GetAPIVersion(), o.GetKind(), klog.KObj(&o), err)
+						}
+						log.Logf("error creating %s %s %s, will retry: %v", o.GetAPIVersion(), o.GetKind(), klog.KObj(&o), err)
+						return false, nil
+					}
+					return true, nil
+				})
+			}
+			if err != nil {
+				retErrs = append(retErrs, err)
+			}
+		}
+	}
+	return kerrors.NewAggregate(retErrs)
+}
+
+// CreateOrUpdate creates or updates objects using the clusterProxy client.
+// Defaults to use FieldValidation: strict, which can be overwritten with CreateOrUpdateOptions.
+func (p *clusterProxy) CreateOrUpdate(ctx context.Context, resources []byte, opts ...CreateOrUpdateOption) error {
+	Expect(ctx).NotTo(BeNil(), "ctx is required for CreateOrUpdate")
+	Expect(resources).NotTo(BeNil(), "resources is required for CreateOrUpdate")
+	labelSelector := labels.Everything()
+	config := &createOrUpdateConfig{}
+	for _, opt := range opts {
+		opt(config)
+	}
+	if config.labelSelector != nil {
+		labelSelector = config.labelSelector
+	}
+	// Prepending field validation strict so that it is used per default, but can still be overwritten.
+	config.createOpts = append([]client.CreateOption{client.FieldValidation("Strict")}, config.createOpts...)
+	config.updateOpts = append([]client.UpdateOption{client.FieldValidation("Strict")}, config.updateOpts...)
+	objs, err := yaml.ToUnstructured(resources)
+	if err != nil {
+		return err
+	}
+
+	retryDisabled := config.pollTimeout == 0 && config.pollInterval == 0
+	existingObject := &unstructured.Unstructured{}
+	var retErrs []error
+	for _, o := range objs {
+		objectKey := types.NamespacedName{
+			Name:      o.GetName(),
+			Namespace: o.GetNamespace(),
+		}
+		existingObject.SetAPIVersion(o.GetAPIVersion())
+		existingObject.SetKind(o.GetKind())
+		labels := labels.Set(o.GetLabels())
+		if labelSelector.Matches(labels) {
+			if err := p.GetClient().Get(ctx, objectKey, existingObject); err != nil {
+				// Expected error -- if the object does not exist, create it
+				if apierrors.IsNotFound(err) {
+					var err error
+					if retryDisabled {
+						err = p.GetClient().Create(ctx, &o, config.createOpts...)
+					} else {
+						err = wait.PollUntilContextTimeout(ctx, config.pollInterval, config.pollTimeout, true /*immediate*/, func(ctx context.Context) (bool, error) {
+							if err := p.GetClient().Create(ctx, &o, config.createOpts...); err != nil {
+								if apierrors.IsAlreadyExists(err) {
+									// Retrying won't help. Abort early.
+									return false, fmt.Errorf("create %s %s %s: %v", o.GetAPIVersion(), o.GetKind(), klog.KObj(&o), err)
+								}
+								log.Logf("error creating %s %s %s, will retry: %v", o.GetAPIVersion(), o.GetKind(), klog.KObj(&o), err)
+								return false, nil
+							}
+							return true, nil
+						})
+					}
+					if err != nil {
+						retErrs = append(retErrs, err)
+					}
+				} else {
+					retErrs = append(retErrs, err)
+				}
+			} else {
+				o.SetResourceVersion(existingObject.GetResourceVersion())
+				var err error
+				if retryDisabled {
+					err = p.GetClient().Update(ctx, &o, config.updateOpts...)
+				} else {
+					err = wait.PollUntilContextTimeout(ctx, config.pollInterval, config.pollTimeout, true /*immediate*/, func(ctx context.Context) (bool, error) {
+						if err := p.GetClient().Update(ctx, &o, config.updateOpts...); err != nil {
+							log.Logf("error creating %s %s %s, will retry: %v", o.GetAPIVersion(), o.GetKind(), klog.KObj(&o), err)
+							return false, nil
+						}
+						return true, nil
+					})
+				}
+				if err != nil {
+					retErrs = append(retErrs, err)
+				}
+			}
+		}
+	}
+	return kerrors.NewAggregate(retErrs)
+}
+
+func (p *clusterProxy) GetRESTConfig() *rest.Config {
+	var restConfig *rest.Config
+	var err error
+	if p.kubeconfigPath == "" {
+		restConfig, err = rest.InClusterConfig()
+		Expect(err).NotTo(HaveOccurred(), "Failed to get in-cluster config")
+	} else {
+		config, err := clientcmd.LoadFromFile(p.kubeconfigPath)
+		Expect(err).ToNot(HaveOccurred(), "Failed to load Kubeconfig file from %q", p.kubeconfigPath)
+
+		restConfig, err = clientcmd.NewDefaultClientConfig(*config, &clientcmd.ConfigOverrides{}).ClientConfig()
+		Expect(err).ToNot(HaveOccurred(), "Failed to get ClientConfig from %q", p.kubeconfigPath)
+	}
+
+	restConfig.UserAgent = "cluster-api-e2e"
+
+	if p.restConfigModifier != nil {
+		p.restConfigModifier(restConfig)
+	}
+
+	return restConfig
+}
+
+func (p *clusterProxy) GetLogCollector() ClusterLogCollector {
+	return p.logCollector
+}
+
+// GetWorkloadCluster returns ClusterProxy for the workload cluster.
+func (p *clusterProxy) GetWorkloadCluster(ctx context.Context, namespace, name string, options ...Option) ClusterProxy {
+	Expect(ctx).NotTo(BeNil(), "ctx is required for GetWorkloadCluster")
+	Expect(namespace).NotTo(BeEmpty(), "namespace is required for GetWorkloadCluster")
+	Expect(name).NotTo(BeEmpty(), "name is required for GetWorkloadCluster")
+
+	// gets the kubeconfig from the cluster
+	config := p.getKubeconfig(ctx, namespace, name)
+
+	// if we are on mac or Windows Subsystem for Linux (WSL), and the cluster is a DockerCluster, it is required to fix the control plane address
+	// by using localhost:load-balancer-host-port instead of the address used in the docker network.
+	if (goruntime.GOOS == "darwin" || os.Getenv("WSL_DISTRO_NAME") != "") && p.isDockerCluster(ctx, namespace, name) {
+		p.fixConfig(ctx, name, config)
+	}
+
+	if p.isInMemoryCluster(ctx, namespace, name) {
+		// Add REST config modifier to use port-forwarding for in-memory clusters
+		options = append(options, p.inMemoryRESTConfigModifier(namespace, name))
+	}
+
+	return newFromAPIConfig(name, config, p.scheme, options...)
+}
+
+// CollectWorkloadClusterLogs collects machines and infrastructure logs and from the workload cluster.
+func (p *clusterProxy) CollectWorkloadClusterLogs(ctx context.Context, namespace, name, outputPath string) {
+	if p.logCollector == nil {
+		fmt.Printf("Unable to get logs for workload Cluster %s: log collector is nil.\n", klog.KRef(namespace, name))
+		return
+	}
+
+	var machines *clusterv1.MachineList
+	Eventually(func() error {
+		var err error
+		machines, err = getMachinesInCluster(ctx, p.GetClient(), namespace, name)
+		return err
+	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to get Machines for the Cluster %s", klog.KRef(namespace, name))
+
+	for i := range machines.Items {
+		m := &machines.Items[i]
+		err := p.logCollector.CollectMachineLog(ctx, p.GetClient(), m, path.Join(outputPath, "machines", m.GetName()))
+		if err != nil {
+			// NB. we are treating failures in collecting logs as a non blocking operation (best effort)
+			fmt.Printf("Failed to get logs for Machine %s, Cluster %s: %v\n", m.GetName(), klog.KRef(namespace, name), err)
+		}
+	}
+
+	var machinePools *clusterv1.MachinePoolList
+	Eventually(func() error {
+		var err error
+		machinePools, err = getMachinePoolsInCluster(ctx, p.GetClient(), namespace, name)
+		return err
+	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to get MachinePools for Cluster %s", klog.KRef(namespace, name))
+
+	for i := range machinePools.Items {
+		mp := &machinePools.Items[i]
+		err := p.logCollector.CollectMachinePoolLog(ctx, p.GetClient(), mp, path.Join(outputPath, "machine-pools", mp.GetName()))
+		if err != nil {
+			// NB. we are treating failures in collecting logs as a non-blocking operation (best effort)
+			fmt.Printf("Failed to get logs for MachinePool %s, Cluster %s: %v\n", mp.GetName(), klog.KRef(namespace, name), err)
+		}
+	}
+
+	cluster := &clusterv1.Cluster{}
+	Eventually(func() error {
+		key := client.ObjectKey{
+			Namespace: namespace,
+			Name:      name,
+		}
+		return client.IgnoreNotFound(p.GetClient().Get(ctx, key, cluster))
+	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to get Cluster %s", klog.KRef(namespace, name))
+
+	if cluster != nil {
+		err := p.logCollector.CollectInfrastructureLogs(ctx, p.GetClient(), cluster, path.Join(outputPath, "infrastructure"))
+		if err != nil {
+			// NB. we are treating failures in collecting logs as a non blocking operation (best effort)
+			fmt.Printf("Failed to get infrastructure logs for Cluster %s: %v\n", klog.KRef(namespace, name), err)
+		}
+	}
+}
+
+func getMachinesInCluster(ctx context.Context, c client.Client, namespace, name string) (*clusterv1.MachineList, error) {
+	if name == "" {
+		return nil, errors.New("cluster name should not be empty")
+	}
+
+	machineList := &clusterv1.MachineList{}
+	labels := map[string]string{clusterv1.ClusterNameLabel: name}
+	if err := c.List(ctx, machineList, client.InNamespace(namespace), client.MatchingLabels(labels)); err != nil {
+		return nil, err
+	}
+
+	return machineList, nil
+}
+
+func getMachinePoolsInCluster(ctx context.Context, c client.Client, namespace, name string) (*clusterv1.MachinePoolList, error) {
+	if name == "" {
+		return nil, errors.New("cluster name should not be empty")
+	}
+
+	machinePoolList := &clusterv1.MachinePoolList{}
+	labels := map[string]string{clusterv1.ClusterNameLabel: name}
+	if err := c.List(ctx, machinePoolList, client.InNamespace(namespace), client.MatchingLabels(labels)); err != nil {
+		return nil, err
+	}
+
+	return machinePoolList, nil
+}
+
+func (p *clusterProxy) getKubeconfig(ctx context.Context, namespace string, name string) *api.Config {
+	cl := p.GetClient()
+
+	secret := &corev1.Secret{}
+	key := client.ObjectKey{
+		Name:      fmt.Sprintf("%s-kubeconfig", name),
+		Namespace: namespace,
+	}
+	Eventually(func() error {
+		return cl.Get(ctx, key, secret)
+	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to get %s", key)
+	Expect(secret.Data).To(HaveKey("value"), "Invalid secret %s", key)
+
+	config, err := clientcmd.Load(secret.Data["value"])
+	Expect(err).ToNot(HaveOccurred(), "Failed to convert %s into a kubeconfig file", key)
+
+	return config
+}
+
+func (p *clusterProxy) isDockerCluster(ctx context.Context, namespace string, name string) bool {
+	cl := p.GetClient()
+
+	cluster := &clusterv1.Cluster{}
+	key := client.ObjectKey{
+		Name:      name,
+		Namespace: namespace,
+	}
+	Eventually(func() error {
+		return cl.Get(ctx, key, cluster)
+	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to get %s", key)
+
+	if !cluster.Spec.InfrastructureRef.IsDefined() || cluster.Spec.InfrastructureRef.Kind != "DevCluster" {
+		return false
+	}
+
+	// Get the DevCluster to check if it's using docker backend
+	devCluster, err := external.GetObjectFromContractVersionedRef(ctx, cl, cluster.Spec.InfrastructureRef, namespace)
+	if err != nil {
+		return false
+	}
+
+	// Check if the DevCluster has a docker backend
+	backend, found, err := unstructured.NestedMap(devCluster.Object, "spec", "backend", "docker")
+	if err != nil || !found {
+		return false
+	}
+	return backend != nil
+}
+
+func (p *clusterProxy) fixConfig(ctx context.Context, name string, config *api.Config) {
+	containerRuntime, err := container.NewDockerClient()
+	Expect(err).ToNot(HaveOccurred(), "Failed to get Docker runtime client")
+	ctx = container.RuntimeInto(ctx, containerRuntime)
+
+	lbContainerName := name + "-lb"
+
+	// Check if the container exists locally.
+	filters := container.FilterBuilder{}
+	filters.AddKeyValue("name", lbContainerName)
+	containers, err := containerRuntime.ListContainers(ctx, filters)
+	Expect(err).ToNot(HaveOccurred())
+	if len(containers) == 0 {
+		// Return without changing the config if the container does not exist locally.
+		// Note: This is necessary when running the tests with Tilt and a remote Docker
+		// engine as the lb container running on the remote Docker engine is accessible
+		// under its normal address but not via 127.0.0.1.
+		return
+	}
+
+	port, err := containerRuntime.GetHostPort(ctx, lbContainerName, "6443/tcp")
+	Expect(err).ToNot(HaveOccurred(), "Failed to get load balancer port")
+
+	controlPlaneURL := &url.URL{
+		Scheme: "https",
+		Host:   "127.0.0.1:" + port,
+	}
+	currentCluster := config.Contexts[config.CurrentContext].Cluster
+	config.Clusters[currentCluster].Server = controlPlaneURL.String()
+}
+
+// isInMemoryCluster checks if the cluster is an in-memory cluster (DevCluster with inmemory backend).
+func (p *clusterProxy) isInMemoryCluster(ctx context.Context, namespace, name string) bool {
+	cl := p.GetClient()
+
+	cluster := &clusterv1.Cluster{}
+	key := client.ObjectKey{
+		Name:      name,
+		Namespace: namespace,
+	}
+
+	Eventually(func() error {
+		return cl.Get(ctx, key, cluster)
+	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to get %s", key)
+
+	if !cluster.Spec.InfrastructureRef.IsDefined() || cluster.Spec.InfrastructureRef.Kind != "DevCluster" {
+		return false
+	}
+
+	// Get the DevCluster to check if it's using inmemory backend
+	devCluster, err := external.GetObjectFromContractVersionedRef(ctx, cl, cluster.Spec.InfrastructureRef, namespace)
+	if err != nil {
+		return false
+	}
+
+	// Check if the DevCluster has an inmemory backend
+	backend, found, err := unstructured.NestedMap(devCluster.Object, "spec", "backend", "inMemory")
+	if err != nil || !found {
+		return false
+	}
+	return backend != nil
+}
+
+// inMemoryRESTConfigModifier returns an Option that modifies the REST config to use port-forwarding
+// for in-memory clusters.
+func (p *clusterProxy) inMemoryRESTConfigModifier(namespace, name string) Option {
+	return WithRESTConfigModifier(func(restConfig *rest.Config) {
+		log.Logf("Configuring port-forwarding for in-memory cluster %s/%s", namespace, name)
+
+		mgmtRESTConfig := p.GetRESTConfig()
+
+		dialer := &inMemoryDialer{
+			managementRESTConfig: mgmtRESTConfig,
+			clusterNamespace:     namespace,
+			clusterName:          name,
+		}
+
+		restConfig.Dial = func(ctx context.Context, _, address string) (net.Conn, error) {
+			log.Logf("Using custom dialer for address: %s", address)
+			return dialer.DialContext(ctx, address)
+		}
+
+		log.Logf("Port-forwarding dialer configured for in-memory cluster %s/%s", namespace, name)
+	})
+}
+
+// inMemoryDialer implements a custom dialer that port-forwards to in-memory API server pods.
+type inMemoryDialer struct {
+	managementRESTConfig *rest.Config
+	clusterNamespace     string
+	clusterName          string
+}
+
+// DialContext creates a connection to the in-memory API server using port-forwarding.
+func (d *inMemoryDialer) DialContext(ctx context.Context, addr string) (net.Conn, error) {
+	host, portStr, err := net.SplitHostPort(addr)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse address %s: %w", addr, err)
+	}
+
+	var apiPort int
+	if _, err := fmt.Sscanf(portStr, "%d", &apiPort); err != nil {
+		return nil, fmt.Errorf("failed to parse port %s: %w", portStr, err)
+	}
+
+	log.Logf("In-memory dialer: connecting to cluster %s/%s (original address: %s:%s, port: %d)",
+		d.clusterNamespace, d.clusterName, host, portStr, apiPort)
+
+	mgmtClient, err := client.New(d.managementRESTConfig, client.Options{})
+	if err != nil {
+		log.Logf("ERROR: Failed to create management client: %v", err)
+		return nil, fmt.Errorf("failed to create management client: %w", err)
+	}
+
+	podList := &corev1.PodList{}
+	if err := mgmtClient.List(ctx, podList,
+		client.InNamespace("capd-system"),
+		client.MatchingLabels{
+			"control-plane": "controller-manager",
+		}); err != nil {
+		return nil, fmt.Errorf("failed to list capd controller manager pods: %w", err)
+	}
+
+	if len(podList.Items) == 0 {
+		return nil, fmt.Errorf("no capd-controller-manager pod found on the management cluster")
+	}
+
+	// We assume exactly one CAPD controller manager pod.
+	if len(podList.Items) > 1 {
+		return nil, fmt.Errorf("expected exactly 1 capd-controller-manager pod, got %d", len(podList.Items))
+	}
+
+	capdevPod := podList.Items[0]
+
+	log.Logf("Port-forwarding to CAPDev pod %s in namespace %s on port %d", capdevPod.Name, capdevPod.Namespace, apiPort)
+
+	proxy := inmemoryproxy.Proxy{
+		Kind:         "pods",
+		Namespace:    capdevPod.Namespace,
+		ResourceName: capdevPod.Name,
+		KubeConfig:   d.managementRESTConfig,
+		Port:         apiPort,
+	}
+
+	pfDialer, err := inmemoryproxy.NewDialer(proxy)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create port-forward dialer: %w", err)
+	}
+
+	conn, err := pfDialer.DialContextWithAddr(ctx, capdevPod.Name)
+	if err != nil {
+		return nil, fmt.Errorf("failed to dial capdev pod %s: %w", capdevPod.Name, err)
+	}
+
+	log.Logf("Successfully established port-forward connection to CAPDev pod %s", capdevPod.Name)
+	return conn, nil
+}
+
+// Dispose clusterProxy internal resources (the operation does not affects the Kubernetes cluster).
+func (p *clusterProxy) Dispose(ctx context.Context) {
+	Expect(ctx).NotTo(BeNil(), "ctx is required for Dispose")
+
+	if p.shouldCleanupKubeconfig {
+		if err := os.Remove(p.kubeconfigPath); err != nil {
+			log.Logf("Deleting the kubeconfig file %q file. You may need to remove this by hand.", p.kubeconfigPath)
+		}
+	}
+}

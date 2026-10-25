@@ -1,0 +1,8 @@
+resources:
+- ../bases/cluster-with-kcp.yaml
+- ../bases/md.yaml
+- ../bases/crs.yaml
+
+patches:
+- path: md-taints.yaml
+- path: kcp-taints.yaml

@@ -1,0 +1,22 @@
+# Add the CR configuration from the config map.
+volumeMounts:
+- mountPath: /etc/config
+  name: config-volume
+
+volumes:
+- emptyDir: {}
+  name: config-volume
+
+extraArgs:
+- "--custom-resource-state-config-file=/etc/config/crd-metrics-config.yaml"
+
+rbac:
+  extraRules:
+  - apiGroups:
+    - apiextensions.k8s.io
+    resources:
+    - customresourcedefinitions
+    verbs:
+    - get
+    - list
+    - watch

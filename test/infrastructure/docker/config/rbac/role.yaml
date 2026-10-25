@@ -1,0 +1,113 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: manager-role
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - secrets
+  verbs:
+  - get
+  - list
+  - patch
+  - watch
+- apiGroups:
+  - apiextensions.k8s.io
+  resources:
+  - customresourcedefinitions
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - apiextensions.k8s.io
+  resourceNames:
+  - devclusters.infrastructure.cluster.x-k8s.io
+  - devclustertemplates.infrastructure.cluster.x-k8s.io
+  - devmachinepools.infrastructure.cluster.x-k8s.io
+  - devmachinepooltemplates.infrastructure.cluster.x-k8s.io
+  - devmachines.infrastructure.cluster.x-k8s.io
+  - devmachinetemplates.infrastructure.cluster.x-k8s.io
+  resources:
+  - customresourcedefinitions
+  - customresourcedefinitions/status
+  verbs:
+  - patch
+  - update
+- apiGroups:
+  - authentication.k8s.io
+  resources:
+  - tokenreviews
+  verbs:
+  - create
+- apiGroups:
+  - authorization.k8s.io
+  resources:
+  - subjectaccessreviews
+  verbs:
+  - create
+- apiGroups:
+  - cluster.x-k8s.io
+  resources:
+  - clusters
+  - machinepools
+  - machinepools/status
+  - machinesets
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - cluster.x-k8s.io
+  resources:
+  - machines
+  verbs:
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - infrastructure.cluster.x-k8s.io
+  resources:
+  - devclusters
+  - devmachinepools
+  - devmachines
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - infrastructure.cluster.x-k8s.io
+  resources:
+  - devclusters/finalizers
+  - devclusters/status
+  - devclustertemplates
+  - devmachinepools/finalizers
+  - devmachinepools/status
+  - devmachinepooltemplates
+  - devmachines/finalizers
+  - devmachines/status
+  - devmachinetemplates
+  - devmachinetemplates/status
+  verbs:
+  - get
+  - list
+  - patch
+  - update
+  - watch

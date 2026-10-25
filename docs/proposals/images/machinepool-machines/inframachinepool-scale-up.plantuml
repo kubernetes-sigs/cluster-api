@@ -1,0 +1,15 @@
+@startuml inframachinepool-scale-up
+:begin reconciling InfraMachinePool;
+if (status.InfrastructureMachineKind is set on InfraMachinePool) then (no)
+  :set status.InfrastructureMachineKind to InfraMachinePoolMachine;
+else (yes)
+endif
+while (~# up to date replicas < # desired replicas ?) is (yes)
+  :create provider specific resource representing a replica;
+endwhile (no)
+while (every replica has an InfraMachinePoolMachine?) is (no)
+  :create InfraMachinePoolMachine representing a replica;
+endwhile (yes)
+:end reconciling InfraMachinePool;
+stop
+@enduml

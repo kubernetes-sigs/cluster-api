@@ -1,0 +1,24 @@
+---
+# ClusterRole to aggregate other ClusterRoles for different Custom Resource Configurations
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: kube-state-metrics-aggregated-role
+aggregationRule:
+  clusterRoleSelectors:
+  - matchLabels:
+      kube-state-metrics/aggregate-to-manager: "true"
+---
+# ClusterRoleBinding for the aggregation role
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: kube-state-metrics-custom-resource-rolebinding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: kube-state-metrics-aggregated-role
+subjects:
+- kind: ServiceAccount
+  name: kube-state-metrics
+  namespace: observability

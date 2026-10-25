@@ -1,0 +1,43 @@
+@startuml
+
+start
+
+:Control plane controller;
+repeat
+:Control plane controller enqueues a Reconcile call;
+if (Deleted?) then (yes)
+    if (Has cluster owner?) then (yes)
+        :Reconcile deletion;
+    else (no)
+    endif
+    :Delete implementation-specific finalizer;
+else (no)
+    if (OwnerReferences contains a Cluster) then (yes)
+        :Add implementation-specific finalizer if needed;
+        #LightBlue:Get cluster object for control plane;
+        if (Cluster object has status.ControlPlaneEndpoint and status.InfrastructureReady is true) then (yes)
+          :Reconcile control plane;
+          if (Control plane is initialized) then (yes)
+            #LightBlue:Set status.Initialized to true;
+            if (Control plane is contactable) then (yes)
+              #LightBlue:Set status.Ready to true;
+            else (no)
+              #Pink:Set status.Ready to false;
+            endif
+          else (no)
+            #Pink:Return Requeue;
+          endif
+      else (no)
+      endif
+    else (no)
+    endif
+endif
+#LightBlue:Patch ImplementationControlPlane back to API server;
+repeat while (Reconcile returned RequeueError?) is (yes)
+if (Reconcile returned error) then (yes)
+#Pink:Error reconciling control plane;
+else (no)
+endif
+stop
+
+@enduml

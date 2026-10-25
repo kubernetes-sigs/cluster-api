@@ -1,0 +1,214 @@
+//go:build e2e
+// +build e2e
+
+/*
+Copyright 2020 The Kubernetes Authors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+package e2e
+
+import (
+	"fmt"
+	"path/filepath"
+	"strings"
+
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	clusterctlcluster "sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
+	"sigs.k8s.io/cluster-api/test/framework"
+	"sigs.k8s.io/cluster-api/test/framework/kubernetesversions"
+)
+
+var (
+	clusterctlDownloadURL = "https://github.com/kubernetes-sigs/cluster-api/releases/download/v%s/clusterctl-{OS}-{ARCH}"
+	providerCAPIPrefix    = "cluster-api:v%s"
+	providerKubeadmPrefix = "kubeadm:v%s"
+	providerDockerPrefix  = "docker:v%s"
+)
+
+// Note: This test should be changed during "prepare main branch", it should test n-3 => current.
+var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.12=>current) [ClusterClass]", Label("ClusterClass"), func() {
+	// Get n-3 latest stable release
+	version := "1.12"
+	stableRelease, err := GetStableReleaseOfMinor(ctx, version)
+	Expect(err).ToNot(HaveOccurred(), "Failed to get stable version for minor release : %s", version)
+	ClusterctlUpgradeSpec(ctx, func() ClusterctlUpgradeSpecInput {
+		return ClusterctlUpgradeSpecInput{
+			E2EConfig:             e2eConfig,
+			ClusterctlConfigPath:  clusterctlConfigPath,
+			BootstrapClusterProxy: bootstrapClusterProxy,
+			ArtifactFolder:        artifactFolder,
+			SkipCleanup:           skipCleanup,
+			InitWithBinary:        fmt.Sprintf(clusterctlDownloadURL, stableRelease),
+			// We have to pin the providers because with `InitWithProvidersContract` the test would
+			// use the latest version for the contract (which is the next minor for v1beta1).
+			InitWithCoreProvider:            fmt.Sprintf(providerCAPIPrefix, stableRelease),
+			InitWithBootstrapProviders:      []string{fmt.Sprintf(providerKubeadmPrefix, stableRelease)},
+			InitWithControlPlaneProviders:   []string{fmt.Sprintf(providerKubeadmPrefix, stableRelease)},
+			InitWithInfrastructureProviders: []string{fmt.Sprintf(providerDockerPrefix, stableRelease)},
+			InitWithProvidersContract:       "v1beta1",
+			// Note: Both InitWithKubernetesVersion and WorkloadKubernetesVersion should be the highest mgmt cluster version supported by the source Cluster API version.
+			// When picking this version, please check also the list of versions known by the source Cluster API version (rif. test/infrastructure/kind/mapper.go).
+			InitWithKubernetesVersion:            "v1.35.0",
+			WorkloadKubernetesVersion:            "v1.35.0",
+			MgmtFlavor:                           "topology",
+			WorkloadFlavor:                       "in-memory-topology",
+			UseKindForManagementCluster:          true,
+			PreCleanupManagementClusterProviders: dumpAdditionalResources,
+		}
+	})
+})
+
+// Note: This test should be changed during "prepare main branch", it should test n-2 => current.
+var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.13=>current) [ClusterClass]", Label("ClusterClass"), func() {
+	// Get n-2 latest stable release
+	version := "1.13"
+	stableRelease, err := GetStableReleaseOfMinor(ctx, version)
+	Expect(err).ToNot(HaveOccurred(), "Failed to get stable version for minor release : %s", version)
+	ClusterctlUpgradeSpec(ctx, func() ClusterctlUpgradeSpecInput {
+		return ClusterctlUpgradeSpecInput{
+			E2EConfig:             e2eConfig,
+			ClusterctlConfigPath:  clusterctlConfigPath,
+			BootstrapClusterProxy: bootstrapClusterProxy,
+			ArtifactFolder:        artifactFolder,
+			SkipCleanup:           skipCleanup,
+			InitWithBinary:        fmt.Sprintf(clusterctlDownloadURL, stableRelease),
+			// We have to pin the providers because with `InitWithProvidersContract` the test would
+			// use the latest version for the contract (which is the next minor for v1beta1).
+			InitWithCoreProvider:            fmt.Sprintf(providerCAPIPrefix, stableRelease),
+			InitWithBootstrapProviders:      []string{fmt.Sprintf(providerKubeadmPrefix, stableRelease)},
+			InitWithControlPlaneProviders:   []string{fmt.Sprintf(providerKubeadmPrefix, stableRelease)},
+			InitWithInfrastructureProviders: []string{fmt.Sprintf(providerDockerPrefix, stableRelease)},
+			InitWithProvidersContract:       "v1beta1",
+			Upgrades: []ClusterctlUpgradeSpecInputUpgrade{
+				{ // Upgrade to latest contract version.
+					Contract: clusterv1.GroupVersion.Version,
+					PostUpgrade: func(proxy framework.ClusterProxy, namespace, clusterName string) {
+						framework.ValidateCRDMigration(ctx, proxy, namespace, clusterName,
+							crdShouldBeMigrated, clusterctlcluster.FilterClusterObjectsWithNameFilter(clusterName))
+					},
+				},
+			},
+			// Note: Both InitWithKubernetesVersion and WorkloadKubernetesVersion should be the highest mgmt cluster version supported by the source Cluster API version.
+			// When picking this version, please check also the list of versions known by the source Cluster API version (rif. test/infrastructure/kind/mapper.go).
+			InitWithKubernetesVersion:            "v1.36.1",
+			WorkloadKubernetesVersion:            "v1.36.1",
+			MgmtFlavor:                           "topology",
+			WorkloadFlavor:                       "in-memory-topology",
+			UseKindForManagementCluster:          true,
+			PreCleanupManagementClusterProviders: dumpAdditionalResources,
+		}
+	})
+})
+
+// Note: This test should be changed during "prepare main branch", it should test n-1 => current.
+var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.14=>current) [ClusterClass]", Label("ClusterClass"), func() {
+	// Get n-1 latest stable release
+	version := "1.14"
+	stableRelease, err := GetStableReleaseOfMinor(ctx, version)
+	Expect(err).ToNot(HaveOccurred(), "Failed to get stable version for minor release : %s", version)
+	ClusterctlUpgradeSpec(ctx, func() ClusterctlUpgradeSpecInput {
+		return ClusterctlUpgradeSpecInput{
+			E2EConfig:                 e2eConfig,
+			ClusterctlConfigPath:      clusterctlConfigPath,
+			BootstrapClusterProxy:     bootstrapClusterProxy,
+			ArtifactFolder:            artifactFolder,
+			SkipCleanup:               skipCleanup,
+			InitWithBinary:            fmt.Sprintf(clusterctlDownloadURL, stableRelease),
+			InitWithProvidersContract: "v1beta1",
+			Upgrades: []ClusterctlUpgradeSpecInputUpgrade{
+				{ // Upgrade to latest contract version.
+					Contract: clusterv1.GroupVersion.Version,
+					PostUpgrade: func(proxy framework.ClusterProxy, namespace, clusterName string) {
+						framework.ValidateCRDMigration(ctx, proxy, namespace, clusterName,
+							crdShouldBeMigrated, clusterctlcluster.FilterClusterObjectsWithNameFilter(clusterName))
+					},
+				},
+			},
+			// Note: Both InitWithKubernetesVersion and WorkloadKubernetesVersion should be the highest mgmt cluster version supported by the source Cluster API version.
+			// When picking this version, please check also the list of versions known by the source Cluster API version (rif. test/infrastructure/kind/mapper.go).
+			InitWithKubernetesVersion:            "v1.37.0",
+			WorkloadKubernetesVersion:            "v1.37.0",
+			MgmtFlavor:                           "topology",
+			WorkloadFlavor:                       "in-memory-topology",
+			UseKindForManagementCluster:          false, // Using false for one test case to ensure this code path of the test keeps working.
+			PreCleanupManagementClusterProviders: dumpAdditionalResources,
+		}
+	})
+})
+
+// Note: This test should be changed during "prepare main branch", it should test n-1 => current.
+var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.14=>current) on K8S latest ci mgmt cluster [ClusterClass]", Label("ClusterClass"), func() {
+	// Get n-1 latest stable release
+	version := "1.14"
+	stableRelease, err := GetStableReleaseOfMinor(ctx, version)
+	Expect(err).ToNot(HaveOccurred(), "Failed to get stable version for minor release : %s", version)
+	ClusterctlUpgradeSpec(ctx, func() ClusterctlUpgradeSpecInput {
+		initKubernetesVersion, err := kubernetesversions.ResolveVersion(ctx, e2eConfig.MustGetVariable("KUBERNETES_VERSION_LATEST_CI"))
+		Expect(err).ToNot(HaveOccurred())
+		return ClusterctlUpgradeSpecInput{
+			E2EConfig:                 e2eConfig,
+			ClusterctlConfigPath:      clusterctlConfigPath,
+			BootstrapClusterProxy:     bootstrapClusterProxy,
+			ArtifactFolder:            artifactFolder,
+			SkipCleanup:               skipCleanup,
+			InitWithBinary:            fmt.Sprintf(clusterctlDownloadURL, stableRelease),
+			InitWithProvidersContract: "v1beta1",
+			Upgrades: []ClusterctlUpgradeSpecInputUpgrade{
+				{ // Upgrade to latest contract version.
+					Contract: clusterv1.GroupVersion.Version,
+					PostUpgrade: func(proxy framework.ClusterProxy, namespace, clusterName string) {
+						framework.ValidateCRDMigration(ctx, proxy, namespace, clusterName,
+							crdShouldBeMigrated, clusterctlcluster.FilterClusterObjectsWithNameFilter(clusterName))
+					},
+				},
+			},
+			// Note: InitWithKubernetesVersion should be the latest of the next supported kubernetes version by the target Cluster API version.
+			// Note: WorkloadKubernetesVersion should be the highest mgmt cluster version supported by the source Cluster API version.
+			// When picking this version, please check also the list of versions known by the source Cluster API version (rif. test/infrastructure/kind/mapper.go).
+			InitWithKubernetesVersion:            initKubernetesVersion,
+			WorkloadKubernetesVersion:            "v1.37.0",
+			MgmtFlavor:                           "topology",
+			WorkloadFlavor:                       "in-memory-topology",
+			UseKindForManagementCluster:          true,
+			PreCleanupManagementClusterProviders: dumpAdditionalResources,
+		}
+	})
+})
+
+func crdShouldBeMigrated(crd apiextensionsv1.CustomResourceDefinition) bool {
+	return strings.HasSuffix(crd.Name, ".cluster.x-k8s.io") &&
+		crd.Name != "providers.clusterctl.cluster.x-k8s.io"
+}
+
+func dumpAdditionalResources(managementClusterProxy framework.ClusterProxy) {
+	// Dump cert-manager resources, secrets, CRDs and webhook configurations to allow debugging of certificate issues.
+	framework.DumpResourcesForCluster(ctx, framework.DumpResourcesForClusterInput{
+		Lister:  managementClusterProxy.GetClient(),
+		LogPath: filepath.Join(artifactFolder, "clusters", managementClusterProxy.GetName(), "resources"),
+		Resources: []framework.DumpNamespaceAndGVK{
+			{GVK: schema.GroupVersionKind{Group: "apiextensions.k8s.io", Version: "v1", Kind: "CustomResourceDefinition"}},
+			{GVK: schema.GroupVersionKind{Group: "admissionregistration.k8s.io", Version: "v1", Kind: "MutatingWebhookConfiguration"}},
+			{GVK: schema.GroupVersionKind{Group: "admissionregistration.k8s.io", Version: "v1", Kind: "ValidatingWebhookConfiguration"}},
+			{GVK: schema.GroupVersionKind{Group: "cert-manager.io", Version: "v1", Kind: "Issuer"}},
+			{GVK: schema.GroupVersionKind{Group: "cert-manager.io", Version: "v1", Kind: "Certificate"}},
+			{GVK: schema.GroupVersionKind{Group: "", Version: "v1", Kind: "Secret"}},
+		},
+	})
+}

@@ -1,0 +1,15 @@
+# Note: this is specific of the CAPI test-extension, because it uses a ConfigMap to define life-cycle hooks answers.
+# other Runtime extensions provider might want to drop this ClusterRoleBinding or make it scoped to a namespace changing kind to RoleBinding.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  creationTimestamp: null
+  name: manager-rolebinding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: manager-role
+subjects:
+- kind: ServiceAccount
+  name: manager
+  namespace: system

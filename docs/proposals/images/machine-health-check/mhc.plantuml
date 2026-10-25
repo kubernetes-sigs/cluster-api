@@ -1,0 +1,20 @@
+@startuml
+start;
+:Machine Health Check controller;
+repeat
+  repeat
+    :Watch MHCs;
+    :Find unhealthy targets: Need remediation or going towards timeout;
+  repeat while (unhealthyTargets > maxUnhealthy) is (yes)
+  -> no;
+repeat while (API server machine deletion requests for machines that need remediation) is (requeue with minTime to timeout delay)
+
+-[#blue,dashed]-> Out of band;
+#LightBlue:The machine owner controller watches deletion timestamp.
+Reconciles towards desired number of replicas.
+The process to create a new machine/node starts;
+#LightBlue:The machine controller drains the unhealthy node;
+#LightBlue:The machine controller provider deletes the unhealthy instance;
+#LightBlue:The machine controller removes the unhealthy machine finalizer;
+#LightBlue:The API server removes the unhealthy machine resource;
+@enduml

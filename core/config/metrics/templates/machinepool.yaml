@@ -1,0 +1,119 @@
+  - groupVersionKind:
+      group: cluster.x-k8s.io
+      kind: MachinePool
+      version: v1beta1
+    labelsFromPath:
+      cluster_name:
+      - spec
+      - clusterName
+      name:
+      - metadata
+      - name
+      namespace:
+      - metadata
+      - namespace
+      uid:
+      - metadata
+      - uid
+    metricNamePrefix: capi_machinepool
+    metrics:
+    - name: spec_replicas
+      help: The number of desired machines for a machinepool.
+      each:
+        gauge:
+          path:
+          - spec
+          - replicas
+        type: Gauge
+    - name: status_replicas
+      help: The number of replicas per machinepool.
+      each:
+        gauge:
+          path:
+          - status
+          - replicas
+          nilIsZero: true
+        type: Gauge
+    - name: status_replicas_ready
+      help: The number of ready replicas per machinepool.
+      each:
+        gauge:
+          path:
+          - status
+          - readyReplicas
+          nilIsZero: true
+        type: Gauge
+    - name: status_replicas_available
+      help: The number of available replicas per machinepool.
+      each:
+        gauge:
+          path:
+          - status
+          - availableReplicas
+          nilIsZero: true
+        type: Gauge
+    - name: status_replicas_unavailable
+      help: The number of unavailable replicas per machinepool.
+      each:
+        gauge:
+          path:
+          - status
+          - unavailableReplicas
+          nilIsZero: true
+        type: Gauge
+    - name: info
+      each:
+        type: Info
+        info:
+          labelsFromPath:
+            infrastructure_reference_name:
+            - spec
+            - template
+            - spec
+            - infrastructureRef
+            - name
+            infrastructure_reference_kind:
+            - spec
+            - template
+            - spec
+            - infrastructureRef
+            - kind
+            bootstrap_configuration_reference_name:
+            - spec
+            - template
+            - spec
+            - bootstrap
+            - configRef
+            - name
+            bootstrap_configuration_reference_kind:
+            - spec
+            - template
+            - spec
+            - bootstrap
+            - configRef
+            - kind
+            failure_domain:
+            - spec
+            - template
+            - spec
+            - failureDomain
+            version:
+            - spec
+            - template
+            - spec
+            - version
+    - name: status_phase
+      help: The machinepools current phase.
+      each:
+        stateSet:
+          labelName: phase
+          list:
+          - ScalingUp
+          - ScalingDown
+          - Running
+          - Failed
+          - Unknown
+          path:
+          - status
+          - phase
+        type: StateSet

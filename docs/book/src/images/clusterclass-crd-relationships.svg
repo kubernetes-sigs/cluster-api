@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="720" viewBox="0 0 1200 720">
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto" markerUnits="strokeWidth">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#333333"/>
+    </marker>
+  </defs>
+
+  <rect x="0" y="0" width="1200" height="720" fill="#FFFFFF"/>
+  <g transform="translate(-30,-30) scale(1.05)">
+  <rect x="40" y="320" width="220" height="80" rx="6" ry="6" fill="#E8EEF7" stroke="#4F81BD" stroke-width="1.5"/>
+  <text x="150" y="345" font-family="Helvetica, Arial, sans-serif" font-size="13" text-anchor="middle">
+    <tspan x="150" dy="0">Cluster</tspan>
+    <tspan x="150" dy="16">cluster.x-k8s.io/v1beta2</tspan>
+    <tspan x="150" dy="16">spec.topology.classRef</tspan>
+  </text>
+
+  <rect x="320" y="300" width="260" height="120" rx="6" ry="6" fill="#E8EEF7" stroke="#4F81BD" stroke-width="1.5"/>
+  <text x="450" y="330" font-family="Helvetica, Arial, sans-serif" font-size="13" text-anchor="middle">
+    <tspan x="450" dy="0">ClusterClass</tspan>
+    <tspan x="450" dy="16">cluster.x-k8s.io/v1beta2</tspan>
+    <tspan x="450" dy="16">spec.*.templateRef</tspan>
+  </text>
+
+  <line x1="260" y1="360" x2="320" y2="360" stroke="#333333" stroke-width="1.5" stroke-dasharray="6,4" marker-end="url(#arrow)"/>
+  <text x="275" y="345" font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#333333">classRef</text>
+
+  <line x1="580" y1="360" x2="600" y2="360" stroke="#333333" stroke-width="1.5" stroke-dasharray="6,4" marker-end="url(#arrow)"/>
+  <line x1="600" y1="70" x2="600" y2="645" stroke="#888888" stroke-width="1"/>
+
+  <rect x="640" y="30" width="520" height="170" rx="6" ry="6" fill="#F7FAFD" stroke="#DDE5ED" stroke-width="1"/>
+  <text x="650" y="50" font-family="Helvetica, Arial, sans-serif" font-size="12" font-weight="bold">Control plane</text>
+
+  <rect x="640" y="215" width="520" height="100" rx="6" ry="6" fill="#F7FAFD" stroke="#DDE5ED" stroke-width="1"/>
+  <text x="650" y="235" font-family="Helvetica, Arial, sans-serif" font-size="12" font-weight="bold">Cluster infrastructure</text>
+
+  <rect x="640" y="330" width="520" height="170" rx="6" ry="6" fill="#F7FAFD" stroke="#DDE5ED" stroke-width="1"/>
+  <text x="650" y="350" font-family="Helvetica, Arial, sans-serif" font-size="12" font-weight="bold">Workers (MachineDeployments)</text>
+
+  <rect x="640" y="515" width="520" height="170" rx="6" ry="6" fill="#F7FAFD" stroke="#DDE5ED" stroke-width="1"/>
+  <text x="650" y="535" font-family="Helvetica, Arial, sans-serif" font-size="12" font-weight="bold">Workers (MachinePools, optional)</text>
+
+  <rect x="820" y="55" width="330" height="60" rx="6" ry="6" fill="#EBF6F7" stroke="#6FA7B3" stroke-width="1.5"/>
+  <text x="985" y="73" font-family="Helvetica, Arial, sans-serif" font-size="11" text-anchor="middle">
+    <tspan x="985" dy="0">KubeadmControlPlane</tspan>
+    <tspan x="985" dy="13">Template</tspan>
+    <tspan x="985" dy="13">controlplane.cluster.x-k8s.io/v1beta2</tspan>
+  </text>
+
+  <rect x="820" y="125" width="330" height="60" rx="6" ry="6" fill="#D9EAD3" stroke="#6AA84F" stroke-width="1.5"/>
+  <text x="985" y="143" font-family="Helvetica, Arial, sans-serif" font-size="11" text-anchor="middle">
+    <tspan x="985" dy="0">InfrastructureMachine</tspan>
+    <tspan x="985" dy="13">Template (control plane)</tspan>
+    <tspan x="985" dy="13">infrastructure.cluster.x-k8s.io/v1beta2</tspan>
+  </text>
+
+  <rect x="820" y="235" width="330" height="60" rx="6" ry="6" fill="#D9EAD3" stroke="#6AA84F" stroke-width="1.5"/>
+  <text x="985" y="253" font-family="Helvetica, Arial, sans-serif" font-size="11" text-anchor="middle">
+    <tspan x="985" dy="0">InfrastructureCluster</tspan>
+    <tspan x="985" dy="13">Template</tspan>
+    <tspan x="985" dy="13">infrastructure.cluster.x-k8s.io/v1beta2</tspan>
+  </text>
+
+  <rect x="820" y="355" width="330" height="60" rx="6" ry="6" fill="#FEF4F4" stroke="#D5A6BD" stroke-width="1.5"/>
+  <text x="985" y="373" font-family="Helvetica, Arial, sans-serif" font-size="11" text-anchor="middle">
+    <tspan x="985" dy="0">KubeadmConfig</tspan>
+    <tspan x="985" dy="13">Template (MD)</tspan>
+    <tspan x="985" dy="13">bootstrap.cluster.x-k8s.io/v1beta2</tspan>
+  </text>
+
+  <rect x="820" y="425" width="330" height="60" rx="6" ry="6" fill="#D9EAD3" stroke="#6AA84F" stroke-width="1.5"/>
+  <text x="985" y="443" font-family="Helvetica, Arial, sans-serif" font-size="11" text-anchor="middle">
+    <tspan x="985" dy="0">InfrastructureMachine</tspan>
+    <tspan x="985" dy="13">Template (workers)</tspan>
+    <tspan x="985" dy="13">infrastructure.cluster.x-k8s.io/v1beta2</tspan>
+  </text>
+
+  <rect x="820" y="540" width="330" height="60" rx="6" ry="6" fill="#FEF4F4" stroke="#D5A6BD" stroke-width="1.5"/>
+  <text x="985" y="558" font-family="Helvetica, Arial, sans-serif" font-size="11" text-anchor="middle">
+    <tspan x="985" dy="0">KubeadmConfig</tspan>
+    <tspan x="985" dy="13">Template (MP)</tspan>
+    <tspan x="985" dy="13">bootstrap.cluster.x-k8s.io/v1beta2</tspan>
+  </text>
+
+  <rect x="820" y="610" width="330" height="60" rx="6" ry="6" fill="#D9EAD3" stroke="#6AA84F" stroke-width="1.5"/>
+  <text x="985" y="628" font-family="Helvetica, Arial, sans-serif" font-size="11" text-anchor="middle">
+    <tspan x="985" dy="0">InfrastructureMachinePool</tspan>
+    <tspan x="985" dy="13">Template</tspan>
+    <tspan x="985" dy="13">infrastructure.cluster.x-k8s.io/v1beta2</tspan>
+  </text>
+
+  <line x1="600" y1="85" x2="820" y2="85" stroke="#333333" stroke-width="1.5" stroke-dasharray="6,4" marker-end="url(#arrow)"/>
+  <text x="610" y="99" font-family="Helvetica, Arial, sans-serif" font-size="10" fill="#333333">
+    <tspan x="610" dy="0">spec.controlPlane</tspan>
+    <tspan x="610" dy="12">templateRef</tspan>
+  </text>
+
+  <line x1="600" y1="155" x2="820" y2="155" stroke="#333333" stroke-width="1.5" stroke-dasharray="6,4" marker-end="url(#arrow)"/>
+  <text x="610" y="169" font-family="Helvetica, Arial, sans-serif" font-size="10" fill="#333333">
+    <tspan x="610" dy="0">spec.controlPlane.machineInfrastructure</tspan>
+    <tspan x="610" dy="12">templateRef (optional)</tspan>
+  </text>
+
+  <line x1="600" y1="265" x2="820" y2="265" stroke="#333333" stroke-width="1.5" stroke-dasharray="6,4" marker-end="url(#arrow)"/>
+  <text x="610" y="279" font-family="Helvetica, Arial, sans-serif" font-size="10" fill="#333333">
+    <tspan x="610" dy="0">spec.infrastructure</tspan>
+    <tspan x="610" dy="12">templateRef</tspan>
+  </text>
+
+  <line x1="600" y1="385" x2="820" y2="385" stroke="#333333" stroke-width="1.5" stroke-dasharray="6,4" marker-end="url(#arrow)"/>
+  <text x="610" y="399" font-family="Helvetica, Arial, sans-serif" font-size="10" fill="#333333">
+    <tspan x="610" dy="0">spec.workers.machineDeployments[]</tspan>
+    <tspan x="610" dy="12">bootstrap.templateRef</tspan>
+  </text>
+
+  <line x1="600" y1="455" x2="820" y2="455" stroke="#333333" stroke-width="1.5" stroke-dasharray="6,4" marker-end="url(#arrow)"/>
+  <text x="610" y="469" font-family="Helvetica, Arial, sans-serif" font-size="10" fill="#333333">
+    <tspan x="610" dy="0">spec.workers.machineDeployments[]</tspan>
+    <tspan x="610" dy="12">infrastructure.templateRef</tspan>
+  </text>
+
+  <line x1="600" y1="570" x2="820" y2="570" stroke="#333333" stroke-width="1.5" stroke-dasharray="6,4" marker-end="url(#arrow)"/>
+  <text x="610" y="584" font-family="Helvetica, Arial, sans-serif" font-size="10" fill="#333333">
+    <tspan x="610" dy="0">spec.workers.machinePools[]</tspan>
+    <tspan x="610" dy="12">bootstrap.templateRef</tspan>
+  </text>
+
+  <line x1="600" y1="640" x2="820" y2="640" stroke="#333333" stroke-width="1.5" stroke-dasharray="6,4" marker-end="url(#arrow)"/>
+  <text x="610" y="654" font-family="Helvetica, Arial, sans-serif" font-size="10" fill="#333333">
+    <tspan x="610" dy="0">spec.workers.machinePools[]</tspan>
+    <tspan x="610" dy="12">infrastructure.templateRef</tspan>
+  </text>
+
+  <text x="40" y="705" font-family="Helvetica, Arial, sans-serif" font-size="10" font-weight="bold">Legend:</text>
+  <rect x="95" y="695" width="10" height="10" fill="#E8EEF7" stroke="#4F81BD" stroke-width="0.5"/>
+  <text x="110" y="704" font-family="Helvetica, Arial, sans-serif" font-size="10">cluster/core</text>
+  <rect x="200" y="695" width="10" height="10" fill="#EBF6F7" stroke="#6FA7B3" stroke-width="0.5"/>
+  <text x="215" y="704" font-family="Helvetica, Arial, sans-serif" font-size="10">control plane</text>
+  <rect x="310" y="695" width="10" height="10" fill="#FEF4F4" stroke="#D5A6BD" stroke-width="0.5"/>
+  <text x="325" y="704" font-family="Helvetica, Arial, sans-serif" font-size="10">bootstrap</text>
+  <rect x="400" y="695" width="10" height="10" fill="#D9EAD3" stroke="#6AA84F" stroke-width="0.5"/>
+  <text x="415" y="704" font-family="Helvetica, Arial, sans-serif" font-size="10">infrastructure</text>
+  <line x1="520" y1="700" x2="560" y2="700" stroke="#333333" stroke-width="1" stroke-dasharray="6,4" marker-end="url(#arrow)"/>
+  <text x="570" y="704" font-family="Helvetica, Arial, sans-serif" font-size="10">templateRef</text>
+  <text x="670" y="704" font-family="Helvetica, Arial, sans-serif" font-size="10">MD = machineDeployments, MP = machinePools</text>
+</g>
+</svg>

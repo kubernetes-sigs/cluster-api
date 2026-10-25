@@ -1,0 +1,13 @@
+@startuml machinepool-machine-reconcile
+:begin reconciling Machine;
+if (is deleting?) then (no)
+  :ensure InfraMachinePoolMachine has ownerRef to Machine;
+else (yes)
+  :cordon and drain node;
+  :delete InfraMachinePoolMachine;
+  :wait for InfraMachinePoolMachine to be deleted;
+  :delete node;
+endif
+:continue reconciling Machine;
+stop
+@enduml

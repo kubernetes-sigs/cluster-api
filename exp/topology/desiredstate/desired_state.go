@@ -1,0 +1,1756 @@
+/*
+Copyright 2021 The Kubernetes Authors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+// Package desiredstate contains cluster topology utils, e.g. to compute the desired state.
+package desiredstate
+
+import (
+	"context"
+	"fmt"
+	"maps"
+	"reflect"
+	"time"
+
+	pkgerrors "github.com/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/klog/v2"
+	"k8s.io/utils/ptr"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	runtimecatalog "sigs.k8s.io/cluster-api/api/runtime/catalog"
+	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
+	"sigs.k8s.io/cluster-api/controllers/clustercache"
+	"sigs.k8s.io/cluster-api/controllers/external"
+	"sigs.k8s.io/cluster-api/core/reconcilers/topology/cluster/patches"
+	coreadmission "sigs.k8s.io/cluster-api/core/webhooks/admission"
+	runtimeclient "sigs.k8s.io/cluster-api/exp/runtime/client"
+	"sigs.k8s.io/cluster-api/exp/topology/scope"
+	"sigs.k8s.io/cluster-api/feature"
+	"sigs.k8s.io/cluster-api/internal/contract"
+	"sigs.k8s.io/cluster-api/internal/hooks"
+	"sigs.k8s.io/cluster-api/internal/topology/clustershim"
+	topologynames "sigs.k8s.io/cluster-api/internal/topology/names"
+	"sigs.k8s.io/cluster-api/internal/topology/ownerrefs"
+	"sigs.k8s.io/cluster-api/internal/topology/selectors"
+	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/cache"
+	conversionutil "sigs.k8s.io/cluster-api/util/conversion"
+)
+
+// Generator is a generator to generate the desired state.
+type Generator interface {
+	Generate(ctx context.Context, s *scope.Scope) (*scope.ClusterState, error)
+}
+
+// NewGenerator creates a new generator to generate desired state.
+func NewGenerator(client client.Client, clusterCache clustercache.ClusterCache, runtimeClient runtimeclient.Client, hookCache cache.Cache[cache.HookEntry], getUpgradePlanCache cache.Cache[GenerateUpgradePlanCacheEntry]) (Generator, error) {
+	if client == nil || clusterCache == nil {
+		return nil, pkgerrors.New("Client and ClusterCache must not be nil")
+	}
+
+	if feature.Gates.Enabled(feature.RuntimeSDK) && runtimeClient == nil {
+		return nil, pkgerrors.New("RuntimeClient must not be nil")
+	}
+
+	return &generator{
+		Client:              client,
+		ClusterCache:        clusterCache,
+		RuntimeClient:       runtimeClient,
+		hookCache:           hookCache,
+		getUpgradePlanCache: getUpgradePlanCache,
+		patchEngine:         patches.NewEngine(client, runtimeClient),
+	}, nil
+}
+
+// generator is a generator to generate desired state.
+// It is used in the cluster topology controller, but it can also be used for testing.
+type generator struct {
+	Client client.Client
+
+	ClusterCache clustercache.ClusterCache
+
+	RuntimeClient runtimeclient.Client
+
+	hookCache           cache.Cache[cache.HookEntry]
+	getUpgradePlanCache cache.Cache[GenerateUpgradePlanCacheEntry]
+
+	// patchEngine is used to apply patches during computeDesiredState.
+	patchEngine patches.Engine
+}
+
+// Generate computes the desired state of the cluster topology.
+// NOTE: We are assuming all the required objects are provided as input; also, in case of any error,
+// the entire compute operation will fail. This might be improved in the future if support for reconciling
+// subset of a topology will be implemented.
+func (g *generator) Generate(ctx context.Context, s *scope.Scope) (*scope.ClusterState, error) {
+	var err error
+	desiredState := &scope.ClusterState{
+		ControlPlane: &scope.ControlPlaneState{},
+	}
+
+	// Compute the desired state of the InfrastructureCluster object.
+	if desiredState.InfrastructureCluster, err = computeInfrastructureCluster(ctx, s); err != nil {
+		return nil, pkgerrors.Wrapf(err, "failed to compute InfrastructureCluster")
+	}
+
+	// If the clusterClass mandates the controlPlane has infrastructureMachines, compute the InfrastructureMachineTemplate for the ControlPlane.
+	if s.Blueprint.HasControlPlaneInfrastructureMachine() {
+		if desiredState.ControlPlane.InfrastructureMachineTemplate, err = g.computeControlPlaneInfrastructureMachineTemplate(ctx, s); err != nil {
+			return nil, pkgerrors.Wrapf(err, "failed to compute ControlPlane InfrastructureMachineTemplate")
+		}
+	}
+
+	// Compute the upgradePlan.
+	// By default CAPI allows to upgrade only by one minor, but if the cluster class defines an upgrade plan extension,
+	// the upgrade plan will be computed by calling the extension. Otherwise, if the cluster class defines a list of
+	// Kubernetes versions, the upgrade plan will be inferred from those versions.
+	// Runtime extension takes precedence if defined.
+	getUpgradePlan := GetUpgradePlanOneMinor
+	if s.Blueprint.ClusterClass.Spec.Upgrade.External.GenerateUpgradePlanExtension != "" {
+		getUpgradePlan = GetUpgradePlanFromExtension(g.RuntimeClient, g.getUpgradePlanCache, s.Current.Cluster, s.Blueprint.ClusterClass.Spec.Upgrade.External.GenerateUpgradePlanExtension)
+	} else if len(s.Blueprint.ClusterClass.Spec.KubernetesVersions) > 0 {
+		getUpgradePlan = GetUpgradePlanFromClusterClassVersions(s.Blueprint.ClusterClass.Spec.KubernetesVersions)
+	}
+	if err := ComputeUpgradePlan(ctx, s, getUpgradePlan); err != nil {
+		return nil, err
+	}
+	s.UpgradeTracker.ComputeUpgradePlanSucceeded = true
+
+	// Mark all the MachineDeployments that are currently upgrading.
+	// This captured information is used for:
+	// - Building the TopologyReconciled condition.
+	// - Make upgrade decisions on the control plane.
+	// - Making upgrade decisions on machine deployments.
+	mdUpgradingNames, err := s.Current.MachineDeployments.Upgrading(ctx, g.Client)
+	if err != nil {
+		return nil, pkgerrors.Wrap(err, "failed to check if any MachineDeployment is upgrading")
+	}
+	s.UpgradeTracker.MachineDeployments.MarkUpgrading(mdUpgradingNames...)
+
+	// Mark all the MachinePools that are currently upgrading.
+	// This captured information is used for:
+	// - Building the TopologyReconciled condition.
+	// - Make upgrade decisions on the control plane.
+	// - Making upgrade decisions on machine pools.
+	if len(s.Current.MachinePools) > 0 {
+		machinePoolsHaveMachines := false
+		for _, mp := range s.Current.MachinePools {
+			if len(mp.Object.Status.NodeRefs) > 0 {
+				machinePoolsHaveMachines = true
+				break
+			}
+		}
+
+		// MachinePools can only be upgrading if they have Machines.
+		// Skipping over the check if they have no Machines, also to avoid failing
+		// desired state calculation during Cluster creation where there is no
+		// connection to the workload cluster yet.
+		if machinePoolsHaveMachines {
+			client, err := g.ClusterCache.GetClient(ctx, client.ObjectKeyFromObject(s.Current.Cluster))
+			if err != nil {
+				return nil, pkgerrors.Wrap(err, "failed to check if any MachinePool is upgrading")
+			}
+			// Mark all the MachinePools that are currently upgrading.
+			mpUpgradingNames, err := s.Current.MachinePools.Upgrading(ctx, client)
+			if err != nil {
+				return nil, pkgerrors.Wrap(err, "failed to check if any MachinePool is upgrading")
+			}
+			s.UpgradeTracker.MachinePools.MarkUpgrading(mpUpgradingNames...)
+		}
+	}
+
+	// Compute the desired state of the ControlPlane object, eventually adding a reference to the
+	// InfrastructureMachineTemplate generated by the previous step.
+	if desiredState.ControlPlane.Object, err = g.computeControlPlane(ctx, s, desiredState.ControlPlane.InfrastructureMachineTemplate); err != nil {
+		return nil, pkgerrors.Wrapf(err, "failed to compute ControlPlane")
+	}
+
+	// Compute the desired state of the ControlPlane MachineHealthCheck if defined.
+	// The MachineHealthCheck will have the same name as the ControlPlane Object and a selector for the ControlPlane InfrastructureMachines.
+	if s.Blueprint.IsControlPlaneMachineHealthCheckEnabled() {
+		checks, remediation := s.Blueprint.ControlPlaneMachineHealthCheckClass()
+		desiredState.ControlPlane.MachineHealthCheck = computeMachineHealthCheck(
+			ctx,
+			desiredState.ControlPlane.Object,
+			selectors.ForControlPlaneMHC(),
+			s.Current.Cluster,
+			checks, remediation)
+	}
+
+	// Compute the desired state for the Cluster object adding a reference to the
+	// InfrastructureCluster and the ControlPlane objects generated by the previous step.
+	desiredState.Cluster, err = computeCluster(ctx, s, desiredState.InfrastructureCluster, desiredState.ControlPlane.Object)
+	if err != nil {
+		return nil, pkgerrors.Wrapf(err, "failed to compute Cluster")
+	}
+
+	// If required, compute the desired state of the MachineDeployments from the list of MachineDeploymentTopologies
+	// defined in the cluster.
+	if s.Blueprint.HasMachineDeployments() {
+		desiredState.MachineDeployments, err = g.computeMachineDeployments(ctx, s)
+		if err != nil {
+			return nil, pkgerrors.Wrapf(err, "failed to compute MachineDeployments")
+		}
+	}
+
+	// If required, compute the desired state of the MachinePools from the list of MachinePoolTopologies
+	// defined in the cluster.
+	if s.Blueprint.HasMachinePools() {
+		desiredState.MachinePools, err = g.computeMachinePools(ctx, s)
+		if err != nil {
+			return nil, pkgerrors.Wrapf(err, "failed to compute MachinePools")
+		}
+	}
+
+	// Apply patches the desired state according to the patches from the ClusterClass, variables from the Cluster
+	// and builtin variables.
+	// NOTE: We have to make sure all spec fields that were explicitly set in desired objects during the computation above
+	// are preserved during patching. When desired objects are computed their spec is copied from a template, in some cases
+	// further modifications to the spec are made afterwards. In those cases we have to make sure those fields are not overwritten
+	// in apply patches. Some examples are .spec.machineTemplate and .spec.version in control planes.
+	if err := g.patchEngine.Apply(ctx, s.Blueprint, desiredState); err != nil {
+		return nil, pkgerrors.Wrap(err, "failed to apply patches")
+	}
+
+	return desiredState, nil
+}
+
+// computeInfrastructureCluster computes the desired state for the InfrastructureCluster object starting from the
+// corresponding template defined in the blueprint.
+func computeInfrastructureCluster(_ context.Context, s *scope.Scope) (*unstructured.Unstructured, error) {
+	template := s.Blueprint.InfrastructureClusterTemplate
+	// Note: Only set cloned from annotations if we clone from a template (i.e. not if we use inline templates).
+	var templateClonedFromRef *corev1.ObjectReference
+	if s.Blueprint.ClusterClass.Spec.Infrastructure.TemplateRef.IsDefined() {
+		templateClonedFromRef = s.Blueprint.ClusterClass.Spec.Infrastructure.TemplateRef.ToObjectReference(s.Blueprint.ClusterClass.Namespace)
+	}
+	cluster := s.Current.Cluster
+	currentRef := cluster.Spec.InfrastructureRef
+
+	nameTemplate := "{{ .cluster.name }}-{{ .random }}"
+	if s.Blueprint.ClusterClass.Spec.Infrastructure.Naming.Template != "" {
+		nameTemplate = s.Blueprint.ClusterClass.Spec.Infrastructure.Naming.Template
+	}
+
+	infrastructureCluster, err := templateToObject(templateToInput{
+		template:              template,
+		templateClonedFromRef: templateClonedFromRef,
+		cluster:               cluster,
+		nameGenerator:         topologynames.InfraClusterNameGenerator(nameTemplate, cluster.Name),
+		currentObjectName:     currentRef.Name,
+		// Note: It is not possible to add an ownerRef to Cluster at this stage, otherwise the provisioning
+		// of the infrastructure cluster starts no matter of the object being actually referenced by the Cluster itself.
+	})
+	if err != nil {
+		return nil, pkgerrors.Wrapf(err, "failed to generate the InfrastructureCluster object from the %s", template.GetKind())
+	}
+
+	// Carry over shim owner reference if any.
+	// NOTE: this prevents to the ownerRef to be deleted by server side apply.
+	if s.Current.InfrastructureCluster != nil {
+		shim := clustershim.New(s.Current.Cluster)
+		if ref := getOwnerReferenceFrom(s.Current.InfrastructureCluster, shim, corev1.SchemeGroupVersion.WithKind("Secret")); ref != nil {
+			infrastructureCluster.SetOwnerReferences([]metav1.OwnerReference{*ref})
+		}
+	}
+
+	return infrastructureCluster, nil
+}
+
+// computeControlPlaneInfrastructureMachineTemplate computes the desired state for InfrastructureMachineTemplate
+// that should be referenced by the ControlPlane object.
+func (g *generator) computeControlPlaneInfrastructureMachineTemplate(ctx context.Context, s *scope.Scope) (*unstructured.Unstructured, error) {
+	template := s.Blueprint.ControlPlane.InfrastructureMachineTemplate
+	// Note: Only set cloned from annotations if we clone from a template (i.e. not if we use inline templates).
+	var templateClonedFromRef *corev1.ObjectReference
+	if s.Blueprint.ClusterClass.Spec.ControlPlane.MachineInfrastructure.TemplateRef.IsDefined() {
+		templateClonedFromRef = s.Blueprint.ClusterClass.Spec.ControlPlane.MachineInfrastructure.TemplateRef.ToObjectReference(s.Blueprint.ClusterClass.Namespace)
+	}
+	cluster := s.Current.Cluster
+
+	// Check if the current control plane object has a machineTemplate.infrastructureRef already defined.
+	// TODO: Move the next few lines into a method on scope.ControlPlaneState
+	var currentObjectName string
+	if s.Current.ControlPlane != nil && s.Current.ControlPlane.Object != nil {
+		// Determine contract version used by the ControlPlane.
+		contractVersion, err := contract.GetContractVersionForVersion(ctx, g.Client, s.Current.ControlPlane.Object.GroupVersionKind().GroupKind(), s.Current.ControlPlane.Object.GroupVersionKind().Version)
+		if err != nil {
+			return nil, pkgerrors.Wrapf(err, "failed to get contract version for the ControlPlane object")
+		}
+
+		if contractVersion == "v1beta1" {
+			currentRef, err := contract.ControlPlane().MachineTemplate().InfrastructureV1Beta1Ref().Get(s.Current.ControlPlane.Object)
+			if err != nil {
+				return nil, pkgerrors.Wrap(err, "failed to get spec.machineTemplate.infrastructureRef for the current ControlPlane object")
+			}
+			currentObjectName = currentRef.Name
+		} else {
+			currentRef, err := contract.ControlPlane().MachineTemplate().InfrastructureRef().Get(s.Current.ControlPlane.Object)
+			if err != nil {
+				return nil, pkgerrors.Wrap(err, "failed to get spec.machineTemplate.spec.infrastructureRef for the current ControlPlane object")
+			}
+			currentObjectName = currentRef.Name
+		}
+	}
+
+	return templateToTemplate(templateToInput{
+		template:              template,
+		templateClonedFromRef: templateClonedFromRef,
+		cluster:               cluster,
+		nameGenerator:         topologynames.SimpleNameGenerator(topologynames.ControlPlaneInfrastructureMachineTemplateNamePrefix(cluster.Name)),
+		currentObjectName:     currentObjectName,
+		// Note: we are adding an ownerRef to Cluster so the template will be automatically garbage collected
+		// in case of errors in between creating this template and updating the Cluster object
+		// with the reference to the ControlPlane object using this template.
+		ownerRef: ownerrefs.OwnerReferenceTo(s.Current.Cluster, clusterv1.GroupVersion.WithKind("Cluster")),
+	})
+}
+
+// computeControlPlane computes the desired state for the ControlPlane object starting from the
+// corresponding template defined in the blueprint.
+func (g *generator) computeControlPlane(ctx context.Context, s *scope.Scope, infrastructureMachineTemplate *unstructured.Unstructured) (*unstructured.Unstructured, error) {
+	template := s.Blueprint.ControlPlane.Template
+	// Note: Only set cloned from annotations if we clone from a template (i.e. not if we use inline templates).
+	var templateClonedFromRef *corev1.ObjectReference
+	if s.Blueprint.ClusterClass.Spec.ControlPlane.TemplateRef.IsDefined() {
+		templateClonedFromRef = s.Blueprint.ClusterClass.Spec.ControlPlane.TemplateRef.ToObjectReference(s.Blueprint.ClusterClass.Namespace)
+	}
+	cluster := s.Current.Cluster
+	currentRef := cluster.Spec.ControlPlaneRef
+
+	// Compute the labels and annotations to be applied to ControlPlane metadata and ControlPlane machines.
+	// We merge the labels and annotations from topology and ClusterClass.
+	// We also add the cluster-name and the topology owned labels, so they are propagated down.
+	topologyMetadata := s.Blueprint.Topology.ControlPlane.Metadata
+	clusterClassMetadata := s.Blueprint.ClusterClass.Spec.ControlPlane.Metadata
+
+	controlPlaneLabels := util.MergeMap(topologyMetadata.Labels, clusterClassMetadata.Labels)
+	if controlPlaneLabels == nil {
+		controlPlaneLabels = map[string]string{}
+	}
+	controlPlaneLabels[clusterv1.ClusterNameLabel] = cluster.Name
+	controlPlaneLabels[clusterv1.ClusterTopologyOwnedLabel] = ""
+
+	controlPlaneAnnotations := util.MergeMap(topologyMetadata.Annotations, clusterClassMetadata.Annotations)
+
+	nameTemplate := "{{ .cluster.name }}-{{ .random }}"
+	if s.Blueprint.ClusterClass.Spec.ControlPlane.Naming.Template != "" {
+		nameTemplate = s.Blueprint.ClusterClass.Spec.ControlPlane.Naming.Template
+	}
+
+	controlPlane, err := templateToObject(templateToInput{
+		template:              template,
+		templateClonedFromRef: templateClonedFromRef,
+		cluster:               cluster,
+		nameGenerator:         topologynames.ControlPlaneNameGenerator(nameTemplate, cluster.Name),
+		currentObjectName:     currentRef.Name,
+		labels:                controlPlaneLabels,
+		annotations:           controlPlaneAnnotations,
+		// Note: It is not possible to add an ownerRef to Cluster at this stage, otherwise the provisioning
+		// of the ControlPlane starts no matter of the object being actually referenced by the Cluster itself.
+	})
+	if err != nil {
+		return nil, pkgerrors.Wrapf(err, "failed to generate the ControlPlane object from the %s", template.GetKind())
+	}
+
+	// Carry over shim owner reference if any.
+	// NOTE: this prevents to the ownerRef to be deleted by server side apply.
+	if s.Current.ControlPlane != nil && s.Current.ControlPlane.Object != nil {
+		shim := clustershim.New(s.Current.Cluster)
+		if ref := getOwnerReferenceFrom(s.Current.ControlPlane.Object, shim, corev1.SchemeGroupVersion.WithKind("Secret")); ref != nil {
+			controlPlane.SetOwnerReferences([]metav1.OwnerReference{*ref})
+		}
+	}
+
+	// Determine contract version used by the ControlPlane.
+	contractVersion, err := contract.GetContractVersionForVersion(ctx, g.Client, controlPlane.GroupVersionKind().GroupKind(), controlPlane.GroupVersionKind().Version)
+	if err != nil {
+		return nil, pkgerrors.Wrapf(err, "failed to get contract version for the ControlPlane object")
+	}
+
+	// If the ClusterClass mandates the controlPlane has infrastructureMachines, add a reference to InfrastructureMachine
+	// template and metadata to be used for the control plane machines.
+	if s.Blueprint.HasControlPlaneInfrastructureMachine() {
+		// We have to copy the template to avoid modifying the one from desired state.
+		desiredRef := contract.ObjToRef(infrastructureMachineTemplate)
+
+		if contractVersion == "v1beta1" {
+			// If contract v1beta1 is used and the ControlPlane already exists, avoid downgrading the version if it was bumped
+			// by the control plane controller in the meantime.
+			if s.Current.ControlPlane.Object != nil {
+				currentRef, err := contract.ControlPlane().MachineTemplate().InfrastructureV1Beta1Ref().Get(s.Current.ControlPlane.Object)
+				if err != nil {
+					return nil, pkgerrors.Wrapf(err, "failed to get %s from the ControlPlane object", contract.ControlPlane().MachineTemplate().InfrastructureV1Beta1Ref().Path())
+				}
+				desiredRef, err = calculateRefDesiredAPIVersion(currentRef, infrastructureMachineTemplate)
+				if err != nil {
+					return nil, pkgerrors.Wrapf(err, "failed to calculate desired %s", contract.ControlPlane().MachineTemplate().InfrastructureV1Beta1Ref().Path())
+				}
+			}
+			if err := contract.ControlPlane().MachineTemplate().InfrastructureV1Beta1Ref().Set(controlPlane, desiredRef); err != nil {
+				return nil, pkgerrors.Wrapf(err, "failed to set %s in the ControlPlane object", contract.ControlPlane().MachineTemplate().InfrastructureV1Beta1Ref().Path())
+			}
+		} else {
+			if err := contract.ControlPlane().MachineTemplate().InfrastructureRef().Set(controlPlane, &clusterv1.ContractVersionedObjectReference{
+				APIGroup: desiredRef.GroupVersionKind().Group,
+				Kind:     desiredRef.Kind,
+				Name:     desiredRef.Name,
+			}); err != nil {
+				return nil, pkgerrors.Wrapf(err, "failed to set %s in the ControlPlane object", contract.ControlPlane().MachineTemplate().InfrastructureRef().Path())
+			}
+		}
+
+		// Add the ControlPlane labels and annotations to the ControlPlane machines as well.
+		// Note: We have to ensure the machine template metadata copied from the control plane template is not overwritten.
+		controlPlaneMachineTemplateMetadata, err := contract.ControlPlane().MachineTemplate().Metadata().Get(controlPlane)
+		if err != nil {
+			return nil, pkgerrors.Wrapf(err, "failed to get %s from the ControlPlane object", contract.ControlPlane().MachineTemplate().Metadata().Path())
+		}
+
+		controlPlaneMachineTemplateMetadata.Labels = util.MergeMap(controlPlaneLabels, controlPlaneMachineTemplateMetadata.Labels)
+		controlPlaneMachineTemplateMetadata.Annotations = util.MergeMap(controlPlaneAnnotations, controlPlaneMachineTemplateMetadata.Annotations)
+
+		if err := contract.ControlPlane().MachineTemplate().Metadata().Set(controlPlane,
+			&clusterv1.ObjectMeta{
+				Labels:      controlPlaneMachineTemplateMetadata.Labels,
+				Annotations: controlPlaneMachineTemplateMetadata.Annotations,
+			}); err != nil {
+			return nil, pkgerrors.Wrapf(err, "failed to set %s in the ControlPlane object", contract.ControlPlane().MachineTemplate().Metadata().Path())
+		}
+	}
+
+	// If it is required to manage the number of replicas for the control plane, set the corresponding field.
+	// NOTE: If the Topology.ControlPlane.replicas value is nil, it is assumed that the control plane controller
+	// does not implement support for this field and the ControlPlane object is generated without the number of Replicas.
+	if s.Blueprint.Topology.ControlPlane.Replicas != nil {
+		if err := contract.ControlPlane().Replicas().Set(controlPlane, *s.Blueprint.Topology.ControlPlane.Replicas); err != nil {
+			return nil, pkgerrors.Wrapf(err, "failed to set %s in the ControlPlane object", contract.ControlPlane().Replicas().Path())
+		}
+	}
+
+	// If it is required to manage rolloutAfter for the control plane, set the corresponding field.
+	if !s.Blueprint.Topology.ControlPlane.Rollout.After.IsZero() {
+		if err := contract.ControlPlane().RolloutAfter().Set(controlPlane, s.Blueprint.Topology.ControlPlane.Rollout.After); err != nil {
+			return nil, pkgerrors.Wrapf(err, "failed to set %s in the ControlPlane object", contract.ControlPlane().RolloutAfter().Path())
+		}
+	}
+
+	// If it is required to manage the readinessGates for the control plane, set the corresponding field.
+	// NOTE: If readinessGates value from both Cluster and ClusterClass is nil, it is assumed that the control plane controller
+	// does not implement support for this field and the ControlPlane object is generated without readinessGates.
+	if s.Blueprint.Topology.ControlPlane.ReadinessGates != nil {
+		if err := contract.ControlPlane().MachineTemplate().ReadinessGates(contractVersion).Set(controlPlane, s.Blueprint.Topology.ControlPlane.ReadinessGates); err != nil {
+			return nil, pkgerrors.Wrapf(err, "failed to set %s in the ControlPlane object", contract.ControlPlane().MachineTemplate().ReadinessGates(contractVersion).Path())
+		}
+	} else if s.Blueprint.ClusterClass.Spec.ControlPlane.ReadinessGates != nil {
+		if err := contract.ControlPlane().MachineTemplate().ReadinessGates(contractVersion).Set(controlPlane, s.Blueprint.ClusterClass.Spec.ControlPlane.ReadinessGates); err != nil {
+			return nil, pkgerrors.Wrapf(err, "failed to set %s in the ControlPlane object", contract.ControlPlane().MachineTemplate().ReadinessGates(contractVersion).Path())
+		}
+	}
+
+	// If it is required to manage the taints for the control plane, set the corresponding field.
+	// NOTE: If taints value from both Cluster and ClusterClass is nil, it is assumed that the control plane controller
+	// does not implement support for this field and the ControlPlane object is generated without taints.
+	if s.Blueprint.Topology.ControlPlane.Taints != nil {
+		if err := contract.ControlPlane().MachineTemplate().Taints(contractVersion).Set(controlPlane, s.Blueprint.Topology.ControlPlane.Taints); err != nil {
+			return nil, pkgerrors.Wrapf(err, "failed to set %s in the ControlPlane object", contract.ControlPlane().MachineTemplate().Taints(contractVersion).Path())
+		}
+	} else if s.Blueprint.ClusterClass.Spec.ControlPlane.Taints != nil {
+		if err := contract.ControlPlane().MachineTemplate().Taints(contractVersion).Set(controlPlane, s.Blueprint.ClusterClass.Spec.ControlPlane.Taints); err != nil {
+			return nil, pkgerrors.Wrapf(err, "failed to set %s in the ControlPlane object", contract.ControlPlane().MachineTemplate().Taints(contractVersion).Path())
+		}
+	}
+
+	// If it is required to manage the NodeDrainTimeoutSeconds for the control plane, set the corresponding field.
+	nodeDrainTimeout := s.Blueprint.ClusterClass.Spec.ControlPlane.Deletion.NodeDrainTimeoutSeconds
+	if s.Blueprint.Topology.ControlPlane.Deletion.NodeDrainTimeoutSeconds != nil {
+		nodeDrainTimeout = s.Blueprint.Topology.ControlPlane.Deletion.NodeDrainTimeoutSeconds
+	}
+	if nodeDrainTimeout != nil {
+		if contractVersion == "v1beta1" {
+			if err := contract.ControlPlane().MachineTemplate().NodeDrainTimeout().Set(controlPlane, metav1.Duration{Duration: time.Duration(*nodeDrainTimeout) * time.Second}); err != nil {
+				return nil, pkgerrors.Wrapf(err, "failed to set %s in the ControlPlane object", contract.ControlPlane().MachineTemplate().NodeDrainTimeout().Path())
+			}
+		} else {
+			if err := contract.ControlPlane().MachineTemplate().NodeDrainTimeoutSeconds().Set(controlPlane, *nodeDrainTimeout); err != nil {
+				return nil, pkgerrors.Wrapf(err, "failed to set %s in the ControlPlane object", contract.ControlPlane().MachineTemplate().NodeDrainTimeoutSeconds().Path())
+			}
+		}
+	}
+
+	// If it is required to manage the NodeVolumeDetachTimeoutSeconds for the control plane, set the corresponding field.
+	nodeVolumeDetachTimeout := s.Blueprint.ClusterClass.Spec.ControlPlane.Deletion.NodeVolumeDetachTimeoutSeconds
+	if s.Blueprint.Topology.ControlPlane.Deletion.NodeVolumeDetachTimeoutSeconds != nil {
+		nodeVolumeDetachTimeout = s.Blueprint.Topology.ControlPlane.Deletion.NodeVolumeDetachTimeoutSeconds
+	}
+	if nodeVolumeDetachTimeout != nil {
+		if contractVersion == "v1beta1" {
+			if err := contract.ControlPlane().MachineTemplate().NodeVolumeDetachTimeout().Set(controlPlane, metav1.Duration{Duration: time.Duration(*nodeVolumeDetachTimeout) * time.Second}); err != nil {
+				return nil, pkgerrors.Wrapf(err, "failed to set %s in the ControlPlane object", contract.ControlPlane().MachineTemplate().NodeVolumeDetachTimeout().Path())
+			}
+		} else {
+			if err := contract.ControlPlane().MachineTemplate().NodeVolumeDetachTimeoutSeconds().Set(controlPlane, *nodeVolumeDetachTimeout); err != nil {
+				return nil, pkgerrors.Wrapf(err, "failed to set %s in the ControlPlane object", contract.ControlPlane().MachineTemplate().NodeVolumeDetachTimeoutSeconds().Path())
+			}
+		}
+	}
+
+	// If it is required to manage the NodeDeletionTimeoutSeconds for the control plane, set the corresponding field.
+	nodeDeletionTimeout := s.Blueprint.ClusterClass.Spec.ControlPlane.Deletion.NodeDeletionTimeoutSeconds
+	if s.Blueprint.Topology.ControlPlane.Deletion.NodeDeletionTimeoutSeconds != nil {
+		nodeDeletionTimeout = s.Blueprint.Topology.ControlPlane.Deletion.NodeDeletionTimeoutSeconds
+	}
+	if nodeDeletionTimeout != nil {
+		if contractVersion == "v1beta1" {
+			if err := contract.ControlPlane().MachineTemplate().NodeDeletionTimeout().Set(controlPlane, metav1.Duration{Duration: time.Duration(*nodeDeletionTimeout) * time.Second}); err != nil {
+				return nil, pkgerrors.Wrapf(err, "failed to set %s in the ControlPlane object", contract.ControlPlane().MachineTemplate().NodeDeletionTimeout().Path())
+			}
+		} else {
+			if err := contract.ControlPlane().MachineTemplate().NodeDeletionTimeoutSeconds().Set(controlPlane, *nodeDeletionTimeout); err != nil {
+				return nil, pkgerrors.Wrapf(err, "failed to set %s in the ControlPlane object", contract.ControlPlane().MachineTemplate().NodeDeletionTimeoutSeconds().Path())
+			}
+		}
+	}
+
+	// Sets the desired Kubernetes version for the control plane.
+	version, err := g.computeControlPlaneVersion(ctx, s)
+	if err != nil {
+		return nil, pkgerrors.Wrap(err, "failed to compute version of ControlPlane")
+	}
+	if err := contract.ControlPlane().Version().Set(controlPlane, version); err != nil {
+		return nil, pkgerrors.Wrapf(err, "failed to set %s in the ControlPlane object", contract.ControlPlane().Version().Path())
+	}
+
+	return controlPlane, nil
+}
+
+// computeControlPlaneVersion calculates the version of the desired control plane.
+// The version is calculated using the state of the current machine deployments, the current control plane
+// and the version defined in the topology.
+func (g *generator) computeControlPlaneVersion(ctx context.Context, s *scope.Scope) (string, error) {
+	log := ctrl.LoggerFrom(ctx)
+
+	topologyVersion := s.Blueprint.Topology.Version
+	// If we are creating the control plane object (current control plane is nil), use version from topology.
+	if s.Current.ControlPlane == nil || s.Current.ControlPlane.Object == nil {
+		return topologyVersion, nil
+	}
+
+	// Get the current currentVersion of the control plane.
+	currentVersion, err := contract.ControlPlane().Version().Get(s.Current.ControlPlane.Object)
+	if err != nil {
+		return "", pkgerrors.Wrap(err, "failed to get the version from control plane spec")
+	}
+
+	// Track if the control plane needs an update.
+	// NOTE: in case the control plane don't need an update do not return immediately for:
+	// - computing a few more info for the update tracker, used to show the appropriate message for the TopologyReconciled condition.
+	// - call the AfterControlPlaneUpgrade hook (if not already called).
+	s.UpgradeTracker.ControlPlane.IsPendingUpgrade = true
+	if *currentVersion == topologyVersion {
+		s.UpgradeTracker.ControlPlane.IsPendingUpgrade = false
+	}
+
+	// Check if the control plane is being created for the first time.
+	cpProvisioning, err := contract.ControlPlane().IsProvisioning(s.Current.ControlPlane.Object)
+	if err != nil {
+		return "", pkgerrors.Wrap(err, "failed to check if the control plane is being provisioned")
+	}
+	// If the control plane is being provisioned (being created for the first time), then do not
+	// pick up the topologyVersion yet.
+	// Return the current version of the control plane. We will pick up the new version after the
+	// control plane is provisioned.
+	if cpProvisioning {
+		s.UpgradeTracker.ControlPlane.IsProvisioning = true
+		return *currentVersion, nil
+	}
+
+	// Check if the current control plane is upgrading
+	cpUpgrading, err := contract.ControlPlane().IsUpgrading(s.Current.ControlPlane.Object)
+	if err != nil {
+		return "", pkgerrors.Wrap(err, "failed to check if control plane is upgrading")
+	}
+	// If the current control plane is upgrading  (still completing a previous upgrade),
+	// then do not pick up the topologyVersion yet.
+	// Return the current version of the control plane. We will pick up the new version
+	// after the control plane is stable.
+	if cpUpgrading {
+		s.UpgradeTracker.ControlPlane.IsUpgrading = true
+
+		// Recovery code in case control plane version was changed, but it failed to apply the list of pending hooks.
+		if feature.Gates.Enabled(feature.RuntimeSDK) {
+			if !hooks.IsPending(runtimehooksv1.AfterControlPlaneUpgrade, s.Current.Cluster) {
+				hooksToMarkPending := getHooksToMarkPending(s, *currentVersion)
+				if err := hooks.MarkAsPending(ctx, g.Client, s.Current.Cluster, false, hooksToMarkPending...); err != nil {
+					return "", err
+				}
+			}
+		}
+		return *currentVersion, nil
+	}
+
+	// if the control plane is not upgrading, before making further considerations about if to pick up another version,
+	// we should call the AfterControlPlaneUpgrade and the BeforeWorkersUpgrade hooks if not already done.
+	if feature.Gates.Enabled(feature.RuntimeSDK) {
+		// Note: calling the AfterControlPlaneUpgrade is the final step of a control plane upgrade.
+		hookCompleted, err := g.callAfterControlPlaneUpgradeHook(ctx, s, currentVersion)
+		if err != nil {
+			return "", err
+		}
+		if !hookCompleted {
+			return *currentVersion, nil
+		}
+
+		// Note: calling the BeforeWorkersUpgrade is the first part of the execution of a worker upgrade step from the upgrade plan.
+		// The call to this hook is implemented in this function in order to ensure the hook is called
+		// after AfterControlPlaneUpgrade unblocks, and also to ensure that BeforeWorkersUpgrade
+		// can block the control plane upgrade to proceed in the upgrade plan.
+		// Note: this operation is a no-op if workers are not required to upgrade to the current control plane version.
+		hookCompleted, err = g.callBeforeWorkersUpgradeHook(ctx, s, &s.UpgradeTracker.MinWorkersVersion, *currentVersion)
+		if err != nil {
+			return "", err
+		}
+		if !hookCompleted {
+			return *currentVersion, nil
+		}
+	}
+
+	// Before considering picking up the next control plane version, check if workers are required
+	// to upgrade first, e.g. to avoid breaking rules defining the max version skew between control plane
+	// and workers.
+	// If the MachineDeployments/MachinePools are required to upgrade, then do not pick up the next control plane version yet.
+	// We will pick up the new version after the MachineDeployments/MachinePools finish upgrading.
+	if len(s.UpgradeTracker.MachineDeployments.UpgradePlan) > 0 && s.UpgradeTracker.MachineDeployments.UpgradePlan[0] == *currentVersion {
+		s.UpgradeTracker.ControlPlane.IsWaitingForWorkersUpgrade = true
+		return *currentVersion, nil
+	}
+	if len(s.UpgradeTracker.MachinePools.UpgradePlan) > 0 && s.UpgradeTracker.MachinePools.UpgradePlan[0] == *currentVersion {
+		s.UpgradeTracker.ControlPlane.IsWaitingForWorkersUpgrade = true
+		return *currentVersion, nil
+	}
+
+	// Also check if MachineDeployments/MachinePools are already upgrading.
+	// If the MachineDeployments/MachinePools are upgrading, then do not pick up the next control plane version yet.
+	// We will pick up the new version after the MachineDeployments/MachinePools finish upgrading.
+	if s.UpgradeTracker.MachineDeployments.IsAnyUpgrading() || s.UpgradeTracker.MachinePools.IsAnyUpgrading() {
+		return *currentVersion, nil
+	}
+
+	// At this point we can assume the control plane is stable and also MachineDeployments/MachinePools
+	// are not upgrading/are not required to upgrade.
+
+	// If not already done, call the AfterWorkersUpgrade hook before picking up the desired version.
+	// (this is the last step of the previous upgrade).
+	if feature.Gates.Enabled(feature.RuntimeSDK) {
+		// Note: calling the AfterWorkersUpgrade is the last step of workers upgrade.
+		// The call to this hook is implemented in this function in order to ensure that AfterWorkersUpgrade
+		// can block the control plane upgrade to proceed in the upgrade plan.
+		// Note: this operation is a no-op if workers are not required to upgrade to the current control plane version.
+		hookCompleted, err := g.callAfterWorkersUpgradeHook(ctx, s, currentVersion)
+		if err != nil {
+			return "", err
+		}
+		if !hookCompleted {
+			return *currentVersion, nil
+		}
+	}
+
+	// At this stage, we can assume the previous control plane upgrade is fully complete (including calling the AfterControlPlaneUpgrade).
+	// It is now possible to start making considerations if to pick up another version.
+
+	// If the control plane is not pending upgrade, then it is already at the desired version and there is no other version to pick up.
+	if !s.UpgradeTracker.ControlPlane.IsPendingUpgrade {
+		return *currentVersion, nil
+	}
+
+	// If not already done, call the BeforeClusterUpgrade hook before picking up the desired version.
+	if feature.Gates.Enabled(feature.RuntimeSDK) {
+		// Note: calling the BeforeClusterUpgrade is the first step of an upgrade plan;
+		// this operation is a no-op for intermediate steps of an upgrade plan.
+		hookCompleted, err := g.callBeforeClusterUpgradeHook(ctx, s, currentVersion, topologyVersion)
+		if err != nil {
+			return "", err
+		}
+		if !hookCompleted {
+			return *currentVersion, nil
+		}
+
+		// After BeforeClusterUpgrade unblocked the upgrade, consider the upgrade started.
+		// As a consequence, the system start tracking the intent of calling AfterClusterUpgrade once the upgrade is complete.
+		// Note: this also prevent the BeforeClusterUpgrade to be called again (until after the upgrade is completed).
+		if err := hooks.MarkAsPending(ctx, g.Client, s.Current.Cluster, false, runtimehooksv1.AfterClusterUpgrade); err != nil {
+			return "", err
+		}
+	}
+
+	// Control plane and machine deployments are stable. The BeforeClusterUpgrade hook have been called.
+	// Ready to pick up the next version in the upgrade plan.
+
+	// Select the next version for the control plane
+	if len(s.UpgradeTracker.ControlPlane.UpgradePlan) == 0 {
+		return "", pkgerrors.New("cannot compute the control plane version if the control plane is pending upgrade and the upgrade plan is not set")
+	}
+	nextVersion := s.UpgradeTracker.ControlPlane.UpgradePlan[0]
+
+	if feature.Gates.Enabled(feature.RuntimeSDK) {
+		// Note: calling the BeforeControlPlaneUpgrade is the first step of a control plan upgrade step from the upgrade plan.
+		hookCompleted, err := g.callBeforeControlPlaneUpgradeHook(ctx, s, currentVersion, nextVersion)
+		if err != nil {
+			return "", err
+		}
+		if !hookCompleted {
+			return *currentVersion, nil
+		}
+
+		// After BeforeControlPlaneUpgrade unblocked the upgrade step, consider the upgrade step starting,
+		// As a consequence, the system should also start tracking the intent of calling other hooks for this upgrade step:
+		// - AfterControlPlaneUpgrade hook to be called after the control plane completes the upgrade step.
+		// - If workers are required to upgrade to the current control plane version:
+		//   - BeforeWorkersUpgrade hook to be called before workers start the upgrade step.
+		//   - AfterWorkersUpgrade hook to be called after workers completes the upgrade step.
+		// Note: the intent must surface on the Cluster object only after the control plane version is actually set
+		// in reconcileControlPlane.
+		s.UpgradeTracker.HooksToMarkPending = getHooksToMarkPending(s, nextVersion)
+	}
+
+	// The upgrade is now starting in this reconcile and not pending anymore.
+	// Note: it is important to unset IsPendingUpgrade, otherwise reconcileState will assume that we are still waiting for another upgrade (and thus defer the one we are starting).
+	s.UpgradeTracker.ControlPlane.IsStartingUpgrade = true
+	s.UpgradeTracker.ControlPlane.IsPendingUpgrade = false
+
+	log.Info(fmt.Sprintf("Control plane %s upgraded from version %s to version %s", klog.KObj(s.Current.ControlPlane.Object), *currentVersion, nextVersion),
+		"ControlPlaneUpgrades", toUpgradeStep(s.UpgradeTracker.ControlPlane.UpgradePlan),
+		"WorkersUpgrades", toUpgradeStep(s.UpgradeTracker.MachineDeployments.UpgradePlan, s.UpgradeTracker.MachinePools.UpgradePlan),
+		s.Current.ControlPlane.Object.GetKind(), klog.KObj(s.Current.ControlPlane.Object),
+	)
+	return nextVersion, nil
+}
+
+func getHooksToMarkPending(s *scope.Scope, nextVersion string) []runtimecatalog.Hook {
+	hooksToMarkPending := []runtimecatalog.Hook{runtimehooksv1.AfterControlPlaneUpgrade}
+	machineDeploymentPendingUpgrade := len(s.UpgradeTracker.MachineDeployments.UpgradePlan) > 0 && s.UpgradeTracker.MachineDeployments.UpgradePlan[0] == nextVersion
+	machinePoolPendingUpgrade := len(s.UpgradeTracker.MachinePools.UpgradePlan) > 0 && s.UpgradeTracker.MachinePools.UpgradePlan[0] == nextVersion
+	if machineDeploymentPendingUpgrade || machinePoolPendingUpgrade {
+		hooksToMarkPending = append(hooksToMarkPending, runtimehooksv1.BeforeWorkersUpgrade, runtimehooksv1.AfterWorkersUpgrade)
+	}
+	return hooksToMarkPending
+}
+
+// computeCluster computes the desired state for the Cluster object.
+// NOTE: Some fields of the Cluster’s fields contribute to defining the Cluster blueprint (e.g. Cluster.Spec.Topology),
+// while some other fields should be managed as part of the actual Cluster (e.g. Cluster.Spec.ControlPlaneRef); in this func
+// we are concerned only about the latest group of fields.
+func computeCluster(_ context.Context, s *scope.Scope, infrastructureCluster, controlPlane *unstructured.Unstructured) (*clusterv1.Cluster, error) {
+	cluster := s.Current.Cluster.DeepCopy()
+
+	// Note: If additional fields should be modified here we have to adjust reconcileCluster accordingly.
+
+	// Enforce the topology labels.
+	// NOTE: The cluster label is added at creation time so this object could be read by the ClusterTopology
+	// controller immediately after creation, even before other controllers are going to add the label (if missing).
+	if cluster.Labels == nil {
+		cluster.Labels = map[string]string{}
+	}
+	cluster.Labels[clusterv1.ClusterNameLabel] = cluster.Name
+	cluster.Labels[clusterv1.ClusterTopologyOwnedLabel] = ""
+
+	// Set the references to the infrastructureCluster and controlPlane objects.
+	// NOTE: Once set for the first time, the references are not expected to change.
+	cluster.Spec.InfrastructureRef = contract.ObjToContractVersionedObjectReference(infrastructureCluster)
+	cluster.Spec.ControlPlaneRef = contract.ObjToContractVersionedObjectReference(controlPlane)
+
+	// Track the current upgrade step in the cluster object (otherwise make sure we cleanup tracking of previous upgrades).
+	// NOTE: to detect if we are upgrading, we check if the intent to call the AfterClusterUpgrade is already tracked;
+	//	as a temporary fallback to handle cases when RuntimeSDK feature gate is not enabled yet, we also check the upgrade plan not being empty.
+	// NOTE, it is required to surface intermediate steps of the upgrade plan to allow creation of machines in KCP/MS.
+	if cluster.Annotations == nil {
+		cluster.Annotations = map[string]string{}
+	}
+	if (feature.Gates.Enabled(feature.RuntimeSDK) && hooks.IsPending(runtimehooksv1.AfterClusterUpgrade, s.Current.Cluster)) ||
+		(!feature.Gates.Enabled(feature.RuntimeSDK) && (len(s.UpgradeTracker.ControlPlane.UpgradePlan) > 0 || len(s.UpgradeTracker.MachineDeployments.UpgradePlan) > 0 || len(s.UpgradeTracker.MachinePools.UpgradePlan) > 0)) {
+		controlPlaneVersion, err := contract.ControlPlane().Version().Get(controlPlane)
+		if err != nil {
+			return nil, pkgerrors.Wrap(err, "error getting control plane version")
+		}
+		cluster.Annotations[clusterv1.ClusterTopologyUpgradeStepAnnotation] = *controlPlaneVersion
+	} else {
+		delete(cluster.Annotations, clusterv1.ClusterTopologyUpgradeStepAnnotation)
+	}
+
+	return cluster, nil
+}
+
+// calculateRefDesiredAPIVersion returns the desired ref calculated from desiredReferencedObject
+// so it doesn't override the version in apiVersion stored in the currentRef, if any.
+// This is required because the apiVersion in the desired ref is aligned to the apiVersion used
+// in ClusterClass when reading the current state. If the currentRef is nil or group or kind
+// doesn't match, no changes are applied to desired ref.
+func calculateRefDesiredAPIVersion(currentRef *corev1.ObjectReference, desiredReferencedObject *unstructured.Unstructured) (*corev1.ObjectReference, error) {
+	desiredRef := contract.ObjToRef(desiredReferencedObject)
+	// If ref is not set yet, just set a ref to the desired referenced object.
+	if currentRef == nil {
+		return desiredRef, nil
+	}
+
+	currentGV, err := schema.ParseGroupVersion(currentRef.APIVersion)
+	if err != nil {
+		return nil, pkgerrors.Wrapf(err, "failed to parse apiVersion %q of current ref", currentRef.APIVersion)
+	}
+	desiredGK := desiredReferencedObject.GroupVersionKind().GroupKind()
+
+	// Keep the apiVersion of the current ref if the group and kind is already correct.
+	// We only want to change the apiVersion to update the group, as it should be possible
+	// for other controllers to bump the version if necessary (i.e. if there is a newer
+	// version of the CRD compared to the one that the topology controller is working on).
+	if currentGV.Group == desiredGK.Group && currentRef.Kind == desiredGK.Kind {
+		desiredRef.APIVersion = currentRef.APIVersion
+	}
+	return desiredRef, nil
+}
+
+// computeMachineDeployments computes the desired state of the list of MachineDeployments.
+func (g *generator) computeMachineDeployments(ctx context.Context, s *scope.Scope) (scope.MachineDeploymentsStateMap, error) {
+	machineDeploymentsStateMap := make(scope.MachineDeploymentsStateMap)
+	for _, mdTopology := range s.Blueprint.Topology.Workers.MachineDeployments {
+		desiredMachineDeployment, err := g.computeMachineDeployment(ctx, s, mdTopology)
+		if err != nil {
+			return nil, pkgerrors.Wrapf(err, "failed to compute MachineDepoyment for topology %q", mdTopology.Name)
+		}
+		machineDeploymentsStateMap[mdTopology.Name] = desiredMachineDeployment
+	}
+	return machineDeploymentsStateMap, nil
+}
+
+// computeMachineDeployment computes the desired state for a MachineDeploymentTopology.
+// The generated machineDeployment object is calculated using the values from the machineDeploymentTopology and
+// the machineDeployment class.
+func (g *generator) computeMachineDeployment(ctx context.Context, s *scope.Scope, machineDeploymentTopology clusterv1.MachineDeploymentTopology) (*scope.MachineDeploymentState, error) {
+	desiredMachineDeployment := &scope.MachineDeploymentState{}
+
+	// Gets the blueprint for the MachineDeployment class.
+	className := machineDeploymentTopology.Class
+	machineDeploymentBlueprint, ok := s.Blueprint.MachineDeployments[className]
+	if !ok {
+		return nil, pkgerrors.Errorf("MachineDeployment class %s not found in ClusterClass %s", className, klog.KObj(s.Blueprint.ClusterClass))
+	}
+
+	var machineDeploymentClass *clusterv1.MachineDeploymentClass
+	for _, mdClass := range s.Blueprint.ClusterClass.Spec.Workers.MachineDeployments {
+		if mdClass.Class == className {
+			machineDeploymentClass = &mdClass
+			break
+		}
+	}
+	if machineDeploymentClass == nil {
+		return nil, pkgerrors.Errorf("MachineDeployment class %s not found in ClusterClass %s", className, klog.KObj(s.Blueprint.ClusterClass))
+	}
+
+	// Compute the bootstrap template.
+	currentMachineDeployment := s.Current.MachineDeployments[machineDeploymentTopology.Name]
+	var currentBootstrapTemplateRef clusterv1.ContractVersionedObjectReference
+	if currentMachineDeployment != nil && currentMachineDeployment.BootstrapTemplate != nil {
+		currentBootstrapTemplateRef = currentMachineDeployment.Object.Spec.Template.Spec.Bootstrap.ConfigRef
+	}
+	var err error
+	// Note: Only set cloned from annotations if we clone from a template (i.e. not if we use inline templates).
+	var templateClonedFromRefBootstrapTemplate *corev1.ObjectReference
+	if machineDeploymentClass.Bootstrap.TemplateRef.IsDefined() {
+		templateClonedFromRefBootstrapTemplate = contract.ObjToRef(machineDeploymentBlueprint.BootstrapTemplate)
+	}
+	desiredMachineDeployment.BootstrapTemplate, err = templateToTemplate(templateToInput{
+		template:              machineDeploymentBlueprint.BootstrapTemplate,
+		templateClonedFromRef: templateClonedFromRefBootstrapTemplate,
+		cluster:               s.Current.Cluster,
+		nameGenerator:         topologynames.SimpleNameGenerator(topologynames.BootstrapTemplateNamePrefix(s.Current.Cluster.Name, machineDeploymentTopology.Name)),
+		currentObjectName:     currentBootstrapTemplateRef.Name,
+		// Note: we are adding an ownerRef to Cluster so the template will be automatically garbage collected
+		// in case of errors in between creating this template and creating/updating the MachineDeployment object
+		// with the reference to this template.
+		ownerRef: ownerrefs.OwnerReferenceTo(s.Current.Cluster, clusterv1.GroupVersion.WithKind("Cluster")),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	bootstrapTemplateLabels := desiredMachineDeployment.BootstrapTemplate.GetLabels()
+	if bootstrapTemplateLabels == nil {
+		bootstrapTemplateLabels = map[string]string{}
+	}
+	// Add ClusterTopologyMachineDeploymentLabel to the generated Bootstrap template
+	bootstrapTemplateLabels[clusterv1.ClusterTopologyMachineDeploymentNameLabel] = machineDeploymentTopology.Name
+	desiredMachineDeployment.BootstrapTemplate.SetLabels(bootstrapTemplateLabels)
+
+	// Compute the Infrastructure template.
+	var currentInfraMachineTemplateRef *clusterv1.ContractVersionedObjectReference
+	if currentMachineDeployment != nil && currentMachineDeployment.InfrastructureMachineTemplate != nil {
+		currentInfraMachineTemplateRef = &currentMachineDeployment.Object.Spec.Template.Spec.InfrastructureRef
+	}
+	// Note: Only set cloned from annotations if we clone from a template (i.e. not if we use inline templates).
+	var templateClonedFromRefInfrastructureMachineTemplate *corev1.ObjectReference
+	if machineDeploymentClass.Infrastructure.TemplateRef.IsDefined() {
+		templateClonedFromRefInfrastructureMachineTemplate = contract.ObjToRef(machineDeploymentBlueprint.InfrastructureMachineTemplate)
+	}
+	desiredMachineDeployment.InfrastructureMachineTemplate, err = templateToTemplate(templateToInput{
+		template:              machineDeploymentBlueprint.InfrastructureMachineTemplate,
+		templateClonedFromRef: templateClonedFromRefInfrastructureMachineTemplate,
+		cluster:               s.Current.Cluster,
+		nameGenerator:         topologynames.SimpleNameGenerator(topologynames.InfrastructureMachineTemplateNamePrefix(s.Current.Cluster.Name, machineDeploymentTopology.Name)),
+		currentObjectName:     ptr.Deref(currentInfraMachineTemplateRef, clusterv1.ContractVersionedObjectReference{}).Name,
+		// Note: we are adding an ownerRef to Cluster so the template will be automatically garbage collected
+		// in case of errors in between creating this template and creating/updating the MachineDeployment object
+		// with the reference to this template.
+		ownerRef: ownerrefs.OwnerReferenceTo(s.Current.Cluster, clusterv1.GroupVersion.WithKind("Cluster")),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	infraMachineTemplateLabels := desiredMachineDeployment.InfrastructureMachineTemplate.GetLabels()
+	if infraMachineTemplateLabels == nil {
+		infraMachineTemplateLabels = map[string]string{}
+	}
+	// Add ClusterTopologyMachineDeploymentLabel to the generated InfrastructureMachine template
+	infraMachineTemplateLabels[clusterv1.ClusterTopologyMachineDeploymentNameLabel] = machineDeploymentTopology.Name
+	desiredMachineDeployment.InfrastructureMachineTemplate.SetLabels(infraMachineTemplateLabels)
+	version, err := g.computeMachineDeploymentVersion(ctx, s, machineDeploymentTopology, currentMachineDeployment)
+	if err != nil {
+		return nil, err
+	}
+
+	// Compute values that can be set both in the MachineDeploymentClass and in the MachineDeploymentTopology
+	minReadySeconds := machineDeploymentClass.MinReadySeconds
+	if machineDeploymentTopology.MinReadySeconds != nil {
+		minReadySeconds = machineDeploymentTopology.MinReadySeconds
+	}
+
+	var rollout clusterv1.MachineDeploymentRolloutSpec
+	if !reflect.DeepEqual(machineDeploymentClass.Rollout, clusterv1.MachineDeploymentRolloutSpec{}) {
+		rollout = clusterv1.MachineDeploymentRolloutSpec{
+			Strategy: clusterv1.MachineDeploymentRolloutStrategy{
+				Type: machineDeploymentClass.Rollout.Strategy.Type,
+				RollingUpdate: clusterv1.MachineDeploymentRolloutStrategyRollingUpdate{
+					MaxUnavailable: machineDeploymentClass.Rollout.Strategy.RollingUpdate.MaxUnavailable,
+					MaxSurge:       machineDeploymentClass.Rollout.Strategy.RollingUpdate.MaxSurge,
+				},
+			},
+		}
+	}
+	if !reflect.DeepEqual(machineDeploymentTopology.Rollout, clusterv1.MachineDeploymentTopologyRolloutSpec{}) {
+		rollout = clusterv1.MachineDeploymentRolloutSpec{
+			After: machineDeploymentTopology.Rollout.After,
+			Strategy: clusterv1.MachineDeploymentRolloutStrategy{
+				Type: machineDeploymentTopology.Rollout.Strategy.Type,
+				RollingUpdate: clusterv1.MachineDeploymentRolloutStrategyRollingUpdate{
+					MaxUnavailable: machineDeploymentTopology.Rollout.Strategy.RollingUpdate.MaxUnavailable,
+					MaxSurge:       machineDeploymentTopology.Rollout.Strategy.RollingUpdate.MaxSurge,
+				},
+			},
+		}
+	}
+
+	remediationMaxInFlight := machineDeploymentClass.HealthCheck.Remediation.MaxInFlight
+	if machineDeploymentTopology.HealthCheck.Remediation.MaxInFlight != nil {
+		remediationMaxInFlight = machineDeploymentTopology.HealthCheck.Remediation.MaxInFlight
+	}
+
+	failureDomain := machineDeploymentClass.FailureDomain
+	if machineDeploymentTopology.FailureDomain != "" {
+		failureDomain = machineDeploymentTopology.FailureDomain
+	}
+
+	deletionOrder := machineDeploymentClass.Deletion.Order
+	if machineDeploymentTopology.Deletion.Order != "" {
+		deletionOrder = machineDeploymentTopology.Deletion.Order
+	}
+
+	nodeDrainTimeout := machineDeploymentClass.Deletion.NodeDrainTimeoutSeconds
+	if machineDeploymentTopology.Deletion.NodeDrainTimeoutSeconds != nil {
+		nodeDrainTimeout = machineDeploymentTopology.Deletion.NodeDrainTimeoutSeconds
+	}
+
+	nodeVolumeDetachTimeout := machineDeploymentClass.Deletion.NodeVolumeDetachTimeoutSeconds
+	if machineDeploymentTopology.Deletion.NodeVolumeDetachTimeoutSeconds != nil {
+		nodeVolumeDetachTimeout = machineDeploymentTopology.Deletion.NodeVolumeDetachTimeoutSeconds
+	}
+
+	nodeDeletionTimeout := machineDeploymentClass.Deletion.NodeDeletionTimeoutSeconds
+	if machineDeploymentTopology.Deletion.NodeDeletionTimeoutSeconds != nil {
+		nodeDeletionTimeout = machineDeploymentTopology.Deletion.NodeDeletionTimeoutSeconds
+	}
+
+	readinessGates := machineDeploymentClass.ReadinessGates
+	if machineDeploymentTopology.ReadinessGates != nil {
+		readinessGates = machineDeploymentTopology.ReadinessGates
+	}
+
+	taints := machineDeploymentClass.Taints
+	if machineDeploymentTopology.Taints != nil {
+		taints = machineDeploymentTopology.Taints
+	}
+
+	// Compute the MachineDeployment object.
+	desiredBootstrapTemplateRef := contract.ObjToContractVersionedObjectReference(desiredMachineDeployment.BootstrapTemplate)
+	desiredInfraMachineTemplateRef := contract.ObjToContractVersionedObjectReference(desiredMachineDeployment.InfrastructureMachineTemplate)
+
+	nameTemplate := "{{ .cluster.name }}-{{ .machineDeployment.topologyName }}-{{ .random }}"
+	if machineDeploymentClass.Naming.Template != "" {
+		nameTemplate = machineDeploymentClass.Naming.Template
+	}
+
+	name, err := topologynames.MachineDeploymentNameGenerator(nameTemplate, s.Current.Cluster.Name, machineDeploymentTopology.Name).GenerateName()
+	if err != nil {
+		return nil, pkgerrors.Wrap(err, "failed to generate name for MachineDeployment")
+	}
+
+	desiredMachineDeploymentObj := &clusterv1.MachineDeployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: s.Current.Cluster.Namespace,
+		},
+		Spec: clusterv1.MachineDeploymentSpec{
+			ClusterName: s.Current.Cluster.Name,
+			Rollout:     rollout,
+			Deletion: clusterv1.MachineDeploymentDeletionSpec{
+				Order: deletionOrder,
+			},
+			Remediation: clusterv1.MachineDeploymentRemediationSpec{
+				MaxInFlight: remediationMaxInFlight,
+			},
+			Template: clusterv1.MachineTemplateSpec{
+				Spec: clusterv1.MachineSpec{
+					ClusterName:       s.Current.Cluster.Name,
+					Version:           version,
+					Bootstrap:         clusterv1.Bootstrap{ConfigRef: desiredBootstrapTemplateRef},
+					InfrastructureRef: desiredInfraMachineTemplateRef,
+					FailureDomain:     failureDomain,
+					Deletion: clusterv1.MachineDeletionSpec{
+						NodeDrainTimeoutSeconds:        nodeDrainTimeout,
+						NodeVolumeDetachTimeoutSeconds: nodeVolumeDetachTimeout,
+						NodeDeletionTimeoutSeconds:     nodeDeletionTimeout,
+					},
+					ReadinessGates:  readinessGates,
+					Taints:          taints,
+					MinReadySeconds: minReadySeconds,
+				},
+			},
+		},
+	}
+
+	// If an existing MachineDeployment is present, override the MachineDeployment generate name
+	// re-using the existing name (this will help in reconcile).
+	if currentMachineDeployment != nil && currentMachineDeployment.Object != nil {
+		desiredMachineDeploymentObj.SetName(currentMachineDeployment.Object.Name)
+	}
+
+	// Apply annotations
+	machineDeploymentAnnotations := util.MergeMap(machineDeploymentTopology.Metadata.Annotations, machineDeploymentBlueprint.Metadata.Annotations)
+	// Ensure the annotations used to control the upgrade sequence are never propagated.
+	delete(machineDeploymentAnnotations, clusterv1.ClusterTopologyHoldUpgradeSequenceAnnotation)
+	delete(machineDeploymentAnnotations, clusterv1.ClusterTopologyDeferUpgradeAnnotation)
+	desiredMachineDeploymentObj.SetAnnotations(machineDeploymentAnnotations)
+	desiredMachineDeploymentObj.Spec.Template.Annotations = machineDeploymentAnnotations
+
+	// Apply Labels
+	// NOTE: On top of all the labels applied to managed objects we are applying the ClusterTopologyMachineDeploymentLabel
+	// keeping track of the MachineDeployment name from the Topology; this will be used to identify the object in next reconcile loops.
+	machineDeploymentLabels := util.MergeMap(machineDeploymentTopology.Metadata.Labels, machineDeploymentBlueprint.Metadata.Labels)
+	if machineDeploymentLabels == nil {
+		machineDeploymentLabels = map[string]string{}
+	}
+	machineDeploymentLabels[clusterv1.ClusterNameLabel] = s.Current.Cluster.Name
+	machineDeploymentLabels[clusterv1.ClusterTopologyOwnedLabel] = ""
+	machineDeploymentLabels[clusterv1.ClusterTopologyMachineDeploymentNameLabel] = machineDeploymentTopology.Name
+	desiredMachineDeploymentObj.SetLabels(machineDeploymentLabels)
+
+	// Also set the labels in .spec.template.labels so that they are propagated to
+	// MachineSet.labels and MachineSet.spec.template.labels and thus to Machine.labels.
+	// Note: the labels in MachineSet are used to properly cleanup templates when the MachineSet is deleted.
+	desiredMachineDeploymentObj.Spec.Template.Labels = machineDeploymentLabels
+
+	// Set the selector with the subset of labels identifying controlled machines.
+	// NOTE: this prevents the web hook to add cluster.x-k8s.io/deployment-name label, that is
+	// redundant for managed MachineDeployments given that we already have topology.cluster.x-k8s.io/deployment-name.
+	desiredMachineDeploymentObj.Spec.Selector.MatchLabels = map[string]string{}
+	desiredMachineDeploymentObj.Spec.Selector.MatchLabels[clusterv1.ClusterNameLabel] = s.Current.Cluster.Name
+	desiredMachineDeploymentObj.Spec.Selector.MatchLabels[clusterv1.ClusterTopologyOwnedLabel] = ""
+	desiredMachineDeploymentObj.Spec.Selector.MatchLabels[clusterv1.ClusterTopologyMachineDeploymentNameLabel] = machineDeploymentTopology.Name
+
+	// Set the desired replicas.
+	desiredMachineDeploymentObj.Spec.Replicas = machineDeploymentTopology.Replicas
+
+	desiredMachineDeployment.Object = desiredMachineDeploymentObj
+
+	// If the ClusterClass defines a MachineHealthCheck for the MachineDeployment add it to the desired state.
+	if s.Blueprint.IsMachineDeploymentMachineHealthCheckEnabled(&machineDeploymentTopology) {
+		// Note: The MHC is going to use a selector that provides a minimal set of labels which are common to all MachineSets belonging to the MachineDeployment.
+		checks, remediation := s.Blueprint.MachineDeploymentMachineHealthCheckClass(&machineDeploymentTopology)
+		desiredMachineDeployment.MachineHealthCheck = computeMachineHealthCheck(
+			ctx,
+			desiredMachineDeploymentObj,
+			selectors.ForMachineDeploymentMHC(desiredMachineDeploymentObj),
+			s.Current.Cluster,
+			checks, remediation)
+	}
+	return desiredMachineDeployment, nil
+}
+
+// computeMachineDeploymentVersion calculates the version of the desired machine deployment.
+// The version is calculated using the state of the current machine deployments,
+// the current control plane and the version defined in the topology.
+func (g *generator) computeMachineDeploymentVersion(ctx context.Context, s *scope.Scope, machineDeploymentTopology clusterv1.MachineDeploymentTopology, currentMDState *scope.MachineDeploymentState) (string, error) {
+	log := ctrl.LoggerFrom(ctx)
+
+	topologyVersion := s.Blueprint.Topology.Version
+	// If creating a new machine deployment, mark it as pending if the control plane is not
+	// yet stable. Creating a new MD while the control plane is upgrading can lead to unexpected race conditions.
+	// Example: join could fail if the load balancers are slow in detecting when CP machines are
+	// being deleted.
+	if currentMDState == nil || currentMDState.Object == nil {
+		if !s.UpgradeTracker.ControlPlane.IsControlPlaneStable() || s.HookResponseTracker.IsBlocking(runtimehooksv1.AfterControlPlaneUpgrade) || s.HookResponseTracker.IsBlocking(runtimehooksv1.BeforeWorkersUpgrade) {
+			s.UpgradeTracker.MachineDeployments.MarkPendingCreate(machineDeploymentTopology.Name)
+		}
+		return topologyVersion, nil
+	}
+
+	// Get the current version of the machine deployment.
+	currentVersion := currentMDState.Object.Spec.Template.Spec.Version
+
+	// Return early if the currentVersion is already equal to the topologyVersion
+	// no further checks required.
+	if currentVersion == topologyVersion {
+		return currentVersion, nil
+	}
+
+	// Return early if the upgrade for the MachineDeployment is deferred.
+	if isMachineDeploymentDeferred(s.Blueprint.Topology, machineDeploymentTopology) {
+		s.UpgradeTracker.MachineDeployments.MarkDeferredUpgrade(currentMDState.Object.Name)
+		s.UpgradeTracker.MachineDeployments.MarkPendingUpgrade(currentMDState.Object.Name)
+		return currentVersion, nil
+	}
+
+	// Return early if the AfterControlPlaneUpgrade hook returns a blocking response.
+	if s.HookResponseTracker.IsBlocking(runtimehooksv1.AfterControlPlaneUpgrade) {
+		s.UpgradeTracker.MachineDeployments.MarkPendingUpgrade(currentMDState.Object.Name)
+		return currentVersion, nil
+	}
+
+	// Return early if the BeforeWorkersUpgrade hook returns a blocking response.
+	if s.HookResponseTracker.IsBlocking(runtimehooksv1.BeforeWorkersUpgrade) {
+		s.UpgradeTracker.MachineDeployments.MarkPendingUpgrade(currentMDState.Object.Name)
+		return currentVersion, nil
+	}
+
+	// Return early if the upgrade concurrency is reached.
+	if s.UpgradeTracker.MachineDeployments.UpgradeConcurrencyReached() {
+		s.UpgradeTracker.MachineDeployments.MarkPendingUpgrade(currentMDState.Object.Name)
+		return currentVersion, nil
+	}
+
+	// Return early if the Control Plane is not stable. Do not pick up the topologyVersion yet.
+	// Return the current version of the machine deployment. We will pick up the new version after the control
+	// plane is stable.
+	if !s.UpgradeTracker.ControlPlane.IsControlPlaneStableOrWaitingForWorkersUpgrade() {
+		s.UpgradeTracker.MachineDeployments.MarkPendingUpgrade(currentMDState.Object.Name)
+		return currentVersion, nil
+	}
+
+	// Control plane and machine deployments are stable.
+	// Ready to pick up the next version in the upgrade plan.
+	if len(s.UpgradeTracker.MachineDeployments.UpgradePlan) == 0 {
+		return "", pkgerrors.New("cannot compute the machine deployment version if the machine deployment is pending upgrade and the upgrade plan is not set")
+	}
+
+	// The upgrade plan for workers has all versions from minWorkersVersion version to topologyVersion.
+	// If this MachineDeployment is already at minWorkersVersion, it should wait for the control plane to pick up next version before upgrading.
+	// Note: at this point we know that MachineDeployment is not yet at topologyVersion, so also set that MachineDeployment as PendingUpgrade.
+	if s.UpgradeTracker.MachineDeployments.UpgradePlan[0] == currentVersion {
+		s.UpgradeTracker.MachineDeployments.MarkPendingUpgrade(currentMDState.Object.Name)
+		return currentVersion, nil
+	}
+
+	s.UpgradeTracker.MachineDeployments.MarkUpgrading(currentMDState.Object.Name)
+
+	nextVersion := s.UpgradeTracker.MachineDeployments.UpgradePlan[0]
+
+	log.Info(fmt.Sprintf("MachineDeployment %s upgraded from version %s to version %s", klog.KObj(currentMDState.Object), currentVersion, nextVersion),
+		"ControlPlaneUpgrades", toUpgradeStep(s.UpgradeTracker.ControlPlane.UpgradePlan),
+		"WorkersUpgrades", toUpgradeStep(s.UpgradeTracker.MachineDeployments.UpgradePlan, s.UpgradeTracker.MachinePools.UpgradePlan),
+		"MachineDeployment", klog.KObj(currentMDState.Object),
+	)
+	return nextVersion, nil
+}
+
+// isMachineDeploymentDeferred returns true if the upgrade for the mdTopology is deferred.
+// This is the case when either:
+//   - the mdTopology has the ClusterTopologyDeferUpgradeAnnotation annotation.
+//   - the mdTopology has the ClusterTopologyHoldUpgradeSequenceAnnotation annotation.
+//   - another md topology which is before mdTopology in the workers.machineDeployments list has the
+//     ClusterTopologyHoldUpgradeSequenceAnnotation annotation.
+func isMachineDeploymentDeferred(clusterTopology clusterv1.Topology, mdTopology clusterv1.MachineDeploymentTopology) bool {
+	// If mdTopology has the ClusterTopologyDeferUpgradeAnnotation annotation => md is deferred.
+	if _, ok := mdTopology.Metadata.Annotations[clusterv1.ClusterTopologyDeferUpgradeAnnotation]; ok {
+		return true
+	}
+
+	// If mdTopology has the ClusterTopologyHoldUpgradeSequenceAnnotation annotation => md is deferred.
+	if _, ok := mdTopology.Metadata.Annotations[clusterv1.ClusterTopologyHoldUpgradeSequenceAnnotation]; ok {
+		return true
+	}
+
+	for _, md := range clusterTopology.Workers.MachineDeployments {
+		// If another md topology with the ClusterTopologyHoldUpgradeSequenceAnnotation annotation
+		// is found before the mdTopology => md is deferred.
+		if _, ok := md.Metadata.Annotations[clusterv1.ClusterTopologyHoldUpgradeSequenceAnnotation]; ok {
+			return true
+		}
+
+		// If mdTopology is found before a md topology with the ClusterTopologyHoldUpgradeSequenceAnnotation
+		// annotation => md is not deferred.
+		if md.Name == mdTopology.Name {
+			return false
+		}
+	}
+
+	// This case should be impossible as mdTopology should have been found in workers.machineDeployments.
+	return false
+}
+
+// computeMachinePools computes the desired state of the list of MachinePools.
+func (g *generator) computeMachinePools(ctx context.Context, s *scope.Scope) (scope.MachinePoolsStateMap, error) {
+	machinePoolsStateMap := make(scope.MachinePoolsStateMap)
+	for _, mpTopology := range s.Blueprint.Topology.Workers.MachinePools {
+		desiredMachinePool, err := g.computeMachinePool(ctx, s, mpTopology)
+		if err != nil {
+			return nil, pkgerrors.Wrapf(err, "failed to compute MachinePool for topology %q", mpTopology.Name)
+		}
+		machinePoolsStateMap[mpTopology.Name] = desiredMachinePool
+	}
+	return machinePoolsStateMap, nil
+}
+
+// computeMachinePool computes the desired state for a MachinePoolTopology.
+// The generated machinePool object is calculated using the values from the machinePoolTopology and
+// the machinePool class.
+func (g *generator) computeMachinePool(ctx context.Context, s *scope.Scope, machinePoolTopology clusterv1.MachinePoolTopology) (*scope.MachinePoolState, error) {
+	desiredMachinePool := &scope.MachinePoolState{}
+
+	// Gets the blueprint for the MachinePool class.
+	className := machinePoolTopology.Class
+	machinePoolBlueprint, ok := s.Blueprint.MachinePools[className]
+	if !ok {
+		return nil, pkgerrors.Errorf("MachinePool class %s not found in ClusterClass %s", className, klog.KObj(s.Blueprint.ClusterClass))
+	}
+
+	var machinePoolClass *clusterv1.MachinePoolClass
+	for _, mpClass := range s.Blueprint.ClusterClass.Spec.Workers.MachinePools {
+		if mpClass.Class == className {
+			machinePoolClass = &mpClass
+			break
+		}
+	}
+	if machinePoolClass == nil {
+		return nil, pkgerrors.Errorf("MachinePool class %s not found in ClusterClass %s", className, klog.KObj(s.Blueprint.ClusterClass))
+	}
+
+	// Compute the bootstrap config.
+	currentMachinePool := s.Current.MachinePools[machinePoolTopology.Name]
+	var currentBootstrapConfigRef clusterv1.ContractVersionedObjectReference
+	if currentMachinePool != nil && currentMachinePool.BootstrapObject != nil {
+		currentBootstrapConfigRef = currentMachinePool.Object.Spec.Template.Spec.Bootstrap.ConfigRef
+	}
+	var err error
+	// Note: Only set cloned from annotations if we clone from a template (i.e. not if we use inline templates).
+	var templateClonedFromRefBootstrapTemplate *corev1.ObjectReference
+	if machinePoolClass.Bootstrap.TemplateRef.IsDefined() {
+		templateClonedFromRefBootstrapTemplate = contract.ObjToRef(machinePoolBlueprint.BootstrapTemplate)
+	}
+	desiredMachinePool.BootstrapObject, err = templateToObject(templateToInput{
+		template:              machinePoolBlueprint.BootstrapTemplate,
+		templateClonedFromRef: templateClonedFromRefBootstrapTemplate,
+		cluster:               s.Current.Cluster,
+		nameGenerator:         topologynames.SimpleNameGenerator(topologynames.BootstrapConfigNamePrefix(s.Current.Cluster.Name, machinePoolTopology.Name)),
+		currentObjectName:     currentBootstrapConfigRef.Name,
+		// Note: we are adding an ownerRef to Cluster so the template will be automatically garbage collected
+		// in case of errors in between creating this template and creating/updating the MachinePool object
+		// with the reference to this template.
+		ownerRef: ownerrefs.OwnerReferenceTo(s.Current.Cluster, clusterv1.GroupVersion.WithKind("Cluster")),
+	})
+	if err != nil {
+		return nil, pkgerrors.Wrapf(err, "failed to compute bootstrap object for topology %q", machinePoolTopology.Name)
+	}
+
+	bootstrapObjectLabels := desiredMachinePool.BootstrapObject.GetLabels()
+	if bootstrapObjectLabels == nil {
+		bootstrapObjectLabels = map[string]string{}
+	}
+	// Add ClusterTopologyMachinePoolLabel to the generated Bootstrap config
+	bootstrapObjectLabels[clusterv1.ClusterTopologyMachinePoolNameLabel] = machinePoolTopology.Name
+	desiredMachinePool.BootstrapObject.SetLabels(bootstrapObjectLabels)
+
+	// Compute the InfrastructureMachinePool.
+	var currentInfraMachinePoolRef *clusterv1.ContractVersionedObjectReference
+	if currentMachinePool != nil && currentMachinePool.InfrastructureMachinePoolObject != nil {
+		currentInfraMachinePoolRef = &currentMachinePool.Object.Spec.Template.Spec.InfrastructureRef
+	}
+	// Note: Only set cloned from annotations if we clone from a template (i.e. not if we use inline templates).
+	var templateClonedFromRefInfrastructureMachinePoolTemplate *corev1.ObjectReference
+	if machinePoolClass.Infrastructure.TemplateRef.IsDefined() {
+		templateClonedFromRefInfrastructureMachinePoolTemplate = contract.ObjToRef(machinePoolBlueprint.InfrastructureMachinePoolTemplate)
+	}
+	desiredMachinePool.InfrastructureMachinePoolObject, err = templateToObject(templateToInput{
+		template:              machinePoolBlueprint.InfrastructureMachinePoolTemplate,
+		templateClonedFromRef: templateClonedFromRefInfrastructureMachinePoolTemplate,
+		cluster:               s.Current.Cluster,
+		nameGenerator:         topologynames.SimpleNameGenerator(topologynames.InfrastructureMachinePoolNamePrefix(s.Current.Cluster.Name, machinePoolTopology.Name)),
+		currentObjectName:     ptr.Deref(currentInfraMachinePoolRef, clusterv1.ContractVersionedObjectReference{}).Name,
+		// Note: we are adding an ownerRef to Cluster so the template will be automatically garbage collected
+		// in case of errors in between creating this template and creating/updating the MachinePool object
+		// with the reference to this template.
+		ownerRef: ownerrefs.OwnerReferenceTo(s.Current.Cluster, clusterv1.GroupVersion.WithKind("Cluster")),
+	})
+	if err != nil {
+		return nil, pkgerrors.Wrapf(err, "failed to compute infrastructure object for topology %q", machinePoolTopology.Name)
+	}
+
+	infraMachinePoolObjectLabels := desiredMachinePool.InfrastructureMachinePoolObject.GetLabels()
+	if infraMachinePoolObjectLabels == nil {
+		infraMachinePoolObjectLabels = map[string]string{}
+	}
+	// Add ClusterTopologyMachinePoolLabel to the generated InfrastructureMachinePool object
+	infraMachinePoolObjectLabels[clusterv1.ClusterTopologyMachinePoolNameLabel] = machinePoolTopology.Name
+	desiredMachinePool.InfrastructureMachinePoolObject.SetLabels(infraMachinePoolObjectLabels)
+	version, err := g.computeMachinePoolVersion(ctx, s, machinePoolTopology, currentMachinePool)
+	if err != nil {
+		return nil, err
+	}
+
+	// Compute values that can be set both in the MachinePoolClass and in the MachinePoolTopology
+	minReadySeconds := machinePoolClass.MinReadySeconds
+	if machinePoolTopology.MinReadySeconds != nil {
+		minReadySeconds = machinePoolTopology.MinReadySeconds
+	}
+
+	failureDomains := machinePoolClass.FailureDomains
+	if machinePoolTopology.FailureDomains != nil {
+		failureDomains = machinePoolTopology.FailureDomains
+	}
+
+	nodeDrainTimeout := machinePoolClass.Deletion.NodeDrainTimeoutSeconds
+	if machinePoolTopology.Deletion.NodeDrainTimeoutSeconds != nil {
+		nodeDrainTimeout = machinePoolTopology.Deletion.NodeDrainTimeoutSeconds
+	}
+
+	nodeVolumeDetachTimeout := machinePoolClass.Deletion.NodeVolumeDetachTimeoutSeconds
+	if machinePoolTopology.Deletion.NodeVolumeDetachTimeoutSeconds != nil {
+		nodeVolumeDetachTimeout = machinePoolTopology.Deletion.NodeVolumeDetachTimeoutSeconds
+	}
+
+	nodeDeletionTimeout := machinePoolClass.Deletion.NodeDeletionTimeoutSeconds
+	if machinePoolTopology.Deletion.NodeDeletionTimeoutSeconds != nil {
+		nodeDeletionTimeout = machinePoolTopology.Deletion.NodeDeletionTimeoutSeconds
+	}
+
+	taints := machinePoolClass.Taints
+	if machinePoolTopology.Taints != nil {
+		taints = machinePoolTopology.Taints
+	}
+
+	// Compute the MachinePool object.
+	desiredBootstrapConfigRef := contract.ObjToContractVersionedObjectReference(desiredMachinePool.BootstrapObject)
+	desiredInfraMachinePoolRef := contract.ObjToContractVersionedObjectReference(desiredMachinePool.InfrastructureMachinePoolObject)
+
+	nameTemplate := "{{ .cluster.name }}-{{ .machinePool.topologyName }}-{{ .random }}"
+	if machinePoolClass.Naming.Template != "" {
+		nameTemplate = machinePoolClass.Naming.Template
+	}
+
+	name, err := topologynames.MachinePoolNameGenerator(nameTemplate, s.Current.Cluster.Name, machinePoolTopology.Name).GenerateName()
+	if err != nil {
+		return nil, pkgerrors.Wrap(err, "failed to generate name for MachinePool")
+	}
+
+	desiredMachinePoolObj := &clusterv1.MachinePool{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: s.Current.Cluster.Namespace,
+		},
+		Spec: clusterv1.MachinePoolSpec{
+			ClusterName:    s.Current.Cluster.Name,
+			FailureDomains: failureDomains,
+			Template: clusterv1.MachineTemplateSpec{
+				Spec: clusterv1.MachineSpec{
+					ClusterName:       s.Current.Cluster.Name,
+					Version:           version,
+					Bootstrap:         clusterv1.Bootstrap{ConfigRef: desiredBootstrapConfigRef},
+					InfrastructureRef: desiredInfraMachinePoolRef,
+					Deletion: clusterv1.MachineDeletionSpec{
+						NodeDrainTimeoutSeconds:        nodeDrainTimeout,
+						NodeVolumeDetachTimeoutSeconds: nodeVolumeDetachTimeout,
+						NodeDeletionTimeoutSeconds:     nodeDeletionTimeout,
+					},
+					MinReadySeconds: minReadySeconds,
+					Taints:          taints,
+				},
+			},
+		},
+	}
+
+	// If an existing MachinePool is present, override the MachinePool generate name
+	// re-using the existing name (this will help in reconcile).
+	if currentMachinePool != nil && currentMachinePool.Object != nil {
+		desiredMachinePoolObj.SetName(currentMachinePool.Object.Name)
+	}
+
+	// Apply annotations
+	machinePoolAnnotations := util.MergeMap(machinePoolTopology.Metadata.Annotations, machinePoolBlueprint.Metadata.Annotations)
+	// Ensure the annotations used to control the upgrade sequence are never propagated.
+	delete(machinePoolAnnotations, clusterv1.ClusterTopologyHoldUpgradeSequenceAnnotation)
+	delete(machinePoolAnnotations, clusterv1.ClusterTopologyDeferUpgradeAnnotation)
+	desiredMachinePoolObj.SetAnnotations(machinePoolAnnotations)
+	desiredMachinePoolObj.Spec.Template.Annotations = machinePoolAnnotations
+
+	// Apply Labels
+	// NOTE: On top of all the labels applied to managed objects we are applying the ClusterTopologyMachinePoolLabel
+	// keeping track of the MachinePool name from the Topology; this will be used to identify the object in next reconcile loops.
+	machinePoolLabels := util.MergeMap(machinePoolTopology.Metadata.Labels, machinePoolBlueprint.Metadata.Labels)
+	if machinePoolLabels == nil {
+		machinePoolLabels = map[string]string{}
+	}
+	machinePoolLabels[clusterv1.ClusterNameLabel] = s.Current.Cluster.Name
+	machinePoolLabels[clusterv1.ClusterTopologyOwnedLabel] = ""
+	machinePoolLabels[clusterv1.ClusterTopologyMachinePoolNameLabel] = machinePoolTopology.Name
+	desiredMachinePoolObj.SetLabels(machinePoolLabels)
+
+	// Also set the labels in .spec.template.labels so that they are propagated to
+	// MachineSet.labels and MachineSet.spec.template.labels and thus to Machine.labels.
+	// Note: the labels in MachineSet are used to properly cleanup templates when the MachineSet is deleted.
+	desiredMachinePoolObj.Spec.Template.Labels = machinePoolLabels
+
+	// Set the desired replicas.
+	desiredMachinePoolObj.Spec.Replicas = machinePoolTopology.Replicas
+
+	desiredMachinePool.Object = desiredMachinePoolObj
+
+	return desiredMachinePool, nil
+}
+
+// computeMachinePoolVersion calculates the version of the desired machine pool.
+// The version is calculated using the state of the current machine pools,
+// the current control plane and the version defined in the topology.
+func (g *generator) computeMachinePoolVersion(ctx context.Context, s *scope.Scope, machinePoolTopology clusterv1.MachinePoolTopology, currentMPState *scope.MachinePoolState) (string, error) {
+	log := ctrl.LoggerFrom(ctx)
+
+	topologyVersion := s.Blueprint.Topology.Version
+	// If creating a new machine pool, mark it as pending if the control plane is not
+	// yet stable. Creating a new MP while the control plane is upgrading can lead to unexpected race conditions.
+	// Example: join could fail if the load balancers are slow in detecting when CP machines are
+	// being deleted.
+	if currentMPState == nil || currentMPState.Object == nil {
+		if !s.UpgradeTracker.ControlPlane.IsControlPlaneStable() || s.HookResponseTracker.IsBlocking(runtimehooksv1.AfterControlPlaneUpgrade) || s.HookResponseTracker.IsBlocking(runtimehooksv1.BeforeWorkersUpgrade) {
+			s.UpgradeTracker.MachinePools.MarkPendingCreate(machinePoolTopology.Name)
+		}
+		return topologyVersion, nil
+	}
+
+	// Get the current version of the machine pool.
+	currentVersion := currentMPState.Object.Spec.Template.Spec.Version
+
+	// Return early if the currentVersion is already equal to the topologyVersion
+	// no further checks required.
+	if currentVersion == topologyVersion {
+		return currentVersion, nil
+	}
+
+	// Return early if the upgrade for the MachinePool is deferred.
+	if isMachinePoolDeferred(s.Blueprint.Topology, machinePoolTopology) {
+		s.UpgradeTracker.MachinePools.MarkDeferredUpgrade(currentMPState.Object.Name)
+		s.UpgradeTracker.MachinePools.MarkPendingUpgrade(currentMPState.Object.Name)
+		return currentVersion, nil
+	}
+
+	// Return early if the AfterControlPlaneUpgrade hook returns a blocking response.
+	if s.HookResponseTracker.IsBlocking(runtimehooksv1.AfterControlPlaneUpgrade) {
+		s.UpgradeTracker.MachinePools.MarkPendingUpgrade(currentMPState.Object.Name)
+		return currentVersion, nil
+	}
+
+	// Return early if the BeforeWorkersUpgrade hook returns a blocking response.
+	if s.HookResponseTracker.IsBlocking(runtimehooksv1.BeforeWorkersUpgrade) {
+		s.UpgradeTracker.MachinePools.MarkPendingUpgrade(currentMPState.Object.Name)
+		return currentVersion, nil
+	}
+
+	// Return early if the upgrade concurrency is reached.
+	if s.UpgradeTracker.MachinePools.UpgradeConcurrencyReached() {
+		s.UpgradeTracker.MachinePools.MarkPendingUpgrade(currentMPState.Object.Name)
+		return currentVersion, nil
+	}
+
+	// Return early if the Control Plane is not stable. Do not pick up the topologyVersion yet.
+	// Return the current version of the machine pool. We will pick up the new version after the control
+	// plane is stable.
+	if !s.UpgradeTracker.ControlPlane.IsControlPlaneStableOrWaitingForWorkersUpgrade() {
+		s.UpgradeTracker.MachinePools.MarkPendingUpgrade(currentMPState.Object.Name)
+		return currentVersion, nil
+	}
+
+	// Control plane and machine pools are stable.
+	// Ready to pick up the topology version.
+	if len(s.UpgradeTracker.MachinePools.UpgradePlan) == 0 {
+		return "", pkgerrors.New("cannot compute the machine pool version if the machine pool is pending upgrade and the upgrade plan is not set")
+	}
+
+	// The upgrade plan for workers has all versions from minWorkersVersion version to topologyVersion.
+	// If this MachinePool is already at minWorkersVersion, it should wait for the control plane to pick up next version before upgrading.
+	// Note: at this point we know that MachinePool is not yet at topologyVersion, so also set that MachinePool is PendingUpgrade.
+	if s.UpgradeTracker.MachinePools.UpgradePlan[0] == currentVersion {
+		s.UpgradeTracker.MachinePools.MarkPendingUpgrade(currentMPState.Object.Name)
+		return currentVersion, nil
+	}
+
+	s.UpgradeTracker.MachinePools.MarkUpgrading(currentMPState.Object.Name)
+
+	nextVersion := s.UpgradeTracker.MachinePools.UpgradePlan[0]
+
+	log.Info(fmt.Sprintf("MachinePool %s upgraded from version %s to version %s", klog.KObj(currentMPState.Object), currentVersion, nextVersion),
+		"ControlPlaneUpgrades", toUpgradeStep(s.UpgradeTracker.ControlPlane.UpgradePlan),
+		"WorkersUpgrades", toUpgradeStep(s.UpgradeTracker.MachineDeployments.UpgradePlan, s.UpgradeTracker.MachinePools.UpgradePlan),
+		"MachinePool", klog.KObj(currentMPState.Object),
+	)
+	return nextVersion, nil
+}
+
+// isMachinePoolDeferred returns true if the upgrade for the mpTopology is deferred.
+// This is the case when either:
+//   - the mpTopology has the ClusterTopologyDeferUpgradeAnnotation annotation.
+//   - the mpTopology has the ClusterTopologyHoldUpgradeSequenceAnnotation annotation.
+//   - another mp topology which is before mpTopology in the workers.machinePools list has the
+//     ClusterTopologyHoldUpgradeSequenceAnnotation annotation.
+func isMachinePoolDeferred(clusterTopology clusterv1.Topology, mpTopology clusterv1.MachinePoolTopology) bool {
+	// If mpTopology has the ClusterTopologyDeferUpgradeAnnotation annotation => mp is deferred.
+	if _, ok := mpTopology.Metadata.Annotations[clusterv1.ClusterTopologyDeferUpgradeAnnotation]; ok {
+		return true
+	}
+
+	// If mpTopology has the ClusterTopologyHoldUpgradeSequenceAnnotation annotation => mp is deferred.
+	if _, ok := mpTopology.Metadata.Annotations[clusterv1.ClusterTopologyHoldUpgradeSequenceAnnotation]; ok {
+		return true
+	}
+
+	for _, mp := range clusterTopology.Workers.MachinePools {
+		// If another mp topology with the ClusterTopologyHoldUpgradeSequenceAnnotation annotation
+		// is found before the mpTopology => mp is deferred.
+		if _, ok := mp.Metadata.Annotations[clusterv1.ClusterTopologyHoldUpgradeSequenceAnnotation]; ok {
+			return true
+		}
+
+		// If mpTopology is found before a mp topology with the ClusterTopologyHoldUpgradeSequenceAnnotation
+		// annotation => mp is not deferred.
+		if mp.Name == mpTopology.Name {
+			return false
+		}
+	}
+
+	// This case should be impossible as mpTopology should have been found in workers.machinePools.
+	return false
+}
+
+type templateToInput struct {
+	template              *unstructured.Unstructured
+	templateClonedFromRef *corev1.ObjectReference
+	cluster               *clusterv1.Cluster
+	nameGenerator         topologynames.NameGenerator
+	currentObjectName     string
+	labels                map[string]string
+	annotations           map[string]string
+	// OwnerRef is an optional OwnerReference to attach to the cloned object.
+	ownerRef *metav1.OwnerReference
+}
+
+// templateToObject generates an object from a template, taking care
+// of adding required labels (cluster, topology), annotations (clonedFrom)
+// and assigning a meaningful name (or reusing current reference name).
+func templateToObject(in templateToInput) (*unstructured.Unstructured, error) {
+	// NOTE: The cluster label is added at creation time so this object could be read by the ClusterTopology
+	// controller immediately after creation, even before other controllers are going to add the label (if missing).
+	labels := map[string]string{}
+	for k, v := range in.labels {
+		labels[k] = v
+	}
+	labels[clusterv1.ClusterNameLabel] = in.cluster.Name
+	labels[clusterv1.ClusterTopologyOwnedLabel] = ""
+
+	// Generate the object from the template.
+	// NOTE: OwnerRef can't be set at this stage; other controllers are going to add OwnerReferences when
+	// the object is actually created.
+	object, err := external.GenerateTemplate(&external.GenerateTemplateInput{
+		Template:    in.template,
+		TemplateRef: in.templateClonedFromRef,
+		Namespace:   in.cluster.Namespace,
+		Labels:      labels,
+		Annotations: in.annotations,
+		ClusterName: in.cluster.Name,
+		OwnerRef:    in.ownerRef,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	// Ensure the generated objects have a meaningful name.
+	// NOTE: In case there is already a ref to this object in the Cluster, re-use the same name
+	// in order to simplify comparison at later stages of the reconcile process.
+	name, err := in.nameGenerator.GenerateName()
+	if err != nil {
+		return nil, pkgerrors.Wrapf(err, "failed to generate name for %s", object.GetKind())
+	}
+	object.SetName(name)
+	if in.currentObjectName != "" {
+		object.SetName(in.currentObjectName)
+	}
+
+	return object, nil
+}
+
+// templateToTemplate generates a template from an existing template, taking care
+// of adding required labels (cluster, topology), annotations (clonedFrom)
+// and assigning a meaningful name (or reusing current reference name).
+// NOTE: We are creating a copy of the ClusterClass template for each cluster so
+// it is possible to add cluster specific information without affecting the original object.
+func templateToTemplate(in templateToInput) (*unstructured.Unstructured, error) {
+	template := &unstructured.Unstructured{}
+	in.template.DeepCopyInto(template)
+
+	// Remove all the info automatically assigned by the API server and not relevant from
+	// the copy of the template.
+	template.SetResourceVersion("")
+	template.SetFinalizers(nil)
+	template.SetUID("")
+	template.SetSelfLink("")
+
+	// Enforce the topology labels into the provided label set.
+	// NOTE: The cluster label is added at creation time so this object could be read by the ClusterTopology
+	// controller immediately after creation, even before other controllers are going to add the label (if missing).
+	labels := template.GetLabels()
+	if labels == nil {
+		labels = map[string]string{}
+	}
+	for k, v := range in.labels {
+		labels[k] = v
+	}
+	labels[clusterv1.ClusterNameLabel] = in.cluster.Name
+	labels[clusterv1.ClusterTopologyOwnedLabel] = ""
+	template.SetLabels(labels)
+
+	// Enforce cloned from annotations and removes the kubectl last-applied-configuration annotation
+	// because we don't want to propagate it to the cloned template objects.
+	annotations := template.GetAnnotations()
+	if annotations == nil {
+		annotations = map[string]string{}
+	}
+	for k, v := range in.annotations {
+		annotations[k] = v
+	}
+	if in.templateClonedFromRef != nil {
+		annotations[clusterv1.TemplateClonedFromNameAnnotation] = in.templateClonedFromRef.Name
+		annotations[clusterv1.TemplateClonedFromGroupKindAnnotation] = in.templateClonedFromRef.GroupVersionKind().GroupKind().String()
+	}
+	delete(annotations, corev1.LastAppliedConfigAnnotation)
+	template.SetAnnotations(annotations)
+
+	// Set the owner reference.
+	if in.ownerRef != nil {
+		template.SetOwnerReferences([]metav1.OwnerReference{*in.ownerRef})
+	}
+
+	// Ensure the generated template gets a meaningful name.
+	// NOTE: In case there is already an object ref to this template, it is required to re-use the same name
+	// in order to simplify comparison at later stages of the reconcile process.
+	name, err := in.nameGenerator.GenerateName()
+	if err != nil {
+		return nil, pkgerrors.Wrapf(err, "failed to generate name for %s", template.GetKind())
+	}
+	template.SetName(name)
+	if in.currentObjectName != "" {
+		template.SetName(in.currentObjectName)
+	}
+	template.SetNamespace(in.cluster.Namespace)
+
+	return template, nil
+}
+
+func computeMachineHealthCheck(ctx context.Context, healthCheckTarget client.Object, selector *metav1.LabelSelector, cluster *clusterv1.Cluster, mhcChecks clusterv1.MachineHealthCheckChecks, mhcRemediation clusterv1.MachineHealthCheckRemediation) *clusterv1.MachineHealthCheck {
+	// Create a MachineHealthCheck with the spec given in the ClusterClass.
+	mhc := &clusterv1.MachineHealthCheck{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      healthCheckTarget.GetName(),
+			Namespace: healthCheckTarget.GetNamespace(),
+			Labels: map[string]string{
+				clusterv1.ClusterTopologyOwnedLabel: "",
+			},
+			// Note: we are adding an ownerRef to Cluster so the MHC will be automatically garbage collected
+			// in case deletion is triggered before an object reconcile happens.
+			OwnerReferences: []metav1.OwnerReference{
+				*ownerrefs.OwnerReferenceTo(cluster, clusterv1.GroupVersion.WithKind("Cluster")),
+			},
+		},
+		Spec: clusterv1.MachineHealthCheckSpec{
+			ClusterName: cluster.Name,
+			Selector:    *selector,
+			Checks:      mhcChecks,
+			Remediation: mhcRemediation,
+		},
+	}
+
+	// Default all fields in the MachineHealthCheck using the same function called in the webhook. This ensures the desired
+	// state of the object won't be different from the current state due to webhook Defaulting.
+	if err := (&coreadmission.MachineHealthCheck{}).Default(ctx, mhc); err != nil {
+		panic(err)
+	}
+
+	return mhc
+}
+
+func getOwnerReferenceFrom(obj, owner client.Object, ownerGVK schema.GroupVersionKind) *metav1.OwnerReference {
+	for _, o := range obj.GetOwnerReferences() {
+		if o.Kind == ownerGVK.Kind && o.Name == owner.GetName() {
+			return &o
+		}
+	}
+	return nil
+}
+
+func cleanupCluster(cluster *clusterv1.Cluster) *clusterv1.Cluster {
+	cluster = cluster.DeepCopy()
+
+	// Optimize size of Cluster by not sending status, the managedFields and some specific annotations.
+	cluster.SetManagedFields(nil)
+
+	// The conversion that we run before calling cleanupCluster does not clone annotations
+	// So we have to do it here to not modify the original Cluster.
+	if cluster.Annotations != nil {
+		annotations := maps.Clone(cluster.Annotations)
+		delete(annotations, corev1.LastAppliedConfigAnnotation)
+		delete(annotations, conversionutil.DataAnnotation)
+		cluster.Annotations = annotations
+	}
+	cluster.Status = clusterv1.ClusterStatus{}
+	return cluster
+}

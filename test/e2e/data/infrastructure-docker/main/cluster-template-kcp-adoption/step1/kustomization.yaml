@@ -1,0 +1,8 @@
+labels:
+- includeSelectors: true
+  pairs:
+    kcp-adoption.step1: ""
+
+resources:
+- cluster-with-cp0.yaml
+- ../../bases/crs.yaml

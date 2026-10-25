@@ -1,0 +1,16 @@
+apiVersion: controlplane.cluster.x-k8s.io/v1beta2
+kind: KubeadmControlPlane
+metadata:
+  name: ${CLUSTER_NAME}-control-plane
+spec:
+  machineTemplate:
+    spec:
+      taints:
+        - key: "pre-existing-on-initialization-taint"
+          value: "on-initialization-value"
+          effect: PreferNoSchedule
+          propagation: OnInitialization
+        - key: "pre-existing-always-taint"
+          value: "always-value"
+          effect: PreferNoSchedule
+          propagation: Always

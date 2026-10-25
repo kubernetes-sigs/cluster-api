@@ -1,0 +1,17 @@
+    - name: owner
+      help: Owner references.
+      each:
+        info:
+          labelsFromPath:
+            owner_is_controller:
+            - controller
+            owner_kind:
+            - kind
+            owner_name:
+            - name
+            owner_uid:
+            - uid
+          path:
+          - metadata
+          - ownerReferences
+        type: Info

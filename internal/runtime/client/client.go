@@ -1,0 +1,880 @@
+/*
+Copyright 2022 The Kubernetes Authors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+// Package client provides the Runtime SDK client.
+package client
+
+import (
+	"bytes"
+	"context"
+	"crypto/tls"
+	"encoding/json"
+	"fmt"
+	"io"
+	"net"
+	"net/http"
+	"net/url"
+	"path"
+	"reflect"
+	"sort"
+	"strconv"
+	"strings"
+	"time"
+
+	pkgerrors "github.com/pkg/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	kerrors "k8s.io/apimachinery/pkg/util/errors"
+	utilnet "k8s.io/apimachinery/pkg/util/net"
+	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/util/validation"
+	"k8s.io/client-go/transport"
+	"k8s.io/klog/v2"
+	"k8s.io/utils/ptr"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/certwatcher"
+	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
+
+	runtimecatalog "sigs.k8s.io/cluster-api/api/runtime/catalog"
+	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
+	runtimev1 "sigs.k8s.io/cluster-api/api/runtime/v1beta2"
+	runtimeclient "sigs.k8s.io/cluster-api/exp/runtime/client"
+	runtimemetrics "sigs.k8s.io/cluster-api/internal/runtime/metrics"
+	runtimeregistry "sigs.k8s.io/cluster-api/internal/runtime/registry"
+	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/cache"
+)
+
+type errCallingExtensionHandler error
+
+const defaultDiscoveryTimeout = 10 * time.Second
+
+// maxExtensionResponseBodyBytes bounds the response body a runtime client
+// will buffer. Without a limit, an extension server can
+// stream an arbitrarily large body that io.ReadAll buffers whole, OOM-killing the
+// process. 20 MiB is above any legitimate hook response (e.g. a
+// GeneratePatchesResponse carrying patches for the cluster's topology objects).
+const maxExtensionResponseBodyBytes = 20 << 20 // 20 MiB
+
+// Options are creation options for a Client.
+type Options struct {
+	CertFile string // Path of the PEM-encoded client certificate.
+	KeyFile  string // Path of the PEM-encoded client key.
+	Catalog  *runtimecatalog.Catalog
+	Registry runtimeregistry.ExtensionRegistry
+	Client   ctrlclient.Client
+}
+
+// New returns a new Client.
+func New(ctx context.Context, options Options) (runtimeclient.Client, *certwatcher.CertWatcher, error) {
+	httpClientCache := cache.New[httpClientEntry](ctx, 24*time.Hour)
+
+	var certWatcher *certwatcher.CertWatcher
+	if options.CertFile != "" && options.KeyFile != "" {
+		var err error
+		certWatcher, err = certwatcher.New(options.CertFile, options.KeyFile)
+		if err != nil {
+			return nil, nil, pkgerrors.Wrapf(err, "failed to create RuntimeSDK client: failed to create cert-watcher")
+		}
+		certWatcher.RegisterCallback(func(_ tls.Certificate) {
+			httpClientCache.DeleteAll()
+		})
+	}
+	return &client{
+		certFile:         options.CertFile,
+		keyFile:          options.KeyFile,
+		catalog:          options.Catalog,
+		registry:         options.Registry,
+		client:           options.Client,
+		httpClientsCache: httpClientCache,
+	}, certWatcher, nil
+}
+
+var _ runtimeclient.Client = &client{}
+
+type client struct {
+	certFile         string
+	keyFile          string
+	catalog          *runtimecatalog.Catalog
+	registry         runtimeregistry.ExtensionRegistry
+	client           ctrlclient.Client
+	httpClientsCache cache.Cache[httpClientEntry]
+}
+
+type httpClientEntry struct {
+	// Note: caData and hostName are the variable parts in the TLSConfig
+	// for an http.Client that is used to call runtime extensions.
+	caData   []byte
+	hostName string
+
+	client *http.Client
+}
+
+func newHTTPClientEntry(hostName string, caData []byte, client *http.Client) httpClientEntry {
+	return httpClientEntry{
+		hostName: hostName,
+		caData:   caData,
+		client:   client,
+	}
+}
+
+func newHTTPClientEntryKey(hostName string, caData []byte) string {
+	return httpClientEntry{
+		hostName: hostName,
+		caData:   caData,
+	}.Key()
+}
+
+func (r httpClientEntry) Key() string {
+	return fmt.Sprintf("%s/%s", r.hostName, string(r.caData))
+}
+
+func (c *client) WarmUp(extensionConfigList *runtimev1.ExtensionConfigList) error {
+	return c.registry.WarmUp(extensionConfigList)
+}
+
+func (c *client) IsReady() bool {
+	return c.registry.IsReady()
+}
+
+func (c *client) Discover(ctx context.Context, extensionConfig *runtimev1.ExtensionConfig) (*runtimev1.ExtensionConfig, error) {
+	log := ctrl.LoggerFrom(ctx)
+	log.V(4).Info("Performing discovery for ExtensionConfig")
+
+	hookGVH, err := c.catalog.GroupVersionHook(runtimehooksv1.Discovery)
+	if err != nil {
+		return nil, pkgerrors.Wrapf(err, "failed to discover extension %q: failed to compute GVH of hook", extensionConfig.Name)
+	}
+
+	httpClient, err := c.getHTTPClient(extensionConfig.Spec.ClientConfig)
+	if err != nil {
+		return nil, pkgerrors.Wrapf(err, "failed to discover extension %q: failed to get http client", extensionConfig.Name)
+	}
+
+	request := &runtimehooksv1.DiscoveryRequest{}
+	request.SetSettings(extensionConfig.Spec.Settings)
+
+	response := &runtimehooksv1.DiscoveryResponse{}
+	opts := &httpCallOptions{
+		catalog:         c.catalog,
+		config:          extensionConfig.Spec.ClientConfig,
+		registrationGVH: hookGVH,
+		hookGVH:         hookGVH,
+		timeout:         defaultDiscoveryTimeout,
+		httpClient:      httpClient,
+	}
+	if err := httpCall(ctx, request, response, opts); err != nil {
+		return nil, pkgerrors.Wrapf(err, "failed to discover extension %q", extensionConfig.Name)
+	}
+
+	// Check to see if the response is not a success and handle the failure accordingly.
+	if err := validateResponseStatus(response, "discover extension", extensionConfig.Name); err != nil {
+		return nil, err
+	}
+
+	// Check to see if the response is valid.
+	if err = defaultAndValidateDiscoveryResponse(c.catalog, response); err != nil {
+		return nil, pkgerrors.Wrapf(err, "failed to discover extension %q", extensionConfig.Name)
+	}
+
+	modifiedExtensionConfig, changes, err := responseToExtensionConfig(response, extensionConfig)
+	if err != nil {
+		return nil, err
+	}
+	if changes.Len() > 0 {
+		messages := changes.UnsortedList()
+		sort.Strings(messages)
+		log.Info(fmt.Sprintf("Discovery detected following changes: %s", strings.Join(messages, ", ")))
+	}
+
+	return modifiedExtensionConfig, nil
+}
+
+func responseToExtensionConfig(response *runtimehooksv1.DiscoveryResponse, extensionConfig *runtimev1.ExtensionConfig) (*runtimev1.ExtensionConfig, sets.Set[string], error) {
+	modifiedExtensionConfig := extensionConfig.DeepCopy()
+	// Reset the handlers that were previously registered with the ExtensionConfig.
+	modifiedExtensionConfig.Status.Handlers = []runtimev1.ExtensionHandler{}
+
+	handlerNames := sets.Set[string]{}
+	changes := sets.Set[string]{}
+	for _, handler := range response.Handlers {
+		handlerName, err := NameForHandler(handler, extensionConfig)
+		if err != nil {
+			return nil, nil, pkgerrors.Wrapf(err, "failed to discover extension %q", extensionConfig.Name)
+		}
+		handlerNames.Insert(handlerName)
+		newHandler := runtimev1.ExtensionHandler{
+			Name: handlerName, // Uniquely identifies a handler of an Extension.
+			RequestHook: runtimev1.GroupVersionHook{
+				APIVersion: handler.RequestHook.APIVersion,
+				Hook:       handler.RequestHook.Hook,
+			},
+			TimeoutSeconds: ptr.Deref(handler.TimeoutSeconds, 0),
+			FailurePolicy:  runtimev1.FailurePolicy(ptr.Deref(handler.FailurePolicy, "")),
+		}
+		modifiedExtensionConfig.Status.Handlers = append(
+			modifiedExtensionConfig.Status.Handlers,
+			newHandler,
+		)
+
+		var oldHandler *runtimev1.ExtensionHandler
+		for _, h := range extensionConfig.Status.Handlers {
+			if h.Name == newHandler.Name {
+				oldHandler = &h
+				break
+			}
+		}
+		if oldHandler == nil {
+			changes.Insert(fmt.Sprintf("%s added", handler.Name))
+			continue
+		}
+		if !reflect.DeepEqual(newHandler, *oldHandler) {
+			changes.Insert(fmt.Sprintf("%s modified", handler.Name))
+			continue
+		}
+	}
+
+	for _, h := range extensionConfig.Status.Handlers {
+		if !handlerNames.Has(h.Name) {
+			changes.Insert(fmt.Sprintf("%s deleted", h.Name))
+		}
+	}
+	return modifiedExtensionConfig, changes, nil
+}
+
+func (c *client) Register(extensionConfig *runtimev1.ExtensionConfig) error {
+	if err := c.registry.Add(extensionConfig); err != nil {
+		return pkgerrors.Wrapf(err, "failed to register ExtensionConfig %q", extensionConfig.Name)
+	}
+	return nil
+}
+
+func (c *client) Unregister(extensionConfig *runtimev1.ExtensionConfig) error {
+	if err := c.registry.Remove(extensionConfig); err != nil {
+		return pkgerrors.Wrapf(err, "failed to unregister ExtensionConfig %q", extensionConfig.Name)
+	}
+	return nil
+}
+
+func (c *client) GetAllExtensions(ctx context.Context, hook runtimecatalog.Hook, forObject ctrlclient.Object) ([]string, error) {
+	hookName := runtimecatalog.HookName(hook)
+	log := ctrl.LoggerFrom(ctx).WithValues("hook", hookName)
+	ctx = ctrl.LoggerInto(ctx, log)
+	gvh, err := c.catalog.GroupVersionHook(hook)
+	if err != nil {
+		return nil, pkgerrors.Wrapf(err, "failed to get extension handlers for hook %q: failed to compute GroupVersionHook", hookName)
+	}
+	forObjectGVK, err := apiutil.GVKForObject(forObject, c.client.Scheme())
+	if err != nil {
+		return nil, pkgerrors.Wrapf(err, "failed to get extension handlers for hook %q: failed to get GroupVersionKind for the object the hook is executed for", hookName)
+	}
+
+	registrations, err := c.registry.List(gvh.GroupHook())
+	if err != nil {
+		return nil, pkgerrors.Wrapf(err, "failed to get extension handlers for hook %q", gvh.GroupHook())
+	}
+
+	log.V(4).Info(fmt.Sprintf("Getting all extensions of hook %q for %s %s", hookName, forObjectGVK.Kind, klog.KObj(forObject)))
+	matchingRegistrations := []string{}
+	for _, registration := range registrations {
+		// Compute whether the object the get is being made for matches the namespaceSelector
+		namespaceMatches, err := c.matchNamespace(ctx, registration.NamespaceSelector, forObject.GetNamespace())
+		if err != nil {
+			return nil, pkgerrors.Wrapf(err, "failed to get extension handlers for hook %q: failed to get extension handler %q", gvh.GroupHook(), registration.Name)
+		}
+		// If the object namespace isn't matched by the registration NamespaceSelector don't return it.
+		if !namespaceMatches {
+			log.V(5).Info(fmt.Sprintf("skipping extension handler %q as object '%s/%s' does not match selector %q of ExtensionConfig", registration.Name, forObject.GetNamespace(), forObject.GetName(), registration.NamespaceSelector))
+			continue
+		}
+		matchingRegistrations = append(matchingRegistrations, registration.Name)
+	}
+
+	return matchingRegistrations, nil
+}
+
+// CallAllExtensions calls all the ExtensionHandlers registered for the hook.
+// The ExtensionHandlers are called sequentially. The function exits immediately after any of the ExtensionHandlers return an error.
+// This ensures we don't end up waiting for timeout from multiple unreachable Extensions.
+// See CallExtension for more details on when an ExtensionHandler returns an error.
+// The aggregated result of the ExtensionHandlers is updated into the response object passed to the function.
+func (c *client) CallAllExtensions(ctx context.Context, hook runtimecatalog.Hook, forObject ctrlclient.Object, request runtimehooksv1.RequestObject, response runtimehooksv1.ResponseObject) error {
+	hookName := runtimecatalog.HookName(hook)
+	log := ctrl.LoggerFrom(ctx).WithValues("hook", hookName)
+	ctx = ctrl.LoggerInto(ctx, log)
+	gvh, err := c.catalog.GroupVersionHook(hook)
+	if err != nil {
+		return pkgerrors.Wrapf(err, "failed to call extension handlers for hook %q: failed to compute GroupVersionHook", hookName)
+	}
+	// Make sure the request is compatible with the hook.
+	if err := c.catalog.ValidateRequest(gvh, request); err != nil {
+		return pkgerrors.Wrapf(err, "failed to call extension handlers for hook %q: request object is invalid for hook", gvh.GroupHook())
+	}
+	// Make sure the response is compatible with the hook.
+	if err := c.catalog.ValidateResponse(gvh, response); err != nil {
+		return pkgerrors.Wrapf(err, "failed to call extension handlers for hook %q: response object is invalid for hook", gvh.GroupHook())
+	}
+
+	// Get all matching extension handlers for this hook and object.
+	matchingHandlers, err := c.GetAllExtensions(ctx, hook, forObject)
+	if err != nil {
+		return pkgerrors.Wrapf(err, "failed to call extension handlers for hook %q", gvh.GroupHook())
+	}
+
+	responses := []runtimehooksv1.ResponseObject{}
+	for _, handlerName := range matchingHandlers {
+		// Creates a new instance of the response parameter.
+		responseObject, err := c.catalog.NewResponse(gvh)
+		if err != nil {
+			return pkgerrors.Wrapf(err, "failed to call extension handlers for hook %q: failed to call extension handler %q", gvh.GroupHook(), handlerName)
+		}
+		tmpResponse := responseObject.(runtimehooksv1.ResponseObject)
+
+		err = c.CallExtension(ctx, hook, forObject, handlerName, request, tmpResponse)
+		// If one of the extension handlers fails lets short-circuit here and return early.
+		if err != nil {
+			log.Error(err, "failed to call extension handlers")
+			return pkgerrors.Wrapf(err, "failed to call extension handlers for hook %q", gvh.GroupHook())
+		}
+		responses = append(responses, tmpResponse)
+	}
+
+	// Aggregate all responses into a single response.
+	// Note: we only get here if all the extension handlers succeeded.
+	aggregateSuccessfulResponses(response, responses)
+
+	return nil
+}
+
+// aggregateSuccessfulResponses aggregates all successful responses into a single response.
+func aggregateSuccessfulResponses(aggregatedResponse runtimehooksv1.ResponseObject, responses []runtimehooksv1.ResponseObject) {
+	// At this point the Status should always be ResponseStatusSuccess.
+	aggregatedResponse.SetStatus(runtimehooksv1.ResponseStatusSuccess)
+
+	// Note: As all responses have the same type we can assume now that
+	// they all implement the RetryResponseObject interface.
+	messages := []string{}
+	for _, resp := range responses {
+		aggregatedRetryResponse, ok := aggregatedResponse.(runtimehooksv1.RetryResponseObject)
+		if ok {
+			aggregatedRetryResponse.SetRetryAfterSeconds(util.LowestNonZeroInt32(
+				aggregatedRetryResponse.GetRetryAfterSeconds(),
+				resp.(runtimehooksv1.RetryResponseObject).GetRetryAfterSeconds(),
+			))
+		}
+		if resp.GetMessage() != "" {
+			messages = append(messages, resp.GetMessage())
+		}
+	}
+	aggregatedResponse.SetMessage(strings.Join(messages, ", "))
+}
+
+// CallExtension makes the call to the extension with the given name.
+// The response object passed will be updated with the response of the call.
+// An error is returned if the extension is not compatible with the hook.
+// If the ExtensionHandler returns a response with `Status` set to `Failure` the function returns an error
+// and the response object is updated with the response received from the extension handler.
+//
+// FailurePolicy of the ExtensionHandler is used to handle errors that occur when performing the external call to the extension.
+// - If FailurePolicy is set to Ignore, the error is ignored and the response object is updated to be the default success response.
+// - If FailurePolicy is set to Fail, an error is returned and the response object may or may not be updated.
+// Nb. FailurePolicy does not affect the following kinds of errors:
+// - Internal errors. Examples: hooks is incompatible with ExtensionHandler, ExtensionHandler information is missing.
+// - Error when ExtensionHandler returns a response with `Status` set to `Failure`.
+func (c *client) CallExtension(ctx context.Context, hook runtimecatalog.Hook, forObject ctrlclient.Object, name string, request runtimehooksv1.RequestObject, response runtimehooksv1.ResponseObject, opts ...runtimeclient.CallExtensionOption) error {
+	// Calculate the options.
+	options := &runtimeclient.CallExtensionOptions{}
+	for _, opt := range opts {
+		opt.ApplyToOptions(options)
+	}
+
+	log := ctrl.LoggerFrom(ctx).WithValues("extensionHandler", name, "hook", runtimecatalog.HookName(hook))
+	ctx = ctrl.LoggerInto(ctx, log)
+	hookGVH, err := c.catalog.GroupVersionHook(hook)
+	if err != nil {
+		return pkgerrors.Wrapf(err, "failed to call extension handler %q: failed to compute GroupVersionHook", name)
+	}
+	// Make sure the request is compatible with the hook.
+	if err := c.catalog.ValidateRequest(hookGVH, request); err != nil {
+		return pkgerrors.Wrapf(err, "failed to call extension handler %q: request object is invalid for hook %q", name, hookGVH)
+	}
+	// Make sure the response is compatible with the hook.
+	if err := c.catalog.ValidateResponse(hookGVH, response); err != nil {
+		return pkgerrors.Wrapf(err, "failed to call extension handler %q: response object is invalid for hook %q", name, hookGVH)
+	}
+
+	registration, err := c.registry.Get(name)
+	if err != nil {
+		return pkgerrors.Wrapf(err, "failed to call extension handler %q", name)
+	}
+	if hookGVH.GroupHook() != registration.GroupVersionHook.GroupHook() {
+		return pkgerrors.Errorf("failed to call extension handler %q: handler does not match GroupHook %q", name, hookGVH.GroupHook())
+	}
+
+	// Compute whether the object the call is being made for matches the namespaceSelector
+	namespaceMatches, err := c.matchNamespace(ctx, registration.NamespaceSelector, forObject.GetNamespace())
+	if err != nil {
+		return pkgerrors.Errorf("failed to call extension handler %q", name)
+	}
+	// If the object namespace isn't matched by the registration NamespaceSelector return an error.
+	if !namespaceMatches {
+		return pkgerrors.Errorf("failed to call extension handler %q: namespaceSelector did not match object %s", name, util.ObjectKey(forObject))
+	}
+
+	log.V(4).Info(fmt.Sprintf("Calling extension handler %q", name))
+	timeoutDuration := runtimehooksv1.DefaultHandlersTimeoutSeconds * time.Second
+	if registration.TimeoutSeconds != 0 {
+		timeoutDuration = time.Duration(registration.TimeoutSeconds) * time.Second
+	}
+
+	// Prepare the request by merging the settings in the registration with the settings in the request.
+	request = cloneAndAddSettings(request, registration.Settings)
+
+	var cacheKey string
+	if options.WithCaching {
+		// Return a cached response if response is cached.
+		cacheKey = options.CacheKeyFunc(registration.Name, registration.ExtensionConfigResourceVersion, request)
+		if cacheEntry, ok := options.Cache.Has(cacheKey); ok {
+			// Set response to cacheEntry.Response.
+			outVal := reflect.ValueOf(response)
+			cacheVal := reflect.ValueOf(cacheEntry.Response)
+			if !cacheVal.Type().AssignableTo(outVal.Type()) {
+				return fmt.Errorf("failed to call extension handler %q: cached response of type %s instead of type %s", name, cacheVal.Type(), outVal.Type())
+			}
+			reflect.Indirect(outVal).Set(reflect.Indirect(cacheVal))
+			return nil
+		}
+	}
+
+	httpClient, err := c.getHTTPClient(registration.ClientConfig)
+	if err != nil {
+		return pkgerrors.Wrapf(err, "failed to call extension handler %q: failed to get http client", name)
+	}
+
+	httpOpts := &httpCallOptions{
+		catalog:         c.catalog,
+		config:          registration.ClientConfig,
+		registrationGVH: registration.GroupVersionHook,
+		hookGVH:         hookGVH,
+		name:            strings.TrimSuffix(registration.Name, "."+registration.ExtensionConfigName),
+		timeout:         timeoutDuration,
+		httpClient:      httpClient,
+	}
+	err = httpCall(ctx, request, response, httpOpts)
+	if err != nil {
+		// If the error is errCallingExtensionHandler then apply failure policy to calculate
+		// the effective result of the operation.
+		ignore := registration.FailurePolicy == runtimev1.FailurePolicyIgnore
+		if _, ok := err.(errCallingExtensionHandler); ok && ignore {
+			// Update the response to a default success response and return.
+			log.Error(err, fmt.Sprintf("Ignoring error calling extension handler because of FailurePolicy %q", registration.FailurePolicy))
+			response.SetStatus(runtimehooksv1.ResponseStatusSuccess)
+			response.SetMessage("")
+			return nil
+		}
+		log.Error(err, "Failed to call extension handler")
+		return pkgerrors.Wrapf(err, "failed to call extension handler %q", name)
+	}
+
+	// If the received response is not a success then return an error.
+	if err := validateResponseStatus(response, "call extension handler", name); err != nil {
+		return err
+	}
+
+	if retryResponse, ok := response.(runtimehooksv1.RetryResponseObject); ok && retryResponse.GetRetryAfterSeconds() != 0 {
+		log.V(4).Info(fmt.Sprintf("Extension handler returned blocking response with retryAfterSeconds of %d", retryResponse.GetRetryAfterSeconds()))
+	} else {
+		log.V(4).Info("Extension handler returned success response")
+	}
+
+	if options.WithCaching {
+		// Add response to the cache.
+		options.Cache.Add(runtimeclient.CallExtensionCacheEntry{
+			CacheKey: cacheKey,
+			Response: response,
+		})
+	}
+
+	// Received a successful response from the extension handler. The `response` object
+	// has been populated with the result. Return no error.
+	return nil
+}
+
+func (c *client) getHTTPClient(config runtimev1.ClientConfig) (*http.Client, error) {
+	// Note: we are passing an empty gvh and "" as name because the only relevant part of the url
+	// for this function is the Hostname, which derives from config (ghv and name are appended to the path).
+	extensionURL, err := urlForExtension(config, runtimecatalog.GroupVersionHook{}, "")
+	if err != nil {
+		return nil, err
+	}
+
+	if cacheEntry, ok := c.httpClientsCache.Has(newHTTPClientEntryKey(extensionURL.Hostname(), config.CABundle)); ok {
+		return cacheEntry.client, nil
+	}
+
+	httpClient, err := createHTTPClient(c.certFile, c.keyFile, config.CABundle, extensionURL.Hostname())
+	if err != nil {
+		return nil, err
+	}
+
+	c.httpClientsCache.Add(newHTTPClientEntry(extensionURL.Hostname(), config.CABundle, httpClient))
+	return httpClient, nil
+}
+
+func createHTTPClient(certFile, keyFile string, caData []byte, hostName string) (*http.Client, error) {
+	httpClient := &http.Client{}
+	tlsConfig, err := transport.TLSConfigFor(&transport.Config{
+		TLS: transport.TLSConfig{
+			CertFile:   certFile,
+			KeyFile:    keyFile,
+			CAData:     caData,
+			ServerName: hostName,
+		},
+	})
+	if err != nil {
+		return nil, pkgerrors.Wrap(err, "failed to create tls config")
+	}
+
+	// This also adds http2
+	httpClient.Transport = utilnet.SetTransportDefaults(&http.Transport{
+		TLSClientConfig: tlsConfig,
+	})
+
+	// Runtime extensions are called at the URL registered via the ExtensionConfig.
+	// Do not follow redirects so the extension server cannot reroute the call to a
+	// different host (e.g. a link-local metadata endpoint), which would bypass the
+	// pinned TLS server name and turn the response into an SSRF primitive.
+	// Returning ErrUseLastResponse stops at the redirect and hands it back as the
+	// response, so the call fails on the non-200 status instead of being followed.
+	httpClient.CheckRedirect = func(_ *http.Request, _ []*http.Request) error {
+		return http.ErrUseLastResponse
+	}
+
+	return httpClient, nil
+}
+
+// cloneAndAddSettings creates a new request object and adds settings to it.
+func cloneAndAddSettings(request runtimehooksv1.RequestObject, registrationSettings map[string]string) runtimehooksv1.RequestObject {
+	// Merge the settings from registration with the settings in the request.
+	// The values in request take precedence over the values in the registration.
+	// Create a deepcopy object to avoid side-effects on the request object.
+	request = request.DeepCopyObject().(runtimehooksv1.RequestObject)
+	settings := map[string]string{}
+	for k, v := range registrationSettings {
+		settings[k] = v
+	}
+	for k, v := range request.GetSettings() {
+		settings[k] = v
+	}
+	request.SetSettings(settings)
+	return request
+}
+
+type httpCallOptions struct {
+	catalog         *runtimecatalog.Catalog
+	config          runtimev1.ClientConfig
+	registrationGVH runtimecatalog.GroupVersionHook
+	hookGVH         runtimecatalog.GroupVersionHook
+	name            string
+	timeout         time.Duration
+	httpClient      *http.Client
+}
+
+func httpCall(ctx context.Context, request, response runtime.Object, opts *httpCallOptions) error {
+	log := ctrl.LoggerFrom(ctx)
+	if opts == nil || request == nil || response == nil {
+		return pkgerrors.New("http call failed: opts, request and response cannot be nil")
+	}
+	if opts.catalog == nil {
+		return pkgerrors.New("http call failed: opts.Catalog cannot be nil")
+	}
+
+	extensionURL, err := urlForExtension(opts.config, opts.registrationGVH, opts.name)
+	if err != nil {
+		return pkgerrors.Wrap(err, "http call failed")
+	}
+
+	// Observe request duration metric.
+	start := time.Now()
+	defer func() {
+		runtimemetrics.RequestDuration.Observe(opts.hookGVH, *extensionURL, time.Since(start))
+	}()
+	requireConversion := opts.registrationGVH.Version != opts.hookGVH.Version
+
+	requestLocal := request
+	responseLocal := response
+
+	if requireConversion {
+		log.V(5).Info(fmt.Sprintf("Hook version of supported request is %s. Converting request from %s", opts.registrationGVH, opts.hookGVH))
+		// The request and response objects need to be converted to match the version supported by
+		// the ExtensionHandler.
+		var err error
+
+		// Create a new hook request object that is compatible with the version of ExtensionHandler.
+		requestLocal, err = opts.catalog.NewRequest(opts.registrationGVH)
+		if err != nil {
+			return pkgerrors.Wrap(err, "http call failed")
+		}
+
+		// Convert the request to the version supported by the ExtensionHandler.
+		if err := opts.catalog.Convert(request, requestLocal, ctx); err != nil {
+			return pkgerrors.Wrapf(err, "http call failed: failed to convert request from %T to %T", request, requestLocal)
+		}
+
+		// Create a new hook response object that is compatible with the version of the ExtensionHandler.
+		responseLocal, err = opts.catalog.NewResponse(opts.registrationGVH)
+		if err != nil {
+			return pkgerrors.Wrap(err, "http call failed")
+		}
+	}
+
+	// Ensure the GroupVersionKind is set to the request.
+	requestGVH, err := opts.catalog.Request(opts.registrationGVH)
+	if err != nil {
+		return pkgerrors.Wrap(err, "http call failed")
+	}
+	requestLocal.GetObjectKind().SetGroupVersionKind(requestGVH)
+
+	postBody, err := json.Marshal(requestLocal)
+	if err != nil {
+		return pkgerrors.Wrap(err, "http call failed: failed to marshall request object")
+	}
+
+	if opts.timeout != 0 {
+		// Make the call time-bound if timeout is non-zero value.
+		values := extensionURL.Query()
+		values.Add("timeout", opts.timeout.String())
+		extensionURL.RawQuery = values.Encode()
+
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeoutCause(ctx, opts.timeout, pkgerrors.New("http request timeout expired"))
+		defer cancel()
+	}
+
+	httpRequest, err := http.NewRequestWithContext(ctx, http.MethodPost, extensionURL.String(), bytes.NewBuffer(postBody))
+	if err != nil {
+		return pkgerrors.Wrap(err, "http call failed: failed to create http request")
+	}
+
+	// Call the extension.
+	resp, err := opts.httpClient.Do(httpRequest)
+
+	// Create http request metric.
+	defer func() {
+		runtimemetrics.RequestsTotal.Observe(httpRequest, resp, opts.hookGVH, err, response)
+	}()
+
+	if err != nil {
+		return errCallingExtensionHandler(
+			pkgerrors.Wrapf(err, "http call failed"),
+		)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		maxBytesReader := http.MaxBytesReader(nil, resp.Body, maxExtensionResponseBodyBytes)
+		defer maxBytesReader.Close()
+
+		respBody, err := io.ReadAll(maxBytesReader)
+		if err != nil {
+			return errCallingExtensionHandler(
+				pkgerrors.Errorf("http call failed: got response with status code %d != 200: failed to read response body", resp.StatusCode),
+			)
+		}
+
+		respBodyStr := string(respBody)
+		if len(respBodyStr) > 512 {
+			respBodyStr = respBodyStr[:512] + "..."
+		}
+		return errCallingExtensionHandler(
+			pkgerrors.Errorf("http call failed: got response with status code %d != 200: response : %q", resp.StatusCode, respBodyStr),
+		)
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(responseLocal); err != nil {
+		return errCallingExtensionHandler(
+			pkgerrors.Wrap(err, "http call failed: failed to decode response"),
+		)
+	}
+
+	if requireConversion {
+		log.V(5).Info(fmt.Sprintf("Hook version of received response is %s. Converting response to %s", opts.registrationGVH, opts.hookGVH))
+		// Convert the received response to the original version of the response object.
+		if err := opts.catalog.Convert(responseLocal, response, ctx); err != nil {
+			return pkgerrors.Wrapf(err, "http call failed: failed to convert response from %T to %T", requestLocal, response)
+		}
+	}
+
+	return nil
+}
+
+func urlForExtension(config runtimev1.ClientConfig, gvh runtimecatalog.GroupVersionHook, name string) (*url.URL, error) {
+	var u *url.URL
+	if config.Service.IsDefined() {
+		// The Extension's ClientConfig points ot a service. Construct the URL to the service.
+		svc := config.Service
+		host := svc.Name + "." + svc.Namespace + ".svc"
+		if svc.Port != nil {
+			host = net.JoinHostPort(host, strconv.Itoa(int(*svc.Port)))
+		}
+		u = &url.URL{
+			Scheme: "https",
+			Host:   host,
+		}
+		if svc.Path != "" {
+			u.Path = svc.Path
+		}
+	} else {
+		if config.URL == "" {
+			return nil, pkgerrors.New("failed to compute URL: at least one of service and url should be defined in config")
+		}
+
+		var err error
+		u, err = url.Parse(config.URL)
+		if err != nil {
+			return nil, pkgerrors.Wrap(err, "failed to compute URL: failed to parse url from clientConfig")
+		}
+
+		if u.Scheme != "https" {
+			return nil, pkgerrors.Errorf("failed to compute URL: expected https scheme, got %s", u.Scheme)
+		}
+	}
+
+	// Append the ExtensionHandler path.
+	u.Path = path.Join(u.Path, runtimecatalog.GVHToPath(gvh, name))
+	return u, nil
+}
+
+// defaultAndValidateDiscoveryResponse defaults unset values and runs a set of validations on the Discovery Response.
+// If any of these checks fails the response is invalid and an error is returned.
+func defaultAndValidateDiscoveryResponse(cat *runtimecatalog.Catalog, discovery *runtimehooksv1.DiscoveryResponse) error {
+	if discovery == nil {
+		return pkgerrors.New("failed to validate discovery response: response is nil")
+	}
+
+	discovery = defaultDiscoveryResponse(discovery)
+
+	var errs []error
+	names := make(map[string]bool)
+	for _, handler := range discovery.Handlers {
+		// Names should be unique.
+		if _, ok := names[handler.Name]; ok {
+			errs = append(errs, pkgerrors.Errorf("duplicate name for handler %s found", handler.Name))
+		}
+		names[handler.Name] = true
+
+		// Name should match Kubernetes naming conventions - validated based on DNS1123 label rules.
+		if errStrings := validation.IsDNS1123Label(handler.Name); len(errStrings) > 0 {
+			errs = append(errs, pkgerrors.Errorf("handler name %s is not valid: %s", handler.Name, errStrings))
+		}
+
+		// TimeoutSeconds should be a positive integer not greater than 30.
+		if *handler.TimeoutSeconds < 0 || *handler.TimeoutSeconds > 30 {
+			errs = append(errs, pkgerrors.Errorf("handler %s timeoutSeconds %d must be between 0 and 30", handler.Name, *handler.TimeoutSeconds))
+		}
+
+		// FailurePolicy must be one of Ignore or Fail.
+		if *handler.FailurePolicy != runtimehooksv1.FailurePolicyFail && *handler.FailurePolicy != runtimehooksv1.FailurePolicyIgnore {
+			errs = append(errs, pkgerrors.Errorf("handler %s failurePolicy %s must equal \"Ignore\" or \"Fail\"", handler.Name, *handler.FailurePolicy))
+		}
+
+		gv, err := schema.ParseGroupVersion(handler.RequestHook.APIVersion)
+		if err != nil {
+			errs = append(errs, pkgerrors.Wrapf(err, "handler %s requestHook APIVersion %s is not valid", handler.Name, handler.RequestHook.APIVersion))
+		} else if !cat.IsHookRegistered(runtimecatalog.GroupVersionHook{
+			Group:   gv.Group,
+			Version: gv.Version,
+			Hook:    handler.RequestHook.Hook,
+		}) {
+			errs = append(errs, pkgerrors.Errorf("handler %s requestHook %s/%s is not in the Runtime SDK catalog", handler.Name, handler.RequestHook.APIVersion, handler.RequestHook.Hook))
+		}
+	}
+
+	return pkgerrors.Wrapf(kerrors.NewAggregate(errs), "failed to validate discovery response")
+}
+
+// defaultDiscoveryResponse defaults FailurePolicy and TimeoutSeconds for all discovered handlers.
+func defaultDiscoveryResponse(discovery *runtimehooksv1.DiscoveryResponse) *runtimehooksv1.DiscoveryResponse {
+	for i, handler := range discovery.Handlers {
+		// If FailurePolicy is not defined set to "Fail".
+		if handler.FailurePolicy == nil {
+			defaultFailPolicy := runtimehooksv1.FailurePolicyFail
+			handler.FailurePolicy = &defaultFailPolicy
+		}
+
+		// If TimeoutSeconds is not defined set to 10.
+		if handler.TimeoutSeconds == nil {
+			handler.TimeoutSeconds = ptr.To[int32](runtimehooksv1.DefaultHandlersTimeoutSeconds)
+		}
+
+		discovery.Handlers[i] = handler
+	}
+	return discovery
+}
+
+// matchNamespace returns true if the passed namespace matches the selector. It returns an error if the namespace does
+// not exist in the API server.
+func (c *client) matchNamespace(ctx context.Context, selector labels.Selector, namespace string) (bool, error) {
+	// Return early if the selector is empty.
+	if selector.Empty() {
+		return true, nil
+	}
+
+	ns := &metav1.PartialObjectMetadata{}
+	ns.SetGroupVersionKind(schema.GroupVersionKind{
+		Group:   "",
+		Version: "v1",
+		Kind:    "Namespace",
+	})
+	if err := c.client.Get(ctx, ctrlclient.ObjectKey{Name: namespace}, ns); err != nil {
+		return false, pkgerrors.Wrapf(err, "failed to match namespace: failed to get namespace %s", namespace)
+	}
+
+	return selector.Matches(labels.Set(ns.GetLabels())), nil
+}
+
+// NameForHandler constructs a canonical name for a registered runtime extension handler.
+func NameForHandler(handler runtimehooksv1.ExtensionHandler, extensionConfig *runtimev1.ExtensionConfig) (string, error) {
+	if extensionConfig == nil {
+		return "", pkgerrors.New("extensionConfig was nil")
+	}
+	return handler.Name + "." + extensionConfig.Name, nil
+}
+
+// ExtensionNameFromHandlerName extracts the extension name from the canonical name of a registered runtime extension handler.
+func ExtensionNameFromHandlerName(registeredHandlerName string) (string, error) {
+	parts := strings.Split(registeredHandlerName, ".")
+	if len(parts) != 2 {
+		return "", pkgerrors.Errorf("registered handler name %s was not in the expected format (`HANDLER_NAME.EXTENSION_NAME)", registeredHandlerName)
+	}
+	return parts[1], nil
+}
+
+// validateResponseStatus checks if the response status is successful and returns an error otherwise.
+// It logs appropriate messages for failure and unknown statuses.
+func validateResponseStatus(response runtimehooksv1.ResponseObject, operationName, targetName string) error {
+	if response.GetStatus() != runtimehooksv1.ResponseStatusSuccess {
+		if response.GetStatus() == runtimehooksv1.ResponseStatusFailure {
+			return pkgerrors.Errorf("failed to %s %q: got failure response with message: %v", operationName, targetName, response.GetMessage())
+		}
+		// Handle unknown status.
+		return pkgerrors.Errorf("failed to %s %q: got unknown response status %q with message: %v", operationName, targetName, response.GetStatus(), response.GetMessage())
+	}
+	return nil
+}

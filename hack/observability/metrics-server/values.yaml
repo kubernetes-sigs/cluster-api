@@ -1,0 +1,3 @@
+# Use insecure-tls so we can scrape kind Nodes.
+args:
+- --kubelet-insecure-tls

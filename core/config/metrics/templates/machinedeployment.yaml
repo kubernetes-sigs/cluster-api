@@ -1,0 +1,153 @@
+  - groupVersionKind:
+      group: cluster.x-k8s.io
+      kind: MachineDeployment
+      version: v1beta1
+    labelsFromPath:
+      cluster_name:
+      - spec
+      - clusterName
+      name:
+      - metadata
+      - name
+      namespace:
+      - metadata
+      - namespace
+      uid:
+      - metadata
+      - uid
+    metricNamePrefix: capi_machinedeployment
+    metrics:
+    - name: info
+      help: Information about a machinedeployment.
+      each:
+        info:
+          labelsFromPath:
+            version:
+            - spec
+            - template
+            - spec
+            - version
+            bootstrap_reference_kind:
+            - spec
+            - template
+            - spec
+            - bootstrap
+            - configRef
+            - kind
+            bootstrap_reference_name:
+            - spec
+            - template
+            - spec
+            - bootstrap
+            - configRef
+            - name
+            infrastructure_reference_kind:
+            - spec
+            - template
+            - spec
+            - infrastructureRef
+            - kind
+            infrastructure_reference_name:
+            - spec
+            - template
+            - spec
+            - infrastructureRef
+            - name
+        type: Info
+    - name: spec_paused
+      help: Whether the machinedeployment is paused and any of its resources will not be processed by the controllers.
+      each:
+        gauge:
+          nilIsZero: true
+          path:
+          - spec
+          - paused
+        type: Gauge
+    - name: spec_replicas
+      help: The number of desired machines for a machinedeployment.
+      each:
+        gauge:
+          path:
+          - spec
+          - replicas
+        type: Gauge
+    - name: spec_strategy_rollingupdate_max_surge
+      help: Maximum number of replicas that can be scheduled above the desired number of replicas during a rolling update of a machinedeployment.
+      each:
+        gauge:
+          path:
+          - spec
+          - strategy
+          - rollingUpdate
+          - maxSurge
+        type: Gauge
+    - name: spec_strategy_rollingupdate_max_unavailable
+      help: Maximum number of unavailable replicas during a rolling update of a machinedeployment.
+      each:
+        gauge:
+          path:
+          - spec
+          - strategy
+          - rollingUpdate
+          - maxUnavailable
+        type: Gauge
+    - name: status_phase
+      help: The machinedeployments current phase.
+      each:
+        stateSet:
+          labelName: phase
+          list:
+          - ScalingUp
+          - ScalingDown
+          - Running
+          - Failed
+          - Unknown
+          path:
+          - status
+          - phase
+        type: StateSet
+    - name: status_replicas
+      help: The number of replicas per machinedeployment.
+      each:
+        gauge:
+          path:
+          - status
+          - replicas
+          nilIsZero: true
+        type: Gauge
+    - name: status_replicas_available
+      help: The number of available replicas per machinedeployment.
+      each:
+        gauge:
+          path:
+          - status
+          - availableReplicas
+          nilIsZero: true
+        type: Gauge
+    - name: status_replicas_ready
+      help: The number of ready replicas per machinedeployment.
+      each:
+        gauge:
+          path:
+          - status
+          - readyReplicas
+          nilIsZero: true
+        type: Gauge
+    - name: status_replicas_unavailable
+      help: The number of unavailable replicas per machinedeployment.
+      each:
+        gauge:
+          path:
+          - status
+          - unavailableReplicas
+          nilIsZero: true
+        type: Gauge
+    - name: status_replicas_updated
+      help: The number of updated replicas per machinedeployment.
+      each:
+        gauge:
+          path:
+          - status
+          - updatedReplicas
+          nilIsZero: true
+        type: Gauge

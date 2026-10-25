@@ -1,0 +1,54 @@
+# https://sequencediagram.org
+
+participant "Cluster API" as capi
+
+entity "Infra Machine" as machine
+
+participant "Infra Provider" as infra
+
+entity "IPAddressClaim" as claim
+entity "IPAddress" as address
+
+participant "IPAM Provider" as ipam
+
+capi->*machine: creates
+
+machine-->(1)infra:
+activate infra
+
+infra->machine: reconciles
+
+infra->*claim: creates claim
+
+claim-->(1)ipam:
+activate ipam
+ipam->claim: reconcile
+ipam->ipam: allocate address
+ipam->*address: create\naddress
+ipam->claim: update status
+deactivate ipam
+
+claim-->(1)infra: updated status
+infra->address: fetches
+infra->infra: create machine
+infra->machine: update status
+deactivate infra
+
+capi->machine: marks for deletion
+machine-->(1)infra:
+activate infra
+infra->machine: reconcile\ndeletion
+infra->infra: delete machine
+infra->claim: marks for deletion
+infra->machine: remove\nfinalizer
+deactivate infra
+destroyafter machine
+
+claim-->(1)ipam:
+activate ipam
+ipam->ipam: release address
+ipam->address: delete
+destroy address
+ipam->claim: remove finalizer
+deactivate ipam
+destroyafter claim

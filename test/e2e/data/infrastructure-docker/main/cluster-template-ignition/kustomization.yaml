@@ -1,0 +1,6 @@
+resources:
+- ../bases/cluster-with-kcp.yaml
+- ../bases/md.yaml
+- ../bases/crs.yaml
+patches:
+- path: ignition.yaml

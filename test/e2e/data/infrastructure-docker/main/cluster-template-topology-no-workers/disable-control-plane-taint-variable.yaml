@@ -1,0 +1,5 @@
+- op: add
+  path: /spec/topology/variables/-
+  value:
+    name: controlPlaneTaint
+    value: false

@@ -1,0 +1,10 @@
+replicas: 1
+
+image:
+  repository: ghcr.io/jont828
+  name: cluster-api-visualizer
+  pullPolicy: Always
+
+label: 
+  key: app
+  value: visualizer

@@ -1,0 +1,16 @@
+# See https://github.com/grafana-community/helm-charts/tree/main/charts/tempo
+tempo:
+  overrides:
+    defaults:
+      metrics_generator:
+        processors:
+          - service-graphs
+          - span-metrics
+          - local-blocks
+
+  metricsGenerator:
+    enabled: true
+    remoteWriteUrl: http://prometheus-server/api/v1/write
+    processor:
+      local_blocks:
+        filter_server_spans: false

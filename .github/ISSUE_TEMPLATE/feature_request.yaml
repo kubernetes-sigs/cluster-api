@@ -1,0 +1,35 @@
+name: ✨ Feature request
+description: Suggest an idea for this project.
+body:
+  - type: textarea
+    id: user_story
+    attributes:
+      label: What would you like to be added (User Story)?
+      description: |
+        A large proposal that works through the design along with the implications of the change can be opened as a CAEP.
+        See https://github.com/kubernetes-sigs/cluster-api/blob/main/CONTRIBUTING.md#proposal-process-caep
+      placeholder: "As a [developer/user/operator] I would like to [high level description] for [reasons]."
+    validations:
+      required: true
+
+  - type: textarea
+    id: detailed_feature_description
+    attributes:
+      label: Detailed Description
+      placeholder: "A clear and concise description of what you want to happen."
+    validations:
+      required: true
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Anything else you would like to add?
+      placeholder: "Miscellaneous information that will assist in solving the issue."
+
+  - type: textarea
+    id: templateLabel
+    attributes:
+      label: Label(s) to be applied
+      value: |
+        /kind feature
+        One or more /area label. See https://github.com/kubernetes-sigs/cluster-api/labels?q=area for the list of labels.

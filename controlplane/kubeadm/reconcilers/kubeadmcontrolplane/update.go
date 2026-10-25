@@ -70,6 +70,7 @@ func (r *Reconciler) updateControlPlane(
 
 		kubeadmCMMutators = append(kubeadmCMMutators,
 			workloadCluster.UpdateImageRepositoryInKubeadmConfigMap(imageRepository),
+			workloadCluster.UpdateCoreDNSImageInfoInKubeadmConfigMap(&controlPlane.KCP.Spec.KubeadmConfigSpec.ClusterConfiguration.DNS),
 			workloadCluster.UpdateFeatureGatesInKubeadmConfigMap(controlPlane.KCP.Spec.KubeadmConfigSpec, parsedVersion),
 			workloadCluster.UpdateAPIServerInKubeadmConfigMap(controlPlane.KCP.Spec.KubeadmConfigSpec.ClusterConfiguration.APIServer),
 			workloadCluster.UpdateControllerManagerInKubeadmConfigMap(controlPlane.KCP.Spec.KubeadmConfigSpec.ClusterConfiguration.ControllerManager),

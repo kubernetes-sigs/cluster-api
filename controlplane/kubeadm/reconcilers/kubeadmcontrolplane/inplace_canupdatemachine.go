@@ -116,6 +116,7 @@ func (r *Reconciler) canUpdateMachine(ctx context.Context, controlPlane *pkg.Con
 
 	extensionHandlers, err := r.RuntimeClient.GetAllExtensions(ctx, runtimehooksv1.CanUpdateMachine, machine)
 	if err != nil {
+		controlPlane.CanUpdateMachineResults.InternalErrorMessage = fmt.Sprintf("Blocked by CanUpdateMachine hook for Machine %s: %s", machine.Name, err.Error())
 		return canUpdateMachineResult{canUpdateMachine: false}, err
 	}
 	// Machine cannot be updated in-place if no CanUpdateMachine extensions are registered.
@@ -123,7 +124,9 @@ func (r *Reconciler) canUpdateMachine(ctx context.Context, controlPlane *pkg.Con
 		return canUpdateMachineResult{canUpdateMachine: false}, nil
 	}
 	if len(extensionHandlers) > 1 {
-		return canUpdateMachineResult{canUpdateMachine: false}, pkgerrors.Errorf("found multiple CanUpdateMachine hooks (%s): only one hook is supported", strings.Join(extensionHandlers, ","))
+		err := pkgerrors.Errorf("found multiple CanUpdateMachine hooks (%s): only one hook is supported", strings.Join(extensionHandlers, ","))
+		controlPlane.CanUpdateMachineResults.InternalErrorMessage = fmt.Sprintf("Blocked by CanUpdateMachine hook for Machine %s: %s", machine.Name, err.Error())
+		return canUpdateMachineResult{canUpdateMachine: false}, err
 	}
 
 	var res canUpdateMachineResult

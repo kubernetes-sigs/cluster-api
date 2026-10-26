@@ -124,7 +124,7 @@ type PreflightCheckResults struct {
 
 // CanUpdateMachineResults contains description about CanUpdateMachine results blocking rollout progress.
 type CanUpdateMachineResults struct {
-	// InternalErrorMessage surfaces an error that occurred when calling canExtensionsUpdateMachine.
+	// InternalErrorMessage surfaces an error that occurred when discovering, validating or calling CanUpdateMachine extensions.
 	InternalErrorMessage string
 
 	// WaitingForDecisionMessage surfaces that the rollout is waiting for a decision from the CanUpdateMachine hooks.

@@ -77,6 +77,8 @@ func Test_canUpdateMachine(t *testing.T) {
 	if err != nil {
 		panic("unable to compute GVH")
 	}
+	// Note: An empty catalog makes the fake runtime client return an error from GetAllExtensions.
+	runtimeClientWithoutHooks := fakeruntimeclient.NewRuntimeClientBuilder().WithCatalog(runtimecatalog.New()).Build()
 
 	tests := []struct {
 		name                            string
@@ -86,6 +88,7 @@ func Test_canUpdateMachine(t *testing.T) {
 		cacheEntry                     *CanUpdateMachineCacheEntry
 		canExtensionsUpdateMachineFunc func(ctx context.Context, machine *clusterv1.Machine, machineUpToDateResult pkg.UpToDateResult, extensionHandlers []string) (canUpdateMachineResult, error)
 		getAllExtensionsResponses      map[runtimecatalog.GroupVersionHook][]string
+		runtimeClient                  *fakeruntimeclient.RuntimeClient
 
 		wantCanExtensionsUpdateMachineCalled bool
 		wantCanUpdateMachineResult           canUpdateMachineResult
@@ -108,6 +111,17 @@ func Test_canUpdateMachine(t *testing.T) {
 
 		// Invalid extension configuration
 		{
+			name:                            "Return error and set InternalErrorMessage if GetAllExtensions returns an error",
+			enableInPlaceUpdatesFeatureGate: true,
+			machineUpToDateResult:           nonEmptyMachineUpToDateResult,
+			runtimeClient:                   runtimeClientWithoutHooks,
+			wantCanUpdateMachineResults: pkg.CanUpdateMachineResults{
+				InternalErrorMessage: "Blocked by CanUpdateMachine hook for Machine machine-to-in-place-update: failed to get extension handlers for hook \"CanUpdateMachine\": failed to compute GroupVersionHook: hook CanUpdateMachine is not registered in catalog \"sigs.k8s.io/cluster-api/api/runtime/catalog/catalog.go:96\"",
+			},
+			wantError:        true,
+			wantErrorMessage: "failed to get extension handlers for hook \"CanUpdateMachine\": failed to compute GroupVersionHook: hook CanUpdateMachine is not registered in catalog \"sigs.k8s.io/cluster-api/api/runtime/catalog/catalog.go:96\"",
+		},
+		{
 			name:                            "Return false if no CanUpdateMachine extensions registered",
 			enableInPlaceUpdatesFeatureGate: true,
 			machineUpToDateResult:           nonEmptyMachineUpToDateResult,
@@ -120,6 +134,9 @@ func Test_canUpdateMachine(t *testing.T) {
 			machineUpToDateResult:           nonEmptyMachineUpToDateResult,
 			getAllExtensionsResponses: map[runtimecatalog.GroupVersionHook][]string{
 				canUpdateMachineGVH: {"test-update-extension-1", "test-update-extension-2"},
+			},
+			wantCanUpdateMachineResults: pkg.CanUpdateMachineResults{
+				InternalErrorMessage: "Blocked by CanUpdateMachine hook for Machine machine-to-in-place-update: found multiple CanUpdateMachine hooks (test-update-extension-1,test-update-extension-2): only one hook is supported",
 			},
 			wantError:        true,
 			wantErrorMessage: "found multiple CanUpdateMachine hooks (test-update-extension-1,test-update-extension-2): only one hook is supported",
@@ -544,10 +561,13 @@ func Test_canUpdateMachine(t *testing.T) {
 				utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.InPlaceUpdates, true)
 			}
 
-			runtimeClient := fakeruntimeclient.NewRuntimeClientBuilder().
-				WithCatalog(catalog).
-				WithGetAllExtensionResponses(tt.getAllExtensionsResponses).
-				Build()
+			runtimeClient := tt.runtimeClient
+			if runtimeClient == nil {
+				runtimeClient = fakeruntimeclient.NewRuntimeClientBuilder().
+					WithCatalog(catalog).
+					WithGetAllExtensionResponses(tt.getAllExtensionsResponses).
+					Build()
+			}
 
 			var canExtensionsUpdateMachineCalled bool
 			r := &Reconciler{

@@ -688,6 +688,8 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (ctrl.Result
 	s.deletingReason = clusterv1.MachineDeletingDeletionCompletedReason
 	s.deletingMessage = "Deletion completed"
 
+	// Note: The Machine is gone once the patch removing the finalizer succeeds; if the patch fails the next reconcile logs this line again.
+	log.Info(fmt.Sprintf("Deleted Machine %s", m.Name), "duration", time.Since(m.DeletionTimestamp.Time).Truncate(time.Second/10))
 	controllerutil.RemoveFinalizer(m, clusterv1.MachineFinalizer)
 	return ctrl.Result{}, nil
 }
@@ -924,17 +926,16 @@ func (r *Reconciler) drainNode(ctx context.Context, s *scope) (ctrl.Result, erro
 	}
 
 	podsToBeDrained := podDeleteList.Pods()
+	drainDuration := time.Since(machine.Status.Deletion.NodeDrainStartTime.Time).Truncate(time.Second / 10)
 	if len(podsToBeDrained) == 0 {
-		log.Info("Drain completed")
+		log.Info("Drain completed", "duration", drainDuration)
 		return ctrl.Result{}, nil
 	}
-
-	log.Info("Draining Node")
 
 	evictionResult := drainer.EvictPods(ctx, podDeleteList)
 
 	if evictionResult.DrainCompleted() {
-		log.Info("Drain completed, remaining Pods on the Node have been evicted")
+		log.Info("Drain completed, remaining Pods on the Node have been evicted", "duration", drainDuration)
 		return ctrl.Result{}, nil
 	}
 

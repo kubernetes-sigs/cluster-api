@@ -1862,10 +1862,9 @@ func TestDrainNode(t *testing.T) {
 			testMachine.Status.NodeRef = clusterv1.MachineNodeReference{
 				Name: tt.nodeName,
 			}
-			if !tt.nodeDrainStartTime.IsZero() {
-				testMachine.Status.Deletion = &clusterv1.MachineDeletionStatus{
-					NodeDrainStartTime: tt.nodeDrainStartTime,
-				}
+			// Note: reconcileDelete always sets NodeDrainStartTime before calling drainNode.
+			testMachine.Status.Deletion = &clusterv1.MachineDeletionStatus{
+				NodeDrainStartTime: tt.nodeDrainStartTime,
 			}
 
 			s := &scope{

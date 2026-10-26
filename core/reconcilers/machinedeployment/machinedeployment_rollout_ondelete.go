@@ -88,10 +88,7 @@ func (p *rolloutPlanner) reconcileOldMachineSetsOnDelete(ctx context.Context) {
 	}
 
 	// Determine if there are more Machines than MD.spec.replicas, e.g. due to a scale down in MD.
-	newMSReplicas := ptr.Deref(p.newMS.Spec.Replicas, 0)
-	if v, ok := p.scaleIntents[p.newMS.Name]; ok {
-		newMSReplicas = v
-	}
+	newMSReplicas := p.replicasAfterScaleIntent(p.newMS)
 	totReplicas := oldMachinesCount + newMSReplicas
 	totalScaleDownCount := max(totReplicas-ptr.Deref(p.md.Spec.Replicas, 0), 0)
 
@@ -131,11 +128,7 @@ func (p *rolloutPlanner) reconcileOldMachineSetsOnDelete(ctx context.Context) {
 		}
 
 		// No op if this MS has been already scaled down to zero.
-		scaleIntent := ptr.Deref(oldMS.Spec.Replicas, 0)
-		if v, ok := p.scaleIntents[oldMS.Name]; ok {
-			scaleIntent = v
-		}
-
+		scaleIntent := p.replicasAfterScaleIntent(oldMS)
 		if scaleIntent <= 0 {
 			continue
 		}

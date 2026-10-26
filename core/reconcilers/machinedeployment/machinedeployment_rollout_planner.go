@@ -87,8 +87,8 @@ type rolloutPlanner struct {
 
 // canUpdateMachineSetResults are the messages of the CanUpdateMachineSet hook for all the oldMSs, surfaced in the RollingOut condition.
 type canUpdateMachineSetResults struct {
-	// internalErrorMessage is the message for the oldMS for which calling the extensions failed.
-	// Note: This is a single message because the planner returns as soon as calling the extensions fails for one oldMS.
+	// internalErrorMessage is the message for the oldMS for which discovering, validating or calling the extensions failed.
+	// Note: This is a single message because the planner returns as soon as an error occurs for one oldMS.
 	internalErrorMessage string
 
 	// waitingForDecisionMessages are the messages for the oldMSs for which the decision is still in progress.

@@ -71,6 +71,8 @@ func Test_canUpdateMachineSetInPlace(t *testing.T) {
 	if err != nil {
 		panic("unable to compute GVH")
 	}
+	// Note: An empty catalog makes the fake runtime client return an error from GetAllExtensions.
+	runtimeClientWithoutHooks := fakeruntimeclient.NewRuntimeClientBuilder().WithCatalog(runtimecatalog.New()).Build()
 
 	tests := []struct {
 		name                               string
@@ -84,6 +86,7 @@ func Test_canUpdateMachineSetInPlace(t *testing.T) {
 		cacheEntry                        *CanUpdateMachineSetCacheEntry
 		canExtensionsUpdateMachineSetFunc func(ctx context.Context, oldMS, newMS *clusterv1.MachineSet, templateObjects *templateObjects, extensionHandlers []string) (canUpdateMachineSetResult, error)
 		getAllExtensionsResponses         map[runtimecatalog.GroupVersionHook][]string
+		runtimeClient                     *fakeruntimeclient.RuntimeClient
 
 		wantCanExtensionsUpdateMachineSetCalled bool
 		wantCanUpdateMachineSetResult           canUpdateMachineSetResult
@@ -129,6 +132,17 @@ func Test_canUpdateMachineSetInPlace(t *testing.T) {
 
 		// Invalid extension configuration
 		{
+			name:                               "Return error and set internalErrorMessage if GetAllExtensions returns an error",
+			oldMS:                              oldMS,
+			newMS:                              newMS,
+			oldMSInfrastructureMachineTemplate: oldMSInfrastructureMachineTemplate,
+			newMSInfrastructureMachineTemplate: newMSInfrastructureMachineTemplate,
+			runtimeClient:                      runtimeClientWithoutHooks,
+			wantCanUpdateMachineSetResult:      canUpdateMachineSetResult{internalErrorMessage: "failed to get extension handlers for hook \"CanUpdateMachineSet\": failed to compute GroupVersionHook: hook CanUpdateMachineSet is not registered in catalog \"sigs.k8s.io/cluster-api/api/runtime/catalog/catalog.go:96\""},
+			wantError:                          true,
+			wantErrorMessage:                   "failed to get extension handlers for hook \"CanUpdateMachineSet\": failed to compute GroupVersionHook: hook CanUpdateMachineSet is not registered in catalog \"sigs.k8s.io/cluster-api/api/runtime/catalog/catalog.go:96\"",
+		},
+		{
 			name:                               "Return false if no CanUpdateMachineSet extensions registered",
 			oldMS:                              oldMS,
 			newMS:                              newMS,
@@ -149,6 +163,9 @@ func Test_canUpdateMachineSetInPlace(t *testing.T) {
 			newMSBootstrapConfigTemplate:       newMSBootstrapConfigTemplate,
 			getAllExtensionsResponses: map[runtimecatalog.GroupVersionHook][]string{
 				canUpdateMachineSetGVH: {"test-update-extension-1", "test-update-extension-2"},
+			},
+			wantCanUpdateMachineSetResult: canUpdateMachineSetResult{
+				internalErrorMessage: "found multiple CanUpdateMachineSet hooks (test-update-extension-1,test-update-extension-2): only one hook is supported",
 			},
 			wantError:        true,
 			wantErrorMessage: "found multiple CanUpdateMachineSet hooks (test-update-extension-1,test-update-extension-2): only one hook is supported",
@@ -522,10 +539,13 @@ func Test_canUpdateMachineSetInPlace(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			runtimeClient := fakeruntimeclient.NewRuntimeClientBuilder().
-				WithCatalog(catalog).
-				WithGetAllExtensionResponses(tt.getAllExtensionsResponses).
-				Build()
+			runtimeClient := tt.runtimeClient
+			if runtimeClient == nil {
+				runtimeClient = fakeruntimeclient.NewRuntimeClientBuilder().
+					WithCatalog(catalog).
+					WithGetAllExtensionResponses(tt.getAllExtensionsResponses).
+					Build()
+			}
 
 			oldMS := tt.oldMS.DeepCopy()
 			newMS := tt.newMS.DeepCopy()

@@ -242,7 +242,7 @@ func (p *rolloutPlanner) canUpdateMachineSetInPlaceDecisions(ctx context.Context
 		// Check if the MachineSet can update in place and which operations are allowed.
 		res, err := p.canUpdateMachineSetInPlace(ctx, oldMS, p.newMS)
 		if err != nil {
-			// Note: internalErrorMessage is only set if calling the extensions failed, other errors are not caused by the hook.
+			// Note: internalErrorMessage is only set if discovering, validating or calling the extensions failed, other errors are not caused by the hook.
 			if res.internalErrorMessage != "" {
 				p.canUpdateMachineSetResults.internalErrorMessage = canUpdateMachineSetHookMessage(oldMS, res.internalErrorMessage)
 			}

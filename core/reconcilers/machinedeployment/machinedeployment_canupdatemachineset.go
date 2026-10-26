@@ -84,7 +84,7 @@ type canUpdateMachineSetResult struct {
 	// reasons are the reasons why the MachineSet cannot be updated in-place.
 	reasons []string
 
-	// internalErrorMessage is the error message that is set, together with the returned error, if calling the extensions failed.
+	// internalErrorMessage is the error message that is set, together with the returned error, if discovering, validating or calling the extensions failed.
 	// Note: This is never cached, errors are not cached so the extensions are called again on the next reconcile.
 	internalErrorMessage string
 }
@@ -114,14 +114,21 @@ func (p *rolloutPlanner) canUpdateMachineSetInPlace(ctx context.Context, oldMS, 
 
 	extensionHandlers, err := p.RuntimeClient.GetAllExtensions(ctx, runtimehooksv1.CanUpdateMachineSet, oldMS)
 	if err != nil {
-		return canUpdateMachineSetResult{canUpdateMachineSet: false}, err
+		return canUpdateMachineSetResult{
+			canUpdateMachineSet:  false,
+			internalErrorMessage: err.Error(),
+		}, err
 	}
 	// MachineSet cannot be updated in-place if no CanUpdateMachineSet extensions are registered.
 	if len(extensionHandlers) == 0 {
 		return canUpdateMachineSetResult{canUpdateMachineSet: false}, nil
 	}
 	if len(extensionHandlers) > 1 {
-		return canUpdateMachineSetResult{canUpdateMachineSet: false}, pkgerrors.Errorf("found multiple CanUpdateMachineSet hooks (%s): only one hook is supported", strings.Join(extensionHandlers, ","))
+		err := pkgerrors.Errorf("found multiple CanUpdateMachineSet hooks (%s): only one hook is supported", strings.Join(extensionHandlers, ","))
+		return canUpdateMachineSetResult{
+			canUpdateMachineSet:  false,
+			internalErrorMessage: err.Error(),
+		}, err
 	}
 
 	var res canUpdateMachineSetResult

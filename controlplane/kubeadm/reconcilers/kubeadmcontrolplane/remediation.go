@@ -345,7 +345,7 @@ func (r *Reconciler) reconcileUnhealthyMachines(ctx context.Context, controlPlan
 	// Note: We intentionally log after Delete because we want this log line to show up only after DeletionTimestamp has been set.
 	// Also, setting DeletionTimestamp doesn't mean the Machine is actually deleted (deletion takes some time).
 	log.WithValues(controlPlane.StatusToLogKeyAndValues(nil, machineToBeRemediated)...).
-		Info("Deleting Machine (remediating unhealthy Machine)")
+		Info(fmt.Sprintf("Deleting Machine %s (remediating unhealthy Machine)", machineToBeRemediated.Name), "Machine", klog.KObj(machineToBeRemediated), "reason", "remediation")
 	v1beta1conditions.MarkFalse(machineToBeRemediated, clusterv1.MachineOwnerRemediatedV1Beta1Condition, clusterv1.RemediationInProgressV1Beta1Reason, clusterv1.ConditionSeverityWarning, "")
 
 	conditions.Set(machineToBeRemediated, metav1.Condition{

@@ -1105,7 +1105,7 @@ func (r *Reconciler) createMachines(ctx context.Context, s *scope, machinesToAdd
 		}
 		r.controller.DeferNextReconcileUntilCacheUpToDate(s.machineSet, capicontrollerutil.StructuredObject(clusterv1.GroupVersion, "Machine"), machine.ResourceVersion)
 
-		log.Info(fmt.Sprintf("Machine %s created (scale up, creating %d of %d)", klog.KObj(machine), i+1, machinesToAdd), "Machine", klog.KObj(machine), "desiredReplicas", *(ms.Spec.Replicas), "replicas", len(s.machines))
+		log.Info(fmt.Sprintf("Machine %s created (scale up, creating %d of %d)", machine.Name, i+1, machinesToAdd), "Machine", klog.KObj(machine), "reason", "scaleUp", "desiredReplicas", *(ms.Spec.Replicas), "replicas", len(s.machines))
 		r.recorder.Eventf(ms, corev1.EventTypeNormal, "SuccessfulCreate", "Created Machine %q", machine.Name)
 	}
 
@@ -1152,7 +1152,7 @@ func (r *Reconciler) deleteMachines(ctx context.Context, s *scope, machinesToDel
 				r.controller.DeferNextReconcileUntilCacheUpToDate(s.machineSet, capicontrollerutil.StructuredObject(clusterv1.GroupVersion, "Machine"), deletedMachine.GetResourceVersion())
 			}
 
-			log.Info(fmt.Sprintf("Machine %s deleting (scale down, deleting %d of %d)", klog.KObj(machine), i+1, machinesToDelete))
+			log.Info(fmt.Sprintf("Machine %s deleting (scale down, deleting %d of %d)", machine.Name, i+1, machinesToDelete), "Machine", klog.KObj(machine), "reason", "scaleDown")
 			r.recorder.Eventf(ms, corev1.EventTypeNormal, "SuccessfulDelete", "Deleted Machine %q", machine.Name)
 		} else {
 			log.Info(fmt.Sprintf("Waiting for Machine to be deleted (scale down, deleting %d of %d)", i+1, machinesToDelete))
@@ -1247,7 +1247,7 @@ func (r *Reconciler) startMoveMachines(ctx context.Context, s *scope, targetMSNa
 
 		machinesToMove--
 
-		log.Info(fmt.Sprintf("Triggering in-place update for Machine %s (by moving to MachineSet %s)", machine.Name, targetMS.Name))
+		log.Info(fmt.Sprintf("Triggering in-place update for Machine %s (by moving to MachineSet %s)", machine.Name, targetMS.Name), "Machine", klog.KObj(machine), "reason", "move", "targetMachineSet", klog.KObj(targetMS))
 
 		// Perform the first part of a move operation, the part under the responsibility of the oldMS.
 		orig := machine.DeepCopy()
@@ -1910,7 +1910,7 @@ func (r *Reconciler) reconcileUnhealthyMachines(ctx context.Context, s *scope) (
 		}
 		// Note: We intentionally log after Delete because we want this log line to show up only after DeletionTimestamp has been set.
 		// Also, setting DeletionTimestamp doesn't mean the Machine is actually deleted (deletion takes some time).
-		log.Info(fmt.Sprintf("Deleting Machine %s (remediating unhealthy Machine)", m.Name), "Machine", klog.KObj(m))
+		log.Info(fmt.Sprintf("Deleting Machine %s (remediating unhealthy Machine)", m.Name), "Machine", klog.KObj(m), "reason", "remediation")
 	}
 	if len(errs) > 0 {
 		return ctrl.Result{}, pkgerrors.Wrapf(kerrors.NewAggregate(errs), "failed to delete unhealthy Machines")

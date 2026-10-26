@@ -52,8 +52,8 @@ func (r *Reconciler) initializeControlPlane(ctx context.Context, controlPlane *p
 	}
 
 	log.WithValues(controlPlane.StatusToLogKeyAndValues(newMachine, nil)...).
-		Info(fmt.Sprintf("Machine %s created (init)", klog.KObj(newMachine)),
-			"Machine", klog.KObj(newMachine),
+		Info(fmt.Sprintf("Machine %s created (init)", newMachine.Name),
+			"Machine", klog.KObj(newMachine), "reason", "init",
 			newMachine.Spec.InfrastructureRef.Kind, klog.KRef(newMachine.Namespace, newMachine.Spec.InfrastructureRef.Name),
 			newMachine.Spec.Bootstrap.ConfigRef.Kind, klog.KRef(newMachine.Namespace, newMachine.Spec.Bootstrap.ConfigRef.Name), "desiredReplicas", ptr.Deref(controlPlane.KCP.Spec.Replicas, 0), "replicas", len(controlPlane.Machines))
 
@@ -104,8 +104,8 @@ func (r *Reconciler) scaleUpControlPlane(ctx context.Context, controlPlane *pkg.
 	}
 
 	log.WithValues(controlPlane.StatusToLogKeyAndValues(newMachine, nil)...).
-		Info(fmt.Sprintf("Machine %s created (scale up)", klog.KObj(newMachine)),
-			"Machine", klog.KObj(newMachine),
+		Info(fmt.Sprintf("Machine %s created (scale up)", newMachine.Name),
+			"Machine", klog.KObj(newMachine), "reason", "scaleUp",
 			newMachine.Spec.InfrastructureRef.Kind, klog.KRef(newMachine.Namespace, newMachine.Spec.InfrastructureRef.Name),
 			newMachine.Spec.Bootstrap.ConfigRef.Kind, klog.KRef(newMachine.Namespace, newMachine.Spec.Bootstrap.ConfigRef.Name), "desiredReplicas", ptr.Deref(controlPlane.KCP.Spec.Replicas, 0), "replicas", len(controlPlane.Machines))
 
@@ -178,7 +178,7 @@ func (r *Reconciler) scaleDownControlPlane(
 	// Note: We intentionally log after Delete because we want this log line to show up only after DeletionTimestamp has been set.
 	// Also, setting DeletionTimestamp doesn't mean the Machine is actually deleted (deletion takes some time).
 	log.WithValues(controlPlane.StatusToLogKeyAndValues(nil, machineToDelete)...).
-		Info(fmt.Sprintf("Machine %s deleting (scale down)", klog.KObj(machineToDelete)), "Machine", klog.KObj(machineToDelete), "desiredReplicas", ptr.Deref(controlPlane.KCP.Spec.Replicas, 0), "replicas", len(controlPlane.Machines))
+		Info(fmt.Sprintf("Machine %s deleting (scale down)", machineToDelete.Name), "Machine", klog.KObj(machineToDelete), "reason", "scaleDown", "desiredReplicas", ptr.Deref(controlPlane.KCP.Spec.Replicas, 0), "replicas", len(controlPlane.Machines))
 
 	return ctrl.Result{}, nil // No need to requeue here. Machine deletion above triggers reconciliation.
 }

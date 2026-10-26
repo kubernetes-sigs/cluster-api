@@ -797,7 +797,7 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, controlPlane *pkg.Cont
 		// Note: We intentionally log after Delete because we want this log line to show up only after DeletionTimestamp has been set.
 		// Also, setting DeletionTimestamp doesn't mean the Machine is actually deleted (deletion takes some time).
 		log.WithValues(controlPlane.StatusToLogKeyAndValues(nil, machineToDelete)...).
-			Info("Deleting Machine (KubeadmControlPlane deleted)")
+			Info(fmt.Sprintf("Deleting Machine %s (KubeadmControlPlane deleted)", machineToDelete.Name), "reason", "KubeadmControlPlane deleted")
 	}
 	if len(errs) > 0 {
 		err := kerrors.NewAggregate(errs)

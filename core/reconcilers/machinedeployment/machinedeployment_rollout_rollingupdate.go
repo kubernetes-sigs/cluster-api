@@ -25,6 +25,7 @@ import (
 	"time"
 
 	pkgerrors "github.com/pkg/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
@@ -55,7 +56,7 @@ const (
 // rolloutRollingUpdate reconcile machine sets controlled by a MachineDeployment that is using the RolloutUpdate strategy.
 // Note: The returned result requests a requeue when the rollout is paused waiting for an answer from the CanUpdateMachineSet extension,
 // or blocked because the extension does not allow any operation that can roll out changes.
-func (r *Reconciler) rolloutRollingUpdate(ctx context.Context, s *scope, templateExists bool) (ctrl.Result, error) {
+func (r *Reconciler) rolloutRollingUpdate(ctx context.Context, reconcileStartTime metav1.Time, s *scope, templateExists bool) (ctrl.Result, error) {
 	md := s.machineDeployment
 
 	planner := newRolloutPlanner(r.Client, r.RuntimeClient, r.canUpdateMachineSetCache)
@@ -63,7 +64,7 @@ func (r *Reconciler) rolloutRollingUpdate(ctx context.Context, s *scope, templat
 	defer func() {
 		s.canUpdateMachineSetResults = planner.canUpdateMachineSetResults
 	}()
-	if err := planner.init(ctx, md, s.machineSets, s.machines.UnsortedList(), true, templateExists); err != nil {
+	if err := planner.init(ctx, reconcileStartTime, md, s.machineSets, s.machines.UnsortedList(), true, templateExists); err != nil {
 		return ctrl.Result{}, err
 	}
 

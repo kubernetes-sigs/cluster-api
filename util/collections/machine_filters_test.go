@@ -145,82 +145,82 @@ func TestHasDeletionTimestamp(t *testing.T) {
 }
 
 func TestShouldRolloutAfter(t *testing.T) {
-	reconciliationTime := metav1.Date(2009, time.November, 10, 23, 0, 0, 0, time.UTC)
+	reconcileStartTime := metav1.Date(2009, time.November, 10, 23, 0, 0, 0, time.UTC)
 	t.Run("if the machine is nil it returns false", func(t *testing.T) {
 		g := NewWithT(t)
-		g.Expect(collections.ShouldRolloutAfter(&reconciliationTime, reconciliationTime)(nil)).To(BeFalse())
+		g.Expect(collections.ShouldRolloutAfter(&reconcileStartTime, reconcileStartTime)(nil)).To(BeFalse())
 	})
-	t.Run("if the reconciliationTime is nil it returns false", func(t *testing.T) {
+	t.Run("if the reconcileStartTime is nil it returns false", func(t *testing.T) {
 		g := NewWithT(t)
 		m := &clusterv1.Machine{}
-		g.Expect(collections.ShouldRolloutAfter(nil, reconciliationTime)(m)).To(BeFalse())
+		g.Expect(collections.ShouldRolloutAfter(nil, reconcileStartTime)(m)).To(BeFalse())
 	})
 	t.Run("if the rolloutAfter is nil it returns false", func(t *testing.T) {
 		g := NewWithT(t)
 		m := &clusterv1.Machine{}
-		g.Expect(collections.ShouldRolloutAfter(&reconciliationTime, metav1.Time{})(m)).To(BeFalse())
+		g.Expect(collections.ShouldRolloutAfter(&reconcileStartTime, metav1.Time{})(m)).To(BeFalse())
 	})
 	t.Run("if rolloutAfter is after the reconciliation time, return false", func(t *testing.T) {
 		g := NewWithT(t)
 		m := &clusterv1.Machine{}
-		rolloutAfter := metav1.NewTime(reconciliationTime.Add(+1 * time.Hour))
-		g.Expect(collections.ShouldRolloutAfter(&reconciliationTime, rolloutAfter)(m)).To(BeFalse())
+		rolloutAfter := metav1.NewTime(reconcileStartTime.Add(+1 * time.Hour))
+		g.Expect(collections.ShouldRolloutAfter(&reconcileStartTime, rolloutAfter)(m)).To(BeFalse())
 	})
 	t.Run("if rolloutAfter is before the reconciliation time and the machine was created before rolloutAfter, return true", func(t *testing.T) {
 		g := NewWithT(t)
 		m := &clusterv1.Machine{}
-		m.SetCreationTimestamp(metav1.NewTime(reconciliationTime.Add(-2 * time.Hour)))
-		rolloutAfter := metav1.NewTime(reconciliationTime.Add(-1 * time.Hour))
-		g.Expect(collections.ShouldRolloutAfter(&reconciliationTime, rolloutAfter)(m)).To(BeTrue())
+		m.SetCreationTimestamp(metav1.NewTime(reconcileStartTime.Add(-2 * time.Hour)))
+		rolloutAfter := metav1.NewTime(reconcileStartTime.Add(-1 * time.Hour))
+		g.Expect(collections.ShouldRolloutAfter(&reconcileStartTime, rolloutAfter)(m)).To(BeTrue())
 	})
 	t.Run("if rolloutAfter is before the reconciliation time and the machine was created after rolloutAfter, return false", func(t *testing.T) {
 		g := NewWithT(t)
 		m := &clusterv1.Machine{}
-		m.SetCreationTimestamp(metav1.NewTime(reconciliationTime.Add(+1 * time.Hour)))
-		rolloutAfter := metav1.NewTime(reconciliationTime.Add(-1 * time.Hour))
-		g.Expect(collections.ShouldRolloutAfter(&reconciliationTime, rolloutAfter)(m)).To(BeFalse())
+		m.SetCreationTimestamp(metav1.NewTime(reconcileStartTime.Add(+1 * time.Hour)))
+		rolloutAfter := metav1.NewTime(reconcileStartTime.Add(-1 * time.Hour))
+		g.Expect(collections.ShouldRolloutAfter(&reconcileStartTime, rolloutAfter)(m)).To(BeFalse())
 	})
 }
 
 func TestShouldRolloutBeforeCertificatesExpire(t *testing.T) {
-	reconciliationTime := &metav1.Time{Time: time.Now()}
+	reconcileStartTime := &metav1.Time{Time: time.Now()}
 	t.Run("if rolloutBefore is not set it should return false", func(t *testing.T) {
 		g := NewWithT(t)
 		m := &clusterv1.Machine{}
-		g.Expect(collections.ShouldRolloutBefore(reconciliationTime, controlplanev1.KubeadmControlPlaneRolloutBeforeSpec{})(m)).To(BeFalse())
+		g.Expect(collections.ShouldRolloutBefore(reconcileStartTime, controlplanev1.KubeadmControlPlaneRolloutBeforeSpec{})(m)).To(BeFalse())
 	})
 	t.Run("if machine is nil it should return false", func(t *testing.T) {
 		g := NewWithT(t)
 		rb := controlplanev1.KubeadmControlPlaneRolloutBeforeSpec{CertificatesExpiryDays: 10}
-		g.Expect(collections.ShouldRolloutBefore(reconciliationTime, rb)(nil)).To(BeFalse())
+		g.Expect(collections.ShouldRolloutBefore(reconcileStartTime, rb)(nil)).To(BeFalse())
 	})
 	t.Run("if the machine certificate expiry information is not available it should return false", func(t *testing.T) {
 		g := NewWithT(t)
 		m := &clusterv1.Machine{}
 		rb := controlplanev1.KubeadmControlPlaneRolloutBeforeSpec{CertificatesExpiryDays: 10}
-		g.Expect(collections.ShouldRolloutBefore(reconciliationTime, rb)(m)).To(BeFalse())
+		g.Expect(collections.ShouldRolloutBefore(reconcileStartTime, rb)(m)).To(BeFalse())
 	})
 	t.Run("if the machine certificates are not going to expire within the expiry time it should return false", func(t *testing.T) {
 		g := NewWithT(t)
-		certificateExpiryTime := reconciliationTime.Add(60 * 24 * time.Hour) // certificates will expire in 60 days from 'now'.
+		certificateExpiryTime := reconcileStartTime.Add(60 * 24 * time.Hour) // certificates will expire in 60 days from 'now'.
 		m := &clusterv1.Machine{
 			Status: clusterv1.MachineStatus{
 				CertificatesExpiryDate: metav1.Time{Time: certificateExpiryTime},
 			},
 		}
 		rb := controlplanev1.KubeadmControlPlaneRolloutBeforeSpec{CertificatesExpiryDays: 10}
-		g.Expect(collections.ShouldRolloutBefore(reconciliationTime, rb)(m)).To(BeFalse())
+		g.Expect(collections.ShouldRolloutBefore(reconcileStartTime, rb)(m)).To(BeFalse())
 	})
 	t.Run("if machine certificates will expire within the expiry time then it should return true", func(t *testing.T) {
 		g := NewWithT(t)
-		certificateExpiryTime := reconciliationTime.Add(5 * 24 * time.Hour) // certificates will expire in 5 days from 'now'.
+		certificateExpiryTime := reconcileStartTime.Add(5 * 24 * time.Hour) // certificates will expire in 5 days from 'now'.
 		m := &clusterv1.Machine{
 			Status: clusterv1.MachineStatus{
 				CertificatesExpiryDate: metav1.Time{Time: certificateExpiryTime},
 			},
 		}
 		rb := controlplanev1.KubeadmControlPlaneRolloutBeforeSpec{CertificatesExpiryDays: 10}
-		g.Expect(collections.ShouldRolloutBefore(reconciliationTime, rb)(m)).To(BeTrue())
+		g.Expect(collections.ShouldRolloutBefore(reconcileStartTime, rb)(m)).To(BeTrue())
 	})
 }
 

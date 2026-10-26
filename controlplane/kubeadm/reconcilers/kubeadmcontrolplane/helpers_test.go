@@ -488,7 +488,7 @@ func TestCloneConfigsAndGenerateMachineAndSyncMachines(t *testing.T) {
 		g.Expect(cmp).To(BeNumerically(">=", 0))
 	}).Should(Succeed())
 
-	controlPlane, err := pkg.NewControlPlane(ctx, r.managementCluster, r.DynamicCache, r.Client, cluster, kcp, collections.FromMachines(&m))
+	controlPlane, err := pkg.NewControlPlane(ctx, metav1.Now(), r.managementCluster, r.DynamicCache, r.Client, cluster, kcp, collections.FromMachines(&m))
 	g.Expect(err).ToNot(HaveOccurred())
 	stopReconcile, err := r.syncMachines(ctx, controlPlane)
 	g.Expect(err).ToNot(HaveOccurred())

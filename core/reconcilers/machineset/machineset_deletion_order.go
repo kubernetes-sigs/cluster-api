@@ -30,7 +30,7 @@ import (
 
 type (
 	deletePriority     float64
-	deletePriorityFunc func(machine *clusterv1.Machine) deletePriority
+	deletePriorityFunc func(reconcileStartTime metav1.Time, machine *clusterv1.Machine) deletePriority
 )
 
 const (
@@ -45,7 +45,7 @@ const (
 )
 
 // maps the creation timestamp onto the 0-100 priority range.
-func oldestDeletionOrder(machine *clusterv1.Machine) deletePriority {
+func oldestDeletionOrder(reconcileStartTime metav1.Time, machine *clusterv1.Machine) deletePriority {
 	// Deleting machines must go first, otherwise deletion code will delete more machines while previously deleted machines
 	// are still deleting.
 	if !machine.DeletionTimestamp.IsZero() {
@@ -68,14 +68,14 @@ func oldestDeletionOrder(machine *clusterv1.Machine) deletePriority {
 	if machine.CreationTimestamp.Time.IsZero() {
 		return mustNotDelete
 	}
-	d := metav1.Now().Sub(machine.CreationTimestamp.Time)
+	d := reconcileStartTime.Sub(machine.CreationTimestamp.Time)
 	if d.Seconds() < 0 {
 		return mustNotDelete
 	}
 	return deletePriority(float64(betterDelete) * (1.0 - math.Exp(-d.Seconds()/secondsPerTenDays)))
 }
 
-func newestDeletionOrder(machine *clusterv1.Machine) deletePriority {
+func newestDeletionOrder(reconcileStartTime metav1.Time, machine *clusterv1.Machine) deletePriority {
 	// Deleting machines must go first, otherwise deletion code will delete more machines while previously deleted machines
 	// are still deleting.
 	if !machine.DeletionTimestamp.IsZero() {
@@ -95,10 +95,10 @@ func newestDeletionOrder(machine *clusterv1.Machine) deletePriority {
 	if !isMachineHealthy(machine) {
 		return betterDelete
 	}
-	return betterDelete - oldestDeletionOrder(machine)
+	return betterDelete - oldestDeletionOrder(reconcileStartTime, machine)
 }
 
-func randomDeletionOrder(machine *clusterv1.Machine) deletePriority {
+func randomDeletionOrder(_ metav1.Time, machine *clusterv1.Machine) deletePriority {
 	// Deleting machines must go first, otherwise deletion code will delete more machines while previously deleted machines
 	// are still deleting.
 	if !machine.DeletionTimestamp.IsZero() {
@@ -122,14 +122,15 @@ func randomDeletionOrder(machine *clusterv1.Machine) deletePriority {
 }
 
 type sortableMachines struct {
-	machines []*clusterv1.Machine
-	priority deletePriorityFunc
+	reconcileStartTime metav1.Time
+	machines           []*clusterv1.Machine
+	priority           deletePriorityFunc
 }
 
 func (m sortableMachines) Len() int      { return len(m.machines) }
 func (m sortableMachines) Swap(i, j int) { m.machines[i], m.machines[j] = m.machines[j], m.machines[i] }
 func (m sortableMachines) Less(i, j int) bool {
-	priorityI, priorityJ := m.priority(m.machines[i]), m.priority(m.machines[j])
+	priorityI, priorityJ := m.priority(m.reconcileStartTime, m.machines[i]), m.priority(m.reconcileStartTime, m.machines[j])
 	if priorityI == priorityJ {
 		// In cases where the priority is identical, it should be ensured that the same machine order is returned each time.
 		// Ordering by name is a simple way to do this.
@@ -138,18 +139,19 @@ func (m sortableMachines) Less(i, j int) bool {
 	return priorityJ < priorityI // high to low
 }
 
-func getMachinesToMovePrioritized(filteredMachines []*clusterv1.Machine, fun deletePriorityFunc) []*clusterv1.Machine {
-	return getMachinesToDeletePrioritized(filteredMachines, len(filteredMachines), fun)
+func getMachinesToMovePrioritized(reconcileStartTime metav1.Time, filteredMachines []*clusterv1.Machine, fun deletePriorityFunc) []*clusterv1.Machine {
+	return getMachinesToDeletePrioritized(reconcileStartTime, filteredMachines, len(filteredMachines), fun)
 }
 
-func getMachinesToDeletePrioritized(filteredMachines []*clusterv1.Machine, diff int, fun deletePriorityFunc) []*clusterv1.Machine {
+func getMachinesToDeletePrioritized(reconcileStartTime metav1.Time, filteredMachines []*clusterv1.Machine, diff int, fun deletePriorityFunc) []*clusterv1.Machine {
 	if diff <= 0 {
 		return []*clusterv1.Machine{}
 	}
 
 	sortable := sortableMachines{
-		machines: filteredMachines,
-		priority: fun,
+		reconcileStartTime: reconcileStartTime,
+		machines:           filteredMachines,
+		priority:           fun,
 	}
 	sort.Sort(sortable)
 

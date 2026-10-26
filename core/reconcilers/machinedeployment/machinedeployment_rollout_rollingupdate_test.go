@@ -27,6 +27,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	. "github.com/onsi/gomega"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	utilfeature "k8s.io/component-base/featuregate/testing"
 	"k8s.io/klog/v2"
@@ -2963,7 +2964,7 @@ func runRollingUpdateTestCase(ctx context.Context, t *testing.T, tt rollingUpdat
 				}
 
 				// init the rollout planner and plan next step for a rollout.
-				err := p.init(ctx, current.machineDeployment, current.machineSets, current.machines(), true, true)
+				err := p.init(ctx, metav1.Now(), current.machineDeployment, current.machineSets, current.machines(), true, true)
 				g.Expect(err).ToNot(HaveOccurred())
 
 				err = p.planRollingUpdate(ctx)

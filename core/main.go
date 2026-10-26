@@ -78,8 +78,6 @@ import (
 	"sigs.k8s.io/cluster-api/core/reconcilers/machinepool"
 	"sigs.k8s.io/cluster-api/core/reconcilers/machineset"
 	topologycluster "sigs.k8s.io/cluster-api/core/reconcilers/topology/cluster"
-	topologymachinedeployment "sigs.k8s.io/cluster-api/core/reconcilers/topology/machinedeployment"
-	topologymachineset "sigs.k8s.io/cluster-api/core/reconcilers/topology/machineset"
 	"sigs.k8s.io/cluster-api/core/setup"
 	coreadmission "sigs.k8s.io/cluster-api/core/webhooks/admission"
 	"sigs.k8s.io/cluster-api/core/webhooks/conversion"
@@ -579,28 +577,6 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager, watchNamespace stri
 			WatchFilterValue: watchFilterValue,
 		}).SetupWithManager(ctx, mgr, concurrency(clusterTopologyConcurrency)); err != nil {
 			setupLog.Error(err, "Unable to create controller", "controller", "ClusterTopology")
-			os.Exit(1)
-		}
-
-		if err := (&topologymachinedeployment.Reconciler{
-			Client:           mgr.GetClient(),
-			APIReader:        mgr.GetAPIReader(),
-			WatchFilterValue: watchFilterValue,
-			// Concurrency 25 should work in all cases, not adding a command-line arg as this
-			// Reconciler will be merged into the regular MachineDeployment reconciler.
-		}).SetupWithManager(ctx, mgr, concurrency(25)); err != nil {
-			setupLog.Error(err, "Unable to create controller", "controller", "MachineDeploymentTopology")
-			os.Exit(1)
-		}
-
-		if err := (&topologymachineset.Reconciler{
-			Client:           mgr.GetClient(),
-			APIReader:        mgr.GetAPIReader(),
-			WatchFilterValue: watchFilterValue,
-			// Concurrency 25 should work in all cases, not adding a command-line arg as this
-			// Reconciler will be merged into the regular MachineSet reconciler.
-		}).SetupWithManager(ctx, mgr, concurrency(25)); err != nil {
-			setupLog.Error(err, "Unable to create controller", "controller", "MachineSetTopology")
 			os.Exit(1)
 		}
 	}

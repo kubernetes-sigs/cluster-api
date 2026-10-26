@@ -1239,9 +1239,10 @@ func TestMachineSetReconciler_updateStatusResizedCondition(t *testing.T) {
 				recorder: record.NewFakeRecorder(32),
 			}
 			s := &scope{
-				cluster:    cluster,
-				machineSet: tc.machineSet,
-				machines:   tc.machines,
+				cluster:            cluster,
+				machineSet:         tc.machineSet,
+				machines:           tc.machines,
+				reconcileStartTime: metav1.Now(),
 				getAndAdoptMachinesForMachineSetSucceeded: true,
 			}
 			setReplicas(ctx, s.machineSet, s.machines, tc.machines != nil)
@@ -3262,8 +3263,9 @@ func TestMachineSetReconciler_deleteMachines(t *testing.T) {
 				recorder:                        record.NewFakeRecorder(32),
 			}
 			s := &scope{
-				machineSet: tt.ms,
-				machines:   tt.machines,
+				reconcileStartTime: metav1.Now(),
+				machineSet:         tt.ms,
+				machines:           tt.machines,
 			}
 			res, err := r.deleteMachines(ctx, s, tt.machinesToDelete)
 			if tt.wantErr {
@@ -3590,8 +3592,9 @@ func TestMachineSetReconciler_startMoveMachines(t *testing.T) {
 				recorder:                        record.NewFakeRecorder(32),
 			}
 			s := &scope{
-				machineSet: tt.ms,
-				machines:   tt.machines,
+				reconcileStartTime: metav1.Now(),
+				machineSet:         tt.ms,
+				machines:           tt.machines,
 			}
 
 			moveMachinesToMachineSetAnnotationValue := tt.ms.Annotations[clusterv1.MachineSetMoveMachinesToMachineSetAnnotation]

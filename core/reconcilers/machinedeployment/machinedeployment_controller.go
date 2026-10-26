@@ -146,6 +146,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 
 // Reconcile reconciles the passed in object.
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (retres ctrl.Result, reterr error) {
+	reconcileStartTime := metav1.Now()
 	log := ctrl.LoggerFrom(ctx)
 
 	// Fetch the MachineDeployment instance.
@@ -229,7 +230,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (retres ct
 	// Note: This code can be removed with Cluster API v1.18.
 	controllerutil.RemoveFinalizer(deployment, clusterv1.MachineDeploymentTopologyFinalizer) //nolint:staticcheck // Intentionally used to clean up the legacy finalizer.
 
-	return r.reconcile(ctx, s)
+	return r.reconcile(ctx, reconcileStartTime, s)
 }
 
 type scope struct {
@@ -276,7 +277,7 @@ func patchMachineDeployment(ctx context.Context, patchHelper *patch.Helper, md *
 	return patchHelper.Patch(ctx, md, options...)
 }
 
-func (r *Reconciler) reconcile(ctx context.Context, s *scope) (ctrl.Result, error) {
+func (r *Reconciler) reconcile(ctx context.Context, reconcileStartTime metav1.Time, s *scope) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
 	log.V(4).Info("Reconcile MachineDeployment")
 
@@ -347,15 +348,15 @@ func (r *Reconciler) reconcile(ctx context.Context, s *scope) (ctrl.Result, erro
 	s.rolloutReconciled = true
 
 	if ptr.Deref(md.Spec.Paused, false) {
-		return ctrl.Result{}, r.sync(ctx, md, s.machineSets, s.machines, templateExists)
+		return ctrl.Result{}, r.sync(ctx, reconcileStartTime, md, s.machineSets, s.machines, templateExists)
 	}
 
 	if md.Spec.Rollout.Strategy.Type == clusterv1.RollingUpdateMachineDeploymentStrategyType {
-		return r.rolloutRollingUpdate(ctx, s, templateExists)
+		return r.rolloutRollingUpdate(ctx, reconcileStartTime, s, templateExists)
 	}
 
 	if md.Spec.Rollout.Strategy.Type == clusterv1.OnDeleteMachineDeploymentStrategyType {
-		return ctrl.Result{}, r.rolloutOnDelete(ctx, md, s.machineSets, s.machines, templateExists)
+		return ctrl.Result{}, r.rolloutOnDelete(ctx, reconcileStartTime, md, s.machineSets, s.machines, templateExists)
 	}
 
 	return ctrl.Result{}, pkgerrors.Errorf("unexpected deployment strategy type: %s", md.Spec.Rollout.Strategy.Type)

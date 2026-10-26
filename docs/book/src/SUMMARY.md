@@ -43,6 +43,7 @@
         - [MachineHealthCheck and Remediation](./user/guide/lifecycle/healthchecking.md)
         - [Machine Deletion](./user/guide/lifecycle/machine_deletions.md)
         - [MachineSet Preflight Checks](./user/guide/lifecycle/machineset-preflight-checks.md)
+        - [MachinePool Preflight Checks](./user/guide/lifecycle/machinepool-preflight-checks.md)
     - [Workload Management](./user/guide/workload/index.md)
       - [ClusterResourceSet](./user/guide/workload/cluster-resource-set.md)
       - [Workload Bootstrap Using GitOps](./user/guide/workload/workload-bootstrap-gitops.md)

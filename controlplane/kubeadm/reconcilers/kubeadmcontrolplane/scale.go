@@ -51,13 +51,29 @@ func (r *Reconciler) initializeControlPlane(ctx context.Context, controlPlane *p
 		return ctrl.Result{}, err
 	}
 
-	log.WithValues(controlPlane.StatusToLogKeyAndValues(newMachine, nil)...).
+	log.WithValues(controlPlane.StatusToLogKeyAndValues(newMachine, nil)...).WithValues(machineCreationReasonKeysAndValues("init", newMachine)...).
 		Info(fmt.Sprintf("Machine %s created (init)", newMachine.Name),
-			"Machine", klog.KObj(newMachine), "reason", "init",
+			"Machine", klog.KObj(newMachine),
 			newMachine.Spec.InfrastructureRef.Kind, klog.KRef(newMachine.Namespace, newMachine.Spec.InfrastructureRef.Name),
 			newMachine.Spec.Bootstrap.ConfigRef.Kind, klog.KRef(newMachine.Namespace, newMachine.Spec.Bootstrap.ConfigRef.Name), "desiredReplicas", ptr.Deref(controlPlane.KCP.Spec.Replicas, 0), "replicas", len(controlPlane.Machines))
 
 	return ctrl.Result{}, nil // No need to requeue here. Machine creation above triggers reconciliation.
+}
+
+// machineCreationReasonKeysAndValues returns the log keys explaining why a Machine has been created.
+// Note: Machines created as a replacement of a remediated Machine carry the RemediationForAnnotation, copied from the
+// RemediationInProgressAnnotation on KCP when the Machine is computed; this works both for init and scale up.
+func machineCreationReasonKeysAndValues(defaultReason string, newMachine *clusterv1.Machine) []any {
+	value, ok := newMachine.Annotations[controlplanev1.RemediationForAnnotation]
+	if !ok {
+		return []any{"reason", defaultReason}
+	}
+	keysAndValues := []any{"reason", "remediation"}
+	// Note: The annotation is written by KCP itself; if it cannot be read the reason is still correct, only the link to the remediated Machine is lost.
+	if remediationData, err := RemediationDataFromAnnotation(value); err == nil {
+		keysAndValues = append(keysAndValues, "remediatedMachine", klog.KRef(newMachine.Namespace, remediationData.Machine))
+	}
+	return keysAndValues
 }
 
 func (r *Reconciler) scaleUpControlPlane(ctx context.Context, controlPlane *pkg.ControlPlane, runPreflightChecks bool) (ctrl.Result, error) {
@@ -103,9 +119,9 @@ func (r *Reconciler) scaleUpControlPlane(ctx context.Context, controlPlane *pkg.
 		return ctrl.Result{}, err
 	}
 
-	log.WithValues(controlPlane.StatusToLogKeyAndValues(newMachine, nil)...).
+	log.WithValues(controlPlane.StatusToLogKeyAndValues(newMachine, nil)...).WithValues(machineCreationReasonKeysAndValues("scaleUp", newMachine)...).
 		Info(fmt.Sprintf("Machine %s created (scale up)", newMachine.Name),
-			"Machine", klog.KObj(newMachine), "reason", "scaleUp",
+			"Machine", klog.KObj(newMachine),
 			newMachine.Spec.InfrastructureRef.Kind, klog.KRef(newMachine.Namespace, newMachine.Spec.InfrastructureRef.Name),
 			newMachine.Spec.Bootstrap.ConfigRef.Kind, klog.KRef(newMachine.Namespace, newMachine.Spec.Bootstrap.ConfigRef.Name), "desiredReplicas", ptr.Deref(controlPlane.KCP.Spec.Replicas, 0), "replicas", len(controlPlane.Machines))
 

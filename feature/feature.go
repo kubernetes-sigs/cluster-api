@@ -90,6 +90,7 @@ const (
 	// MachineTaintPropagation is a feature gate for the machine taint propagation functionality.
 	//
 	// alpha: v1.12
+	// beta: v1.15
 	MachineTaintPropagation featuregate.Feature = "MachineTaintPropagation"
 )
 
@@ -105,10 +106,10 @@ var defaultClusterAPIFeatureGates = map[featuregate.Feature]featuregate.FeatureS
 	ReconcilerRateLimiting:         {Default: true, PreRelease: featuregate.GA},
 	MachinePool:                    {Default: true, PreRelease: featuregate.Beta},
 	MachineSetPreflightChecks:      {Default: true, PreRelease: featuregate.Beta},
+	MachineTaintPropagation:        {Default: true, PreRelease: featuregate.Beta},
 	ClusterTopology:                {Default: false, PreRelease: featuregate.Alpha},
 	KubeadmBootstrapFormatIgnition: {Default: false, PreRelease: featuregate.Alpha},
 	RuntimeSDK:                     {Default: false, PreRelease: featuregate.Alpha},
 	InPlaceUpdates:                 {Default: false, PreRelease: featuregate.Alpha},
-	MachineTaintPropagation:        {Default: false, PreRelease: featuregate.Alpha},
 	ClusterClassInlineTemplates:    {Default: false, PreRelease: featuregate.Alpha},
 }

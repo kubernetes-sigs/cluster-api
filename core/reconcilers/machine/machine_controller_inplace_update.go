@@ -225,6 +225,7 @@ func (r *Reconciler) updateMachine(ctx context.Context, s *scope) (updateMachine
 	}
 
 	// messagesSuffix is appended to the message of the Updating condition to surface the messages of the extensions.
+	log = log.WithValues("updateStatus", res.updateStatus)
 	messagesSuffix := ""
 	if len(res.messages) > 0 {
 		log = log.WithValues("messages", strings.Join(res.messages, ","))
@@ -235,21 +236,21 @@ func (r *Reconciler) updateMachine(ctx context.Context, s *scope) (updateMachine
 		s.updatingReason = clusterv1.MachineInPlaceUpdatingReason
 		if inplace.IsUpdateInProgressAndAffectsAvailability(s.machine) {
 			s.updatingMessage = "In-place update in progress (affects availability)" + messagesSuffix
-			log.Info(fmt.Sprintf("Machine %s is still updating in-place (affects availability): extensions returned updateStatus %s, requeuing%s", klog.KObj(s.machine), res.updateStatus, logSuffix))
+			log.Info(fmt.Sprintf("Machine %s is still updating in-place (affects availability): extensions returned updateStatus %s, requeuing%s", s.machine.Name, res.updateStatus, logSuffix))
 		} else {
 			s.updatingMessage = "In-place update in progress (does not affect availability)" + messagesSuffix
-			log.Info(fmt.Sprintf("Machine %s is still updating in-place (does not affect availability): extensions returned updateStatus %s, requeuing%s", klog.KObj(s.machine), res.updateStatus, logSuffix))
+			log.Info(fmt.Sprintf("Machine %s is still updating in-place (does not affect availability): extensions returned updateStatus %s, requeuing%s", s.machine.Name, res.updateStatus, logSuffix))
 		}
 	case runtimehooksv1.MachineUpdateStatusFailed:
 		s.updatingReason = clusterv1.MachineInPlaceUpdateFailedReason
 		s.updatingMessage = "In-place update failed" + messagesSuffix
-		log.Info(fmt.Sprintf("In-place update of Machine %s failed: extensions returned updateStatus %s, requeuing%s", klog.KObj(s.machine), res.updateStatus, logSuffix))
+		log.Info(fmt.Sprintf("In-place update of Machine %s failed: extensions returned updateStatus %s, requeuing%s", s.machine.Name, res.updateStatus, logSuffix))
 	case runtimehooksv1.MachineUpdateStatusBlocked:
 		s.updatingReason = clusterv1.MachineInPlaceUpdateBlockedReason
 		s.updatingMessage = "In-place update blocked" + messagesSuffix
-		log.Info(fmt.Sprintf("In-place update of Machine %s blocked: extensions returned updateStatus %s, requeuing%s", klog.KObj(s.machine), res.updateStatus, logSuffix))
+		log.Info(fmt.Sprintf("In-place update of Machine %s blocked: extensions returned updateStatus %s, requeuing%s", s.machine.Name, res.updateStatus, logSuffix))
 	case runtimehooksv1.MachineUpdateStatusCompleted, runtimehooksv1.MachineUpdateStatusCompletedButDirty:
-		log.Info(fmt.Sprintf("Machine %s has been updated in-place by extensions (updateStatus %s)%s", klog.KObj(s.machine), res.updateStatus, logSuffix))
+		log.Info(fmt.Sprintf("Machine %s has been updated in-place by extensions (updateStatus %s)%s", s.machine.Name, res.updateStatus, logSuffix))
 	}
 	return res, nil
 }

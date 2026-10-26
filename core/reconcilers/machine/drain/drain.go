@@ -262,8 +262,6 @@ func filterPods(ctx context.Context, allPods []*corev1.Pod, filters []PodFilter)
 
 // EvictPods evicts the pods.
 func (d *Helper) EvictPods(ctx context.Context, podDeleteList *PodDeleteList) EvictionResult {
-	log := ctrl.LoggerFrom(ctx)
-
 	// Sort podDeleteList, this is important so we always deterministically evict Pods and build the EvictionResult.
 	// Otherwise the condition could change with every single reconcile even if nothing changes on the Node.
 	sort.Slice(podDeleteList.items, func(i, j int) bool {
@@ -303,14 +301,6 @@ func (d *Helper) EvictPods(ctx context.Context, podDeleteList *PodDeleteList) Ev
 			podsToBeIgnored = append(podsToBeIgnored, pod)
 		}
 	}
-
-	log.Info("Drain not completed yet, there are still Pods on the Node that have to be drained",
-		"podsToTriggerEvictionNow", podDeleteListToString(podsToTriggerEvictionNow, 5),
-		"podsToTriggerEvictionLater", podDeleteListToString(podsToTriggerEvictionLater, 5),
-		"podsWithDeletionTimestamp", podDeleteListToString(podsWithDeletionTimestamp, 5),
-		"podsToWaitCompletedNow", podDeleteListToString(podsToWaitCompletedNow, 5),
-		"podsToWaitCompletedLater", podDeleteListToString(podsToWaitCompletedLater, 5),
-	)
 
 	// Trigger evictions for at most 10s. We'll continue on the next reconcile if we hit the timeout.
 	evictionTimeout := 10 * time.Second
@@ -537,13 +527,6 @@ func (r EvictionResult) ConditionMessage(nodeDrainStartTime metav1.Time) string 
 			conditionMessage, PodListToString(r.PodsToWaitCompletedLater, 3))
 	}
 	return conditionMessage
-}
-
-// podDeleteListToString returns a comma-separated list of the first n entries of the PodDelete list.
-func podDeleteListToString(podList []PodDelete, n int) string {
-	return clog.ListToString(podList, func(pd PodDelete) string {
-		return klog.KObj(pd.Pod).String()
-	}, n)
 }
 
 // PodListToString returns a comma-separated list of the first n entries of the Pod list.

@@ -249,7 +249,7 @@ func (p *rolloutPlanner) canUpdateMachineSetInPlaceDecisions(ctx context.Context
 			return pkgerrors.Wrapf(err, "failed to determine if MachineSet %s can be updated in-place", oldMS.Name)
 		}
 		decision := rolloutDecision(res)
-		log.V(5).Info(fmt.Sprintf("CanUpdate decision for MachineSet %s: %s, can update in-place: %t, affects availability: %t", klog.KObj(oldMS), decision, res.canUpdateMachineSet, res.affectsAvailability), "MachineSet", klog.KObj(oldMS))
+		log.V(5).Info(fmt.Sprintf("CanUpdate decision for MachineSet %s: %s, can update in-place: %t, affects availability: %t", oldMS.Name, decision, res.canUpdateMachineSet, res.affectsAvailability), "MachineSet", klog.KObj(oldMS))
 
 		switch decision {
 		case oldMSRolloutPendingDecision:
@@ -270,7 +270,7 @@ func (p *rolloutPlanner) canUpdateMachineSetInPlaceDecisions(ctx context.Context
 			msg := blockedMessage(res)
 			p.canUpdateMachineSetResults.rolloutBlockedMessages = append(p.canUpdateMachineSetResults.rolloutBlockedMessages, canUpdateMachineSetHookMessage(oldMS, msg))
 			p.addNotef(oldMS, "rollout blocked, %s", msg)
-			log.V(5).Info(fmt.Sprintf("MachineSet %s cannot be rolled out: rollout is blocked by CanUpdateMachineSet hook: %s", klog.KObj(oldMS), msg), "MachineSet", klog.KObj(oldMS))
+			log.V(5).Info(fmt.Sprintf("MachineSet %s cannot be rolled out: rollout is blocked by CanUpdateMachineSet hook: %s", oldMS.Name, msg), "MachineSet", klog.KObj(oldMS))
 		case oldMSRolloutReplaceDecision:
 			p.replaceCandidates.Insert(oldMS.Name)
 			if res.canUpdateMachineSet {
@@ -315,7 +315,7 @@ func (p *rolloutPlanner) reconcileNewMachineSet(ctx context.Context) error {
 	if *(p.newMS.Spec.Replicas) > *(p.md.Spec.Replicas) {
 		// Scale down.
 		p.addNotef(p.newMS, "scale down to align MachineSet spec.replicas to MachineDeployment spec.replicas")
-		log.V(5).Info(fmt.Sprintf("Setting scale down intent for MachineSet %s to %d replicas", klog.KObj(p.newMS), *(p.md.Spec.Replicas)), "MachineSet", klog.KObj(p.newMS))
+		log.V(5).Info(fmt.Sprintf("Setting scale down intent for MachineSet %s to %d replicas", p.newMS.Name, *(p.md.Spec.Replicas)), "MachineSet", klog.KObj(p.newMS))
 		p.scaleIntents[p.newMS.Name] = *(p.md.Spec.Replicas)
 		return nil
 	}
@@ -351,13 +351,13 @@ func (p *rolloutPlanner) reconcileNewMachineSet(ctx context.Context) error {
 	if newReplicasCount < *(p.newMS.Spec.Replicas) {
 		scaleDownCount := *(p.newMS.Spec.Replicas) - newReplicasCount
 		p.addNotef(p.newMS, "%s", note)
-		log.V(5).Info(fmt.Sprintf("Setting scale down intent for MachineSet %s to %d replicas (-%d)", klog.KObj(p.newMS), newReplicasCount, scaleDownCount), "MachineSet", klog.KObj(p.newMS))
+		log.V(5).Info(fmt.Sprintf("Setting scale down intent for MachineSet %s to %d replicas (-%d)", p.newMS.Name, newReplicasCount, scaleDownCount), "MachineSet", klog.KObj(p.newMS))
 		p.scaleIntents[p.newMS.Name] = newReplicasCount
 	}
 	if newReplicasCount > *(p.newMS.Spec.Replicas) {
 		scaleUpCount := newReplicasCount - *(p.newMS.Spec.Replicas)
 		p.addNotef(p.newMS, "%s", note)
-		log.V(5).Info(fmt.Sprintf("Setting scale up intent for MachineSet %s to %d replicas (+%d)", klog.KObj(p.newMS), newReplicasCount, scaleUpCount), "MachineSet", klog.KObj(p.newMS))
+		log.V(5).Info(fmt.Sprintf("Setting scale up intent for MachineSet %s to %d replicas (+%d)", p.newMS.Name, newReplicasCount, scaleUpCount), "MachineSet", klog.KObj(p.newMS))
 		p.scaleIntents[p.newMS.Name] = newReplicasCount
 	}
 	return nil
@@ -462,7 +462,7 @@ func (p *rolloutPlanner) reconcileOldMachineSetsRollingUpdate(ctx context.Contex
 
 			newScaleDownIntentOldMS := max(p.replicasAfterScaleIntent(oldMS)-1, 0)
 			p.addNotef(oldMS, "scale down for MachineSet %s to %d replicas (-%d) allowed for in place update not affecting availability", oldMS.Name, newScaleDownIntentOldMS, 1)
-			log.V(5).Info(fmt.Sprintf("Setting scale down intent for MachineSet %s to %d replicas (-%d)", klog.KObj(oldMS), newScaleDownIntentOldMS, 1), "MachineSet", klog.KObj(oldMS))
+			log.V(5).Info(fmt.Sprintf("Setting scale down intent for MachineSet %s to %d replicas (-%d)", oldMS.Name, newScaleDownIntentOldMS, 1), "MachineSet", klog.KObj(oldMS))
 			p.scaleIntents[oldMS.Name] = newScaleDownIntentOldMS
 		}
 		return nil
@@ -585,7 +585,7 @@ func (p *rolloutPlanner) scaleDownExcessReplicas(ctx context.Context) {
 		p.scaleIntents[oldMS.Name] = replicas - scaleDown
 		excessReplicas -= scaleDown
 		p.addNotef(oldMS, "%d current Machines > %d MachineDeployment spec.replicas + %d maxSurge", totalReplicas, mdReplicas, maxSurge)
-		log.V(5).Info(fmt.Sprintf("Setting scale down intent for MachineSet %s to %d replicas (-%d)", klog.KObj(oldMS), replicas-scaleDown, scaleDown), "MachineSet", klog.KObj(oldMS))
+		log.V(5).Info(fmt.Sprintf("Setting scale down intent for MachineSet %s to %d replicas (-%d)", oldMS.Name, replicas-scaleDown, scaleDown), "MachineSet", klog.KObj(oldMS))
 	}
 }
 
@@ -680,7 +680,7 @@ func (p *rolloutPlanner) scaleDownOldMSs(ctx context.Context, oldMSs []*clusterv
 			} else {
 				p.addNotef(oldMS, "%d available replicas > %d minimum available replicas", oldTotalAvailableReplicas, minAvailable)
 			}
-			log.V(5).Info(fmt.Sprintf("Setting scale down intent for MachineSet %s to %d replicas (-%d)", klog.KObj(oldMS), newScaleIntent, scaleDown), "MachineSet", klog.KObj(oldMS))
+			log.V(5).Info(fmt.Sprintf("Setting scale down intent for MachineSet %s to %d replicas (-%d)", oldMS.Name, newScaleIntent, scaleDown), "MachineSet", klog.KObj(oldMS))
 			p.scaleIntents[oldMS.Name] = newScaleIntent
 			totalScaleDownCount = max(totalScaleDownCount-scaleDown, 0)
 		}
@@ -746,7 +746,7 @@ func (p *rolloutPlanner) reconcileDeadlockBreaker(ctx context.Context) {
 
 		newScaleIntent := max(ptr.Deref(oldMS.Spec.Replicas, 0)-1, 0)
 		p.addNotef(p.newMS, "scaling down by 1 to unblock rollout stuck due to unavailable Machine on oldMS")
-		log.Info(fmt.Sprintf("Setting scale down intent for MachineSet %s to %d replicas (-%d) to unblock rollout stuck due to unavailable Machine on oldMS", klog.KObj(oldMS), newScaleIntent, 1), "MachineSet", klog.KObj(oldMS))
+		log.Info(fmt.Sprintf("Setting scale down intent for MachineSet %s to %d replicas (-%d) to unblock rollout stuck due to unavailable Machine on oldMS", oldMS.Name, newScaleIntent, 1), "MachineSet", klog.KObj(oldMS))
 		p.scaleIntents[oldMS.Name] = newScaleIntent
 		return
 	}

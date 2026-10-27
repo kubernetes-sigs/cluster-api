@@ -1221,7 +1221,7 @@ func (r *Reconciler) startMoveMachines(ctx context.Context, s *scope, targetMSNa
 				r.controller.DeferNextReconcileUntilCacheUpToDate(s.machineSet, capicontrollerutil.StructuredObject(clusterv1.GroupVersion, "Machine"), deletedMachine.GetResourceVersion())
 			}
 
-			log.Info(fmt.Sprintf("Machine %s deleting (deleting the Machine instead of moving it to MachineSet %s because Machine is marked for remediation)", klog.KObj(machine), targetMS.Name))
+			log.Info(fmt.Sprintf("Machine %s deleting (deleting the Machine instead of moving it to MachineSet %s because Machine is marked for remediation)", machine.Name, targetMS.Name))
 			r.recorder.Eventf(ms, corev1.EventTypeNormal, "SuccessfulDelete", "Deleted Machine %q", machine.Name)
 			continue
 		}

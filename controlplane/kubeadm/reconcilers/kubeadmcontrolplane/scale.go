@@ -51,7 +51,7 @@ func (r *Reconciler) initializeControlPlane(ctx context.Context, controlPlane *p
 		return ctrl.Result{}, err
 	}
 
-	log.WithValues(controlPlane.StatusToLogKeyAndValues(newMachine, nil)...).WithValues(machineCreationReasonKeysAndValues("init", newMachine)...).
+	log.WithValues(controlPlane.StatusToLogKeyAndValues(newMachine, nil)...).WithValues(machineCreationReasonKeysAndValues("Initialization", newMachine)...).
 		Info(fmt.Sprintf("Machine %s created (init)", newMachine.Name),
 			"Machine", klog.KObj(newMachine),
 			newMachine.Spec.InfrastructureRef.Kind, klog.KRef(newMachine.Namespace, newMachine.Spec.InfrastructureRef.Name),
@@ -68,7 +68,7 @@ func machineCreationReasonKeysAndValues(defaultReason string, newMachine *cluste
 	if !ok {
 		return []any{"reason", defaultReason}
 	}
-	keysAndValues := []any{"reason", "remediation"}
+	keysAndValues := []any{"reason", "Remediation"}
 	// Note: The annotation is written by KCP itself; if it cannot be read the reason is still correct, only the link to the remediated Machine is lost.
 	if remediationData, err := RemediationDataFromAnnotation(value); err == nil {
 		keysAndValues = append(keysAndValues, "remediatedMachine", klog.KRef(newMachine.Namespace, remediationData.Machine))
@@ -119,7 +119,7 @@ func (r *Reconciler) scaleUpControlPlane(ctx context.Context, controlPlane *pkg.
 		return ctrl.Result{}, err
 	}
 
-	log.WithValues(controlPlane.StatusToLogKeyAndValues(newMachine, nil)...).WithValues(machineCreationReasonKeysAndValues("scaleUp", newMachine)...).
+	log.WithValues(controlPlane.StatusToLogKeyAndValues(newMachine, nil)...).WithValues(machineCreationReasonKeysAndValues("ScaleUp", newMachine)...).
 		Info(fmt.Sprintf("Machine %s created (scale up)", newMachine.Name),
 			"Machine", klog.KObj(newMachine),
 			newMachine.Spec.InfrastructureRef.Kind, klog.KRef(newMachine.Namespace, newMachine.Spec.InfrastructureRef.Name),
@@ -194,7 +194,7 @@ func (r *Reconciler) scaleDownControlPlane(
 	// Note: We intentionally log after Delete because we want this log line to show up only after DeletionTimestamp has been set.
 	// Also, setting DeletionTimestamp doesn't mean the Machine is actually deleted (deletion takes some time).
 	log.WithValues(controlPlane.StatusToLogKeyAndValues(nil, machineToDelete)...).
-		Info(fmt.Sprintf("Machine %s deleting (scale down)", machineToDelete.Name), "Machine", klog.KObj(machineToDelete), "reason", "scaleDown", "desiredReplicas", ptr.Deref(controlPlane.KCP.Spec.Replicas, 0), "replicas", len(controlPlane.Machines))
+		Info(fmt.Sprintf("Machine %s deleting (scale down)", machineToDelete.Name), "Machine", klog.KObj(machineToDelete), "reason", "ScaleDown", "desiredReplicas", ptr.Deref(controlPlane.KCP.Spec.Replicas, 0), "replicas", len(controlPlane.Machines))
 
 	return ctrl.Result{}, nil // No need to requeue here. Machine deletion above triggers reconciliation.
 }

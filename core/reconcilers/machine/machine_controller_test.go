@@ -1866,6 +1866,9 @@ func TestDrainNode(t *testing.T) {
 			testMachine.Status.Deletion = &clusterv1.MachineDeletionStatus{
 				NodeDrainStartTime: tt.nodeDrainStartTime,
 			}
+			if tt.nodeDrainStartTime.IsZero() {
+				testMachine.Status.Deletion.NodeDrainStartTime = metav1.Now()
+			}
 
 			s := &scope{
 				cluster: testCluster,

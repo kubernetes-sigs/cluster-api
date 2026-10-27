@@ -345,7 +345,7 @@ func (r *Reconciler) reconcileUnhealthyMachines(ctx context.Context, controlPlan
 	// Note: We intentionally log after Delete because we want this log line to show up only after DeletionTimestamp has been set.
 	// Also, setting DeletionTimestamp doesn't mean the Machine is actually deleted (deletion takes some time).
 	log.WithValues(controlPlane.StatusToLogKeyAndValues(nil, machineToBeRemediated)...).
-		Info(fmt.Sprintf("Deleting Machine %s (remediating unhealthy Machine)", machineToBeRemediated.Name), "Machine", klog.KObj(machineToBeRemediated), "reason", "remediation")
+		Info(fmt.Sprintf("Deleting Machine %s (remediating unhealthy Machine)", machineToBeRemediated.Name), "reason", "Remediation")
 	v1beta1conditions.MarkFalse(machineToBeRemediated, clusterv1.MachineOwnerRemediatedV1Beta1Condition, clusterv1.RemediationInProgressV1Beta1Reason, clusterv1.ConditionSeverityWarning, "")
 
 	conditions.Set(machineToBeRemediated, metav1.Condition{
@@ -970,7 +970,7 @@ type RemediationData struct {
 func RemediationDataFromAnnotation(value string) (*RemediationData, error) {
 	ret := &RemediationData{}
 	if err := json.Unmarshal([]byte(value), ret); err != nil {
-		return nil, pkgerrors.Wrapf(err, "failed to unmarshal value %s for %s annotation", value, clusterv1.RemediationInProgressV1Beta1Reason)
+		return nil, pkgerrors.Wrapf(err, "failed to unmarshal value %s for %s annotation", value, controlplanev1.RemediationForAnnotation)
 	}
 	return ret, nil
 }
@@ -979,7 +979,7 @@ func RemediationDataFromAnnotation(value string) (*RemediationData, error) {
 func (r *RemediationData) Marshal() (string, error) {
 	b, err := json.Marshal(r)
 	if err != nil {
-		return "", pkgerrors.Wrapf(err, "failed to marshal value for %s annotation", clusterv1.RemediationInProgressV1Beta1Reason)
+		return "", pkgerrors.Wrapf(err, "failed to marshal value for %s annotation", controlplanev1.RemediationForAnnotation)
 	}
 	return string(b), nil
 }

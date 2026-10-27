@@ -540,6 +540,7 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (ctrl.Result
 				m.Status.Deletion = &clusterv1.MachineDeletionStatus{}
 			}
 			if m.Status.Deletion.NodeDrainStartTime.IsZero() {
+				log.Info("Draining Node")
 				m.Status.Deletion.NodeDrainStartTime = metav1.Now()
 			}
 
@@ -689,7 +690,9 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (ctrl.Result
 	s.deletingMessage = "Deletion completed"
 
 	// Note: The Machine is gone once the patch removing the finalizer succeeds; if the patch fails the next reconcile logs this line again.
-	log.Info(fmt.Sprintf("Deleted Machine %s", m.Name), "duration", time.Since(m.DeletionTimestamp.Time).Truncate(time.Second/10))
+	if controllerutil.ContainsFinalizer(m, clusterv1.MachineFinalizer) {
+		log.Info(fmt.Sprintf("Deleted Machine %s", m.Name), "duration", time.Since(m.DeletionTimestamp.Time).Truncate(time.Second/10))
+	}
 	controllerutil.RemoveFinalizer(m, clusterv1.MachineFinalizer)
 	return ctrl.Result{}, nil
 }

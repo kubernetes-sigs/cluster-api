@@ -230,7 +230,7 @@ func (r *Reconciler) reconcileBootstrap(ctx context.Context, s *scope) (ctrl.Res
 	m.Spec.Bootstrap.DataSecretName = new(secretName)
 
 	if !ptr.Deref(m.Status.Initialization.BootstrapDataSecretCreated, false) {
-		log.Info("Bootstrap provider generated data secret", s.bootstrapConfigGVK.Kind, klog.KObj(s.bootstrapConfig), "Secret", klog.KRef(m.Namespace, secretName))
+		log.Info("Bootstrap provider generated data secret", s.bootstrapConfigGVK.Kind, klog.KObj(s.bootstrapConfig), "Secret", klog.KRef(m.Namespace, secretName), "duration", time.Since(m.CreationTimestamp.Time).Truncate(time.Second/10))
 	}
 	m.Status.Initialization.BootstrapDataSecretCreated = ptr.To(true)
 	return ctrl.Result{}, nil
@@ -285,7 +285,7 @@ func (r *Reconciler) reconcileInfrastructure(ctx context.Context, s *scope) (ctr
 	// Determine if the InfrastructureMachine is provisioned.
 	provisioned := s.infraMachine.GetProvisioned()
 	if provisioned && !ptr.Deref(m.Status.Initialization.InfrastructureProvisioned, false) {
-		log.Info("Infrastructure provider has completed provisioning", s.infraMachineGVK.Kind, klog.KObj(s.infraMachine))
+		log.Info("Infrastructure provider has completed provisioning", s.infraMachineGVK.Kind, klog.KObj(s.infraMachine), "duration", time.Since(m.CreationTimestamp.Time).Truncate(time.Second/10))
 	}
 
 	// Report a summary of current status of the InfrastructureMachine for this Machine.

@@ -322,7 +322,8 @@ func (r *Reconciler) blockRollout(ctx context.Context, controlPlane *pkg.Control
 	}
 	controlPlane.CanUpdateMachineResults.RolloutBlockedMessage = fmt.Sprintf("Blocked by CanUpdateMachine hook for Machine %s: %s", machine.Name, msg)
 
-	ctrl.LoggerFrom(ctx).Info(fmt.Sprintf("Machine %s cannot be rolled out: rollout is blocked by CanUpdateMachine hook: %s", klog.KObj(machine), msg))
+	ctrl.LoggerFrom(ctx).Info(fmt.Sprintf("Machine %s cannot be rolled out: rollout is blocked by CanUpdateMachine hook: %s", machine.Name, msg),
+		"Machine", klog.KObj(machine), "reason", "CanUpdateMachineBlocked")
 	// Note: The result of the CanUpdateMachine call is cached, so the extensions are called again when retryAfter has passed.
 	// Note: retryAfter can already be in the past (e.g. if a cached result expired in the meantime), a RequeueAfter <= 0 would not requeue at all.
 	return ctrl.Result{RequeueAfter: max(canUpdateMachineResult.retryAfter.Sub(r.now()), time.Second)}

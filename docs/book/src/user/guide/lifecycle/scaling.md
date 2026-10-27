@@ -32,7 +32,7 @@ spec:
 > [!TIP]
 > You can also use `kubectl scale KubeadmControlPlane my-cluster-controlplane --replicas=5`.
 
-If you need to prioritize which Machines get deleted during scale-down, add the `cluster.x-k8s.io/delete-machine` label to the Machine.
+If you need to prioritize which Machines get deleted during scale-down, add the `cluster.x-k8s.io/delete-machine` annotation to the Machine.
 
 ## Scaling Worker Replicas
 
@@ -57,10 +57,10 @@ spec:
 > [!TIP]
 > You can also use `kubectl scale MachineDeployment my-cluster-md-0 --replicas=10`.
 
-If you need to prioritize which Machines get deleted during scale-down, add the `cluster.x-k8s.io/delete-machine` label to the Machine.
+If you need to prioritize which Machines get deleted during scale-down, add the `cluster.x-k8s.io/delete-machine` annotation to the Machine.
 
 > [!NOTE]
-> The label only affects MachineSet scale-down; in a MachineDeployment, the choice of MachineSet to scale-down may bypass labeled Machines.
+> The annotation only affects MachineSet scale-down; in a MachineDeployment, the choice of MachineSet to scale-down may bypass annotated Machines.
 
 ## Using ClusterClass
 

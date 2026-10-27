@@ -1705,6 +1705,23 @@ func TestSetUpToDateCondition(t *testing.T) {
 			},
 		},
 		{
+			name:              "up-to-date, spec.version not set",
+			machineDeployment: &clusterv1.MachineDeployment{},
+			machineSet:        &clusterv1.MachineSet{},
+			machine: &clusterv1.Machine{
+				Status: clusterv1.MachineStatus{
+					NodeInfo: &corev1.NodeSystemInfo{
+						KubeletVersion: "v1.31.0",
+					},
+				},
+			},
+			expectCondition: &metav1.Condition{
+				Type:   clusterv1.MachineUpToDateCondition,
+				Status: metav1.ConditionTrue,
+				Reason: clusterv1.MachineUpToDateReason,
+			},
+		},
+		{
 			name: "updating (message from Updating)",
 			machineDeployment: &clusterv1.MachineDeployment{
 				Spec: clusterv1.MachineDeploymentSpec{

@@ -22,6 +22,7 @@ import (
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
@@ -236,4 +237,51 @@ func Test_validateMachineHealthCheck(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestMachineHealthCheckClusterNameImmutable(t *testing.T) {
+	g := NewWithT(t)
+
+	mhc := &clusterv1.MachineHealthCheck{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "mhc-clustername-immutable",
+			Namespace: metav1.NamespaceDefault,
+		},
+		Spec: clusterv1.MachineHealthCheckSpec{
+			ClusterName: "test-cluster",
+			Selector: metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					"cluster.x-k8s.io/cluster-name": "test-cluster",
+				},
+			},
+			Checks: clusterv1.MachineHealthCheckChecks{
+				UnhealthyMachineConditions: []clusterv1.UnhealthyMachineCondition{
+					{
+						Type:           "InfrastructureReady",
+						Status:         metav1.ConditionFalse,
+						TimeoutSeconds: ptr.To[int32](300),
+					},
+				},
+			},
+		},
+	}
+
+	g.Expect(env.CreateAndWait(ctx, mhc)).To(Succeed())
+	t.Cleanup(func() {
+		g.Expect(env.CleanupAndWait(ctx, mhc)).To(Succeed())
+	})
+
+	actualMHC := &clusterv1.MachineHealthCheck{}
+	g.Expect(env.Get(ctx, client.ObjectKey{Namespace: mhc.Namespace, Name: mhc.Name}, actualMHC)).To(Succeed())
+
+	// Changing spec.clusterName on update must be rejected by the CEL immutability rule.
+	actualMHC.Spec.ClusterName = "different-cluster"
+	err := env.Update(ctx, actualMHC)
+	g.Expect(err).To(HaveOccurred())
+	g.Expect(err.Error()).To(ContainSubstring("field is immutable"))
+
+	// An update that leaves spec.clusterName unchanged must still be allowed.
+	g.Expect(env.Get(ctx, client.ObjectKey{Namespace: mhc.Namespace, Name: mhc.Name}, actualMHC)).To(Succeed())
+	actualMHC.Spec.Checks.NodeStartupTimeoutSeconds = ptr.To[int32](600)
+	g.Expect(env.Update(ctx, actualMHC)).To(Succeed())
 }

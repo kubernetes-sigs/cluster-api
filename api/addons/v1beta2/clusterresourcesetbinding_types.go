@@ -140,6 +140,7 @@ type ClusterResourceSetBindingSpec struct {
 	// +required
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=63
+	// +kubebuilder:validation:XValidation:rule="oldSelf == '' || oldSelf == self",message="field is immutable"
 	ClusterName string `json:"clusterName,omitempty"`
 }
 

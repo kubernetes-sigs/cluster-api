@@ -25,17 +25,18 @@ import (
 	"time"
 
 	pkgerrors "github.com/pkg/errors"
+	"golang.org/x/oauth2"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
-	utilnet "k8s.io/apimachinery/pkg/util/net"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
+	"k8s.io/client-go/transport"
 	ctrl "sigs.k8s.io/controller-runtime"
 	ctrlcache "sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -56,12 +57,12 @@ type createConnectionResult struct {
 	Cache                     *stoppableCache
 }
 
-func (ca *clusterAccessor) createConnection(ctx context.Context) (*createConnectionResult, error) {
+func (ca *clusterAccessor) createConnection(ctx context.Context, kubeconfigResourceVersion string, kubeconfig []byte) (*createConnectionResult, error) {
 	log := ctrl.LoggerFrom(ctx)
 	log.V(6).Info("Creating connection")
 
 	log.V(6).Info("Creating REST config")
-	restConfig, kubeconfigResourceVersion, kubeconfig, tokenHolder, err := createRESTConfig(ctx, ca.config.Client, ca.config.SecretClient, ca.cluster)
+	restConfig, tokenHolder, err := restConfigFromKubeconfig(ca.config.Client, kubeconfig)
 	if err != nil {
 		return nil, err
 	}
@@ -132,23 +133,23 @@ func (ca *clusterAccessor) createConnection(ctx context.Context) (*createConnect
 	}, nil
 }
 
-// createRESTConfig returns a REST config created based on the kubeconfig Secret.
-func createRESTConfig(ctx context.Context, clientConfig *clusterAccessorClientConfig, c client.Reader, cluster client.ObjectKey) (*rest.Config, string, []byte, *tokenHolder, error) {
-	kubeconfigSecret, kubeConfig, err := getKubeconfigSecret(ctx, c, cluster)
+// restConfigFromKubeconfig returns a REST config created based on the given kubeconfig.
+func restConfigFromKubeconfig(clientConfig *clusterAccessorClientConfig, kubeconfig []byte) (*rest.Config, *tokenHolder, error) {
+	config, err := loadKubeconfig(kubeconfig)
 	if err != nil {
-		return nil, "", nil, nil, pkgerrors.WithMessage(err, "error creating REST config: error getting kubeconfig secret")
+		return nil, nil, pkgerrors.WithMessage(err, "error creating REST config")
 	}
 
-	restConfig, err := clientcmd.RESTConfigFromKubeConfig(kubeConfig)
+	restConfig, err := clientcmd.NewNonInteractiveClientConfig(*config, "", &clientcmd.ConfigOverrides{}, nil).ClientConfig()
 	if err != nil {
-		return nil, "", nil, nil, pkgerrors.WithMessage(err, "error creating REST config: error parsing kubeconfig")
+		return nil, nil, pkgerrors.WithMessage(err, "error creating REST config")
 	}
 
 	// Note: Using ExecProvider is not supported in ClusterCache as we don't want our controllers to exec,
 	// except for the exec plugin commands explicitly allowed by the controller.
 	if restConfig.ExecProvider != nil {
 		if len(clientConfig.AllowedExecProviderCommands) == 0 {
-			return nil, "", nil, nil, pkgerrors.New("ExecProvider is not supported in ClusterCache")
+			return nil, nil, pkgerrors.New("ExecProvider is not supported in ClusterCache")
 		}
 
 		allowlist := make([]clientcmdapi.AllowlistEntry, 0, len(clientConfig.AllowedExecProviderCommands))
@@ -162,21 +163,21 @@ func createRESTConfig(ctx context.Context, clientConfig *clusterAccessorClientCo
 	}
 	// Note: Using AuthProvider is not supported as we are not registering plugins like e.g. oidc in Cluster API.
 	if restConfig.AuthProvider != nil {
-		return nil, "", nil, nil, pkgerrors.New("AuthProvider is not supported in ClusterCache")
+		return nil, nil, pkgerrors.New("AuthProvider is not supported in ClusterCache")
 	}
 	// Note: File-based credentials are not supported, as file paths would be resolved against the
 	// controller's own filesystem. The kubeconfig Secret must contain all credential data inline.
 	if restConfig.BearerTokenFile != "" {
-		return nil, "", nil, nil, pkgerrors.New("BearerTokenFile is not supported in ClusterCache")
+		return nil, nil, pkgerrors.New("BearerTokenFile is not supported in ClusterCache")
 	}
 	if restConfig.CertFile != "" {
-		return nil, "", nil, nil, pkgerrors.New("TLSClientConfig.CertFile is not supported in ClusterCache")
+		return nil, nil, pkgerrors.New("TLSClientConfig.CertFile is not supported in ClusterCache")
 	}
 	if restConfig.KeyFile != "" {
-		return nil, "", nil, nil, pkgerrors.New("TLSClientConfig.KeyFile is not supported in ClusterCache")
+		return nil, nil, pkgerrors.New("TLSClientConfig.KeyFile is not supported in ClusterCache")
 	}
 	if restConfig.CAFile != "" {
-		return nil, "", nil, nil, pkgerrors.New("TLSClientConfig.CAFile is not supported in ClusterCache")
+		return nil, nil, pkgerrors.New("TLSClientConfig.CAFile is not supported in ClusterCache")
 	}
 
 	restConfig.UserAgent = clientConfig.UserAgent
@@ -185,13 +186,28 @@ func createRESTConfig(ctx context.Context, clientConfig *clusterAccessorClientCo
 	restConfig.Burst = clientConfig.Burst
 
 	var holder *tokenHolder
-	if usesStaticBearerToken(restConfig) {
+	// Note: If the kubeconfig uses both a bearer token and an exec provider, the static bearer token is kept, so that
+	// client-go keeps preferring the bearer token over the exec provider. A rotation of that token re-creates the connection.
+	if restConfig.BearerToken != "" && restConfig.ExecProvider == nil {
+		// Get the bearer token from the tokenHolder on every request instead of using the static token
+		// of the rest.Config, so that a rotated token can be used without re-creating the connection.
 		holder = newTokenHolder(restConfig.BearerToken)
-		holder.originalWrapTransport = restConfig.WrapTransport
-		holder.setConfigWrapTransport(restConfig)
+		restConfig.BearerToken = ""
+		restConfig.Wrap(transport.TokenSourceWrapTransport(holder))
 	}
 
-	return restConfig, kubeconfigSecret.ResourceVersion, kubeConfig, holder, nil
+	return restConfig, holder, nil
+}
+
+// loadKubeconfig parses the given kubeconfig.
+func loadKubeconfig(kubeconfig []byte) (*clientcmdapi.Config, error) {
+	config, err := clientcmd.Load(kubeconfig)
+	if err != nil {
+		// Note: The error returned by clientcmd.Load is intentionally not returned, as it can contain
+		// the content of the kubeconfig including credentials, which must not end up in logs.
+		return nil, pkgerrors.New("error parsing kubeconfig (error details are omitted as they might contain credentials)")
+	}
+	return config, nil
 }
 
 func getKubeconfigSecret(ctx context.Context, c client.Reader, cluster client.ObjectKey) (*corev1.Secret, []byte, error) {
@@ -208,24 +224,14 @@ func getKubeconfigSecret(ctx context.Context, c client.Reader, cluster client.Ob
 	return kubeconfigSecret, kubeConfig, nil
 }
 
-// usesStaticBearerToken returns true if the rest.Config authenticates via a static bearer token,
-// i.e. a token that client-go cannot refresh on its own (as opposed to e.g. a token file or exec plugin).
-func usesStaticBearerToken(config *rest.Config) bool {
-	return config.BearerToken != "" &&
-		config.BearerTokenFile == "" &&
-		config.ExecProvider == nil &&
-		config.AuthProvider == nil
-}
-
-// tokenHolder holds the current bearer token and the original transport wrapper so the
-// rest.Config wrapper can be rebuilt after a token rotation without stacking wrappers.
+// tokenHolder holds the current bearer token of a connection. It is used as oauth2.TokenSource for all
+// transports created for the connection, so a token stored in the tokenHolder is used by all subsequent
+// requests of the connection.
 type tokenHolder struct {
-	// value is the current bearer token used by all transports created for the connection.
 	value atomic.Pointer[string]
-
-	// originalWrapTransport is preserved when rebuilding the dynamic bearer-token wrapper after a token rotation.
-	originalWrapTransport func(http.RoundTripper) http.RoundTripper
 }
+
+var _ oauth2.TokenSource = &tokenHolder{}
 
 func newTokenHolder(token string) *tokenHolder {
 	holder := &tokenHolder{}
@@ -238,62 +244,12 @@ func (h *tokenHolder) store(token string) {
 }
 
 func (h *tokenHolder) token() string {
-	token := h.value.Load()
-	if token == nil {
-		return ""
-	}
-	return *token
+	return *h.value.Load()
 }
 
-// setConfigWrapTransport configures the rest.Config to replace its static bearer token with the current
-// token from the tokenHolder while preserving request-specific Authorization headers.
-func (h *tokenHolder) setConfigWrapTransport(config *rest.Config) {
-	configuredToken := config.BearerToken
-	config.WrapTransport = func(rt http.RoundTripper) http.RoundTripper {
-		if h.originalWrapTransport != nil {
-			rt = h.originalWrapTransport(rt)
-		}
-		return &dynamicBearerTokenRoundTripper{
-			holder:          h,
-			configuredToken: configuredToken,
-			rt:              rt,
-		}
-	}
-}
-
-// dynamicBearerTokenRoundTripper replaces the static bearer token configured for the transport
-// with the current token from the tokenHolder, so a rotated token is picked up without re-creating
-// transports. Request-specific Authorization headers are preserved.
-type dynamicBearerTokenRoundTripper struct {
-	holder *tokenHolder
-
-	// configuredToken is the static token client-go adds to requests for this transport.
-	// Only this token is replaced so request-specific Authorization headers are preserved.
-	configuredToken string
-
-	rt http.RoundTripper
-}
-
-var _ utilnet.RoundTripperWrapper = &dynamicBearerTokenRoundTripper{}
-
-// RoundTrip relies on client-go wrapping WrapTransport inside its bearer auth round tripper, so requests
-// reaching this round tripper already carry the configured static token in the Authorization header.
-func (rt *dynamicBearerTokenRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
-	authorizationHeader := req.Header.Get("Authorization")
-	if authorizationHeader != "" && authorizationHeader != "Bearer "+rt.configuredToken {
-		return rt.rt.RoundTrip(req)
-	}
-
-	token := rt.holder.token()
-	if token != "" {
-		req = utilnet.CloneRequest(req)
-		req.Header.Set("Authorization", "Bearer "+token)
-	}
-	return rt.rt.RoundTrip(req)
-}
-
-func (rt *dynamicBearerTokenRoundTripper) WrappedRoundTripper() http.RoundTripper {
-	return rt.rt
+// Token implements oauth2.TokenSource.
+func (h *tokenHolder) Token() (*oauth2.Token, error) {
+	return &oauth2.Token{AccessToken: h.token()}, nil
 }
 
 // runningOnWorkloadCluster detects if the current controller runs on the workload cluster.

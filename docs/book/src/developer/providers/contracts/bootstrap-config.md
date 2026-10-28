@@ -429,9 +429,9 @@ This allows infrastructure providers to detect and act on bootstrap failures.
 
 ### Taint Nodes at creation
 
-A bootstrap provider can optionally taint worker nodes at creation with `node.cluster.x-k8s.io/uninitialized:NoSchedule`.
+A bootstrap provider should taint worker nodes at creation with `node.cluster.x-k8s.io/uninitialized:NoSchedule`.
 This taint is used to prevent workloads to be scheduled on Nodes before the node is initialized by Cluster API.
-As of today the Node initialization consists of syncing labels from Machines to Nodes. Once the labels have been
+As of today the Node initialization consists of syncing labels/taints from Machines to Nodes. Once the labels/taints have been
 initially synced the taint is removed from the Node.
 
 ### Support for running multiple instances

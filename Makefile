@@ -289,9 +289,13 @@ help:  # Display this help
 
 ALL_GENERATE_MODULES = core kubeadm-bootstrap kubeadm-control-plane docker-infrastructure test-extension
 
+# API groups for which ApplyConfigurations are generated into utils/applyconfigurations.
+# Note: kubeadm bootstrap and control plane are not included yet because of kubernetes-sigs/controller-tools#1494.
+APPLYCONFIGURATIONS_GROUPS = addons core ipam runtime
+
 .PHONY: generate
-generate: ## Run all generate-manifests-*, generate-go-deepcopy-*, generate-go-conversions-*, generate-go-openapi and generate-crd-docs targets
-	$(MAKE) generate-modules generate-manifests generate-go-deepcopy generate-go-conversions generate-go-openapi generate-crd-docs
+generate: ## Run all generate-manifests-*, generate-go-deepcopy-*, generate-go-applyconfigurations, generate-go-conversions-*, generate-go-openapi and generate-crd-docs targets
+	$(MAKE) generate-modules generate-manifests generate-go-deepcopy generate-go-applyconfigurations generate-go-conversions generate-go-openapi generate-crd-docs
 
 .PHONY: generate-manifests
 generate-manifests: $(addprefix generate-manifests-,$(ALL_GENERATE_MODULES)) ## Run all generate-manifests-* targets
@@ -456,6 +460,17 @@ generate-go-deepcopy-in-memory-infrastructure: $(CONTROLLER_GEN) ## Generate dee
 .PHONY: generate-go-deepcopy-test-extension
 generate-go-deepcopy-test-extension: $(CONTROLLER_GEN) ## Generate deepcopy go code for test-extension
 
+.PHONY: generate-go-applyconfigurations
+generate-go-applyconfigurations: $(CONTROLLER_GEN) ## Generate ApplyConfigurations go code for the API types into the utils module
+	@# Each API group is generated in a separate invocation into its own output package (set via the
+	@# +kubebuilder:ac:output:package marker), so that every group gets a consistent internal/ and utils.go.
+	for group in $(APPLYCONFIGURATIONS_GROUPS); do \
+		rm -rf ./utils/applyconfigurations/$${group}; \
+		$(CONTROLLER_GEN) \
+			applyconfiguration:headerFile=./hack/scripts/verify/boilerplate/boilerplate.generatego.txt \
+			paths=./api/$${group}/v1beta2/... || exit 1; \
+	done
+
 .PHONY: generate-go-conversions
 generate-go-conversions: ## Run all generate-go-conversions-* targets
 	$(MAKE) $(addprefix generate-go-conversions-,$(ALL_GENERATE_MODULES))
@@ -561,6 +576,7 @@ generate-go-openapi: $(OPENAPI_GEN) ## Generate openapi go code for runtime SDK
 generate-modules: ## Run go mod tidy to ensure modules are up to date
 	go mod tidy
 	cd api; go mod tidy
+	cd utils; go mod tidy
 	cd $(TOOLS_DIR); go mod tidy
 	cd $(TEST_DIR); go mod tidy
 
@@ -649,6 +665,7 @@ generate-test-infra-prowjobs: $(PROWJOB_GEN) ## Generates the prowjob configurat
 lint: $(GOLANGCI_LINT) $(GOLANGCI_LINT_KAL) ## Lint the codebase
 	$(GOLANGCI_LINT) run -v $(GOLANGCI_LINT_EXTRA_ARGS)
 	cd api; $(GOLANGCI_LINT) run --config $(ROOT_DIR)/.golangci.yml -v $(GOLANGCI_LINT_EXTRA_ARGS)
+	cd utils; $(GOLANGCI_LINT) run --config $(ROOT_DIR)/.golangci.yml -v $(GOLANGCI_LINT_EXTRA_ARGS)
 	cd $(TEST_DIR); $(GOLANGCI_LINT) run --config $(ROOT_DIR)/.golangci.yml -v $(GOLANGCI_LINT_EXTRA_ARGS)
 	cd $(TOOLS_DIR); $(GOLANGCI_LINT) run --config $(ROOT_DIR)/.golangci.yml -v $(GOLANGCI_LINT_EXTRA_ARGS)
 	./hack/scripts/verify/verify-dockerfiles.sh $(HADOLINT_VER) $(HADOLINT_FAILURE_THRESHOLD)
@@ -691,7 +708,7 @@ verify-go-directive:
 
 .PHONY: verify-modules
 verify-modules: generate-modules  ## Verify go modules are up to date
-	@if !(git diff --quiet HEAD -- go.sum go.mod api/go.mod api/go.sum $(TOOLS_DIR)/go.mod $(TOOLS_DIR)/go.sum $(TEST_DIR)/go.mod $(TEST_DIR)/go.sum); then \
+	@if !(git diff --quiet HEAD -- go.sum go.mod api/go.mod api/go.sum utils/go.mod utils/go.sum $(TOOLS_DIR)/go.mod $(TOOLS_DIR)/go.sum $(TEST_DIR)/go.mod $(TEST_DIR)/go.sum); then \
 		git diff; \
 		echo "go module files are out of date"; exit 1; \
 	fi
@@ -899,6 +916,7 @@ setup-envtest: $(SETUP_ENVTEST) ## Set up envtest (download kubebuilder assets)
 .PHONY: test-no-race
 test-no-race: $(SETUP_ENVTEST) ## Run unit and integration tests
 	cd api; KUBEBUILDER_ASSETS="$(KUBEBUILDER_ASSETS)" go test ./... $(TEST_ARGS)
+	cd utils; go test ./... $(TEST_ARGS)
 	KUBEBUILDER_ASSETS="$(KUBEBUILDER_ASSETS)" go test ./... $(TEST_ARGS)
 
 .PHONY: test
@@ -907,6 +925,7 @@ test: $(SETUP_ENVTEST) ## Run unit and integration tests with race detector
 	# To achieve that, all files with fuzz tests have the "!race" build tag, to still run fuzz tests
 	# we have an additional `go test` run that focuses on "TestFuzzyConversion".
 	cd api; KUBEBUILDER_ASSETS="$(KUBEBUILDER_ASSETS)" go test -race ./... $(TEST_ARGS)
+	cd utils; go test -race ./... $(TEST_ARGS)
 	KUBEBUILDER_ASSETS="$(KUBEBUILDER_ASSETS)" go test -race ./... $(TEST_ARGS)
 	$(MAKE) test-conversions TEST_ARGS="$(TEST_ARGS)"
 
@@ -926,6 +945,9 @@ test-junit: $(SETUP_ENVTEST) $(GOTESTSUM) ## Run unit and integration tests with
 	cd api; set +o errexit; (KUBEBUILDER_ASSETS="$(KUBEBUILDER_ASSETS)" go test -race -json ./... $(TEST_ARGS); echo $$? > $(ARTIFACTS)/junit-api.exitcode) | tee $(ARTIFACTS)/junit-api.stdout
 	$(GOTESTSUM) --junitfile $(ARTIFACTS)/junit-api.xml --raw-command cat $(ARTIFACTS)/junit-api.stdout
 	exit $$(cat $(ARTIFACTS)/junit-api.exitcode)
+	cd utils; set +o errexit; (go test -race -json ./... $(TEST_ARGS); echo $$? > $(ARTIFACTS)/junit-utils.exitcode) | tee $(ARTIFACTS)/junit-utils.stdout
+	$(GOTESTSUM) --junitfile $(ARTIFACTS)/junit-utils.xml --raw-command cat $(ARTIFACTS)/junit-utils.stdout
+	exit $$(cat $(ARTIFACTS)/junit-utils.exitcode)
 	set +o errexit; (KUBEBUILDER_ASSETS="$(KUBEBUILDER_ASSETS)" go test -run "^TestFuzzyConversion$$" -json ./... $(TEST_ARGS); echo $$? > $(ARTIFACTS)/junit-fuzz.exitcode) | tee $(ARTIFACTS)/junit-fuzz.stdout
 	$(GOTESTSUM) --junitfile $(ARTIFACTS)/junit-fuzz.xml --raw-command cat $(ARTIFACTS)/junit-fuzz.stdout
 	exit $$(cat $(ARTIFACTS)/junit-fuzz.exitcode)

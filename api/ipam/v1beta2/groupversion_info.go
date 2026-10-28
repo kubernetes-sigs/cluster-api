@@ -26,6 +26,9 @@ var (
 	// GroupVersion is group version used to register these objects.
 	GroupVersion = schema.GroupVersion{Group: "ipam.cluster.x-k8s.io", Version: "v1beta2"}
 
+	// SchemeGroupVersion is an alias of GroupVersion, it is required by the applyconfiguration generator.
+	SchemeGroupVersion = GroupVersion
+
 	// schemeBuilder is used to add go types to the GroupVersionKind scheme.
 	schemeBuilder = runtime.NewSchemeBuilder(addKnownTypes)
 

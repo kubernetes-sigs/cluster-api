@@ -141,7 +141,7 @@ func (r *Reconciler) triggerInPlaceUpdate(ctx context.Context, controlPlane *pkg
 	}
 	r.controller.DeferNextReconcileUntilCacheUpToDate(controlPlane.KCP, capicontrollerutil.StructuredObject(clusterv1.GroupVersion, "Machine"), desiredMachine.ResourceVersion)
 
-	log.Info(fmt.Sprintf("Completed triggering in-place update for Machine %s", klog.KObj(machine)))
+	log.Info(fmt.Sprintf("Completed triggering in-place update for Machine %s", machine.Name))
 	r.recorder.Event(machine, corev1.EventTypeNormal, "SuccessfulStartInPlaceUpdate", "Machine starting in-place update")
 
 	return nil

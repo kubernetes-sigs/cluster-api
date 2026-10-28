@@ -290,7 +290,7 @@ func (c *client) GetAllExtensions(ctx context.Context, hook runtimecatalog.Hook,
 		return nil, pkgerrors.Wrapf(err, "failed to get extension handlers for hook %q", gvh.GroupHook())
 	}
 
-	log.V(4).Info(fmt.Sprintf("Getting all extensions of hook %q for %s %s", hookName, forObjectGVK.Kind, klog.KObj(forObject)))
+	log.V(4).Info(fmt.Sprintf("Getting all extensions of hook %q for %s %s", hookName, forObjectGVK.Kind, forObject.GetName()), forObjectGVK.Kind, klog.KObj(forObject))
 	matchingRegistrations := []string{}
 	for _, registration := range registrations {
 		// Compute whether the object the get is being made for matches the namespaceSelector
@@ -300,7 +300,7 @@ func (c *client) GetAllExtensions(ctx context.Context, hook runtimecatalog.Hook,
 		}
 		// If the object namespace isn't matched by the registration NamespaceSelector don't return it.
 		if !namespaceMatches {
-			log.V(5).Info(fmt.Sprintf("skipping extension handler %q as object '%s/%s' does not match selector %q of ExtensionConfig", registration.Name, forObject.GetNamespace(), forObject.GetName(), registration.NamespaceSelector))
+			log.V(5).Info(fmt.Sprintf("skipping extension handler %q as %s %s does not match selector %q of ExtensionConfig", registration.Name, forObjectGVK.Kind, forObject.GetName(), registration.NamespaceSelector), forObjectGVK.Kind, klog.KObj(forObject))
 			continue
 		}
 		matchingRegistrations = append(matchingRegistrations, registration.Name)

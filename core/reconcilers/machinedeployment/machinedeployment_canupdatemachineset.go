@@ -169,13 +169,13 @@ func (p *rolloutPlanner) canUpdateMachineSetInPlace(ctx context.Context, oldMS, 
 	}
 	switch {
 	case res.retryAfterFromExtension:
-		log.Info(fmt.Sprintf("MachineSet %s cannot be rolled out yet: extensions returned retryAfterSeconds, requeuing%s", klog.KObj(oldMS), logSuffix))
+		log.Info(fmt.Sprintf("MachineSet %s cannot be rolled out yet: extensions returned retryAfterSeconds, requeuing%s", oldMS.Name, logSuffix))
 	case !res.canUpdateMachineSet:
-		log.Info(fmt.Sprintf("MachineSet %s cannot be updated in-place by extensions%s", klog.KObj(oldMS), logSuffix))
+		log.Info(fmt.Sprintf("MachineSet %s cannot be updated in-place by extensions%s", oldMS.Name, logSuffix))
 	case res.affectsAvailability:
-		log.Info(fmt.Sprintf("MachineSet %s can be updated in-place by extensions (affects availability)%s", klog.KObj(oldMS), logSuffix))
+		log.Info(fmt.Sprintf("MachineSet %s can be updated in-place by extensions (affects availability)%s", oldMS.Name, logSuffix))
 	default:
-		log.Info(fmt.Sprintf("MachineSet %s can be updated in-place by extensions (does not affect availability)%s", klog.KObj(oldMS), logSuffix))
+		log.Info(fmt.Sprintf("MachineSet %s can be updated in-place by extensions (does not affect availability)%s", oldMS.Name, logSuffix))
 	}
 	return res, nil
 }

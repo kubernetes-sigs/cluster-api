@@ -170,13 +170,13 @@ func (r *Reconciler) canUpdateMachine(ctx context.Context, controlPlane *pkg.Con
 			msg = fmt.Sprintf("%s: %s", msg, strings.Join(res.messages, ", "))
 		}
 		controlPlane.CanUpdateMachineResults.WaitingForDecisionMessage = msg
-		log.Info(fmt.Sprintf("Machine %s cannot be rolled out yet: extensions returned retryAfterSeconds, requeuing%s", klog.KObj(machine), logSuffix))
+		log.Info(fmt.Sprintf("Machine %s cannot be rolled out yet: extensions returned retryAfterSeconds, requeuing%s", machine.Name, logSuffix))
 	case !res.canUpdateMachine:
-		log.Info(fmt.Sprintf("Machine %s cannot be updated in-place by extensions%s", klog.KObj(machine), logSuffix))
+		log.Info(fmt.Sprintf("Machine %s cannot be updated in-place by extensions%s", machine.Name, logSuffix))
 	case res.affectsAvailability:
-		log.Info(fmt.Sprintf("Machine %s can be updated in-place by extensions (affects availability)%s", klog.KObj(machine), logSuffix))
+		log.Info(fmt.Sprintf("Machine %s can be updated in-place by extensions (affects availability)%s", machine.Name, logSuffix))
 	default:
-		log.Info(fmt.Sprintf("Machine %s can be updated in-place by extensions (does not affect availability)%s", klog.KObj(machine), logSuffix))
+		log.Info(fmt.Sprintf("Machine %s can be updated in-place by extensions (does not affect availability)%s", machine.Name, logSuffix))
 	}
 	return res, nil
 }

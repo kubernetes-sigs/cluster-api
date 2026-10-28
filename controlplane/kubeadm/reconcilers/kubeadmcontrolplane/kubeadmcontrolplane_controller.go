@@ -540,7 +540,7 @@ func (r *Reconciler) reconcile(ctx context.Context, controlPlane *pkg.ControlPla
 	// progress is not counted as needs rollout).
 	if machines := controlPlane.MachinesToCompleteInPlaceUpdate(); machines.Len() > 0 {
 		for _, machine := range machines {
-			log.Info(fmt.Sprintf("Waiting for in-place update of Machine %s to complete", klog.KObj(machine)), "Machine", klog.KObj(machine))
+			log.Info(fmt.Sprintf("Waiting for in-place update of Machine %s to complete", machine.Name), "Machine", klog.KObj(machine))
 		}
 		return ctrl.Result{}, nil // Note: Changes to Machines trigger another reconcile.
 	}
@@ -1485,7 +1485,7 @@ func (r *Reconciler) reconcilePreTerminateHook(ctx context.Context, controlPlane
 
 	// Check target Kubernetes control plane components.
 	if !r.targetKubernetesControlPlaneComponentsHealthy(ctx, controlPlane, addKubernetesControlPlane, kubernetesControlPlaneToBeDeleted) {
-		log.Info(fmt.Sprintf("Cannot delete control plane Machine %s when there are no control plane Machines with all Kubernetes control plane components in healthy state. Please check Kubernetes control plane component status", klog.KObj(deletingMachine)))
+		log.Info(fmt.Sprintf("Cannot delete control plane Machine %s when there are no control plane Machines with all Kubernetes control plane components in healthy state. Please check Kubernetes control plane component status", deletingMachine.Name))
 		return ctrl.Result{RequeueAfter: deleteRequeueAfter}, nil
 	}
 
@@ -1536,7 +1536,7 @@ func (r *Reconciler) reconcilePreTerminateHook(ctx context.Context, controlPlane
 	}
 
 	if !r.targetEtcdClusterHealthy(ctx, controlPlane, addEtcdMember, etcdMemberNameToBeDeleted) {
-		log.Info(fmt.Sprintf("Cannot delete control plane Machine %s, the operation can lead to etcd quorum loss. Please check the etcd status", klog.KObj(deletingMachine)))
+		log.Info(fmt.Sprintf("Cannot delete control plane Machine %s, the operation can lead to etcd quorum loss. Please check the etcd status", deletingMachine.Name))
 		return ctrl.Result{RequeueAfter: deleteRequeueAfter}, nil
 	}
 
@@ -1775,7 +1775,7 @@ func (r *Reconciler) reconcileCertificateExpiries(ctx context.Context, controlPl
 		}
 		expiry := certificateExpiry.Format(time.RFC3339)
 
-		log.V(2).Info(fmt.Sprintf("Setting certificate expiry date on KubeadmConfig %s", klog.KObj(kubeadmConfig)), "expiryDate", expiry)
+		log.V(2).Info(fmt.Sprintf("Setting certificate expiry date on KubeadmConfig %s", kubeadmConfig.Name), "KubeadmConfig", klog.KObj(kubeadmConfig), "expiryDate", expiry)
 		original := kubeadmConfig.DeepCopy()
 		if annotations == nil {
 			annotations = map[string]string{}

@@ -374,8 +374,8 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 	}
 
 	clusterCache, err := clustercache.SetupWithManager(ctx, mgr, clustercache.Options{
-		SecretClient: secretCachingClient,
-		Cache:        clustercache.CacheOptions{},
+		SecretCachingClient: secretCachingClient,
+		Cache:               clustercache.CacheOptions{},
 		Client: clustercache.ClientOptions{
 			QPS:       clusterCacheClientQPS,
 			Burst:     clusterCacheClientBurst,

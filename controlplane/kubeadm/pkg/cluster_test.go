@@ -215,9 +215,9 @@ func TestGetWorkloadCluster(t *testing.T) {
 			g.Expect(err).ToNot(HaveOccurred())
 
 			clusterCache, err := clustercache.SetupWithManager(ctx, env.Manager, clustercache.Options{
-				SecretClient: secretCachingClient,
-				Cache:        setup.ClusterCacheCacheOptions(),
-				Client:       setup.ClusterCacheClientOptions("test-controller-manager", 20, 30),
+				SecretCachingClient: secretCachingClient,
+				Cache:               setup.ClusterCacheCacheOptions(),
+				Client:              setup.ClusterCacheClientOptions("test-controller-manager", 20, 30),
 			}, controller.Options{MaxConcurrentReconciles: 10, SkipNameValidation: new(true)})
 			g.Expect(err).ToNot(HaveOccurred())
 			defer clusterCache.(interface{ Shutdown() }).Shutdown()

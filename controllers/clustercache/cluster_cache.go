@@ -51,13 +51,13 @@ import (
 
 // Options defines the options to configure a ClusterCache.
 type Options struct {
-	// SecretClient is the client used to access secrets of type secret.Kubeconfig, i.e. Secrets
+	// SecretCachingClient is the client used to access secrets of type secret.Kubeconfig, i.e. Secrets
 	// with the following name format: "<cluster-name>-kubeconfig".
-	// Ideally this is a client that caches only kubeconfig secrets, it is highly recommended to avoid caching all secrets.
+	// It must be a client that caches kubeconfig secrets, as the kubeconfig Secret is read on every
+	// reconcile of a Cluster to detect kubeconfig changes.
+	// Ideally the client caches only kubeconfig secrets, it is highly recommended to avoid caching all secrets.
 	// An example on how to create an ideal secret caching client can be found in the core Cluster API controller main.go file.
-	// Note: The kubeconfig Secret is not only read when connecting, it is also read periodically
-	// (at most once per health probe interval per Cluster) to detect kubeconfig changes, e.g. token rotations.
-	SecretClient client.Reader
+	SecretCachingClient client.Reader
 
 	// WatchFilterValue is the label value used to filter events prior to reconciliation.
 	// If a filter excludes a cluster from reconciliation, the accessors for this cluster
@@ -512,9 +512,21 @@ func (cc *clusterCache) Reconcile(ctx context.Context, req reconcile.Request) (r
 
 	requeueAfterDurations := []time.Duration{}
 
-	// Try to connect, if not connected.
 	connected := accessor.Connected(ctx)
-	if !connected {
+	if connected {
+		// Sync the kubeconfig Secret before running the health probe. This allows token-only
+		// changes to be applied in place so the probe uses the refreshed token.
+		// Note: This is not necessary if the connection was just created in the current Reconcile.
+		reconnected, err := accessor.SyncKubeconfig(ctx)
+		if err != nil {
+			log.Error(err, "Failed to sync kubeconfig, keeping current connection")
+		}
+		if reconnected {
+			// Store that disconnect and connect were done, so that consumers re-create their watches.
+			didDisconnect = true
+			didConnect = true
+		}
+	} else {
 		lastConnectionCreationErrorTime := accessor.GetLastConnectionCreationErrorTime(ctx)
 
 		// Requeue, if connection creation failed within the ConnectionCreationRetryInterval.
@@ -525,7 +537,7 @@ func (cc *clusterCache) Reconcile(ctx context.Context, req reconcile.Request) (r
 		} else {
 			if err := accessor.Connect(ctx); err != nil {
 				// Requeue, if the connect failed.
-				log.V(6).Info(fmt.Sprintf("Requeuing after %s (connection creation failed)",
+				log.Error(err, fmt.Sprintf("Requeuing after %s (connection creation failed)",
 					accessor.config.ConnectionCreationRetryInterval))
 				requeueAfterDurations = append(requeueAfterDurations, accessor.config.ConnectionCreationRetryInterval)
 			} else {
@@ -533,27 +545,6 @@ func (cc *clusterCache) Reconcile(ctx context.Context, req reconcile.Request) (r
 				didConnect = true
 				connected = true
 			}
-		}
-	}
-
-	// Sync the kubeconfig Secret before running the health probe. This allows token-only
-	// changes to be applied in place so the probe uses the refreshed token.
-	if connected {
-		lastKubeconfigSyncTime := accessor.GetLastKubeconfigSyncTime(ctx)
-
-		// Requeue, if the kubeconfig was already synced within the HealthProbe.Interval.
-		// This rate-limits kubeconfig Secret reads, which is important if the SecretClient is not cached.
-		if requeueAfter, requeue := shouldRequeue(time.Now(), lastKubeconfigSyncTime, accessor.config.HealthProbe.Interval); requeue {
-			log.V(6).Info(fmt.Sprintf("Requeuing after %s as kubeconfig was already synced within the last %s",
-				requeueAfter.Truncate(time.Second/10), accessor.config.HealthProbe.Interval))
-			requeueAfterDurations = append(requeueAfterDurations, requeueAfter)
-		} else if accessor.SyncKubeconfig(ctx) {
-			accessor.Disconnect(ctx)
-			didDisconnect = true
-			connected = false
-
-			log.V(6).Info("Requeuing immediately (disconnected after kubeconfig changed)")
-			requeueAfterDurations = append(requeueAfterDurations, 1*time.Millisecond)
 		}
 	}
 
@@ -683,8 +674,8 @@ func (cc *clusterCache) cleanupMetricsForCluster(cluster client.ObjectKey) {
 	connectionUp.DeleteLabelValues(cluster.Name, cluster.Namespace)
 	healthChecksTotal.DeleteLabelValues(cluster.Name, cluster.Namespace, "success")
 	healthChecksTotal.DeleteLabelValues(cluster.Name, cluster.Namespace, "error")
-	kubeconfigSyncTotal.DeleteLabelValues(cluster.Name, cluster.Namespace, "token_refreshed")
-	kubeconfigSyncTotal.DeleteLabelValues(cluster.Name, cluster.Namespace, "reconnect")
+	kubeconfigSyncsTotal.DeleteLabelValues(cluster.Name, cluster.Namespace, "token_refreshed")
+	kubeconfigSyncsTotal.DeleteLabelValues(cluster.Name, cluster.Namespace, "reconnected")
 }
 
 func (cc *clusterCache) cleanupForCluster(ctx context.Context, cluster client.ObjectKey) {
@@ -777,8 +768,8 @@ func (cc *clusterCache) Shutdown() {
 }
 
 func validateAndDefaultOptions(opts *Options) error {
-	if opts.SecretClient == nil {
-		return pkgerrors.New("options.SecretClient must be set")
+	if opts.SecretCachingClient == nil {
+		return pkgerrors.New("options.SecretCachingClient must be set")
 	}
 
 	if opts.Client.Timeout.Nanoseconds() == 0 {
@@ -800,7 +791,7 @@ func validateAndDefaultOptions(opts *Options) error {
 func buildClusterAccessorConfig(scheme *runtime.Scheme, options Options, controllerPodMetadata *metav1.ObjectMeta) *clusterAccessorConfig {
 	return &clusterAccessorConfig{
 		Scheme:                          scheme,
-		SecretClient:                    options.SecretClient,
+		SecretCachingClient:             options.SecretCachingClient,
 		ControllerPodMetadata:           controllerPodMetadata,
 		ConnectionCreationRetryInterval: 30 * time.Second,
 		Cache: &clusterAccessorCacheConfig{

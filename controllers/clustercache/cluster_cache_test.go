@@ -83,7 +83,7 @@ func TestReconcile(t *testing.T) {
 	defer func() { g.Expect(client.IgnoreNotFound(env.CleanupAndWait(ctx, testCluster))).To(Succeed()) }()
 
 	opts := Options{
-		SecretClient: env.GetClient(),
+		SecretCachingClient: env.GetClient(),
 		Client: ClientOptions{
 			UserAgent: remote.DefaultClusterAPIUserAgent("test-controller-manager"),
 			Timeout:   10 * time.Second,
@@ -156,10 +156,24 @@ func TestReconcile(t *testing.T) {
 	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(res).To(Equal(reconcile.Result{RequeueAfter: accessorConfig.ConnectionCreationRetryInterval}))
 
-	// Create kubeconfig Secret
-	kubeconfigSecret := kubeconfig.GenerateSecret(testCluster, kubeconfig.FromEnvTestConfig(env.Config, testCluster))
+	// Create invalid kubeconfig Secret
+	invalidKubeconfig, err := clientcmd.Load(kubeconfig.FromEnvTestConfig(env.Config, testCluster))
+	g.Expect(err).ToNot(HaveOccurred())
+	invalidKubeconfig.Clusters[testCluster.Name].Server += "invalid-context-path" // breaks the server URL.
+	invalidKubeconfigBytes, err := clientcmd.Write(*invalidKubeconfig)
+	g.Expect(err).ToNot(HaveOccurred())
+	kubeconfigSecret := kubeconfig.GenerateSecret(testCluster, invalidKubeconfigBytes)
 	g.Expect(env.CreateAndWait(ctx, kubeconfigSecret)).To(Succeed())
 	defer func() { g.Expect(env.CleanupAndWait(ctx, kubeconfigSecret)).To(Succeed()) }()
+
+	// Reconcile, kubeconfig Secret has an invalid server URL
+	// => accessor.Connect will fail so we expect a retry with ConnectionCreationRetryInterval.
+	res, err = cc.Reconcile(ctx, reconcile.Request{NamespacedName: clusterKey})
+	g.Expect(err).ToNot(HaveOccurred())
+	g.Expect(res).To(Equal(reconcile.Result{RequeueAfter: accessorConfig.ConnectionCreationRetryInterval}))
+
+	// Update kubeconfig Secret to be valid
+	updateKubeconfigSecret(g, testCluster, kubeconfig.FromEnvTestConfig(env.Config, testCluster))
 
 	// Reconcile again
 	// => accessor.Connect just failed, so because of rate-limiting we expect a retry with
@@ -275,7 +289,7 @@ func TestReconcileSyncKubeconfigServerChange(t *testing.T) {
 	defer func() { g.Expect(client.IgnoreNotFound(env.CleanupAndWait(ctx, testCluster))).To(Succeed()) }()
 
 	patch := client.MergeFrom(testCluster.DeepCopy())
-	testCluster.Status.Initialization.InfrastructureProvisioned = ptr.To(true)
+	testCluster.Status.Initialization.InfrastructureProvisioned = new(true)
 	g.Expect(env.Status().Patch(ctx, testCluster, patch)).To(Succeed())
 
 	kubeconfigSecret := kubeconfig.GenerateSecret(testCluster, kubeconfig.FromEnvTestConfig(env.Config, testCluster))
@@ -283,7 +297,7 @@ func TestReconcileSyncKubeconfigServerChange(t *testing.T) {
 	defer func() { g.Expect(env.CleanupAndWait(ctx, kubeconfigSecret)).To(Succeed()) }()
 
 	accessorConfig := buildClusterAccessorConfig(env.GetScheme(), Options{
-		SecretClient: env.GetClient(),
+		SecretCachingClient: env.GetClient(),
 		Client: ClientOptions{
 			UserAgent: remote.DefaultClusterAPIUserAgent("test-controller-manager"),
 			Timeout:   10 * time.Second,
@@ -307,29 +321,30 @@ func TestReconcileSyncKubeconfigServerChange(t *testing.T) {
 	g.Expect(accessor.Connected(ctx)).To(BeTrue())
 	oldCache := accessor.lockedState.connection.cache
 
-	updateKubeconfigSecretServer(g, testCluster)
+	unusableKubeconfig, err := clientcmd.Load(kubeconfig.FromEnvTestConfig(env.Config, testCluster))
+	g.Expect(err).ToNot(HaveOccurred())
+	unusableKubeconfig.Clusters[testCluster.Name].Server += "invalid-context-path" // breaks the server URL.
+	unusableKubeconfigBytes, err := clientcmd.Write(*unusableKubeconfig)
+	g.Expect(err).ToNot(HaveOccurred())
+	updateKubeconfigSecret(g, testCluster, unusableKubeconfigBytes)
 
-	// The kubeconfig sync is rate-limited, so a Reconcile right after the connect
-	// doesn't pick up the change yet.
 	res, err = cc.Reconcile(ctx, reconcile.Request{NamespacedName: clusterKey})
 	g.Expect(err).ToNot(HaveOccurred())
-	g.Expect(res.RequeueAfter).To(BeNumerically(">", 0))
+	g.Expect(res.RequeueAfter).To(BeNumerically(">", 1*time.Millisecond))
 	g.Expect(accessor.Connected(ctx)).To(BeTrue())
 	g.Expect(accessor.lockedState.connection.cache).To(BeIdenticalTo(oldCache))
+	g.Expect(accessor.lockedState.connection.kubeconfig).ToNot(Equal(mustLoadKubeconfig(unusableKubeconfigBytes)))
 
-	rewindLastKubeconfigSyncTime(accessor, accessorConfig)
-
-	res, err = cc.Reconcile(ctx, reconcile.Request{NamespacedName: clusterKey})
-	g.Expect(err).ToNot(HaveOccurred())
-	g.Expect(res).To(Equal(reconcile.Result{RequeueAfter: 1 * time.Millisecond}))
-	g.Expect(accessor.Connected(ctx)).To(BeFalse())
-	g.Expect(oldCache.stopped).To(BeTrue())
+	// Update the kubeconfig Secret with a kubeconfig that uses another server
+	// => the connection is re-created, the accessor stays connected.
+	updateKubeconfigSecretServer(g, testCluster)
 
 	res, err = cc.Reconcile(ctx, reconcile.Request{NamespacedName: clusterKey})
 	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(res.RequeueAfter >= accessorConfig.HealthProbe.Interval-2*time.Second).To(BeTrue())
 	g.Expect(res.RequeueAfter <= accessorConfig.HealthProbe.Interval).To(BeTrue())
 	g.Expect(accessor.Connected(ctx)).To(BeTrue())
+	g.Expect(oldCache.stopped).To(BeTrue())
 	g.Expect(accessor.lockedState.connection.cache).ToNot(BeIdenticalTo(oldCache))
 }
 
@@ -357,7 +372,7 @@ func TestReconcileSyncKubeconfigTokenRotation(t *testing.T) {
 	defer func() { g.Expect(client.IgnoreNotFound(env.CleanupAndWait(ctx, testCluster))).To(Succeed()) }()
 
 	patch := client.MergeFrom(testCluster.DeepCopy())
-	testCluster.Status.Initialization.InfrastructureProvisioned = ptr.To(true)
+	testCluster.Status.Initialization.InfrastructureProvisioned = new(true)
 	g.Expect(env.Status().Patch(ctx, testCluster, patch)).To(Succeed())
 
 	// ServiceAccount the kubeconfig tokens are requested for, with the permission required
@@ -396,7 +411,7 @@ func TestReconcileSyncKubeconfigTokenRotation(t *testing.T) {
 	defer func() { g.Expect(env.CleanupAndWait(ctx, kubeconfigSecret)).To(Succeed()) }()
 
 	accessorConfig := buildClusterAccessorConfig(env.GetScheme(), Options{
-		SecretClient: env.GetClient(),
+		SecretCachingClient: env.GetClient(),
 		Client: ClientOptions{
 			UserAgent: remote.DefaultClusterAPIUserAgent("test-controller-manager"),
 			Timeout:   10 * time.Second,
@@ -412,12 +427,21 @@ func TestReconcileSyncKubeconfigTokenRotation(t *testing.T) {
 		},
 	}
 
-	// Connection creation already exercises the token against the apiserver (it probes "/").
 	_, err := cc.Reconcile(ctx, reconcile.Request{NamespacedName: clusterKey})
 	g.Expect(err).ToNot(HaveOccurred())
 	accessor := cc.getClusterAccessor(clusterKey)
 	g.Expect(accessor.Connected(ctx)).To(BeTrue())
 	oldCache := accessor.lockedState.connection.cache
+
+	rejectedTokenKubeconfig := newTokenKubeconfig(testCluster.Name, env.Config.Host, "rejected-token", env.Config.CAData)
+	updateKubeconfigSecret(g, testCluster, rejectedTokenKubeconfig)
+
+	_, err = cc.Reconcile(ctx, reconcile.Request{NamespacedName: clusterKey})
+	g.Expect(err).ToNot(HaveOccurred())
+	g.Expect(accessor.Connected(ctx)).To(BeTrue())
+	g.Expect(accessor.lockedState.connection.cache).To(BeIdenticalTo(oldCache))
+	g.Expect(accessor.lockedState.connection.tokenHolder.Token()).To(HaveField("AccessToken", oldToken))
+	g.Expect(accessor.lockedState.connection.kubeconfig).ToNot(Equal(mustLoadKubeconfig(rejectedTokenKubeconfig)))
 
 	// Invalidate the old token by re-creating the ServiceAccount (tokens are bound to the
 	// ServiceAccount UID) and rotate the kubeconfig Secret to a token of the new ServiceAccount.
@@ -436,16 +460,13 @@ func TestReconcileSyncKubeconfigTokenRotation(t *testing.T) {
 		g.Expect(apierrors.IsUnauthorized(probeWithToken(oldToken))).To(BeTrue())
 	}, 30*time.Second, 250*time.Millisecond).Should(Succeed())
 
-	rewindLastKubeconfigSyncTime(accessor, accessorConfig)
-
 	res, err := cc.Reconcile(ctx, reconcile.Request{NamespacedName: clusterKey})
 	g.Expect(err).ToNot(HaveOccurred())
 	// The token-only change is applied in place, the connection is not re-created.
 	g.Expect(res.RequeueAfter).ToNot(Equal(1 * time.Millisecond))
 	g.Expect(accessor.Connected(ctx)).To(BeTrue())
 	g.Expect(accessor.lockedState.connection.cache).To(BeIdenticalTo(oldCache))
-	g.Expect(accessor.lockedState.connection.tokenHolder.token()).To(Equal(newToken))
-	g.Expect(accessor.lockedState.connection.restConfig.BearerToken).To(Equal(newToken))
+	g.Expect(accessor.lockedState.connection.tokenHolder.Token()).To(HaveField("AccessToken", newToken))
 
 	// The existing connection uses the rotated token, so the health probe succeeds.
 	tooManyConsecutiveFailures, unauthorizedErrorOccurred := accessor.HealthCheck(ctx)
@@ -802,7 +823,7 @@ func TestClusterCacheConcurrency(t *testing.T) {
 
 	// Set up ClusterCache.
 	cc, err := SetupWithManager(ctx, env.Manager, Options{
-		SecretClient: env.GetClient(),
+		SecretCachingClient: env.GetClient(),
 		Cache: CacheOptions{
 			Indexes: []CacheOptionsIndex{NodeProviderIDIndex},
 		},
@@ -1094,13 +1115,6 @@ func updateKubeconfigSecret(g Gomega, cluster *clusterv1.Cluster, kubeconfigByte
 	}, 10*time.Second, 100*time.Millisecond).Should(Succeed())
 }
 
-// rewindLastKubeconfigSyncTime makes the rate-limited kubeconfig sync run again on the next Reconcile.
-func rewindLastKubeconfigSyncTime(accessor *clusterAccessor, accessorConfig *clusterAccessorConfig) {
-	accessor.lock(ctx)
-	defer accessor.unlock(ctx)
-	accessor.lockedState.connection.lastKubeconfigSyncTime = time.Now().Add(-(accessorConfig.HealthProbe.Interval + time.Second))
-}
-
 func requestServiceAccountToken(g Gomega, serviceAccount *corev1.ServiceAccount) string {
 	clientSet, err := kubernetes.NewForConfig(env.Config)
 	g.Expect(err).ToNot(HaveOccurred())
@@ -1108,7 +1122,7 @@ func requestServiceAccountToken(g Gomega, serviceAccount *corev1.ServiceAccount)
 	tokenRequest := &authenticationv1.TokenRequest{
 		Spec: authenticationv1.TokenRequestSpec{
 			// 10 minutes is the minimum the TokenRequest API allows.
-			ExpirationSeconds: ptr.To[int64](10 * 60),
+			ExpirationSeconds: new(int64(10 * 60)),
 		},
 	}
 	tokenRequest, err = clientSet.CoreV1().ServiceAccounts(serviceAccount.Namespace).
@@ -1174,7 +1188,7 @@ func TestSetupWithManagerAppliesClusterFilter(t *testing.T) {
 		return cluster.Labels["cluster.x-k8s.io/included-in-clustercache-tests"] == "true"
 	}
 	cc, err := SetupWithManager(ctx, env.Manager, Options{
-		SecretClient: env.GetClient(),
+		SecretCachingClient: env.GetClient(),
 		Cache: CacheOptions{
 			Indexes: []CacheOptionsIndex{NodeProviderIDIndex},
 		},

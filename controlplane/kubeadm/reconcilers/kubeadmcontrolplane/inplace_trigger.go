@@ -20,6 +20,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -42,7 +43,7 @@ func (r *Reconciler) triggerInPlaceUpdate(ctx context.Context, controlPlane *pkg
 	}
 
 	log := ctrl.LoggerFrom(ctx).WithValues("Machine", klog.KObj(machine))
-	log.Info(fmt.Sprintf("Triggering in-place update for Machine %s", machine.Name))
+	log.Info(fmt.Sprintf("Triggering in-place update for Machine %s", machine.Name), "reason", strings.Join(machineUpToDateResult.LogMessages, ", "))
 
 	// Mark Machine for in-place update.
 	// Note: Once we write UpdateInProgressAnnotation we will always continue with the in-place update.

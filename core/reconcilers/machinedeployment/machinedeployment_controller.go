@@ -19,7 +19,6 @@ package machinedeployment
 import (
 	"context"
 	"fmt"
-	"sort"
 	"strings"
 
 	pkgerrors "github.com/pkg/errors"
@@ -396,6 +395,8 @@ func (r *Reconciler) createOrUpdateMachineSetsAndSyncMachineDeploymentRevision(c
 	}
 
 	// Apply changes to MachineSets.
+	// Note: Keeping a reference to the logger without the MachineSet key to log about old MachineSets while creating the new one.
+	mdLog := log
 	for _, ms := range allMSs {
 		log := log.WithValues("MachineSet", klog.KObj(ms))
 		ctx := ctrl.LoggerInto(ctx, log)
@@ -415,12 +416,13 @@ func (r *Reconciler) createOrUpdateMachineSetsAndSyncMachineDeploymentRevision(c
 				return pkgerrors.Wrapf(err, "failed to create MachineSet %s", klog.KObj(ms))
 			}
 			r.controller.DeferNextReconcileUntilCacheUpToDate(p.md, capicontrollerutil.StructuredObject(clusterv1.GroupVersion, "MachineSet"), ms.ResourceVersion)
-			if len(p.oldMSs) > 0 {
-				log.Info(fmt.Sprintf("MachineSets need rollout: %s", strings.Join(machineSetNames(p.oldMSs), ", ")), "reason", p.createReason)
+			// Note: Logging once for each old MachineSet, keyed on it, so the reason shows up when following the MachineSet that is being replaced.
+			for _, oldMS := range p.oldMSs {
+				mdLog.Info(fmt.Sprintf("MachineSet %s needs rollout", oldMS.Name), "MachineSet", klog.KObj(oldMS), "machineSets", machineSetsSummary, "reason", p.createReason)
 			}
 			log.Info(fmt.Sprintf("MachineSet %s created, it is now the current MachineSet", ms.Name))
 			if diff.DesiredReplicas > 0 {
-				log.Info(fmt.Sprintf("Scaled up current MachineSet %s from 0 to %d replicas (+%[2]d)", ms.Name, diff.DesiredReplicas))
+				log.Info(fmt.Sprintf("Scaled up current MachineSet %s from 0 to %d replicas (+%[2]d)", ms.Name, diff.DesiredReplicas), "replicas", diff.DesiredReplicas, "oldReplicas", 0)
 			}
 			r.recorder.Eventf(p.md, corev1.EventTypeNormal, "SuccessfulCreate", "Created MachineSet %s with %d replicas", klog.KObj(ms), diff.DesiredReplicas)
 
@@ -458,11 +460,11 @@ func (r *Reconciler) createOrUpdateMachineSetsAndSyncMachineDeploymentRevision(c
 		}
 
 		if diff.DesiredReplicas < diff.OriginalReplicas {
-			log.Info(fmt.Sprintf("Scaled down %s MachineSet %s from %d to %d replicas (-%d)", diff.Type, ms.Name, diff.OriginalReplicas, diff.DesiredReplicas, diff.OriginalReplicas-diff.DesiredReplicas))
+			log.Info(fmt.Sprintf("Scaled down %s MachineSet %s from %d to %d replicas (-%d)", diff.Type, ms.Name, diff.OriginalReplicas, diff.DesiredReplicas, diff.OriginalReplicas-diff.DesiredReplicas), "replicas", diff.DesiredReplicas, "oldReplicas", diff.OriginalReplicas)
 			r.recorder.Eventf(p.md, corev1.EventTypeNormal, "SuccessfulScale", "Scaled down MachineSet %v: %d -> %d", ms.Name, diff.OriginalReplicas, diff.DesiredReplicas)
 		}
 		if diff.DesiredReplicas > diff.OriginalReplicas {
-			log.Info(fmt.Sprintf("Scaled up %s MachineSet %s from %d to %d replicas (+%d)", diff.Type, ms.Name, diff.OriginalReplicas, diff.DesiredReplicas, diff.DesiredReplicas-diff.OriginalReplicas))
+			log.Info(fmt.Sprintf("Scaled up %s MachineSet %s from %d to %d replicas (+%d)", diff.Type, ms.Name, diff.OriginalReplicas, diff.DesiredReplicas, diff.DesiredReplicas-diff.OriginalReplicas), "replicas", diff.DesiredReplicas, "oldReplicas", diff.OriginalReplicas)
 			r.recorder.Eventf(p.md, corev1.EventTypeNormal, "SuccessfulScale", "Scaled up MachineSet %v: %d -> %d", ms.Name, diff.OriginalReplicas, diff.DesiredReplicas)
 		}
 		if diff.DesiredReplicas == diff.OriginalReplicas && diff.OtherChanges != "" {
@@ -479,15 +481,6 @@ func (r *Reconciler) createOrUpdateMachineSetsAndSyncMachineDeploymentRevision(c
 	}
 
 	return nil
-}
-
-func machineSetNames(machineSets []*clusterv1.MachineSet) []string {
-	names := make([]string, 0, len(machineSets))
-	for _, ms := range machineSets {
-		names = append(names, ms.Name)
-	}
-	sort.Strings(names)
-	return names
 }
 
 func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) error {

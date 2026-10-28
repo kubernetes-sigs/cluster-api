@@ -605,7 +605,7 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (ctrl.Result
 		}
 	}
 
-	log.Info("Waiting for Machines to be deleted", "Machines", clog.ObjNamesString(machineList))
+	log.Info("Waiting for Machines to be deleted", "Machines", klog.KObjSlice(machineList))
 	return ctrl.Result{}, nil
 }
 
@@ -715,7 +715,7 @@ func (r *Reconciler) getAndAdoptMachinesForMachineSet(ctx context.Context, s *sc
 				r.recorder.Eventf(machineSet, corev1.EventTypeWarning, "FailedAdopt", "Failed to adopt Machine %q: %v", machine.Name, err)
 				continue
 			}
-			log.Info("Adopted Machine")
+			log.Info(fmt.Sprintf("Machine %s adopted", machine.Name), "reason", "Adoption")
 			r.recorder.Eventf(machineSet, corev1.EventTypeNormal, "SuccessfulAdopt", "Adopted Machine %q", machine.Name)
 		}
 
@@ -1035,7 +1035,7 @@ func (r *Reconciler) createMachines(ctx context.Context, s *scope, machinesToAdd
 		return ctrl.Result{RequeueAfter: preflightFailedRequeueAfter}, nil
 	}
 
-	log.V(4).Info(fmt.Sprintf("MachineSet is scaling up to %d replicas by creating %d Machines", *(ms.Spec.Replicas), machinesToAdd), "desiredReplicas", *(ms.Spec.Replicas), "replicas", len(s.machines))
+	log.V(4).Info(fmt.Sprintf("MachineSet %s is scaling up to %d replicas by creating %d Machines", ms.Name, *(ms.Spec.Replicas), machinesToAdd), "desiredReplicas", *(ms.Spec.Replicas), "replicas", len(s.machines))
 
 	for i := range machinesToAdd {
 		// Create a new logger so the global logger is not modified.
@@ -1122,7 +1122,7 @@ func (r *Reconciler) deleteMachines(ctx context.Context, s *scope, machinesToDel
 	ms := s.machineSet
 	machines := s.machines
 
-	log.Info(fmt.Sprintf("MachineSet is scaling down to %d replicas by deleting %d Machines", *(ms.Spec.Replicas), machinesToDelete), "replicas", *(ms.Spec.Replicas), "machineCount", len(machines), "order", cmp.Or(ms.Spec.Deletion.Order, clusterv1.RandomMachineSetDeletionOrder))
+	log.Info(fmt.Sprintf("MachineSet %s is scaling down to %d replicas by deleting %d Machines", ms.Name, *(ms.Spec.Replicas), machinesToDelete), "replicas", *(ms.Spec.Replicas), "machineCount", len(machines), "order", cmp.Or(ms.Spec.Deletion.Order, clusterv1.RandomMachineSetDeletionOrder))
 
 	// Pick the list of machines to be deleted according to the criteria defined in ms.Spec.Deletion.Order.
 	// Note: In case the system has to delete some machine, and there are machines are still updating in place, those machine must be deleted first.
@@ -1152,10 +1152,10 @@ func (r *Reconciler) deleteMachines(ctx context.Context, s *scope, machinesToDel
 				r.controller.DeferNextReconcileUntilCacheUpToDate(s.machineSet, capicontrollerutil.StructuredObject(clusterv1.GroupVersion, "Machine"), deletedMachine.GetResourceVersion())
 			}
 
-			log.Info(fmt.Sprintf("Machine %s deleting (scale down, deleting %d of %d)", machine.Name, i+1, machinesToDelete), "reason", "ScaleDown")
+			log.Info(fmt.Sprintf("Deleting Machine %s (scale down, deleting %d of %d)", machine.Name, i+1, machinesToDelete), "reason", "ScaleDown")
 			r.recorder.Eventf(ms, corev1.EventTypeNormal, "SuccessfulDelete", "Deleted Machine %q", machine.Name)
 		} else {
-			log.Info(fmt.Sprintf("Waiting for Machine to be deleted (scale down, deleting %d of %d)", i+1, machinesToDelete))
+			log.Info(fmt.Sprintf("Waiting for Machine %s to be deleted (scale down, deleting %d of %d)", machine.Name, i+1, machinesToDelete), "reason", "ScaleDown")
 		}
 	}
 
@@ -1188,7 +1188,7 @@ func (r *Reconciler) startMoveMachines(ctx context.Context, s *scope, targetMSNa
 		return ctrl.Result{}, pkgerrors.Errorf("MachineSet %s is set to move replicas to %s, but %[2]s only accepts Machines from %s", ms.Name, targetMS.Name, validSourceMSs)
 	}
 
-	log.Info(fmt.Sprintf("MachineSet is scaling down to %d replicas by moving %d Machines to %s", *(ms.Spec.Replicas), machinesToMove, targetMSName), "replicas", *(ms.Spec.Replicas), "machineCount", len(machines), "order", cmp.Or(ms.Spec.Deletion.Order, clusterv1.RandomMachineSetDeletionOrder))
+	log.Info(fmt.Sprintf("MachineSet %s is scaling down to %d replicas by moving %d Machines to MachineSet %s", ms.Name, *(ms.Spec.Replicas), machinesToMove, targetMSName), "targetMachineSet", klog.KRef(ms.Namespace, targetMSName), "replicas", *(ms.Spec.Replicas), "machineCount", len(machines), "order", cmp.Or(ms.Spec.Deletion.Order, clusterv1.RandomMachineSetDeletionOrder))
 
 	// Sort to Move machine in deterministic and predictable order.
 	// Note: For convenience we sort machine using the ordering criteria defined in ms.Spec.Deletion.Order.
@@ -1221,7 +1221,7 @@ func (r *Reconciler) startMoveMachines(ctx context.Context, s *scope, targetMSNa
 				r.controller.DeferNextReconcileUntilCacheUpToDate(s.machineSet, capicontrollerutil.StructuredObject(clusterv1.GroupVersion, "Machine"), deletedMachine.GetResourceVersion())
 			}
 
-			log.Info(fmt.Sprintf("Machine %s deleting (deleting the Machine instead of moving it to MachineSet %s because Machine is marked for remediation)", machine.Name, targetMS.Name))
+			log.Info(fmt.Sprintf("Deleting Machine %s (deleting the Machine instead of moving it to MachineSet %s because Machine is marked for remediation)", machine.Name, targetMS.Name), "reason", "Remediation")
 			r.recorder.Eventf(ms, corev1.EventTypeNormal, "SuccessfulDelete", "Deleted Machine %q", machine.Name)
 			continue
 		}

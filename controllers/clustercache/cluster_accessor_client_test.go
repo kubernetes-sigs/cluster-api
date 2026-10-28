@@ -284,7 +284,7 @@ users:
 			}
 			c := fake.NewClientBuilder().WithObjects(kubeconfigSecret).Build()
 
-			restConfig, _, _, _, err := createRESTConfig(ctx, &clusterAccessorClientConfig{}, c, client.ObjectKey{Namespace: namespace, Name: clusterName}) //nolint:dogsled
+			restConfig, _, _, _, err := createRESTConfig(ctx, &clusterAccessorClientConfig{}, c, client.ObjectKey{Namespace: namespace, Name: clusterName})
 			if tt.wantErr != "" {
 				g.Expect(err).To(MatchError(ContainSubstring(tt.wantErr)))
 				g.Expect(restConfig).To(BeNil())

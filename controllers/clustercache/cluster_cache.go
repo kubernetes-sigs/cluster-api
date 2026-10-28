@@ -531,12 +531,20 @@ func (cc *clusterCache) Reconcile(ctx context.Context, req reconcile.Request) (r
 				requeueAfter.Truncate(time.Second/10), accessor.config.HealthProbe.Interval))
 			requeueAfterDurations = append(requeueAfterDurations, requeueAfter)
 		} else if accessor.SyncKubeconfig(ctx) {
-			accessor.Disconnect(ctx)
-			didDisconnect = true
-			connected = false
+			if err := accessor.ValidateKubeconfig(ctx); err != nil {
+				// Keep the current connection if the new kubeconfig cannot be used. The new kubeconfig is not
+				// stored, so it is synced and validated again after the HealthProbe.Interval.
+				log.Error(err, "Kubeconfig Secret was updated, but the new kubeconfig cannot be used, keeping current connection")
+			} else {
+				log.Info("Kubeconfig Secret was updated, re-creating the connection")
+				kubeconfigSyncTotal.WithLabelValues(clusterKey.Name, clusterKey.Namespace, "reconnect").Inc()
+				accessor.Disconnect(ctx)
+				didDisconnect = true
+				connected = false
 
-			log.V(6).Info("Requeuing immediately (disconnected after kubeconfig changed)")
-			requeueAfterDurations = append(requeueAfterDurations, 1*time.Millisecond)
+				log.V(6).Info("Requeuing immediately (disconnected after kubeconfig changed)")
+				requeueAfterDurations = append(requeueAfterDurations, 1*time.Millisecond)
+			}
 		}
 	}
 

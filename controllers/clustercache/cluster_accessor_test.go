@@ -22,6 +22,7 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"net/http/httptest"
 	"testing"
 	"time"
 
@@ -361,6 +362,16 @@ func TestSyncKubeconfig(t *testing.T) {
 	oldClientCertificateKubeconfig := withClientCertificateAuth(oldKubeconfig)
 	newClientCertificateKubeconfig := withClientCertificateAuth(newServerKubeconfig)
 	newTLSServerNameKubeconfig := withClusterTLSServerName(oldKubeconfig, "test-cluster", "new.example.com")
+	rejectedTokenKubeconfig := newTokenKubeconfig("test-cluster", "https://old.example.com", "rejected-token", []byte("old-ca"))
+
+	apiServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Authorization") != "Bearer new-token" {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer apiServer.Close()
 
 	tests := []struct {
 		name                       string
@@ -416,6 +427,19 @@ func TestSyncKubeconfig(t *testing.T) {
 			wantToken:                  "new-token",
 			wantRESTConfigBearerToken:  "new-token",
 			wantRESTConfigPointerEqual: false,
+		},
+		{
+			name:                       "token-only change with rejected token keeps current token",
+			initialResourceVersion:     "1",
+			initialKubeconfig:          oldKubeconfig,
+			initialToken:               "old-token",
+			initialTokenHolder:         newTokenHolder("old-token"),
+			secret:                     newKubeconfigSecret(testCluster, "2", rejectedTokenKubeconfig),
+			wantResourceVersion:        "1",
+			wantKubeconfig:             oldKubeconfig,
+			wantToken:                  "old-token",
+			wantRESTConfigBearerToken:  "old-token",
+			wantRESTConfigPointerEqual: true,
 		},
 		{
 			name:                       "token-only change without token holder needs reconnect",
@@ -546,9 +570,12 @@ func TestSyncKubeconfig(t *testing.T) {
 					secret: tt.secret,
 					err:    tt.secretReaderError,
 				},
+				HealthProbe: &clusterAccessorHealthProbeConfig{
+					Timeout: 5 * time.Second,
+				},
 			})
 			restConfig := &rest.Config{
-				Host:        "https://old.example.com",
+				Host:        apiServer.URL,
 				BearerToken: tt.initialToken,
 			}
 			accessor.lockedState.connection = &clusterAccessorLockedConnectionState{

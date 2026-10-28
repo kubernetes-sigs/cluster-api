@@ -308,6 +308,21 @@ func TestReconcileSyncKubeconfigServerChange(t *testing.T) {
 	g.Expect(accessor.Connected(ctx)).To(BeTrue())
 	oldCache := accessor.lockedState.connection.cache
 
+	unusableKubeconfig, err := clientcmd.Load(kubeconfig.FromEnvTestConfig(env.Config, testCluster))
+	g.Expect(err).ToNot(HaveOccurred())
+	unusableKubeconfig.Clusters[testCluster.Name].Server += "invalid-context-path" // breaks the server URL.
+	unusableKubeconfigBytes, err := clientcmd.Write(*unusableKubeconfig)
+	g.Expect(err).ToNot(HaveOccurred())
+	updateKubeconfigSecret(g, testCluster, unusableKubeconfigBytes)
+	rewindLastKubeconfigSyncTime(accessor, accessorConfig)
+
+	res, err = cc.Reconcile(ctx, reconcile.Request{NamespacedName: clusterKey})
+	g.Expect(err).ToNot(HaveOccurred())
+	g.Expect(res.RequeueAfter).To(BeNumerically(">", 1*time.Millisecond))
+	g.Expect(accessor.Connected(ctx)).To(BeTrue())
+	g.Expect(accessor.lockedState.connection.cache).To(BeIdenticalTo(oldCache))
+	g.Expect(accessor.lockedState.connection.kubeconfig).ToNot(Equal(unusableKubeconfigBytes))
+
 	updateKubeconfigSecretServer(g, testCluster)
 
 	// The kubeconfig sync is rate-limited, so a Reconcile right after the connect
@@ -419,6 +434,17 @@ func TestReconcileSyncKubeconfigTokenRotation(t *testing.T) {
 	accessor := cc.getClusterAccessor(clusterKey)
 	g.Expect(accessor.Connected(ctx)).To(BeTrue())
 	oldCache := accessor.lockedState.connection.cache
+
+	rejectedTokenKubeconfig := newTokenKubeconfig(testCluster.Name, env.Config.Host, "rejected-token", env.Config.CAData)
+	updateKubeconfigSecret(g, testCluster, rejectedTokenKubeconfig)
+	rewindLastKubeconfigSyncTime(accessor, accessorConfig)
+
+	_, err = cc.Reconcile(ctx, reconcile.Request{NamespacedName: clusterKey})
+	g.Expect(err).ToNot(HaveOccurred())
+	g.Expect(accessor.Connected(ctx)).To(BeTrue())
+	g.Expect(accessor.lockedState.connection.cache).To(BeIdenticalTo(oldCache))
+	g.Expect(accessor.lockedState.connection.tokenHolder.token()).To(Equal(oldToken))
+	g.Expect(accessor.lockedState.connection.kubeconfig).ToNot(Equal(rejectedTokenKubeconfig))
 
 	// Invalidate the old token by re-creating the ServiceAccount (tokens are bound to the
 	// ServiceAccount UID) and rotate the kubeconfig Secret to a token of the new ServiceAccount.

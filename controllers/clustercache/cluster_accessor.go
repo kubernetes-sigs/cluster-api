@@ -28,7 +28,9 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	toolscache "k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/clientcmd"
@@ -403,13 +405,13 @@ func (ca *clusterAccessor) HealthCheck(ctx context.Context) (bool, bool) {
 }
 
 // SyncKubeconfig checks if the kubeconfig Secret changed and updates the connection accordingly:
-//   - If only the bearer token changed, the token is updated in place, i.e. without re-creating the
-//     connection (client, cache, etc.): all transports created for the connection get the current
-//     token from the tokenHolder on every request.
+//   - If only the bearer token changed and the apiserver accepts the new token, the token is updated in place,
+//     i.e. without re-creating the connection (client, cache, etc.): all transports created for the connection
+//     get the current token from the tokenHolder on every request.
 //   - If the controller is running on the workload cluster, changes to the server URL and CA are ignored
 //     because those fields are replaced with in-cluster values when the connection is created.
 //   - For all other changes, true is returned and the caller is expected to re-create the connection
-//     (i.e. call Disconnect and Connect).
+//     (i.e. call ValidateKubeconfig, Disconnect and Connect).
 //
 // Note: Errors when reading or parsing the kubeconfig Secret intentionally never lead to a reconnect,
 // a working connection should not be torn down because of them (the health probe remains the fallback).
@@ -465,6 +467,11 @@ func (ca *clusterAccessor) SyncKubeconfig(ctx context.Context) bool {
 	}
 
 	if onlyTokenOrIgnoredChanges && newToken != "" {
+		if err := ca.validateToken(ctx, newToken); err != nil {
+			log.Error(err, "Bearer token in kubeconfig Secret was rotated, but the new token cannot be used, keeping current token")
+			return false
+		}
+
 		switch ca.refreshToken(ctx, oldKubeconfigResourceVersion, kubeconfigSecret.ResourceVersion, kubeconfig, newToken) {
 		case tokenRefreshed:
 			log.Info("Bearer token in kubeconfig Secret was rotated, updated token in existing connection")
@@ -477,9 +484,44 @@ func (ca *clusterAccessor) SyncKubeconfig(ctx context.Context) bool {
 		}
 	}
 
-	log.Info("Kubeconfig Secret was updated, re-creating the connection")
-	kubeconfigSyncTotal.WithLabelValues(ca.cluster.Name, ca.cluster.Namespace, "reconnect").Inc()
+	log.V(6).Info("Kubeconfig Secret was updated, connection has to be re-created")
 	return true
+}
+
+// ValidateKubeconfig verifies that a connection to the workload cluster can be created with the kubeconfig
+// from the kubeconfig Secret, without changing the current connection.
+// This allows to keep a working connection if the kubeconfig Secret was updated with a kubeconfig that cannot be used.
+func (ca *clusterAccessor) ValidateKubeconfig(ctx context.Context) error {
+	restConfig, _, _, _, err := createRESTConfig(ctx, ca.config.Client, ca.config.SecretClient, ca.cluster) //nolint:dogsled
+	if err != nil {
+		return err
+	}
+
+	_, _, _, err = createHTTPClientAndMapper(ctx, ca.config.HealthProbe, restConfig) //nolint:dogsled
+	return err
+}
+
+// validateToken verifies that the workload cluster apiserver accepts the given bearer token, without changing the current connection.
+func (ca *clusterAccessor) validateToken(ctx context.Context, token string) error {
+	ca.rLock(ctx)
+	if ca.lockedState.connection == nil || ca.lockedState.connection.tokenHolder == nil {
+		ca.rUnlock(ctx)
+		return nil
+	}
+	restConfig := rest.CopyConfig(ca.lockedState.connection.restConfig)
+	ca.rUnlock(ctx)
+
+	restConfig.BearerToken = token
+	restConfig.NegotiatedSerializer = serializer.NegotiatedSerializerWrapper(runtime.SerializerInfo{
+		Serializer: runtime.NoopEncoder{Decoder: scheme.Codecs.UniversalDecoder()},
+	})
+	restClient, err := rest.UnversionedRESTClientFor(restConfig)
+	if err != nil {
+		return pkgerrors.WithMessage(err, "error creating REST client")
+	}
+
+	_, err = restClient.Get().AbsPath("/").Timeout(ca.config.HealthProbe.Timeout).DoRaw(ctx)
+	return err
 }
 
 func (ca *clusterAccessor) storeKubeconfig(ctx context.Context, oldKubeconfigResourceVersion, kubeconfigResourceVersion string, kubeconfig []byte) {

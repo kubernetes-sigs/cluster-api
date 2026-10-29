@@ -141,6 +141,8 @@ If external update extensions can not cover the totality of the desired changes,
     * When the user determines that recovering the machine is too complex/costly vs replacing it. 
     * Automatic machine remediation (unless you use external remediation strategies)
 
+Extensions may opt out of this fallback on a per-response basis by setting `blockReplacement: true` in `CanUpdateMachineResponse`, which defers the replacement fallback for that response (see [KCP updates](#kcp-updates) for the full behaviour). The flag only defers the fallback: KCP still controls Machine selection, rollout sequencing, and maxSurge, and re-evaluates on each reconciliation. In this phase it is implemented for KCP only.
+
 #### Clean separation of concern
 
 It is the responsibility of the extension to decide if it can perform changes in-place and to perform these changes on a control plane single Machine
@@ -276,7 +278,9 @@ The changes supported by an updater can be the complete set of desired changes, 
 
 If the combination of the updaters can handle ALL the desired changes then CAPI will determine that the update can be performed in-place. 
 
-If ANY of the desired changes cannot be covered by the updaters capabilities, CAPI will determine the desired state cannot be reached through external updaters. In this case, it will fallback to the rolling update strategy, replacing machines as needed. 
+If ANY of the desired changes cannot be covered by the updaters capabilities, CAPI will determine the desired state cannot be reached through external updaters. In this case, it will fallback to the rolling update strategy, replacing machines as needed.
+
+For KCP, an extension can defer this fallback by responding with `status: Success`, insufficient patch coverage, and `blockReplacement: true`; KCP then re-evaluates on the next reconciliation instead of replacing the machine. See [KCP updates](#kcp-updates) for the full behaviour. In this phase it is implemented for KCP only.
 
 ### MachineDeployment updates
 
@@ -342,6 +346,7 @@ In order to do so:
 - By default, machines updating in-place are considered not available, and as a consequence, if maxSurge is 1, a new Machine must be created first; then as soon as there is “buffer” for in-place, in-place update can proceed.
 - If, instead, the `CanUpdateMachine` hook specifies that the required in-place change does not affect availability, the assumption above is dropped and machine updating in-place are considered available, and as a consequence in-place update starts immediately also if maxSurge is 1.
 - If maxSurge is 0, in-place update can proceed immediately.
+- If the `CanUpdateMachine` hook responds with `status: Success` but its patches cannot cover all required changes, KCP normally falls back to replacing the machine. An extension may set `blockReplacement: true` in its response to prevent this: KCP will pause and requeue instead of starting a rollout.
 - Note: to better understand above points, you might want to consider that maxSurge in KCP is a way to express if the 
   control plane rollout should be performed "scaling-out" or "scaling-in"
 - Note: KCP has its own definition of availability, that is preserved during a rollout no matter of if it is performed using
@@ -377,6 +382,13 @@ Please note that:
   - **Warning!** the system is going to perform in-place update on the first Machine without the safety net provided by the additional machine.
   - If something goes wrong unexpectedly, and the operation leads to actual unavailability, workloads could be impacted.
   - **Use this feature with caution!**
+- When `CanUpdateMachine` responds with `status: Success` but its patches cannot cover all required changes, the controller normally falls back to replacing the machine. An extension may prevent this by setting `blockReplacement: true` in the response, so KCP pauses and re-evaluates on the next reconciliation instead of starting a rollout. This is intended for transient conditions that the extension itself observes — such as a cloud-side resource quota constraint — where it expects to handle the update after a short wait.
+  - The field may be omitted; nil or false preserves the existing fallback behaviour, and it is ignored when the extension's patches fully cover all required changes.
+  - By contrast, a `status: Failure` response or a non-ignored call error is handled as an error and retried independently — `blockReplacement` is not read. A call error that is ignored per the extension's `failurePolicy` yields a default response and preserves the existing fallback.
+  - When blocked, KCP emits a Warning event and sets a `RolloutBlocked` condition on the KCP object, including the extension's message, so operators can diagnose the reason without consulting extension logs. The block is not persistent: it is recomputed on every reconciliation and removed as soon as it no longer applies — for example when the extension's patches cover all changes, when it returns `blockReplacement` false or nil, when the extension is deregistered, or when the machine no longer needs a rollout.
+  - `blockReplacement` only gates the `canUpdateMachine: false` paths. It does not affect the branch where `canUpdateMachine: true` but `affectsAvailability: true` at minReplicas — that branch continues to fall back to scale-up unconditionally.
+  - An operator can unblock a stuck machine by manually deleting it; KCP will then create a replacement. Before manually deleting a control-plane Machine, ensure the remaining control plane can maintain etcd quorum and API availability throughout deletion and replacement.
+  - If the extension is deregistered while a block is active, the next reconciliation finds zero handlers and proceeds with the rolling update (fail-open behaviour).
 
 Please refer to [implementation note](./20240807-in-place-updates-implementation-notes.md) for more details about how KCP handles in-place updates.
 
@@ -764,6 +776,7 @@ we will provide a way to toggle the in-place possibly though the API.
 - [x] 2025-04: Proposal merged
 - [x] 2025-12: Update proposal after first implementation
 - [x] 2026-09: Introduce support for in-place update changes that do not impact availability
+- [ ] 2026-10: Add `BlockReplacement` field to `CanUpdateMachineResponse` to allow extensions to block rolling replacement fallback
 
 <!-- Links -->
 [community meeting]: https://docs.google.com/document/d/1ushaVqAKYnZ2VN_aa3GyKlS4kEd6bSug13xaXOakAQI/edit#heading=h.pxsq37pzkbdq

@@ -288,6 +288,8 @@ linters:
         - pkg: sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta2
           alias: infrav1
       no-unaliased: true
+    loggercheck:
+      no-printf-like: true
     nolintlint:
       require-specific: true
       allow-unused: false

@@ -19,7 +19,10 @@ package machinepool
 import (
 	"context"
 	"fmt"
+	"math"
 	"reflect"
+	"slices"
+	"strings"
 	"time"
 
 	pkgerrors "github.com/pkg/errors"
@@ -31,6 +34,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
@@ -45,9 +49,12 @@ import (
 	"sigs.k8s.io/cluster-api/core/setup"
 	"sigs.k8s.io/cluster-api/internal/contract"
 	contractapi "sigs.k8s.io/cluster-api/internal/contract/api"
+	"sigs.k8s.io/cluster-api/internal/util/remediation"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
+	"sigs.k8s.io/cluster-api/util/collections"
+	"sigs.k8s.io/cluster-api/util/conditions"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 	"sigs.k8s.io/cluster-api/util/labels"
 	"sigs.k8s.io/cluster-api/util/labels/format"
@@ -388,17 +395,19 @@ func (r *Reconciler) reconcileInfrastructure(ctx context.Context, s *scope) (ctr
 	// Get the nodeRefsMap from the cluster.
 	s.nodeRefMap, getNodeRefsErr = r.getNodeRefMap(ctx, clusterClient)
 
-	err = r.reconcileMachines(ctx, s, infraConfig)
+	res := ctrl.Result{}
 
+	reconcileMachinesRes, err := r.reconcileMachines(ctx, s, infraConfig)
 	if err != nil || getNodeRefsErr != nil {
 		return ctrl.Result{}, kerrors.NewAggregate([]error{pkgerrors.Wrapf(err, "failed to reconcile Machines for MachinePool %s", klog.KObj(mp)), pkgerrors.Wrapf(getNodeRefsErr, "failed to get nodeRefs for MachinePool %s", klog.KObj(mp))})
 	}
+	res = util.LowestNonZeroResult(res, reconcileMachinesRes)
 
 	if !ptr.Deref(mp.Status.Initialization.InfrastructureProvisioned, false) {
 		log.Info(fmt.Sprintf("Waiting for infrastructure provider to set %s on %s",
 			contract.InfrastructureMachinePool().Provisioned(contractVersion).Path().String(), infraConfig.GetKind()),
 			infraConfig.GetKind(), klog.KObj(infraConfig))
-		return ctrl.Result{}, nil
+		return res, nil
 	}
 
 	// Get Spec.ProviderIDList from the infrastructure provider.
@@ -438,7 +447,7 @@ func (r *Reconciler) reconcileInfrastructure(ctx context.Context, s *scope) (ctr
 		mp.Status.Deprecated.V1Beta1.UnavailableReplicas = ptr.Deref(mp.Status.Replicas, 0)
 	}
 
-	return ctrl.Result{}, nil
+	return res, nil
 }
 
 // reconcileMachines reconciles Machines associated with a MachinePool.
@@ -448,7 +457,7 @@ func (r *Reconciler) reconcileInfrastructure(ctx context.Context, s *scope) (ctr
 // infrastructure is created accordingly.
 // Note: When supported by the cloud provider implementation of the MachinePool, machines will provide a means to interact
 // with the corresponding infrastructure (e.g. delete a specific machine in case MachineHealthCheck detects it is unhealthy).
-func (r *Reconciler) reconcileMachines(ctx context.Context, s *scope, infraMachinePool *unstructured.Unstructured) error {
+func (r *Reconciler) reconcileMachines(ctx context.Context, s *scope, infraMachinePool *unstructured.Unstructured) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
 	mp := s.machinePool
 
@@ -456,10 +465,10 @@ func (r *Reconciler) reconcileMachines(ctx context.Context, s *scope, infraMachi
 	if err != nil {
 		if pkgerrors.Is(err, contract.ErrFieldNotFound) {
 			log.V(4).Info("MachinePool Machines not supported, no infraMachineKind found")
-			return nil
+			return ctrl.Result{}, nil
 		}
 
-		return pkgerrors.Wrapf(err, "failed to retrieve infraMachineKind from infrastructure provider for MachinePool %s", klog.KObj(mp))
+		return ctrl.Result{}, pkgerrors.Wrapf(err, "failed to retrieve infraMachineKind from infrastructure provider for MachinePool %s", klog.KObj(mp))
 	}
 	infraMachineKind := *infraMachineKindPtr
 
@@ -478,7 +487,7 @@ func (r *Reconciler) reconcileMachines(ctx context.Context, s *scope, infraMachi
 	}
 	infraMachineGVK, objList, err := r.DynamicCache.ListContractObjects(ctx, setup.DynamicCacheInfraMachineObjectType, gk, client.InNamespace(mp.Namespace), client.MatchingLabels(infraMachineSelector.MatchLabels))
 	if err != nil {
-		return pkgerrors.Wrapf(err, "failed to list infra machines for MachinePool %q in namespace %q", mp.Name, mp.Namespace)
+		return ctrl.Result{}, pkgerrors.Wrapf(err, "failed to list infra machines for MachinePool %q in namespace %q", mp.Name, mp.Namespace)
 	}
 
 	infraMachineList := []contractapi.InfraMachine{}
@@ -491,26 +500,77 @@ func (r *Reconciler) reconcileMachines(ctx context.Context, s *scope, infraMachi
 		return nil
 	})
 	if err != nil {
-		return err
+		return ctrl.Result{}, err
 	}
 
 	// Add watcher for infraMachine, if there isn't one already.
 	if err := r.DynamicCache.Watch(ctx, "machinepool-controller", r.controller, setup.DynamicCacheInfraMachineObjectType, infraMachineGVK.GroupKind(), handler.EnqueueRequestsFromMapFunc(r.infraMachineToMachinePoolMapper)); err != nil {
-		return err
+		return ctrl.Result{}, err
 	}
 
 	// Get the list of machines managed by this controller, and align it with the infra machines managed by
 	// the InfraMachinePool controller.
 	machineList := &clusterv1.MachineList{}
 	if err := r.Client.List(ctx, machineList, client.InNamespace(mp.Namespace), client.MatchingLabels(infraMachineSelector.MatchLabels)); err != nil {
-		return err
+		return ctrl.Result{}, err
+	}
+
+	// Remove OwnerRemediated condition from Machines that have HealthCheckSucceeded condition true
+	// and OwnerRemediated condition false
+	errList := []error{}
+	for _, m := range machineList.Items {
+		if !m.DeletionTimestamp.IsZero() {
+			continue
+		}
+
+		shouldCleanupV1Beta1 := v1beta1conditions.IsTrue(&m, clusterv1.MachineHealthCheckSucceededV1Beta1Condition) && v1beta1conditions.IsFalse(&m, clusterv1.MachineOwnerRemediatedV1Beta1Condition)
+		shouldCleanup := conditions.IsTrue(&m, clusterv1.MachineHealthCheckSucceededCondition) && conditions.IsFalse(&m, clusterv1.MachineOwnerRemediatedCondition)
+
+		if !shouldCleanupV1Beta1 && !shouldCleanup {
+			continue
+		}
+
+		patchHelper, err := patch.NewHelper(&m, r.Client)
+		if err != nil {
+			errList = append(errList, err)
+			continue
+		}
+
+		if shouldCleanupV1Beta1 {
+			v1beta1conditions.Delete(&m, clusterv1.MachineOwnerRemediatedV1Beta1Condition)
+		}
+
+		if shouldCleanup {
+			conditions.Delete(&m, clusterv1.MachineOwnerRemediatedCondition)
+		}
+
+		if err := patchHelper.Patch(ctx, &m, patch.WithOwnedV1Beta1Conditions{Conditions: []clusterv1.ConditionType{
+			clusterv1.MachineOwnerRemediatedV1Beta1Condition,
+		}}, patch.WithOwnedConditions{Conditions: []string{
+			clusterv1.MachineOwnerRemediatedCondition,
+		}}); err != nil {
+			errList = append(errList, err)
+		}
+	}
+	if len(errList) > 0 {
+		return ctrl.Result{}, pkgerrors.Wrapf(kerrors.NewAggregate(errList), "failed to remove OwnerRemediated condition from healthy MachinePool Machines")
 	}
 
 	if err := r.createOrUpdateMachines(ctx, s, machineList.Items, infraMachineGVK, infraMachineList); err != nil {
-		return pkgerrors.Wrapf(err, "failed to create machines for MachinePool %q in namespace %q", mp.Name, mp.Namespace)
+		return ctrl.Result{}, pkgerrors.Wrapf(err, "failed to create machines for MachinePool %q in namespace %q", mp.Name, mp.Namespace)
 	}
 
-	return nil
+	machines := make([]*clusterv1.Machine, 0, len(machineList.Items))
+	for idx := range machineList.Items {
+		machines = append(machines, &machineList.Items[idx])
+	}
+
+	res, err := r.reconcileUnhealthyMachinePoolMachines(ctx, s, machines)
+	if err != nil {
+		return ctrl.Result{}, pkgerrors.Wrapf(err, "failed to reconcile unhealthy machines for MachinePool %s", klog.KObj(mp))
+	}
+
+	return res, nil
 }
 
 // createOrUpdateMachines creates a MachinePool Machine for each infraMachine if it doesn't already exist and sets the owner reference and infraRef.
@@ -705,4 +765,199 @@ func (r *Reconciler) getNodeRefMap(ctx context.Context, c client.Client) (map[st
 	}
 
 	return nodeRefsMap, nil
+}
+
+func patchMachineConditions(ctx context.Context, c client.Client, machines []*clusterv1.Machine, condition metav1.Condition, v1beta1condition *clusterv1.Condition) error {
+	var errs []error
+	for _, m := range machines {
+		patchHelper, err := patch.NewHelper(m, c)
+		if err != nil {
+			errs = append(errs, err)
+			continue
+		}
+
+		if v1beta1condition != nil {
+			v1beta1conditions.Set(m, v1beta1condition)
+		}
+		conditions.Set(m, condition)
+
+		if err := patchHelper.Patch(ctx, m,
+			patch.WithOwnedV1Beta1Conditions{Conditions: []clusterv1.ConditionType{
+				clusterv1.MachineOwnerRemediatedV1Beta1Condition,
+			}}, patch.WithOwnedConditions{Conditions: []string{
+				clusterv1.MachineOwnerRemediatedCondition,
+			}}); err != nil {
+			errs = append(errs, err)
+		}
+	}
+	if len(errs) > 0 {
+		return pkgerrors.Wrapf(kerrors.NewAggregate(errs), "failed to patch Machines")
+	}
+
+	return nil
+}
+
+func (r *Reconciler) reconcileUnhealthyMachinePoolMachines(ctx context.Context, s *scope, machines []*clusterv1.Machine) (ctrl.Result, error) {
+	if len(machines) == 0 {
+		return ctrl.Result{}, nil
+	}
+
+	log := ctrl.LoggerFrom(ctx)
+	mp := s.machinePool
+
+	machinesWithHealthCheck := slices.DeleteFunc(slices.Clone(machines), func(machine *clusterv1.Machine) bool {
+		return !conditions.Has(machine, clusterv1.MachineHealthCheckSucceededCondition)
+	})
+	if len(machinesWithHealthCheck) == 0 {
+		// This means there is no MachineHealthCheck selecting any machines
+		// of this machine pool. In this case, do not requeue so often,
+		// but still check regularly in case a MachineHealthCheck became
+		// deployed or activated. This long interval shouldn't be a problem
+		// at cluster creation, since newly-created nodes should anyway
+		// trigger MachinePool reconciliation as the infrastructure provider
+		// creates the InfraMachines.
+		log.V(4).Info("Skipping reconciliation of unhealthy MachinePool machines because there are no health-checked machines")
+		return ctrl.Result{RequeueAfter: 10 * time.Minute}, nil
+	}
+
+	// Calculate how many in flight machines we should remediate.
+	// By default, we allow all machines to be remediated at the same time.
+	maxInFlight := math.MaxInt
+	if mp.Spec.Remediation.MaxInFlight != nil {
+		var err error
+		replicas := int(ptr.Deref(mp.Spec.Replicas, 1))
+		maxInFlight, err = intstr.GetScaledValueFromIntOrPercent(mp.Spec.Remediation.MaxInFlight, replicas, true)
+		if err != nil {
+			return ctrl.Result{}, fmt.Errorf("failed to calculate maxInFlight to remediate machines: %v", err)
+		}
+		log = log.WithValues("maxInFlight", maxInFlight, "replicas", replicas)
+	}
+
+	machinesToRemediate := make([]*clusterv1.Machine, 0, len(machines))
+	inFlight := 0
+	for _, machine := range machines {
+		if !machine.DeletionTimestamp.IsZero() {
+			if c := conditions.Get(machine, clusterv1.MachineOwnerRemediatedCondition); c != nil && c.Status == metav1.ConditionFalse && c.Reason == clusterv1.MachinePoolMachineRemediationMachineDeletingReason {
+				// Remediation for this Machine has been triggered by this controller but it is still in flight,
+				// i.e. it still goes through the deletion workflow and exists in etcd.
+				inFlight++
+			}
+			continue
+		}
+		if collections.IsUnhealthyAndOwnerRemediated(machine) {
+			machinesToRemediate = append(machinesToRemediate, machine)
+		}
+	}
+	log = log.WithValues("inFlight", inFlight)
+	log.V(4).Info("Reconciling unhealthy MachinePool machines", "machinesToBeRemediated", len(machinesToRemediate))
+
+	if len(machinesToRemediate) == 0 {
+		log.V(5).Info("No MachinePool machines to remediate, requeueing")
+
+		// There's a MachineHealthCheck monitoring the machines, but currently
+		// no action to be taken. A machine could require remediation at any
+		// time, so use a short interval until next reconciliation.
+		return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
+	}
+
+	if inFlight >= maxInFlight {
+		log.V(3).Info("Remediation strategy is set, and maximum in flight has been reached", "machinesToBeRemediated", len(machinesToRemediate))
+
+		if err := patchMachineConditions(ctx, r.Client, machinesToRemediate, metav1.Condition{
+			Type:    clusterv1.MachineOwnerRemediatedCondition,
+			Status:  metav1.ConditionFalse,
+			Reason:  clusterv1.MachinePoolMachineRemediationDeferredReason,
+			Message: fmt.Sprintf("Waiting because there are already too many remediations in progress (spec.strategy.remediation.maxInFlight is %s)", mp.Spec.Remediation.MaxInFlight),
+		}, nil); err != nil {
+			return ctrl.Result{}, err
+		}
+
+		// Once the infrastructure provider updates `providerIDList`, MachinePool reconciliation
+		// will be triggered again, leading to the next check whether already-remediating (= deleting)
+		// machines are gone so that more machines could be remediated
+		return ctrl.Result{}, nil
+	}
+
+	// Sort the machines from newest to oldest.
+	// We are trying to remediate machines failing to come up first because
+	// there is a chance that they are not hosting any workloads (minimize disruption).
+	remediation.SortMachinesToRemediate(machinesToRemediate)
+
+	haveMoreMachinesToRemediate := false
+	if len(machinesToRemediate) > (maxInFlight - inFlight) {
+		haveMoreMachinesToRemediate = true
+		log.V(5).Info("Remediation strategy is set, limiting in flight operations", "machinesToBeRemediated", len(machinesToRemediate))
+		machinesToRemediate = machinesToRemediate[:(maxInFlight - inFlight)]
+	}
+
+	// Run preflight checks.
+	preflightCheckErrMessages, err := r.runPreflightChecks(ctx, s.cluster, mp, "MachinePool machine remediation")
+	if err != nil || len(preflightCheckErrMessages) > 0 {
+		if err != nil {
+			// If err is not nil use that as the preflightCheckErrMessage
+			preflightCheckErrMessages = append(preflightCheckErrMessages, err.Error())
+		}
+
+		listMessages := make([]string, len(preflightCheckErrMessages))
+		for i, msg := range preflightCheckErrMessages {
+			listMessages[i] = fmt.Sprintf("* %s", msg)
+		}
+
+		// PreflightChecks did not pass. Update the MachineOwnerRemediated condition on the unhealthy Machines with
+		// WaitingForRemediationReason reason.
+		if patchErr := patchMachineConditions(ctx, r.Client, machinesToRemediate, metav1.Condition{
+			Type:    clusterv1.MachineOwnerRemediatedCondition,
+			Status:  metav1.ConditionFalse,
+			Reason:  clusterv1.MachinePoolMachineRemediationDeferredReason,
+			Message: strings.Join(listMessages, "\n"),
+		}, &clusterv1.Condition{
+			Type:     clusterv1.MachineOwnerRemediatedV1Beta1Condition,
+			Status:   corev1.ConditionFalse,
+			Reason:   clusterv1.WaitingForRemediationV1Beta1Reason,
+			Severity: clusterv1.ConditionSeverityWarning,
+			Message:  strings.Join(preflightCheckErrMessages, "; "),
+		}); patchErr != nil {
+			return ctrl.Result{}, kerrors.NewAggregate([]error{err, patchErr})
+		}
+
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+		return ctrl.Result{RequeueAfter: preflightFailedRequeueAfter}, nil
+	}
+
+	// PreflightChecks passed, so it is safe to remediate unhealthy machines by deleting them.
+
+	// Note: We intentionally patch the Machines before we delete them to make this code reentrant.
+	// If we delete the Machine first, the Machine would be filtered out on next reconcile because
+	// it has a deletionTimestamp so it would never get the condition and wouldn't count as in flight.
+	if err := patchMachineConditions(ctx, r.Client, machinesToRemediate, metav1.Condition{
+		Type:    clusterv1.MachineOwnerRemediatedCondition,
+		Status:  metav1.ConditionFalse,
+		Reason:  clusterv1.MachinePoolMachineRemediationMachineDeletingReason,
+		Message: "Machine is deleting",
+	}, &clusterv1.Condition{
+		Type:   clusterv1.MachineOwnerRemediatedV1Beta1Condition,
+		Status: corev1.ConditionTrue,
+	}); err != nil {
+		return ctrl.Result{}, err
+	}
+	var errs []error
+	for _, machine := range machinesToRemediate {
+		log.Info("Deleting unhealthy Machine", "Machine", klog.KObj(machine))
+		if err := r.Client.Delete(ctx, machine); err != nil && !apierrors.IsNotFound(err) {
+			errs = append(errs, pkgerrors.Wrapf(err, "failed to delete Machine %s", klog.KObj(machine)))
+		}
+	}
+
+	if len(errs) > 0 {
+		return ctrl.Result{}, pkgerrors.Wrapf(kerrors.NewAggregate(errs), "failed to delete unhealthy Machines")
+	}
+
+	if haveMoreMachinesToRemediate {
+		// More machines need remediation, so reconcile again sooner
+		return ctrl.Result{RequeueAfter: 15 * time.Second}, nil
+	}
+
+	return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
 }

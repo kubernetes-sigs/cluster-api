@@ -60,6 +60,10 @@ func ConvertMachinePoolV1Beta1ToHub(_ context.Context, src *clusterv1beta1.Machi
 		dst.Status.Initialization = initialization
 	}
 
+	if ok {
+		dst.Spec.Remediation = restored.Spec.Remediation
+	}
+
 	return nil
 }
 
@@ -80,6 +84,9 @@ func ConvertMachinePoolHubToV1Beta1(ctx context.Context, src *clusterv1.MachineP
 	// Note: Only put the fields into the conversion annotation that are actually restored in
 	// ConvertMachinePoolV1Beta1ToHub to reduce memory usage.
 	src = &clusterv1.MachinePool{
+		Spec: clusterv1.MachinePoolSpec{
+			Remediation: src.Spec.Remediation,
+		},
 		Status: clusterv1.MachinePoolStatus{
 			Initialization: src.Status.Initialization,
 		},

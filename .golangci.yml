@@ -142,6 +142,8 @@ linters:
       forbid:
         - pattern: ctrl.NewControllerManagedBy
           msg: Use capicontrollerutil.NewControllerManagedBy instead
+        - pattern: ^context\.TODO$
+          msg: Pass a context.Context instead
     ginkgolinter:
       forbid-focus-container: true
     gocritic:
@@ -477,6 +479,12 @@ linters:
           - staticcheck
         path: .*(api|types)\/.*\/conversion.*\.go$
         text: 'ST1016: methods on the same type should have the same receiver name'
+      ## context.TODO is fine in tests and in test framework / test infrastructure funcs that are part of their public API
+      ## and don't take a context.Context.
+      - linters:
+          - forbidigo
+        path: _test\.go|test/(framework|infrastructure)/.*\.go
+        text: use of `context.TODO` forbidden
       ## We don't care about defer in for loops in test files.
       - linters:
           - gocritic

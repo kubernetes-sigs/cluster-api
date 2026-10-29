@@ -137,6 +137,10 @@ func (f fakeClient) DescribeCluster(ctx context.Context, options DescribeCluster
 	return f.internalClient.DescribeCluster(ctx, options)
 }
 
+func (f fakeClient) WatchCluster(ctx context.Context, options WatchClusterOptions) error {
+	return f.internalClient.WatchCluster(ctx, options)
+}
+
 func (f fakeClient) RolloutPause(ctx context.Context, options RolloutPauseOptions) error {
 	return f.internalClient.RolloutPause(ctx, options)
 }

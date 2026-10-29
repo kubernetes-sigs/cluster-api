@@ -19,6 +19,9 @@ package client
 import (
 	"context"
 
+	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
+
+	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/tree"
 )
 
@@ -66,6 +69,24 @@ type DescribeClusterOptions struct {
 
 // DescribeCluster returns the object tree representing the status of a Cluster API cluster.
 func (c *clusterctlClient) DescribeCluster(ctx context.Context, options DescribeClusterOptions) (*tree.ObjectTree, error) {
+	d, err := c.newClusterDescriber(ctx, options)
+	if err != nil {
+		return nil, err
+	}
+	return d.describe(ctx)
+}
+
+// clusterDescriber computes the object tree for a Cluster API cluster, re-using the same
+// connection to the management cluster across calls.
+type clusterDescriber struct {
+	proxy     cluster.Proxy
+	client    ctrlclient.Client
+	namespace string
+	name      string
+	options   tree.DiscoverOptions
+}
+
+func (c *clusterctlClient) newClusterDescriber(ctx context.Context, options DescribeClusterOptions) (*clusterDescriber, error) {
 	// gets access to the management cluster
 	cluster, err := c.clusterClientFactory(ClusterClientFactoryInput{Kubeconfig: options.Kubeconfig})
 	if err != nil {
@@ -92,15 +113,25 @@ func (c *clusterctlClient) DescribeCluster(ctx context.Context, options Describe
 		return nil, err
 	}
 
-	// Gets the object tree representing the status of a Cluster API cluster.
-	return tree.Discovery(ctx, client, options.Namespace, options.ClusterName, tree.DiscoverOptions{
-		ShowOtherConditions:     options.ShowOtherConditions,
-		ShowMachineSets:         options.ShowMachineSets,
-		ShowClusterResourceSets: options.ShowClusterResourceSets,
-		ShowTemplates:           options.ShowTemplates,
-		AddTemplateVirtualNode:  options.AddTemplateVirtualNode,
-		Echo:                    options.Echo,
-		Grouping:                options.Grouping,
-		V1Beta1:                 options.V1Beta1,
-	})
+	return &clusterDescriber{
+		proxy:     cluster.Proxy(),
+		client:    client,
+		namespace: options.Namespace,
+		name:      options.ClusterName,
+		options: tree.DiscoverOptions{
+			ShowOtherConditions:     options.ShowOtherConditions,
+			ShowMachineSets:         options.ShowMachineSets,
+			ShowClusterResourceSets: options.ShowClusterResourceSets,
+			ShowTemplates:           options.ShowTemplates,
+			AddTemplateVirtualNode:  options.AddTemplateVirtualNode,
+			Echo:                    options.Echo,
+			Grouping:                options.Grouping,
+			V1Beta1:                 options.V1Beta1,
+		},
+	}, nil
+}
+
+// describe gets the object tree representing the status of a Cluster API cluster.
+func (d *clusterDescriber) describe(ctx context.Context) (*tree.ObjectTree, error) {
+	return tree.Discovery(ctx, d.client, d.namespace, d.name, d.options)
 }

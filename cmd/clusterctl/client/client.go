@@ -75,6 +75,10 @@ type Client interface {
 	// DescribeCluster returns the object tree representing the status of a Cluster API cluster.
 	DescribeCluster(ctx context.Context, options DescribeClusterOptions) (*tree.ObjectTree, error)
 
+	// WatchCluster watches a Cluster API cluster and calls options.OnChange with an up-to-date object tree
+	// representing the status of the cluster until the context is cancelled.
+	WatchCluster(ctx context.Context, options WatchClusterOptions) error
+
 	// Convert converts CAPI core resources between API versions.
 	// EXPERIMENTAL: This method is experimental and may be removed in a future release.
 	Convert(ctx context.Context, options ConvertOptions) (ConvertResult, error)

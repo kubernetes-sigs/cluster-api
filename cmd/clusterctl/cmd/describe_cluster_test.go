@@ -18,6 +18,7 @@ package cmd
 
 import (
 	"testing"
+	"time"
 
 	. "github.com/onsi/gomega"
 )
@@ -48,6 +49,45 @@ func TestValidateShowConditions(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 			g.Expect(validateShowConditions(tt.showConditions) != nil).To(Equal(tt.wantErr))
+		})
+	}
+}
+
+func TestValidateWatch(t *testing.T) {
+	tests := []struct {
+		name          string
+		watchMode     string
+		watchInterval time.Duration
+		wantErr       bool
+	}{
+		{
+			name:          "informer mode",
+			watchMode:     "informer",
+			watchInterval: 5 * time.Second,
+		},
+		{
+			name:          "poll mode",
+			watchMode:     "poll",
+			watchInterval: time.Second,
+		},
+		{
+			name:          "unknown mode",
+			watchMode:     "stream",
+			watchInterval: 5 * time.Second,
+			wantErr:       true,
+		},
+		{
+			name:          "zero interval",
+			watchMode:     "poll",
+			watchInterval: 0,
+			wantErr:       true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+			g.Expect(validateWatch(tt.watchMode, tt.watchInterval) != nil).To(Equal(tt.wantErr))
 		})
 	}
 }

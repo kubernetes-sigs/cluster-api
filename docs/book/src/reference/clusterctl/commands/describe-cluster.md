@@ -43,3 +43,22 @@ only the ready condition). e.g. with `--show-conditions KubeadmControlPlane` you
 
 Please note that this option is flexible, and you can pass a comma separated list of `kind` or `kind/name` for
 which the command should show all the object's conditions (use 'all' to show conditions for everything).
+
+## Watching a cluster
+
+By using the `--watch` (`-w`) flag, the command keeps running and refreshes the visualization when the cluster
+changes, until it is interrupted (e.g. with `Ctrl+C`). When the output is a terminal, the visualization is
+redrawn in place; otherwise, e.g. when redirecting the output to a file, each refresh is appended to the output.
+
+```bash
+clusterctl describe cluster capi-quickstart --watch
+```
+
+By default, the visualization is refreshed every time one of the objects of the cluster changes, e.g. when a new
+Machine is created or when the status of an infrastructure machine is updated; this requires permissions to
+list and watch those objects in the namespace of the cluster. Use `--watch-mode poll` to refresh the visualization
+at a fixed interval instead, which can be configured with `--watch-interval` (default `5s`):
+
+```bash
+clusterctl describe cluster capi-quickstart --watch --watch-mode poll --watch-interval 10s
+```

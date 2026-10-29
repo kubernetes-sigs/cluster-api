@@ -17,14 +17,20 @@ limitations under the License.
 package cmd
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"os"
+	"os/signal"
 	"strings"
+	"syscall"
+	"time"
 
 	"github.com/fatih/color"
 	pkgerrors "github.com/pkg/errors"
 	"github.com/spf13/cobra"
+	"golang.org/x/term"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client"
@@ -45,6 +51,9 @@ type describeClusterOptions struct {
 	grouping                bool
 	v1beta2                 bool
 	color                   bool
+	watch                   bool
+	watchMode               string
+	watchInterval           time.Duration
 }
 
 var dc = &describeClusterOptions{}
@@ -73,13 +82,22 @@ var describeClusterClusterCmd = &cobra.Command{
 
 		# Describe the cluster named test-1 showing the MachineInfrastructure and BootstrapConfig objects
 		# also when their status is the same as the status of the corresponding machine object.
-		clusterctl describe cluster test-1 --echo`),
+		clusterctl describe cluster test-1 --echo
+
+		# Describe the cluster named test-1 and refresh the output every time one of its objects changes.
+		clusterctl describe cluster test-1 --watch
+
+		# Describe the cluster named test-1 and refresh the output every 10 seconds.
+		clusterctl describe cluster test-1 --watch --watch-mode poll --watch-interval 10s`),
 
 	Args: func(cmd *cobra.Command, args []string) error {
 		if err := exactArgsWithMessage(1, "please specify a cluster name")(cmd, args); err != nil {
 			return err
 		}
-		return validateShowConditions(dc.showOtherConditions)
+		if err := validateShowConditions(dc.showOtherConditions); err != nil {
+			return err
+		}
+		return validateWatch(dc.watchMode, dc.watchInterval)
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return runDescribeCluster(cmd, args[0])
@@ -113,6 +131,13 @@ func init() {
 		"this field will be removed when v1beta1 will be dropped.")
 	describeClusterClusterCmd.Flags().BoolVarP(&dc.color, "color", "c", false, "Enable or disable color output; if not set color is enabled by default only if using tty. The flag is overridden by the NO_COLOR env variable if set.")
 
+	describeClusterClusterCmd.Flags().BoolVarP(&dc.watch, "watch", "w", false,
+		"Watch the cluster and refresh the output when it changes, until interrupted.")
+	describeClusterClusterCmd.Flags().StringVar(&dc.watchMode, "watch-mode", string(client.WatchClusterModeInformer),
+		fmt.Sprintf("How --watch detects changes: %q refreshes when an object of the cluster changes (requires list and watch permissions), %q refreshes every --watch-interval.", client.WatchClusterModeInformer, client.WatchClusterModePoll))
+	describeClusterClusterCmd.Flags().DurationVar(&dc.watchInterval, "watch-interval", 5*time.Second,
+		fmt.Sprintf("Interval between refreshes when using --watch-mode=%s.", client.WatchClusterModePoll))
+
 	// completions
 	describeClusterClusterCmd.ValidArgsFunction = resourceNameCompletionFunc(
 		describeClusterClusterCmd.Flags().Lookup("kubeconfig"),
@@ -134,6 +159,18 @@ func validateShowConditions(showConditions string) error {
 	return nil
 }
 
+func validateWatch(watchMode string, watchInterval time.Duration) error {
+	switch client.WatchClusterMode(watchMode) {
+	case client.WatchClusterModeInformer, client.WatchClusterModePoll:
+	default:
+		return pkgerrors.Errorf("invalid --watch-mode value %q: must be one of %q or %q", watchMode, client.WatchClusterModeInformer, client.WatchClusterModePoll)
+	}
+	if watchInterval <= 0 {
+		return pkgerrors.Errorf("invalid --watch-interval value %s: must be greater than zero", watchInterval)
+	}
+	return nil
+}
+
 func runDescribeCluster(cmd *cobra.Command, name string) error {
 	ctx := context.Background()
 
@@ -142,7 +179,7 @@ func runDescribeCluster(cmd *cobra.Command, name string) error {
 		return err
 	}
 
-	tree, err := c.DescribeCluster(ctx, client.DescribeClusterOptions{
+	options := client.DescribeClusterOptions{
 		Kubeconfig:              client.Kubeconfig{Path: dc.kubeconfig, Context: dc.kubeconfigContext},
 		Namespace:               dc.namespace,
 		ClusterName:             name,
@@ -154,25 +191,80 @@ func runDescribeCluster(cmd *cobra.Command, name string) error {
 		Echo:                    dc.echo,
 		Grouping:                dc.grouping,
 		V1Beta1:                 !dc.v1beta2,
-	})
-	if err != nil {
-		return err
 	}
 
 	if cmd.Flags().Changed("color") {
 		color.NoColor = !dc.color
 	}
 
+	if dc.watch {
+		return watchDescribeCluster(ctx, c, options)
+	}
+
+	objectTree, err := c.DescribeCluster(ctx, options)
+	if err != nil {
+		return err
+	}
+
+	return printObjectTree(objectTree, os.Stdout)
+}
+
+func printObjectTree(objectTree *tree.ObjectTree, w io.Writer) error {
 	switch dc.v1beta2 {
 	case true:
-		if err := cmdtree.PrintObjectTree(tree, os.Stdout); err != nil {
+		if err := cmdtree.PrintObjectTree(objectTree, w); err != nil {
 			return pkgerrors.Wrap(err, "failed to print object tree")
 		}
 	default:
-		if err := cmdtree.PrintObjectTreeV1Beta1(tree); err != nil {
+		if err := cmdtree.PrintObjectTreeV1Beta1ToWriter(objectTree, w); err != nil {
 			return pkgerrors.Wrap(err, "failed to print object tree v1beta1")
 		}
 	}
 
 	return nil
+}
+
+func watchDescribeCluster(ctx context.Context, c client.Client, options client.DescribeClusterOptions) error {
+	ctx, cancel := signal.NotifyContext(ctx, os.Interrupt, syscall.SIGTERM)
+	defer cancel()
+
+	// When writing to a terminal, redraw the object tree in place, like watch(1);
+	// otherwise, e.g. when redirecting to a file, append each refresh to the output.
+	clearScreen := term.IsTerminal(int(os.Stdout.Fd()))
+	refreshes := 0
+
+	return c.WatchCluster(ctx, client.WatchClusterOptions{
+		DescribeClusterOptions: options,
+		Mode:                   client.WatchClusterMode(dc.watchMode),
+		Interval:               dc.watchInterval,
+		OnChange: func(objectTree *tree.ObjectTree, err error) error {
+			// Render to a buffer first, so the screen is redrawn at once without flickering.
+			buf := &bytes.Buffer{}
+			switch {
+			case clearScreen:
+				buf.WriteString("\033[H\033[2J")
+			case refreshes > 0:
+				buf.WriteString("\n")
+			}
+			refreshes++
+
+			fmt.Fprintf(buf, "%s: clusterctl describe cluster %s    %s\n\n", watchHeader(), options.ClusterName, time.Now().Format(time.DateTime))
+			if err != nil {
+				fmt.Fprintf(buf, "Error: %v\n", err)
+			} else if err := printObjectTree(objectTree, buf); err != nil {
+				return err
+			}
+
+			_, err = os.Stdout.Write(buf.Bytes())
+			return err
+		},
+	})
+}
+
+// watchHeader describes when the output is refreshed, e.g. "Every 5s".
+func watchHeader() string {
+	if client.WatchClusterMode(dc.watchMode) == client.WatchClusterModePoll {
+		return fmt.Sprintf("Every %s", dc.watchInterval)
+	}
+	return "On change"
 }

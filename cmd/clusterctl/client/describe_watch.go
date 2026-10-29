@@ -119,7 +119,12 @@ func pollCluster(ctx context.Context, interval time.Duration, describe describeF
 		case <-ticker.C:
 		}
 
-		if err := onChange(describe(ctx)); err != nil {
+		objectTree, err := describe(ctx)
+		if ctx.Err() != nil {
+			// The watch was stopped while refreshing the object tree; do not report the resulting error.
+			return nil
+		}
+		if err := onChange(objectTree, err); err != nil {
 			return err
 		}
 	}
@@ -223,6 +228,10 @@ func (w *clusterWatcher) run(ctx context.Context, describe describeFunc, onChang
 		}
 
 		objectTree, err := describe(ctx)
+		if ctx.Err() != nil {
+			// The watch was stopped while refreshing the object tree; do not report the resulting error.
+			return nil //nolint:nilerr // stopping the watch is not an error.
+		}
 		if err == nil {
 			// Start watching kinds that showed up in the object tree, e.g. the MachineInfrastructure of a new Machine.
 			if updateErr := w.update(ctx, objectTree); updateErr != nil {

@@ -300,6 +300,24 @@ func Test_pollCluster(t *testing.T) {
 	g.Expect(changes).To(Equal(3))
 }
 
+func Test_pollCluster_stoppedWhileDescribing(t *testing.T) {
+	g := NewWithT(t)
+	ctx, cancel := context.WithCancel(t.Context())
+	defer cancel()
+
+	// Stopping the watch while the object tree is refreshed cancels the requests to the management cluster.
+	describe := func(ctx context.Context) (*tree.ObjectTree, error) {
+		cancel()
+		return nil, ctx.Err()
+	}
+	onChange := func(*tree.ObjectTree, error) error {
+		t.Fatal("onChange must not be called after the watch is stopped")
+		return nil
+	}
+
+	g.Expect(pollCluster(ctx, 10*time.Millisecond, describe, onChange)).To(Succeed())
+}
+
 func partialObjectMetadata(gvk schema.GroupVersionKind, name string, labels map[string]string) *metav1.PartialObjectMetadata {
 	return &metav1.PartialObjectMetadata{
 		TypeMeta: metav1.TypeMeta{

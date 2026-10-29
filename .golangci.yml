@@ -138,6 +138,22 @@ linters:
             - sigs.k8s.io/cluster-api/version$
             - sigs.k8s.io/controller-runtime
             - sigs.k8s.io/yaml
+        ginkgo:
+          files:
+            - $all
+            - "!**/cluster-api/test/e2e/**"
+            - "!**/cluster-api/test/framework/**"
+          deny:
+            - pkg: github.com/onsi/ginkgo
+              desc: Ginkgo is only used in test/e2e and test/framework, use go test and gomega instead
+        testify:
+          files:
+            - $all
+            # Note: This test has been copied from upstream and is intentionally kept close to the original.
+            - "!**/cluster-api/util/controller/consistency_test.go"
+          deny:
+            - pkg: github.com/stretchr/testify
+              desc: Use gomega instead
     forbidigo:
       forbid:
         - pattern: ctrl.NewControllerManagedBy

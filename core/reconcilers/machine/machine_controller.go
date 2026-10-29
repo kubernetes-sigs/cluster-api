@@ -662,7 +662,7 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (ctrl.Result
 	// We only delete the node after the underlying infrastructure is gone.
 	// https://github.com/kubernetes-sigs/cluster-api/issues/2565
 	if isDeleteNodeAllowed {
-		log.Info("Deleting Node", "Node", klog.KRef("", m.Status.NodeRef.Name))
+		log.Info(fmt.Sprintf("Deleting Node %s", m.Status.NodeRef.Name), "Node", klog.KRef("", m.Status.NodeRef.Name))
 
 		var deleteNodeErr error
 		waitErr := wait.PollUntilContextTimeout(ctx, 2*time.Second, r.nodeDeletionRetryTimeout, true, func(ctx context.Context) (bool, error) {
@@ -691,7 +691,7 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (ctrl.Result
 
 	// Note: The Machine is gone once the patch removing the finalizer succeeds; if the patch fails the next reconcile logs this line again.
 	if controllerutil.ContainsFinalizer(m, clusterv1.MachineFinalizer) {
-		log.Info(fmt.Sprintf("Deleted Machine %s", m.Name), "duration", time.Since(m.DeletionTimestamp.Time).Truncate(time.Second/10))
+		log.Info(fmt.Sprintf("Machine %s deleted", m.Name), "duration", time.Since(m.DeletionTimestamp.Time).Truncate(time.Second/10))
 	}
 	controllerutil.RemoveFinalizer(m, clusterv1.MachineFinalizer)
 	return ctrl.Result{}, nil

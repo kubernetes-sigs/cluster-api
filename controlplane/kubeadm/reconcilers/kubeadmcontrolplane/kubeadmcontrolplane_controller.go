@@ -552,8 +552,8 @@ func (r *Reconciler) reconcile(ctx context.Context, controlPlane *pkg.ControlPla
 		var allMessages []string
 		machinesNeedingRolloutNames := make([]string, 0, machinesNeedingRollout.Len())
 		for _, m := range machinesNeedingRollout {
-			machinesNeedingRolloutNames = append(machinesNeedingRolloutNames, klog.KObj(m).String())
-			allMessages = append(allMessages, fmt.Sprintf("Machine %s needs rollout: %s", klog.KObj(m), strings.Join(machinesUpToDateResults[m.Name].LogMessages, ", ")))
+			machinesNeedingRolloutNames = append(machinesNeedingRolloutNames, m.Name)
+			allMessages = append(allMessages, fmt.Sprintf("Machine %s needs rollout: %s", m.Name, strings.Join(machinesUpToDateResults[m.Name].LogMessages, ", ")))
 		}
 		slices.Sort(machinesNeedingRolloutNames)
 		slices.Sort(allMessages)
@@ -578,17 +578,17 @@ func (r *Reconciler) reconcile(ctx context.Context, controlPlane *pkg.ControlPla
 	// We are creating the first replica
 	case numMachines < desiredReplicas && numMachines == 0:
 		// Create new Machine w/ init
-		log.V(4).Info("Initializing control plane", "desiredReplicas", desiredReplicas, "replicas", numMachines)
+		log.V(4).Info(fmt.Sprintf("KubeadmControlPlane %s is initializing by creating 1 Machine", controlPlane.KCP.Name), "desiredReplicas", desiredReplicas, "replicas", numMachines)
 		v1beta1conditions.MarkFalse(controlPlane.KCP, controlplanev1.AvailableV1Beta1Condition, controlplanev1.WaitingForKubeadmInitV1Beta1Reason, clusterv1.ConditionSeverityInfo, "")
 		return r.initializeControlPlane(ctx, controlPlane)
 	// We are scaling up
 	case numMachines < desiredReplicas && numMachines > 0:
 		// Create a new Machine w/ join
-		log.V(4).Info("Scaling up control plane", "desiredReplicas", desiredReplicas, "replicas", numMachines)
+		log.V(4).Info(fmt.Sprintf("KubeadmControlPlane %s is scaling up to %d replicas by creating 1 Machine", controlPlane.KCP.Name, desiredReplicas), "desiredReplicas", desiredReplicas, "replicas", numMachines)
 		return r.scaleUpControlPlane(ctx, controlPlane, true)
 	// We are scaling down
 	case numMachines > desiredReplicas:
-		log.V(4).Info("Scaling down control plane", "desiredReplicas", desiredReplicas, "replicas", numMachines)
+		log.V(4).Info(fmt.Sprintf("KubeadmControlPlane %s is scaling down to %d replicas by deleting 1 Machine", controlPlane.KCP.Name, desiredReplicas), "desiredReplicas", desiredReplicas, "replicas", numMachines)
 		// The last parameter (i.e. machines needing to be rolled out) should always be empty here.
 		// Pick the Machine that we should scale down.
 		machineToDelete, err := selectMachineForInPlaceUpdateOrScaleDown(ctx, controlPlane, collections.Machines{})
@@ -1361,14 +1361,16 @@ func (r *Reconciler) reconcileEtcdMembers(ctx context.Context, controlPlane *pkg
 	// If there are unexpected members, but there is a machine not yet reporting the node name,
 	// there is chance that the unexpected member is the one hosted on the provisioning machine, so wait.
 	if len(provisioningMachines) > 0 {
-		log.Info(fmt.Sprintf("Etcd members %s without corresponding Machines, potential match with provisioning machines %s", strings.Join(unexpectedMembersMsg, ", "), strings.Join(provisioningMachines.UnsortedList(), ", ")))
+		log.Info(fmt.Sprintf("Etcd members %s without corresponding Machines, potential match with provisioning machines %s", strings.Join(unexpectedMembersMsg, ", "), strings.Join(provisioningMachines.UnsortedList(), ", ")),
+			"unexpectedEtcdMembers", unexpectedMembersMsg, "provisioningMachines", sets.List(provisioningMachines))
 		return ctrl.Result{}, nil
 	}
 	// An unnamed member is normally a learner added by kubeadm before the local
 	// etcd static Pod starts. Keep it while a Node was recently registered (grace period) so
 	// we prevent that a NodeRef-before-etcd-name race leads the code below to remove the etcd member too aggressively.
 	if hasUnnamedUnexpectedMember && len(machinesWithNewlyRegisteredNodes) > 0 {
-		log.Info(fmt.Sprintf("Etcd members %s without corresponding Machines, potential match with machines with newly provisioned nodes %s", strings.Join(unexpectedMembersMsg, ", "), strings.Join(machinesWithNewlyRegisteredNodes.UnsortedList(), ", ")))
+		log.Info(fmt.Sprintf("Etcd members %s without corresponding Machines, potential match with machines with newly provisioned nodes %s", strings.Join(unexpectedMembersMsg, ", "), strings.Join(machinesWithNewlyRegisteredNodes.UnsortedList(), ", ")),
+			"unexpectedEtcdMembers", unexpectedMembersMsg, "machinesWithNewlyRegisteredNodes", sets.List(machinesWithNewlyRegisteredNodes))
 		return ctrl.Result{}, nil
 	}
 
@@ -1464,7 +1466,7 @@ func (r *Reconciler) reconcilePreTerminateHook(ctx context.Context, controlPlane
 			return ctrl.Result{}, err
 		}
 
-		log.Info("Waiting for Machines to be deleted", "machines", strings.Join(controlPlane.Machines.Filter(collections.HasDeletionTimestamp).Names(), ", "))
+		log.Info("Waiting for Machines to be deleted", "Machines", klog.KObjSlice(controlPlane.Machines.Filter(collections.HasDeletionTimestamp).UnsortedList()))
 		return ctrl.Result{RequeueAfter: deleteRequeueAfter}, nil
 	}
 
@@ -1495,7 +1497,7 @@ func (r *Reconciler) reconcilePreTerminateHook(ctx context.Context, controlPlane
 			return ctrl.Result{}, err
 		}
 
-		log.Info("Waiting for Machines to be deleted", "machines", strings.Join(controlPlane.Machines.Filter(collections.HasDeletionTimestamp).Names(), ", "))
+		log.Info("Waiting for Machines to be deleted", "Machines", klog.KObjSlice(controlPlane.Machines.Filter(collections.HasDeletionTimestamp).UnsortedList()))
 		return ctrl.Result{RequeueAfter: deleteRequeueAfter}, nil
 	}
 
@@ -1531,7 +1533,7 @@ func (r *Reconciler) reconcilePreTerminateHook(ctx context.Context, controlPlane
 			return ctrl.Result{}, err
 		}
 
-		log.Info("Waiting for Machines to be deleted", "machines", strings.Join(controlPlane.Machines.Filter(collections.HasDeletionTimestamp).Names(), ", "))
+		log.Info("Waiting for Machines to be deleted", "Machines", klog.KObjSlice(controlPlane.Machines.Filter(collections.HasDeletionTimestamp).UnsortedList()))
 		return ctrl.Result{RequeueAfter: deleteRequeueAfter}, nil
 	}
 
@@ -1572,7 +1574,7 @@ func (r *Reconciler) reconcilePreTerminateHook(ctx context.Context, controlPlane
 		return ctrl.Result{}, err
 	}
 
-	log.Info("Waiting for Machines to be deleted", "machines", strings.Join(controlPlane.Machines.Filter(collections.HasDeletionTimestamp).Names(), ", "))
+	log.Info("Waiting for Machines to be deleted", "Machines", klog.KObjSlice(controlPlane.Machines.Filter(collections.HasDeletionTimestamp).UnsortedList()))
 	return ctrl.Result{RequeueAfter: deleteRequeueAfter}, nil
 }
 
@@ -1792,6 +1794,8 @@ func (r *Reconciler) reconcileCertificateExpiries(ctx context.Context, controlPl
 }
 
 func (r *Reconciler) adoptMachines(ctx context.Context, kcp *controlplanev1.KubeadmControlPlane, machines collections.Machines, cluster *clusterv1.Cluster) error {
+	log := ctrl.LoggerFrom(ctx)
+
 	// We do an uncached full quorum read against the KCP to avoid re-adopting Machines the garbage collector just intentionally orphaned
 	// See https://github.com/kubernetes/kubernetes/issues/42639
 	uncached := controlplanev1.KubeadmControlPlane{}
@@ -1859,6 +1863,8 @@ func (r *Reconciler) adoptMachines(ctx context.Context, kcp *controlplanev1.Kube
 		if err := r.Client.Patch(ctx, m, client.MergeFrom(original)); err != nil {
 			return err
 		}
+
+		log.Info(fmt.Sprintf("Machine %s adopted", m.Name), "Machine", klog.KObj(m), "reason", "Adoption")
 	}
 	return nil
 }

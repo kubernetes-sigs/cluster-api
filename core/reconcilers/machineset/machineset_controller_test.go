@@ -3277,7 +3277,7 @@ func TestMachineSetReconciler_deleteMachines(t *testing.T) {
 			g.Expect(res.IsZero()).To(BeTrue(), "unexpected non zero result when deleting machines")
 
 			machines := &clusterv1.MachineList{}
-			g.Expect(fakeClient.List(ctx, machines)).ToNot(HaveOccurred(), "unexpected error when listing machines")
+			g.Expect(fakeClient.List(ctx, machines)).To(Succeed(), "unexpected error when listing machines")
 
 			machineNames := []string{}
 			for i := range machines.Items {
@@ -3613,7 +3613,7 @@ func TestMachineSetReconciler_startMoveMachines(t *testing.T) {
 			g.Expect(res.IsZero()).To(BeTrue(), "unexpected non zero result when moving machines")
 
 			machines := &clusterv1.MachineList{}
-			g.Expect(fakeClient.List(ctx, machines)).ToNot(HaveOccurred(), "unexpected error when listing machines")
+			g.Expect(fakeClient.List(ctx, machines)).To(Succeed(), "unexpected error when listing machines")
 			g.Expect(machinesByMachineSet(machines, tt.ms)).To(ConsistOf(tt.wantMachinesNotMoved))
 
 			movedMachines := machinesByMachineSet(machines, tt.targetMS)
@@ -4070,7 +4070,7 @@ func TestMachineSetReconciler_triggerInPlaceUpdate(t *testing.T) {
 			g.Expect(res.IsZero()).To(BeTrue(), "unexpected non zero result when triggering in-place update")
 
 			machines := &clusterv1.MachineList{}
-			g.Expect(fakeClient.List(ctx, machines)).ToNot(HaveOccurred(), "unexpected error when listing machines")
+			g.Expect(fakeClient.List(ctx, machines)).To(Succeed(), "unexpected error when listing machines")
 			g.Expect(machinesNotInPlaceUpdating(machines)).To(ConsistOf(tt.wantMachinesNotInPlaceUpdating))
 
 			updatingMachines := machinesInPlaceUpdating(machines)
@@ -4512,7 +4512,7 @@ func TestReconciler_reconcileDelete(t *testing.T) {
 			g.Expect(tt.machineSet).To(BeComparableTo(tt.want))
 
 			machineList := &clusterv1.MachineList{}
-			g.Expect(c.List(ctx, machineList, client.InNamespace("default"))).ToNot(HaveOccurred())
+			g.Expect(c.List(ctx, machineList, client.InNamespace("default"))).To(Succeed())
 
 			// Remove ResourceVersion so we can actually compare.
 			for i := range machineList.Items {

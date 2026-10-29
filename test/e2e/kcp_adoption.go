@@ -138,7 +138,7 @@ func KCPAdoptionSpec(ctx context.Context, inputGetter func() KCPAdoptionSpecInpu
 
 		By("Applying the cluster template yaml to the cluster with the 'initial' selector")
 		selector := labels.NewSelector().Add(must(labels.NewRequirement("kcp-adoption.step1", selection.Exists, nil)))
-		Expect(input.BootstrapClusterProxy.CreateOrUpdate(ctx, workloadClusterTemplate, framework.WithLabelSelector(selector))).ShouldNot(HaveOccurred())
+		Expect(input.BootstrapClusterProxy.CreateOrUpdate(ctx, workloadClusterTemplate, framework.WithLabelSelector(selector))).Should(Succeed())
 
 		cluster = framework.DiscoveryAndWaitForCluster(ctx, framework.DiscoveryAndWaitForClusterInput{
 			Getter:    client,
@@ -160,7 +160,7 @@ func KCPAdoptionSpec(ctx context.Context, inputGetter func() KCPAdoptionSpecInpu
 
 		By("Applying the cluster template yaml to the cluster with the 'kcp' selector")
 		selector = labels.NewSelector().Add(must(labels.NewRequirement("kcp-adoption.step2", selection.Exists, nil)))
-		Expect(input.BootstrapClusterProxy.CreateOrUpdate(ctx, workloadClusterTemplate, framework.WithLabelSelector(selector))).ShouldNot(HaveOccurred())
+		Expect(input.BootstrapClusterProxy.CreateOrUpdate(ctx, workloadClusterTemplate, framework.WithLabelSelector(selector))).Should(Succeed())
 
 		var controlPlane *controlplanev1.KubeadmControlPlane
 		Eventually(func() *controlplanev1.KubeadmControlPlane {

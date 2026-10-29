@@ -496,7 +496,7 @@ func TestMachine_Reconcile(t *testing.T) {
 
 	// Set bootstrap ready.
 	bootstrapPatch := client.MergeFrom(defaultBootstrap.DeepCopy())
-	g.Expect(unstructured.SetNestedField(defaultBootstrap.Object, true, "status", "initialization", "dataSecretCreated")).ToNot(HaveOccurred())
+	g.Expect(unstructured.SetNestedField(defaultBootstrap.Object, true, "status", "initialization", "dataSecretCreated")).To(Succeed())
 	g.Expect(env.Status().Patch(ctx, defaultBootstrap, bootstrapPatch)).To(Succeed())
 
 	// Set infrastructure ready.
@@ -516,7 +516,7 @@ func TestMachine_Reconcile(t *testing.T) {
 		return readyCondition.Status == metav1.ConditionTrue
 	}, timeout).Should(BeTrue())
 
-	g.Expect(env.Delete(ctx, machine)).ToNot(HaveOccurred())
+	g.Expect(env.Delete(ctx, machine)).To(Succeed())
 	// Wait for Machine to be deleted.
 	g.Eventually(func() bool {
 		if err := env.Get(ctx, key, machine); err != nil {
@@ -1342,7 +1342,7 @@ func TestMachineV1Beta1Conditions(t *testing.T) {
 			}
 
 			m = &clusterv1.Machine{}
-			g.Expect(r.Client.Get(ctx, client.ObjectKeyFromObject(&machine), m)).ToNot(HaveOccurred())
+			g.Expect(r.Client.Get(ctx, client.ObjectKeyFromObject(&machine), m)).To(Succeed())
 
 			assertConditions(t, m, tt.conditionsToAssert...)
 			assertV1Beta1Conditions(t, m, tt.v1beta1ConditionsToAssert...)

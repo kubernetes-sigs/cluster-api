@@ -970,7 +970,7 @@ func TestReconciler_reconcileDelete(t *testing.T) {
 			g.Expect(tt.machineDeployment).To(BeComparableTo(tt.want))
 
 			machineSetList := &clusterv1.MachineSetList{}
-			g.Expect(c.List(ctx, machineSetList, client.InNamespace("default"))).ToNot(HaveOccurred())
+			g.Expect(c.List(ctx, machineSetList, client.InNamespace("default"))).To(Succeed())
 
 			// Remove ResourceVersion so we can actually compare.
 			for i := range machineSetList.Items {

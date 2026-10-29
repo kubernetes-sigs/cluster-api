@@ -141,7 +141,7 @@ func TestReconcileShim(t *testing.T) {
 		}
 
 		// Pre-create a shim
-		g.Expect(env.CreateAndWait(ctx, cluster1Shim.DeepCopy())).ToNot(HaveOccurred())
+		g.Expect(env.CreateAndWait(ctx, cluster1Shim.DeepCopy())).To(Succeed())
 
 		// Run reconcileClusterShim.
 		r := Reconciler{
@@ -190,7 +190,7 @@ func TestReconcileShim(t *testing.T) {
 		s.Current.ControlPlane.Object.SetOwnerReferences(ownerRefs)
 
 		// Pre-create a shim
-		g.Expect(env.CreateAndWait(ctx, cluster1Shim.DeepCopy())).ToNot(HaveOccurred())
+		g.Expect(env.CreateAndWait(ctx, cluster1Shim.DeepCopy())).To(Succeed())
 
 		// Run reconcileClusterShim.
 		r := Reconciler{
@@ -240,7 +240,7 @@ func TestReconcileShim(t *testing.T) {
 		s.Current.ControlPlane.Object.SetOwnerReferences(ownerRefs)
 
 		// Pre-create a shim
-		g.Expect(env.CreateAndWait(ctx, cluster1Shim.DeepCopy())).ToNot(HaveOccurred())
+		g.Expect(env.CreateAndWait(ctx, cluster1Shim.DeepCopy())).To(Succeed())
 
 		// Run reconcileClusterShim.
 		r := Reconciler{

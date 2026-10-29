@@ -162,6 +162,7 @@ linters:
           msg: Pass a context.Context instead
     ginkgolinter:
       forbid-focus-container: true
+      force-succeed: true
     gocritic:
       disabled-checks:
         - appendAssign

@@ -1222,7 +1222,7 @@ func TestMachinePoolConditions(t *testing.T) {
 
 			m := &clusterv1.MachinePool{}
 			machinePoolKey := client.ObjectKeyFromObject(machinePool)
-			g.Expect(r.Client.Get(ctx, machinePoolKey, m)).ToNot(HaveOccurred())
+			g.Expect(r.Client.Get(ctx, machinePoolKey, m)).To(Succeed())
 
 			tt.conditionAssertFunc(t, m)
 		})

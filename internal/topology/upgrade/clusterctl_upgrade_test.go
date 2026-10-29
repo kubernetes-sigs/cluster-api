@@ -924,7 +924,7 @@ func checkTypeToOmitZeroType(mustBeSet bool) func(obj *unstructured.Unstructured
 func assertRollout(g *WithT, cluster *clusterv1.Cluster, refsBefore, refsAfter map[clusterv1.ContractVersionedObjectReference]int64) {
 	actualCluster := &clusterv1.Cluster{}
 	err := env.Get(ctx, client.ObjectKeyFromObject(cluster), actualCluster)
-	g.Expect(err).To(Succeed())
+	g.Expect(err).ToNot(HaveOccurred())
 
 	clusterRef := clusterv1.ContractVersionedObjectReference{
 		APIGroup: clusterv1.GroupVersion.Group,
@@ -934,7 +934,7 @@ func assertRollout(g *WithT, cluster *clusterv1.Cluster, refsBefore, refsAfter m
 	g.Expect(refsAfter[clusterRef]).To(BeNumerically(">", refsBefore[clusterRef]), "cluster unexpected change") // Cluster is expected to have an additional generation due to the rebase
 
 	refObj, err := getReferencedObject(ctx, env.GetClient(), actualCluster.Spec.InfrastructureRef, "v1beta2", cluster.Namespace)
-	g.Expect(err).To(Succeed())
+	g.Expect(err).ToNot(HaveOccurred())
 	infraClusterRef := clusterv1.ContractVersionedObjectReference{
 		APIGroup: refObj.GroupVersionKind().Group,
 		Kind:     refObj.GetKind(),
@@ -943,7 +943,7 @@ func assertRollout(g *WithT, cluster *clusterv1.Cluster, refsBefore, refsAfter m
 	g.Expect(refsAfter[infraClusterRef]).To(BeNumerically(">", refsBefore[infraClusterRef]), "cluster.spec.infrastructureRef has unexpected generation") // InfrastructureRef is expected to have an additional generation due to the rebase.
 
 	refObj, err = getReferencedObject(ctx, env.GetClient(), actualCluster.Spec.ControlPlaneRef, "v1beta2", cluster.Namespace)
-	g.Expect(err).To(Succeed())
+	g.Expect(err).ToNot(HaveOccurred())
 	controlPlaneRef := clusterv1.ContractVersionedObjectReference{
 		APIGroup: refObj.GroupVersionKind().Group,
 		Kind:     refObj.GetKind(),
@@ -952,9 +952,9 @@ func assertRollout(g *WithT, cluster *clusterv1.Cluster, refsBefore, refsAfter m
 	g.Expect(refsAfter[controlPlaneRef]).To(BeNumerically(">", refsBefore[controlPlaneRef]), "cluster.spec.controlPlaneRef has unexpected generation") // controlPlaneRef is expected to have an additional generation due to the rebase.
 
 	cpInfraRef, err := contract.ControlPlane().MachineTemplate().InfrastructureRef().Get(refObj)
-	g.Expect(err).To(Succeed())
+	g.Expect(err).ToNot(HaveOccurred())
 	refObj, err = getReferencedObject(ctx, env.GetClient(), *cpInfraRef, "v1beta2", cluster.Namespace)
-	g.Expect(err).To(Succeed())
+	g.Expect(err).ToNot(HaveOccurred())
 	controlPlaneInfraRef := clusterv1.ContractVersionedObjectReference{
 		APIGroup: refObj.GroupVersionKind().Group,
 		Kind:     refObj.GetKind(),
@@ -968,7 +968,7 @@ func assertRollout(g *WithT, cluster *clusterv1.Cluster, refsBefore, refsAfter m
 		clusterv1.ClusterNameLabel:          cluster.Name,
 		clusterv1.ClusterTopologyOwnedLabel: "",
 	})
-	g.Expect(err).To(Succeed())
+	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(machineDeployments.Items).To(HaveLen(1))
 
 	for _, md := range machineDeployments.Items {
@@ -980,7 +980,7 @@ func assertRollout(g *WithT, cluster *clusterv1.Cluster, refsBefore, refsAfter m
 		g.Expect(refsAfter[mdRef]).To(Equal(refsBefore[mdRef]+1), "machineDeployment "+md.Name+" unexpected change") // MachineDeployment is expected to have an additional generation due to rollout
 
 		refObj, err = getReferencedObject(ctx, env.GetClient(), md.Spec.Template.Spec.InfrastructureRef, "v1beta2", cluster.Namespace)
-		g.Expect(err).To(Succeed())
+		g.Expect(err).ToNot(HaveOccurred())
 		mdInfraRef := clusterv1.ContractVersionedObjectReference{
 			APIGroup: refObj.GroupVersionKind().Group,
 			Kind:     refObj.GetKind(),
@@ -990,7 +990,7 @@ func assertRollout(g *WithT, cluster *clusterv1.Cluster, refsBefore, refsAfter m
 		g.Expect(refsAfter[mdInfraRef]).To(Equal(int64(1)), "machineDeployment "+md.Name+" .spec.template.spec.infrastructureRef has unexpected generation")
 
 		refObj, err = getReferencedObject(ctx, env.GetClient(), md.Spec.Template.Spec.Bootstrap.ConfigRef, "v1beta2", cluster.Namespace)
-		g.Expect(err).To(Succeed())
+		g.Expect(err).ToNot(HaveOccurred())
 		mdBootstrapRef := clusterv1.ContractVersionedObjectReference{
 			APIGroup: refObj.GroupVersionKind().Group,
 			Kind:     refObj.GetKind(),
@@ -1007,7 +1007,7 @@ func assertRollout(g *WithT, cluster *clusterv1.Cluster, refsBefore, refsAfter m
 func assertNoRollout(g *WithT, cluster *clusterv1.Cluster, refsBefore, refsAfter map[clusterv1.ContractVersionedObjectReference]int64) {
 	actualCluster := &clusterv1.Cluster{}
 	err := env.Get(ctx, client.ObjectKeyFromObject(cluster), actualCluster)
-	g.Expect(err).To(Succeed())
+	g.Expect(err).ToNot(HaveOccurred())
 
 	clusterRef := clusterv1.ContractVersionedObjectReference{
 		APIGroup: clusterv1.GroupVersion.Group,
@@ -1017,7 +1017,7 @@ func assertNoRollout(g *WithT, cluster *clusterv1.Cluster, refsBefore, refsAfter
 	g.Expect(refsAfter[clusterRef]).To(Equal(refsBefore[clusterRef]+1), "cluster unexpected change") // Cluster is expected to have an additional generation due to the rebase
 
 	refObj, err := getReferencedObject(ctx, env.GetClient(), actualCluster.Spec.InfrastructureRef, "v1beta2", cluster.Namespace)
-	g.Expect(err).To(Succeed())
+	g.Expect(err).ToNot(HaveOccurred())
 	infraClusterRef := clusterv1.ContractVersionedObjectReference{
 		APIGroup: refObj.GroupVersionKind().Group,
 		Kind:     refObj.GetKind(),
@@ -1026,7 +1026,7 @@ func assertNoRollout(g *WithT, cluster *clusterv1.Cluster, refsBefore, refsAfter
 	g.Expect(refsAfter[infraClusterRef]).To(Equal(refsBefore[infraClusterRef]), "cluster.spec.infrastructureRef unexpected change")
 
 	refObj, err = getReferencedObject(ctx, env.GetClient(), actualCluster.Spec.ControlPlaneRef, "v1beta2", cluster.Namespace)
-	g.Expect(err).To(Succeed())
+	g.Expect(err).ToNot(HaveOccurred())
 	controlPlaneRef := clusterv1.ContractVersionedObjectReference{
 		APIGroup: refObj.GroupVersionKind().Group,
 		Kind:     refObj.GetKind(),
@@ -1035,9 +1035,9 @@ func assertNoRollout(g *WithT, cluster *clusterv1.Cluster, refsBefore, refsAfter
 	g.Expect(refsAfter[controlPlaneRef]).To(Equal(refsBefore[controlPlaneRef]), "cluster.spec.controlPlaneRef unexpected change")
 
 	cpInfraRef, err := contract.ControlPlane().MachineTemplate().InfrastructureRef().Get(refObj)
-	g.Expect(err).To(Succeed())
+	g.Expect(err).ToNot(HaveOccurred())
 	refObj, err = getReferencedObject(ctx, env.GetClient(), *cpInfraRef, "v1beta2", cluster.Namespace)
-	g.Expect(err).To(Succeed())
+	g.Expect(err).ToNot(HaveOccurred())
 	controlPlaneInfraRef := clusterv1.ContractVersionedObjectReference{
 		APIGroup: refObj.GroupVersionKind().Group,
 		Kind:     refObj.GetKind(),
@@ -1050,7 +1050,7 @@ func assertNoRollout(g *WithT, cluster *clusterv1.Cluster, refsBefore, refsAfter
 		clusterv1.ClusterNameLabel:          cluster.Name,
 		clusterv1.ClusterTopologyOwnedLabel: "",
 	})
-	g.Expect(err).To(Succeed())
+	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(machineDeployments.Items).To(HaveLen(1))
 
 	for _, md := range machineDeployments.Items {
@@ -1062,7 +1062,7 @@ func assertNoRollout(g *WithT, cluster *clusterv1.Cluster, refsBefore, refsAfter
 		g.Expect(refsAfter[mdRef]).To(Equal(refsBefore[mdRef]), "machineDeployment "+md.Name+" unexpected change")
 
 		refObj, err = getReferencedObject(ctx, env.GetClient(), md.Spec.Template.Spec.InfrastructureRef, "v1beta2", cluster.Namespace)
-		g.Expect(err).To(Succeed())
+		g.Expect(err).ToNot(HaveOccurred())
 		mdInfraRef := clusterv1.ContractVersionedObjectReference{
 			APIGroup: refObj.GroupVersionKind().Group,
 			Kind:     refObj.GetKind(),
@@ -1071,7 +1071,7 @@ func assertNoRollout(g *WithT, cluster *clusterv1.Cluster, refsBefore, refsAfter
 		g.Expect(refsAfter[mdInfraRef]).To(Equal(refsBefore[mdInfraRef]), "machineDeployment "+md.Name+" .spec.template.spec.infrastructureRef unexpected change triggering a rollout")
 
 		refObj, err = getReferencedObject(ctx, env.GetClient(), md.Spec.Template.Spec.Bootstrap.ConfigRef, "v1beta2", cluster.Namespace)
-		g.Expect(err).To(Succeed())
+		g.Expect(err).ToNot(HaveOccurred())
 		mdBootstrapRef := clusterv1.ContractVersionedObjectReference{
 			APIGroup: refObj.GroupVersionKind().Group,
 			Kind:     refObj.GetKind(),

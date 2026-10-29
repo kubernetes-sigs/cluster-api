@@ -202,7 +202,7 @@ func TestReconcileKubeconfigSecretDoesNotAdoptsUserSecrets(t *testing.T) {
 	}
 
 	result, err := r.reconcileKubeconfig(ctx, controlPlane)
-	g.Expect(err).To(Succeed())
+	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(result).To(BeZero())
 
 	kubeconfigSecret := &corev1.Secret{}
@@ -374,7 +374,7 @@ func TestCloneConfigsAndGenerateMachineAndSyncMachines(t *testing.T) {
 	}
 
 	_, err := r.cloneConfigsAndGenerateMachine(ctx, cluster, kcp, true, "")
-	g.Expect(err).To(Succeed())
+	g.Expect(err).ToNot(HaveOccurred())
 
 	machineList := &clusterv1.MachineList{}
 	g.Expect(env.GetAPIReader().List(ctx, machineList, client.InNamespace(cluster.Namespace))).To(Succeed())

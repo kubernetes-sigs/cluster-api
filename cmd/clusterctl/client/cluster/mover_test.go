@@ -887,7 +887,7 @@ func Test_objectMover_restoreTargetObject(t *testing.T) {
 			g.Expect(err).ToNot(HaveOccurred())
 
 			for i := range objs {
-				g.Expect(graph.addRestoredObj(&objs[i])).ToNot(HaveOccurred())
+				g.Expect(graph.addRestoredObj(&objs[i])).To(Succeed())
 			}
 
 			for _, node := range graph.uidToNode {
@@ -1143,7 +1143,7 @@ func Test_objectMover_fromDirectory(t *testing.T) {
 			g.Expect(err).ToNot(HaveOccurred())
 
 			for i := range objs {
-				g.Expect(graph.addRestoredObj(&objs[i])).ToNot(HaveOccurred())
+				g.Expect(graph.addRestoredObj(&objs[i])).To(Succeed())
 			}
 
 			// fromDirectory works on the target cluster which does not yet have objs to discover
@@ -2088,7 +2088,7 @@ func Test_createTargetObject(t *testing.T) {
 					Namespace: "ns1",
 					Name:      "foo",
 				}
-				g.Expect(toClient.Get(context.Background(), key, c)).ToNot(HaveOccurred())
+				g.Expect(toClient.Get(context.Background(), key, c)).To(Succeed())
 				g.Expect(c.OwnerReferences).To(HaveLen(1))
 				g.Expect(c.OwnerReferences[0].Controller).To(Equal(ptr.To(true)))
 			},
@@ -2128,7 +2128,7 @@ func Test_createTargetObject(t *testing.T) {
 					Namespace: "ns1",
 					Name:      "foo",
 				}
-				g.Expect(toClient.Get(context.Background(), key, c)).ToNot(HaveOccurred())
+				g.Expect(toClient.Get(context.Background(), key, c)).To(Succeed())
 				g.Expect(c.Annotations).To(BeEmpty())
 			},
 		},
@@ -2174,7 +2174,7 @@ func Test_createTargetObject(t *testing.T) {
 					Namespace: "mutatedns1",
 					Name:      "foo",
 				}
-				g.Expect(toClient.Get(context.Background(), key, c)).ToNot(HaveOccurred())
+				g.Expect(toClient.Get(context.Background(), key, c)).To(Succeed())
 				g.Expect(c.Annotations).To(BeEmpty())
 			},
 		},
@@ -2210,7 +2210,7 @@ func Test_createTargetObject(t *testing.T) {
 				key := client.ObjectKey{
 					Name: "foo",
 				}
-				g.Expect(toClient.Get(context.Background(), key, c)).ToNot(HaveOccurred())
+				g.Expect(toClient.Get(context.Background(), key, c)).To(Succeed())
 				g.Expect(c.Annotations).ToNot(BeEmpty())
 			},
 		},
@@ -2250,7 +2250,7 @@ func Test_createTargetObject(t *testing.T) {
 					Namespace: "ns1",
 					Name:      "foo",
 				}
-				g.Expect(toClient.Get(context.Background(), key, c)).ToNot(HaveOccurred())
+				g.Expect(toClient.Get(context.Background(), key, c)).To(Succeed())
 				g.Expect(c.Annotations).ToNot(BeEmpty())
 			},
 		},

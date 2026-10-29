@@ -245,7 +245,7 @@ func ScaleMachinePoolTopologyAndWait(ctx context.Context, input ScaleMachinePool
 				clusterv1.ClusterNameLabel:                    input.Cluster.Name,
 				clusterv1.ClusterTopologyMachinePoolNameLabel: mpTopology.Name,
 			},
-		)).ToNot(HaveOccurred())
+		)).To(Succeed())
 		g.Expect(mpList.Items).To(HaveLen(1))
 		mp = mpList.Items[0]
 		return *mp.Spec.Replicas

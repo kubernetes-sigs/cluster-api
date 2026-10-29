@@ -442,20 +442,20 @@ func TestComputeControlPlane(t *testing.T) {
 	jsonValue, err := json.Marshal(&clusterClassReadinessGates)
 	g.Expect(err).ToNot(HaveOccurred())
 	var expectedClusterClassReadinessGates []interface{}
-	g.Expect(json.Unmarshal(jsonValue, &expectedClusterClassReadinessGates)).ToNot(HaveOccurred())
+	g.Expect(json.Unmarshal(jsonValue, &expectedClusterClassReadinessGates)).To(Succeed())
 	jsonValue, err = json.Marshal(&readinessGates)
 	g.Expect(err).ToNot(HaveOccurred())
 	var expectedReadinessGates []interface{}
-	g.Expect(json.Unmarshal(jsonValue, &expectedReadinessGates)).ToNot(HaveOccurred())
+	g.Expect(json.Unmarshal(jsonValue, &expectedReadinessGates)).To(Succeed())
 
 	jsonValue, err = json.Marshal(&clusterClassTaints)
 	g.Expect(err).ToNot(HaveOccurred())
 	var expectedClusterClassTaints []interface{}
-	g.Expect(json.Unmarshal(jsonValue, &expectedClusterClassTaints)).ToNot(HaveOccurred())
+	g.Expect(json.Unmarshal(jsonValue, &expectedClusterClassTaints)).To(Succeed())
 	jsonValue, err = json.Marshal(&taints)
 	g.Expect(err).ToNot(HaveOccurred())
 	var expectedTaints []interface{}
-	g.Expect(json.Unmarshal(jsonValue, &expectedTaints)).ToNot(HaveOccurred())
+	g.Expect(json.Unmarshal(jsonValue, &expectedTaints)).To(Succeed())
 
 	scheme := runtime.NewScheme()
 	_ = clusterv1.AddToScheme(scheme)

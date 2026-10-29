@@ -382,7 +382,7 @@ func (p *clusterProxy) Create(ctx context.Context, resources []byte, opts ...Cre
 			if retryDisabled {
 				err = p.GetClient().Create(ctx, &o, config.createOpts...)
 			} else {
-				err = wait.PollUntilContextTimeout(ctx, config.pollInterval, config.pollTimeout, true /*immediate*/, func(ctx context.Context) (bool, error) {
+				err = wait.PollUntilContextTimeout(ctx, config.pollInterval, config.pollTimeout, true /* immediate */, func(ctx context.Context) (bool, error) {
 					if err := p.GetClient().Create(ctx, &o, config.createOpts...); err != nil {
 						if apierrors.IsAlreadyExists(err) {
 							// Retrying won't help. Abort early.
@@ -442,7 +442,7 @@ func (p *clusterProxy) CreateOrUpdate(ctx context.Context, resources []byte, opt
 					if retryDisabled {
 						err = p.GetClient().Create(ctx, &o, config.createOpts...)
 					} else {
-						err = wait.PollUntilContextTimeout(ctx, config.pollInterval, config.pollTimeout, true /*immediate*/, func(ctx context.Context) (bool, error) {
+						err = wait.PollUntilContextTimeout(ctx, config.pollInterval, config.pollTimeout, true /* immediate */, func(ctx context.Context) (bool, error) {
 							if err := p.GetClient().Create(ctx, &o, config.createOpts...); err != nil {
 								if apierrors.IsAlreadyExists(err) {
 									// Retrying won't help. Abort early.
@@ -466,7 +466,7 @@ func (p *clusterProxy) CreateOrUpdate(ctx context.Context, resources []byte, opt
 				if retryDisabled {
 					err = p.GetClient().Update(ctx, &o, config.updateOpts...)
 				} else {
-					err = wait.PollUntilContextTimeout(ctx, config.pollInterval, config.pollTimeout, true /*immediate*/, func(ctx context.Context) (bool, error) {
+					err = wait.PollUntilContextTimeout(ctx, config.pollInterval, config.pollTimeout, true /* immediate */, func(ctx context.Context) (bool, error) {
 						if err := p.GetClient().Update(ctx, &o, config.updateOpts...); err != nil {
 							log.Logf("error creating %s %s %s, will retry: %v", o.GetAPIVersion(), o.GetKind(), klog.KObj(&o), err)
 							return false, nil

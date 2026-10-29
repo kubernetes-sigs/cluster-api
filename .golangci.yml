@@ -325,6 +325,32 @@ linters:
         #
         - name: bool-literal-in-expr
         - name: constant-logical-expr
+        - name: atomic
+        - name: comment-spacings
+          arguments:
+            - nolint
+            - +kubebuilder
+            - +optional
+            - +required
+            - +listType
+            - +listMapKey
+            - +enum
+            - go:build
+        - name: datarace
+        - name: defer
+        - name: duplicated-imports
+        - name: forbidden-call-in-wg-go
+        - name: identical-branches
+        - name: identical-ifelseif-conditions
+        - name: identical-switch-conditions
+        - name: inefficient-map-lookup
+        - name: string-of-int
+        - name: time-date
+        - name: time-equal
+        - name: unconditional-recursion
+        - name: unnecessary-if
+        - name: useless-fallthrough
+        - name: waitgroup-by-value
   exclusions:
     generated: strict
     paths:

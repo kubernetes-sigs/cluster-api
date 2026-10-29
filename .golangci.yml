@@ -161,10 +161,14 @@ linters:
         - wrapperFunc
         - rangeValCopy
         - hugeParam
+        - importShadow
+        - paramTypeCombine
       enabled-tags:
         - diagnostic
         - experimental
+        - opinionated
         - performance
+        - style
     godot:
       #   declarations - for top level declaration comments (default);
       #   toplevel     - for top level comments;

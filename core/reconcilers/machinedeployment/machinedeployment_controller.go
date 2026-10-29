@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -70,6 +71,9 @@ var (
 // machineDeploymentManagerName is the manager name used for Server-Side-Apply (SSA) operations
 // in the MachineDeployment controller.
 const machineDeploymentManagerName = "capi-machinedeployment"
+
+// logRateLimitInterval is the interval at which log lines repeated on every reconcile while waiting for something are logged.
+const logRateLimitInterval = time.Minute
 
 // Update permissions on /finalizers subresrouce is required on management clusters with 'OwnerReferencesPermissionEnforcement' plugin enabled.
 // See: https://kubernetes.io/docs/reference/access-authn-authz/admission-controllers/#ownerreferencespermissionenforcement
@@ -515,6 +519,7 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) error {
 			}
 		}
 
+		r.logRateLimiter.Forget(waitingForMachineSetsDeletionKey(s.machineDeployment))
 		r.controller.ClearConsistencyStore(client.ObjectKeyFromObject(s.machineDeployment), s.machineDeployment.UID)
 		controllerutil.RemoveFinalizer(s.machineDeployment, clusterv1.MachineDeploymentFinalizer)
 		// Also remove the legacy finalizer of the topology/machinedeployment controller if it is still set,
@@ -535,8 +540,12 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) error {
 		}
 	}
 
-	log.Info("Waiting for MachineSets to be deleted", "MachineSets", clog.ObjNamesString(s.machineSets))
+	r.logRateLimiter.InfoAtMostEvery(log, logRateLimitInterval, waitingForMachineSetsDeletionKey(s.machineDeployment), "Waiting for MachineSets to be deleted", "MachineSets", clog.ObjNamesString(s.machineSets))
 	return nil
+}
+
+func waitingForMachineSetsDeletionKey(md *clusterv1.MachineDeployment) logutil.Key {
+	return logutil.NewKey("WaitingForMachineSetsDeletion", logutil.WithObjects(md))
 }
 
 // deleteUnusedTemplates deletes the templates referenced in a topology-owned MachineDeployment if they are not used anymore.

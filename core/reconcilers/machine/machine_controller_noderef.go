@@ -35,6 +35,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/core/reconcilers/machinedeployment/mdutil"
 	"sigs.k8s.io/cluster-api/feature"
+	logutil "sigs.k8s.io/cluster-api/internal/util/log"
 	"sigs.k8s.io/cluster-api/internal/util/taints"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
@@ -96,7 +97,7 @@ func (r *Reconciler) reconcileNode(ctx context.Context, s *scope) (ctrl.Result, 
 				return ctrl.Result{}, pkgerrors.Wrapf(err, "no matching Node for Machine %q in namespace %q", machine.Name, machine.Namespace)
 			}
 			v1beta1conditions.MarkFalse(machine, clusterv1.MachineNodeHealthyV1Beta1Condition, clusterv1.NodeProvisioningV1Beta1Reason, clusterv1.ConditionSeverityWarning, "Waiting for a node with matching ProviderID to exist")
-			log.Info("Infrastructure provider reporting spec.providerID, matching Kubernetes Node is not yet available", machine.Spec.InfrastructureRef.Kind, klog.KRef(machine.Namespace, machine.Spec.InfrastructureRef.Name), "providerID", machine.Spec.ProviderID)
+			r.logRateLimiter.InfoAtMostEvery(log, logRateLimitInterval, waitingForNodeKey(machine), "Infrastructure provider reporting spec.providerID, matching Kubernetes Node is not yet available", machine.Spec.InfrastructureRef.Kind, klog.KRef(machine.Namespace, machine.Spec.InfrastructureRef.Name), "providerID", machine.Spec.ProviderID)
 			// The Node watch is only set up once the control plane is initialized (see watchClusterNodes), and a
 			// control plane made of stand-alone Machines is initialized only once one of them has a nodeRef. Until
 			// then no event reconciles this Machine when its Node shows up or gets its providerID, so requeue
@@ -118,6 +119,7 @@ func (r *Reconciler) reconcileNode(ctx context.Context, s *scope) (ctrl.Result, 
 		machine.Status.NodeRef = clusterv1.MachineNodeReference{
 			Name: s.node.Name,
 		}
+		r.logRateLimiter.Forget(waitingForNodeKey(machine))
 		log.Info("Infrastructure provider reporting spec.providerID, Kubernetes Node is now available", machine.Spec.InfrastructureRef.Kind, klog.KRef(machine.Namespace, machine.Spec.InfrastructureRef.Name), "providerID", machine.Spec.ProviderID, "Node", klog.KRef("", machine.Status.NodeRef.Name), "duration", time.Since(machine.CreationTimestamp.Time).Truncate(time.Second/10))
 		r.recorder.Event(machine, corev1.EventTypeNormal, "SuccessfulSetNodeRef", machine.Status.NodeRef.Name)
 	}
@@ -173,6 +175,10 @@ func (r *Reconciler) reconcileNode(ctx context.Context, s *scope) (ctrl.Result, 
 
 	v1beta1conditions.MarkTrue(machine, clusterv1.MachineNodeHealthyV1Beta1Condition)
 	return ctrl.Result{}, nil
+}
+
+func waitingForNodeKey(m *clusterv1.Machine) logutil.Key {
+	return logutil.NewKey("WaitingForNode", logutil.WithObjects(m))
 }
 
 // summarizeNodeV1beta1Conditions summarizes a Node's conditions and returns the summary of condition statuses and concatenate failed condition messages:

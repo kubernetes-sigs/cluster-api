@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"math"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -94,6 +95,9 @@ var (
 const (
 	machineSetManagerName         = "capi-machineset"
 	machineSetMetadataManagerName = "capi-machineset-metadata"
+
+	// logRateLimitInterval is the interval at which log lines repeated on every reconcile while waiting for something are logged.
+	logRateLimitInterval = time.Minute
 )
 
 // Update permissions on /finalizers subresrouce is required on management clusters with 'OwnerReferencesPermissionEnforcement' plugin enabled.
@@ -589,6 +593,7 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (ctrl.Result
 			}
 		}
 
+		r.logRateLimiter.Forget(waitingForMachinesDeletionKey(machineSet))
 		r.controller.ClearConsistencyStore(client.ObjectKeyFromObject(machineSet), machineSet.UID)
 		controllerutil.RemoveFinalizer(machineSet, clusterv1.MachineSetFinalizer)
 		// Also remove the legacy finalizer of the topology/machineset controller if it is still set,
@@ -609,8 +614,12 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (ctrl.Result
 		}
 	}
 
-	log.Info("Waiting for Machines to be deleted", "Machines", klog.KObjSlice(machineList))
+	r.logRateLimiter.InfoAtMostEvery(log, logRateLimitInterval, waitingForMachinesDeletionKey(machineSet), "Waiting for Machines to be deleted", "Machines", klog.KObjSlice(machineList))
 	return ctrl.Result{}, nil
+}
+
+func waitingForMachinesDeletionKey(ms *clusterv1.MachineSet) logutil.Key {
+	return logutil.NewKey("WaitingForMachinesDeletion", logutil.WithObjects(ms))
 }
 
 // deleteUnusedTemplates deletes the templates referenced in a topology-owned MachineSet if they are not used by other
@@ -1126,7 +1135,9 @@ func (r *Reconciler) deleteMachines(ctx context.Context, s *scope, machinesToDel
 	ms := s.machineSet
 	machines := s.machines
 
-	log.Info(fmt.Sprintf("MachineSet %s is scaling down to %d replicas by deleting %d Machines", ms.Name, *(ms.Spec.Replicas), machinesToDelete), "replicas", *(ms.Spec.Replicas), "machineCount", len(machines), "order", cmp.Or(ms.Spec.Deletion.Order, clusterv1.RandomMachineSetDeletionOrder))
+	// Note: The values are part of the key, so a change of the scale down is logged immediately.
+	// Note: Forget is not called because there is no single place where a scale down ends.
+	r.logRateLimiter.InfoAtMostEvery(log, logRateLimitInterval, scalingDownKey(ms, machinesToDelete), fmt.Sprintf("MachineSet %s is scaling down to %d replicas by deleting %d Machines", ms.Name, *(ms.Spec.Replicas), machinesToDelete), "replicas", *(ms.Spec.Replicas), "machineCount", len(machines), "order", cmp.Or(ms.Spec.Deletion.Order, clusterv1.RandomMachineSetDeletionOrder))
 
 	// Pick the list of machines to be deleted according to the criteria defined in ms.Spec.Deletion.Order.
 	// Note: In case the system has to delete some machine, and there are machines are still updating in place, those machine must be deleted first.
@@ -1159,7 +1170,8 @@ func (r *Reconciler) deleteMachines(ctx context.Context, s *scope, machinesToDel
 			log.Info(fmt.Sprintf("Deleting Machine %s (scale down, deleting %d of %d)", machine.Name, i+1, machinesToDelete), "reason", "ScaleDown")
 			r.recorder.Eventf(ms, corev1.EventTypeNormal, "SuccessfulDelete", "Deleted Machine %q", machine.Name)
 		} else {
-			log.Info(fmt.Sprintf("Waiting for Machine %s to be deleted (scale down, deleting %d of %d)", machine.Name, i+1, machinesToDelete), "reason", "ScaleDown")
+			// Note: Forget is not called because the entry is not used anymore after the Machine is gone, and it expires after the TTL.
+			r.logRateLimiter.InfoAtMostEvery(log, logRateLimitInterval, waitingForMachineDeletionKey(ms, machine), fmt.Sprintf("Waiting for Machine %s to be deleted (scale down, deleting %d of %d)", machine.Name, i+1, machinesToDelete), "reason", "ScaleDown")
 		}
 	}
 
@@ -1167,6 +1179,14 @@ func (r *Reconciler) deleteMachines(ctx context.Context, s *scope, machinesToDel
 		return ctrl.Result{}, kerrors.NewAggregate(errs)
 	}
 	return ctrl.Result{}, nil
+}
+
+func scalingDownKey(ms *clusterv1.MachineSet, machinesToDelete int) logutil.Key {
+	return logutil.NewKey("ScalingDown", logutil.WithObjects(ms), logutil.WithValues(strconv.Itoa(int(*(ms.Spec.Replicas))), strconv.Itoa(machinesToDelete)))
+}
+
+func waitingForMachineDeletionKey(ms *clusterv1.MachineSet, machine *clusterv1.Machine) logutil.Key {
+	return logutil.NewKey("WaitingForMachineDeletion", logutil.WithObjects(ms), logutil.WithObjects(machine))
 }
 
 func (r *Reconciler) startMoveMachines(ctx context.Context, s *scope, targetMSName string, machinesToMove int, affectsAvailability *bool) (ctrl.Result, error) {

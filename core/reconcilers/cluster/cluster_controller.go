@@ -64,6 +64,9 @@ const (
 	// deleteRequeueAfter is how long to wait before checking again to see if the cluster still has children during
 	// deletion.
 	deleteRequeueAfter = 5 * time.Second
+
+	// logRateLimitInterval is the interval at which log lines repeated on every reconcile while waiting for something are logged.
+	logRateLimitInterval = time.Minute
 )
 
 // Update permissions on /finalizers subresrouce is required on management clusters with 'OwnerReferencesPermissionEnforcement' plugin enabled.
@@ -409,7 +412,7 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (reconcile.R
 		indirect := descendantCount - len(children)
 		names := s.descendants.objectsPendingDeleteNames(cluster)
 
-		log.Info("Cluster still has descendants - need to requeue", "descendants", strings.Join(names, "; "), "indirect descendants count", indirect)
+		r.logRateLimiter.InfoAtMostEvery(log, logRateLimitInterval, waitingForDescendantsDeletionKey(cluster), "Cluster still has descendants - need to requeue", "descendants", strings.Join(names, "; "), "indirect descendants count", indirect)
 
 		s.deletingReason = clusterv1.ClusterDeletingWaitingForWorkersDeletionReason
 		for i := range names {
@@ -420,6 +423,7 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (reconcile.R
 		// Requeue so we can check the next time to see if there are still any descendants left.
 		return ctrl.Result{RequeueAfter: deleteRequeueAfter}, nil
 	}
+	r.logRateLimiter.Forget(waitingForDescendantsDeletionKey(cluster))
 
 	if cluster.Spec.ControlPlaneRef.IsDefined() {
 		if s.controlPlane == nil {
@@ -456,9 +460,10 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (reconcile.R
 
 			// We are watching it, will try again when it is deleted.
 			ref := cluster.Spec.ControlPlaneRef
-			log.Info("Cluster still has descendants - waiting for control plane deletion", ref.Kind, klog.KRef(cluster.Namespace, ref.Name))
+			r.logRateLimiter.InfoAtMostEvery(log, logRateLimitInterval, waitingForControlPlaneDeletionKey(cluster), "Cluster still has descendants - waiting for control plane deletion", ref.Kind, klog.KRef(cluster.Namespace, ref.Name))
 			return ctrl.Result{}, nil
 		}
+		r.logRateLimiter.Forget(waitingForControlPlaneDeletionKey(cluster))
 	}
 
 	if cluster.Spec.InfrastructureRef.IsDefined() {
@@ -496,9 +501,10 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (reconcile.R
 
 			// We are watching it, will try again when it is deleted.
 			ref := cluster.Spec.InfrastructureRef
-			log.Info("Cluster still has descendants - waiting for infrastructure cluster deletion", ref.Kind, klog.KRef(cluster.Namespace, ref.Name))
+			r.logRateLimiter.InfoAtMostEvery(log, logRateLimitInterval, waitingForInfrastructureDeletionKey(cluster), "Cluster still has descendants - waiting for infrastructure cluster deletion", ref.Kind, klog.KRef(cluster.Namespace, ref.Name))
 			return ctrl.Result{}, nil
 		}
+		r.logRateLimiter.Forget(waitingForInfrastructureDeletionKey(cluster))
 	}
 
 	s.deletingReason = clusterv1.ClusterDeletingDeletionCompletedReason
@@ -507,6 +513,18 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (reconcile.R
 	controllerutil.RemoveFinalizer(cluster, clusterv1.ClusterFinalizer)
 	r.recorder.Eventf(cluster, corev1.EventTypeNormal, "Deleted", "Cluster %s has been deleted", cluster.Name)
 	return ctrl.Result{}, nil
+}
+
+func waitingForDescendantsDeletionKey(c *clusterv1.Cluster) logutil.Key {
+	return logutil.NewKey("WaitingForDescendantsDeletion", logutil.WithObjects(c))
+}
+
+func waitingForControlPlaneDeletionKey(c *clusterv1.Cluster) logutil.Key {
+	return logutil.NewKey("WaitingForControlPlaneDeletion", logutil.WithObjects(c))
+}
+
+func waitingForInfrastructureDeletionKey(c *clusterv1.Cluster) logutil.Key {
+	return logutil.NewKey("WaitingForInfrastructureDeletion", logutil.WithObjects(c))
 }
 
 type clusterDescendants struct {

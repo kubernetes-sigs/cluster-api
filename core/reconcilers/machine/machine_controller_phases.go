@@ -37,6 +37,7 @@ import (
 	"sigs.k8s.io/cluster-api/core/setup"
 	"sigs.k8s.io/cluster-api/internal/contract"
 	contractapi "sigs.k8s.io/cluster-api/internal/contract/api"
+	logutil "sigs.k8s.io/cluster-api/internal/util/log"
 	"sigs.k8s.io/cluster-api/pkg/dynamiccache"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -212,8 +213,9 @@ func (r *Reconciler) reconcileBootstrap(ctx context.Context, s *scope) (ctrl.Res
 	if !dataSecretCreated {
 		// Only log if the Machine is a control plane Machine or the Cluster is already initialized to reduce noise.
 		if util.IsControlPlaneMachine(m) || conditions.IsTrue(s.cluster, clusterv1.ClusterControlPlaneInitializedCondition) {
-			log.Info(fmt.Sprintf("Waiting for bootstrap provider to generate data secret and set %s on %s",
-				contract.Bootstrap().DataSecretCreated(contractVersion).Path().String(), s.bootstrapConfigGVK.Kind),
+			r.logRateLimiter.InfoAtMostEvery(log, logRateLimitInterval, waitingForBootstrapDataSecretKey(m),
+				fmt.Sprintf("Waiting for bootstrap provider to generate data secret and set %s on %s",
+					contract.Bootstrap().DataSecretCreated(contractVersion).Path().String(), s.bootstrapConfigGVK.Kind),
 				s.bootstrapConfigGVK.Kind, klog.KObj(s.bootstrapConfig))
 		}
 		return ctrl.Result{}, nil
@@ -230,10 +232,15 @@ func (r *Reconciler) reconcileBootstrap(ctx context.Context, s *scope) (ctrl.Res
 	m.Spec.Bootstrap.DataSecretName = new(secretName)
 
 	if !ptr.Deref(m.Status.Initialization.BootstrapDataSecretCreated, false) {
+		r.logRateLimiter.Forget(waitingForBootstrapDataSecretKey(m))
 		log.Info("Bootstrap provider generated data secret", s.bootstrapConfigGVK.Kind, klog.KObj(s.bootstrapConfig), "Secret", klog.KRef(m.Namespace, secretName), "duration", time.Since(m.CreationTimestamp.Time).Truncate(time.Second/10))
 	}
 	m.Status.Initialization.BootstrapDataSecretCreated = ptr.To(true)
 	return ctrl.Result{}, nil
+}
+
+func waitingForBootstrapDataSecretKey(m *clusterv1.Machine) logutil.Key {
+	return logutil.NewKey("WaitingForBootstrapDataSecret", logutil.WithObjects(m))
 }
 
 // reconcileInfrastructure reconciles the InfrastructureMachine of a Machine.
@@ -303,8 +310,9 @@ func (r *Reconciler) reconcileInfrastructure(ctx context.Context, s *scope) (ctr
 	if !provisioned && !ptr.Deref(m.Status.Initialization.InfrastructureProvisioned, false) {
 		// Only log if the Machine is a control plane Machine or the Cluster is already initialized to reduce noise.
 		if util.IsControlPlaneMachine(m) || conditions.IsTrue(s.cluster, clusterv1.ClusterControlPlaneInitializedCondition) {
-			log.Info(fmt.Sprintf("Waiting for infrastructure provider to set %s on %s",
-				contract.InfrastructureMachine().Provisioned(contractVersion).Path().String(), s.infraMachineGVK.Kind),
+			r.logRateLimiter.InfoAtMostEvery(log, logRateLimitInterval, waitingForInfrastructureProvisionedKey(m),
+				fmt.Sprintf("Waiting for infrastructure provider to set %s on %s",
+					contract.InfrastructureMachine().Provisioned(contractVersion).Path().String(), s.infraMachineGVK.Kind),
 				s.infraMachineGVK.Kind, klog.KObj(s.infraMachine))
 		}
 		return ctrl.Result{}, nil
@@ -313,8 +321,9 @@ func (r *Reconciler) reconcileInfrastructure(ctx context.Context, s *scope) (ctr
 	// Get providerID from the InfrastructureMachine (intentionally not setting it on the Machine yet).
 	providerID := s.infraMachine.GetProviderID()
 	if providerID == "" {
-		log.Info(fmt.Sprintf("Waiting for infrastructure provider to set %s on %s",
-			contract.InfrastructureMachine().ProviderID().Path().String(), s.infraMachineGVK.Kind),
+		r.logRateLimiter.InfoAtMostEvery(log, logRateLimitInterval, waitingForInfrastructureProviderIDKey(m),
+			fmt.Sprintf("Waiting for infrastructure provider to set %s on %s",
+				contract.InfrastructureMachine().ProviderID().Path().String(), s.infraMachineGVK.Kind),
 			s.infraMachineGVK.Kind, klog.KObj(s.infraMachine))
 		// Slow down reconcile frequency, provisioning infrastructure takes some time.
 		r.controller.DeferNextReconcileForObject(s.machine, time.Now().Add(5*time.Second))
@@ -336,8 +345,20 @@ func (r *Reconciler) reconcileInfrastructure(ctx context.Context, s *scope) (ctr
 	// - the infra machine is reporting provisioned for the first time
 	// - the infra machine already reported provisioned (and thus m.Status.InfrastructureReady is already true and it should not flip back)
 	m.Spec.ProviderID = providerID
+	if !ptr.Deref(m.Status.Initialization.InfrastructureProvisioned, false) {
+		r.logRateLimiter.Forget(waitingForInfrastructureProvisionedKey(m))
+		r.logRateLimiter.Forget(waitingForInfrastructureProviderIDKey(m))
+	}
 	m.Status.Initialization.InfrastructureProvisioned = ptr.To(true)
 	return ctrl.Result{}, nil
+}
+
+func waitingForInfrastructureProvisionedKey(m *clusterv1.Machine) logutil.Key {
+	return logutil.NewKey("WaitingForInfrastructureProvisioned", logutil.WithObjects(m))
+}
+
+func waitingForInfrastructureProviderIDKey(m *clusterv1.Machine) logutil.Key {
+	return logutil.NewKey("WaitingForInfrastructureProviderID", logutil.WithObjects(m))
 }
 
 func (r *Reconciler) reconcileCertificateExpiry(_ context.Context, s *scope) (ctrl.Result, error) {

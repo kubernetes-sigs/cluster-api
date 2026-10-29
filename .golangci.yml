@@ -13,6 +13,7 @@ linters:
     - asciicheck # non ascii symbols
     - bidichk # dangerous unicode sequences
     - bodyclose # unclosed http bodies
+    - canonicalheader # canonical HTTP header names
     - containedctx # context.Context nested in a struct
     - copyloopvar # copying loop variables
     - dogsled # too many blank identifiers in assignments
@@ -20,8 +21,10 @@ linters:
     - durationcheck # multiplying two durations
     - errcheck # unchecked errors
     - errchkjson # invalid types passed to json encoder
+    - exptostd # golang.org/x/exp functions that can be replaced by std functions
     - forbidigo # allows to block usage of funcs
     - ginkgolinter # ginkgo and gomega
+    - gocheckcompilerdirectives # invalid go compiler directives
     - gocritic # bugs, performance, style (we could add custom ones to this one)
     - godot # checks that comments end in a period
     - godox # block FIXMEs
@@ -32,27 +35,28 @@ linters:
     - importas # consistent import aliases
     - ineffassign # ineffectual assignments
     - intrange # suggest using integer range in for loops
+    - iotamixing # iota mixed with other values in const blocks
     - loggercheck # check for even key/value pairs in logger calls
     - misspell # spelling
     - nakedret # naked returns (named return parameters and an empty return)
     - nilerr # returning nil after checking err is not nil
+    - nilnesserr # returning a different nil error after checking err is not nil
     - noctx # http requests without context.Context
     - nolintlint # badly formatted nolint directives
     - nosprintfhostport # using sprintf to construct host:port in a URL
     - prealloc # suggest preallocating slices
     - predeclared # shadowing predeclared identifiers
+    - reassign # reassigning package level variables of other packages
     - revive # better version of golint
     - staticcheck # some of staticcheck's rules
     - thelper # test helpers not starting with t.Helper()
+    - tparallel # inappropriate usage of t.Parallel()
     - unconvert # unnecessary type conversions
     - unparam # unused function parameters
     - unused # unused constants, variables,functions, types
     - usestdlibvars # using variables/constants from the standard library
     - usetesting # report function to be replace by testing
     - whitespace # unnecessary newlines
-  disable:
-    # TODO: It will be dropped when the Go version migration is done.
-    - usetesting
   settings:
     depguard:
       rules:

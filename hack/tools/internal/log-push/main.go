@@ -415,7 +415,8 @@ func pushStreamToLoki(ctx context.Context, lokiURL, lokiOrgID string, body []byt
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Content-Encoding", "gzip")
-	req.Header.Set("X-Scope-OrgID", lokiOrgID)
+	// Note: This is the canonical form of the "X-Scope-OrgID" Loki header, Header.Set canonicalizes it anyway.
+	req.Header.Set("X-Scope-Orgid", lokiOrgID)
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {

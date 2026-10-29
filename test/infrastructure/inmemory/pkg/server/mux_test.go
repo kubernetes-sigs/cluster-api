@@ -144,7 +144,6 @@ func TestMux(t *testing.T) {
 }
 
 func TestAPI_DebugHandler(t *testing.T) {
-	t.Parallel()
 	g := NewWithT(t)
 
 	ports := getCustomPorts()

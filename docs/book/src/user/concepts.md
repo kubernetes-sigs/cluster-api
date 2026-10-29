@@ -154,6 +154,21 @@ If the Node matches these unhealthy conditions for a given user-configured time,
 
 MachineHealthChecks will only remediate Nodes if they are owned by a MachineSet. This ensures that the Kubernetes cluster does not lose capacity, since the MachineSet will create a new Machine to replace the failed Machine.
 
+## Access control
+
+Cluster API ships ClusterRoles that are aggregated into the Kubernetes builtin `view`, `edit` and `admin` ClusterRoles,
+so users holding those roles can work with Cluster API resources without additional RBAC:
+
+* `view`, `edit` and `admin` can read Cluster, ClusterClass, Machine, MachineSet, MachineDeployment, MachinePool,
+  MachineHealthCheck, MachineDrainRule, ClusterResourceSet, ClusterResourceSetBinding, IPAddress, IPAddressClaim,
+  ExtensionConfig, KubeadmConfigTemplate, KubeadmControlPlane and KubeadmControlPlaneTemplate resources.
+* `edit` and `admin` can additionally create, update and delete the user-managed resources among them.
+* `edit` and `admin` can read and write KubeadmConfig resources. They are deliberately not readable via `view`, because
+  the KubeadmConfig controller writes the generated bootstrap token into them.
+
+Credentials, e.g. user passwords or file contents, should be provided via Secret references (`passwdFrom`, `contentFrom`)
+instead of inline values.
+
 ## Custom Resource Definitions (CRDs)
 
 A [CustomResourceDefinition](https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/custom-resources/) is a built-in resource that lets you extend the Kubernetes API. Each CustomResourceDefinition represents a customization of a Kubernetes installation. The Cluster API provides and relies on several CustomResourceDefinitions:

@@ -42,6 +42,7 @@ import (
 	"sigs.k8s.io/cluster-api/core/reconcilers/machinedeployment/mdutil"
 	runtimeclient "sigs.k8s.io/cluster-api/exp/runtime/client"
 	"sigs.k8s.io/cluster-api/feature"
+	logutil "sigs.k8s.io/cluster-api/internal/util/log"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/cache"
@@ -94,6 +95,7 @@ type Reconciler struct {
 
 	canUpdateMachineSetCache   cache.Cache[CanUpdateMachineSetCacheEntry]
 	msClientWithDeleteResponse capicontrollerutil.ClientWithDeleteResponse
+	logRateLimiter             *logutil.Limiter
 }
 
 // SetupWithManager sets up the reconciler with the Manager.
@@ -136,6 +138,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 	if err != nil {
 		return pkgerrors.Wrap(err, "failed setting up with a controller manager")
 	}
+	r.logRateLimiter = logutil.New(ctx, cache.DefaultTTL)
 	r.canUpdateMachineSetCache = cache.New[CanUpdateMachineSetCacheEntry](ctx, cache.HookCacheDefaultTTL)
 	r.controller = c
 	r.recorder = mgr.GetEventRecorderFor("machinedeployment-controller")

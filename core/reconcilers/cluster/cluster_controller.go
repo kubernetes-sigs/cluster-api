@@ -46,7 +46,9 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/hooks"
+	logutil "sigs.k8s.io/cluster-api/internal/util/log"
 	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/cache"
 	"sigs.k8s.io/cluster-api/util/collections"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
@@ -86,6 +88,7 @@ type Reconciler struct {
 
 	recorder        record.EventRecorder
 	externalTracker external.ObjectTracker
+	logRateLimiter  *logutil.Limiter
 }
 
 // SetupWithManager sets up the reconciler with the Manager.
@@ -124,6 +127,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 		return pkgerrors.Wrap(err, "failed setting up with a controller manager")
 	}
 
+	r.logRateLimiter = logutil.New(ctx, cache.DefaultTTL)
 	r.recorder = mgr.GetEventRecorderFor("cluster-controller")
 	r.externalTracker = external.ObjectTracker{
 		Controller:      c,

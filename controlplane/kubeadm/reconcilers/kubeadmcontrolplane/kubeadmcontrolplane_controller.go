@@ -53,6 +53,7 @@ import (
 	runtimeclient "sigs.k8s.io/cluster-api/exp/runtime/client"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/util/inplace"
+	logutil "sigs.k8s.io/cluster-api/internal/util/log"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
 	"sigs.k8s.io/cluster-api/pkg/dynamiccache"
 	"sigs.k8s.io/cluster-api/util"
@@ -107,6 +108,7 @@ type Reconciler struct {
 	ClusterCache                    clustercache.ClusterCache
 	DynamicCache                    dynamiccache.DynamicCache
 	canUpdateMachineCache           cache.Cache[CanUpdateMachineCacheEntry]
+	logRateLimiter                  *logutil.Limiter
 
 	EtcdDialTimeout time.Duration
 	EtcdCallTimeout time.Duration
@@ -186,6 +188,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 	if err != nil {
 		return pkgerrors.Wrap(err, "failed setting up with a controller manager")
 	}
+	r.logRateLimiter = logutil.New(ctx, cache.DefaultTTL)
 	r.canUpdateMachineCache = cache.New[CanUpdateMachineCacheEntry](ctx, 30*time.Minute)
 	r.controller = c
 	r.recorder = mgr.GetEventRecorderFor("kubeadmcontrolplane-controller")

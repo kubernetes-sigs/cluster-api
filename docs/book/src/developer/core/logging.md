@@ -135,6 +135,9 @@ for log levels; as a small integration on the above guidelines we would like to 
   the code; a person reading those logs usually has deep knowledge of the codebase.
 - Don’t use verbosity higher than 5.
 
+Log lines that are repeated on every reconcile while a controller is waiting for something (e.g. waiting for the infrastructure
+of a Machine to be provisioned) should not be logged at every reconcile; use the log rate limiter (`internal/util/log`) instead.
+
 We are using log level 2 as a default verbosity for all core Cluster API
 controllers as recommended by the Kubernetes guidelines.
 

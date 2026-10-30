@@ -1098,7 +1098,6 @@ func TestMachineSetAnnotationsFromMachineDeployment(t *testing.T) {
 		// annotations to skip
 		corev1.LastAppliedConfigAnnotation:  "foo",
 		clusterv1.RevisionAnnotation:        "foo",
-		revisionHistoryAnnotation:           "foo",
 		clusterv1.DesiredReplicasAnnotation: "foo",
 		clusterv1.MaxReplicasAnnotation:     "foo",
 		conversionutil.DataAnnotation:       "foo",
@@ -1188,7 +1187,7 @@ func TestComputeRevisionAnnotations(t *testing.T) {
 		},
 		{
 			name:   "Calculating annotations for a new newMS - old MSs exist",
-			oldMSs: []*clusterv1.MachineSet{machineSetWithRevisionAndHistory("1", "")},
+			oldMSs: []*clusterv1.MachineSet{machineSetWithRevision("1")},
 			ms:     nil,
 			want: map[string]string{
 				clusterv1.RevisionAnnotation: "2",
@@ -1199,7 +1198,7 @@ func TestComputeRevisionAnnotations(t *testing.T) {
 		{
 			name:   "Calculating annotations for a existing newMS - oldMSs do not exist",
 			oldMSs: nil,
-			ms:     machineSetWithRevisionAndHistory("1", ""),
+			ms:     machineSetWithRevision("1"),
 			want: map[string]string{
 				clusterv1.RevisionAnnotation: "1",
 			},
@@ -1209,13 +1208,12 @@ func TestComputeRevisionAnnotations(t *testing.T) {
 		{
 			name: "Calculating annotations for a existing newMS - old MSs exist - update required",
 			oldMSs: []*clusterv1.MachineSet{
-				machineSetWithRevisionAndHistory("1", ""),
-				machineSetWithRevisionAndHistory("2", ""),
+				machineSetWithRevision("1"),
+				machineSetWithRevision("2"),
 			},
-			ms: machineSetWithRevisionAndHistory("1", ""),
+			ms: machineSetWithRevision("1"),
 			want: map[string]string{
 				clusterv1.RevisionAnnotation: "3",
-				revisionHistoryAnnotation:    "1",
 			},
 			wantRevision: "3",
 			wantErr:      false,
@@ -1223,28 +1221,14 @@ func TestComputeRevisionAnnotations(t *testing.T) {
 		{
 			name: "Calculating annotations for a existing newMS - old MSs exist - no update required",
 			oldMSs: []*clusterv1.MachineSet{
-				machineSetWithRevisionAndHistory("1", ""),
-				machineSetWithRevisionAndHistory("2", ""),
+				machineSetWithRevision("1"),
+				machineSetWithRevision("2"),
 			},
-			ms: machineSetWithRevisionAndHistory("4", ""),
+			ms: machineSetWithRevision("4"),
 			want: map[string]string{
 				clusterv1.RevisionAnnotation: "4",
 			},
 			wantRevision: "4",
-			wantErr:      false,
-		},
-		{
-			name: "Calculating annotations for a existing newMS with revision history - old MSs exist - update required",
-			oldMSs: []*clusterv1.MachineSet{
-				machineSetWithRevisionAndHistory("3", ""),
-				machineSetWithRevisionAndHistory("4", ""),
-			},
-			ms: machineSetWithRevisionAndHistory("2", "1"),
-			want: map[string]string{
-				clusterv1.RevisionAnnotation: "5",
-				revisionHistoryAnnotation:    "1,2",
-			},
-			wantRevision: "5",
 			wantErr:      false,
 		},
 	}
@@ -1267,28 +1251,23 @@ func TestComputeRevisionAnnotations(t *testing.T) {
 func TestGetRevisionAnnotations(t *testing.T) {
 	t.Run("gets revision annotations", func(t *testing.T) {
 		g := NewWithT(t)
-		ms := machineSetWithRevisionAndHistory("2", "1")
+		ms := machineSetWithRevision("2")
 
 		annotations := GetRevisionAnnotations(ctx, ms)
 
-		g.Expect(annotations).To(HaveLen(2))
+		g.Expect(annotations).To(HaveLen(1))
 		g.Expect(annotations).To(HaveKeyWithValue(clusterv1.RevisionAnnotation, "2"))
-		g.Expect(annotations).To(HaveKeyWithValue(revisionHistoryAnnotation, "1"))
 	})
 }
 
-func machineSetWithRevisionAndHistory(revision string, revisionHistory string) *clusterv1.MachineSet {
-	ms := &clusterv1.MachineSet{
+func machineSetWithRevision(revision string) *clusterv1.MachineSet {
+	return &clusterv1.MachineSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Annotations: map[string]string{
 				clusterv1.RevisionAnnotation: revision,
 			},
 		},
 	}
-	if revisionHistory != "" {
-		ms.Annotations[revisionHistoryAnnotation] = revisionHistory
-	}
-	return ms
 }
 
 func TestUnmarshalMoveMachinesToMachineSetAnnotationData(t *testing.T) {

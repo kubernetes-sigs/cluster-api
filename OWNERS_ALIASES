@@ -2,10 +2,11 @@
 
 aliases:
   sig-cluster-lifecycle-leads:
-  - fabriziopandini
-  - justinsb
-  - neolit123
-  - vincepri
+    - fabriziopandini
+    - hakman
+    - justinsb
+    - neolit123
+    - sbueringer
 
   # -----------------------------------------------------------
   # OWNER_ALIASES for Cluster API
@@ -14,76 +15,70 @@ aliases:
   # active folks who can be contacted to perform admin-related
   # tasks on the repo, or otherwise approve any PRS.
   cluster-api-admins:
-  - fabriziopandini
-  - sbueringer
-  - vincepri
+    - fabriziopandini
+    - sbueringer
 
   # non-admin folks who have write-access and can approve any PRs in the repo
   cluster-api-maintainers:
-  - chrischdi
-  - enxebre
-  - fabriziopandini
-  - JoelSpeed
-  - sbueringer
-  - vincepri
+    - chrischdi
+    - fabriziopandini
+    - JoelSpeed
+    - sbueringer
 
   # folks who can review and LGTM any PRs in the repo
   cluster-api-reviewers:
-  - karthik-k-n
-  - richardcase
-  - sivchari
+    - karthik-k-n
+    - richardcase
+    - sivchari
 
   # -----------------------------------------------------------
   # OWNER_ALIASES for core/controllers/topology
   # -----------------------------------------------------------
 
-  cluster-api-topology-maintainers:
-  cluster-api-topology-reviewers:
+  cluster-api-topology-maintainers: []
+  cluster-api-topology-reviewers: []
 
   # -----------------------------------------------------------
   # OWNER_ALIASES for bootstrap/kubeadm
   # -----------------------------------------------------------
 
-  cluster-api-bootstrap-provider-kubeadm-maintainers:
-  cluster-api-bootstrap-provider-kubeadm-reviewers:
-  - g-gaston
+  cluster-api-bootstrap-provider-kubeadm-maintainers: []
+  cluster-api-bootstrap-provider-kubeadm-reviewers: []
 
   # -----------------------------------------------------------
   # OWNER_ALIASES for bootstrap/kubeadm/pkg/ignition
   # -----------------------------------------------------------
 
-  cluster-api-bootstrap-provider-kubeadm-ignition-maintainers:
-  cluster-api-bootstrap-provider-kubeadm-ignition-reviewers:
+  cluster-api-bootstrap-provider-kubeadm-ignition-maintainers: []
+  cluster-api-bootstrap-provider-kubeadm-ignition-reviewers: []
 
   # -----------------------------------------------------------
   # OWNER_ALIASES for controlplane/kubeadm
   # -----------------------------------------------------------
 
-  cluster-api-controlplane-provider-kubeadm-maintainers:
-  cluster-api-controlplane-provider-kubeadm-reviewers:
-  - g-gaston
+  cluster-api-controlplane-provider-kubeadm-maintainers: []
+  cluster-api-controlplane-provider-kubeadm-reviewers: []
 
   # -----------------------------------------------------------
   # OWNER_ALIASES for cmd/clusterctl
   # -----------------------------------------------------------
 
-  cluster-api-clusterctl-maintainers:
-  cluster-api-clusterctl-reviewers:
-  - Jont828
+  cluster-api-clusterctl-maintainers: []
+  cluster-api-clusterctl-reviewers: []
 
   # -----------------------------------------------------------
   # OWNER_ALIASES for core/controllers/machinepool
   # -----------------------------------------------------------
 
-  cluster-api-machinepool-maintainers:
+  cluster-api-machinepool-maintainers: []
   cluster-api-machinepool-reviewers:
-  - AndiDog
+    - AndiDog
 
   # -----------------------------------------------------------
   # OWNER_ALIASES for test
   # -----------------------------------------------------------
 
-  cluster-api-test-maintainers:
+  cluster-api-test-maintainers: []
   cluster-api-test-reviewers:
   - elmiko
 
@@ -91,7 +86,7 @@ aliases:
   # OWNER_ALIASES for test/framework
   # -----------------------------------------------------------
 
-  cluster-api-test-framework-maintainers:
+  cluster-api-test-framework-maintainers: []
   cluster-api-test-framework-reviewers:
   - elmiko
 
@@ -99,7 +94,7 @@ aliases:
   # OWNER_ALIASES for test/infrastructure/docker
   # -----------------------------------------------------------
 
-  cluster-api-provider-docker-maintainers:
+  cluster-api-provider-docker-maintainers: []
   cluster-api-provider-docker-reviewers:
   - elmiko
 
@@ -107,8 +102,8 @@ aliases:
   # OWNER_ALIASES for test/infrastructure/inmemory
   # -----------------------------------------------------------
 
-  cluster-api-provider-inmemory-maintainers:
-  cluster-api-provider-inmemory-reviewers:
+  cluster-api-provider-inmemory-maintainers: []
+  cluster-api-provider-inmemory-reviewers: []
 
   # -----------------------------------------------------------
   # OWNER_ALIASES for docs

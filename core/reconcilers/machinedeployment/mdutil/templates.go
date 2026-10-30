@@ -106,7 +106,7 @@ func DeleteTemplateIfUnused(ctx context.Context, c client.Client, templatesInUse
 		Name:       ref.Name,
 	}
 
-	log.Info(fmt.Sprintf("Deleting %s", ref.Kind))
+	log.Info(fmt.Sprintf("Deleting %s %s", ref.Kind, ref.Name))
 	if err := external.Delete(ctx, c, deleteRef); err != nil && !apierrors.IsNotFound(err) {
 		return pkgerrors.Wrapf(err, "failed to delete %s %s", ref.Kind, klog.KRef(namespace, ref.Name))
 	}

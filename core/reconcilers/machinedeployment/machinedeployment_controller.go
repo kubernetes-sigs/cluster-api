@@ -420,9 +420,9 @@ func (r *Reconciler) createOrUpdateMachineSetsAndSyncMachineDeploymentRevision(c
 			for _, oldMS := range p.oldMSs {
 				mdLog.Info(fmt.Sprintf("MachineSet %s needs rollout", oldMS.Name), "MachineSet", klog.KObj(oldMS), "machineSets", machineSetsSummary, "reason", p.createReason)
 			}
-			log.Info(fmt.Sprintf("MachineSet %s created, it is now the current MachineSet", ms.Name))
+			log.Info(fmt.Sprintf("MachineSet %s created, it is now the current MachineSet", ms.Name), "reason", p.createReason)
 			if diff.DesiredReplicas > 0 {
-				log.Info(fmt.Sprintf("Scaled up current MachineSet %s from 0 to %d replicas (+%[2]d)", ms.Name, diff.DesiredReplicas), "replicas", diff.DesiredReplicas, "oldReplicas", 0)
+				log.Info(fmt.Sprintf("Scaled up current MachineSet %s from 0 to %d replicas (+%[2]d)", ms.Name, diff.DesiredReplicas), "reason", p.createReason, "replicas", diff.DesiredReplicas, "oldReplicas", 0)
 			}
 			r.recorder.Eventf(p.md, corev1.EventTypeNormal, "SuccessfulCreate", "Created MachineSet %s with %d replicas", klog.KObj(ms), diff.DesiredReplicas)
 

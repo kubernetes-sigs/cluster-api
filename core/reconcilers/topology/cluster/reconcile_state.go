@@ -195,6 +195,8 @@ func (r *Reconciler) callAfterControlPlaneInitialized(ctx context.Context, s *sc
 	// hook because already called the hook after the control plane is initialized.
 	if hooks.IsPending(runtimehooksv1.AfterControlPlaneInitialized, s.Current.Cluster) {
 		if isControlPlaneInitialized(s.Current.Cluster) {
+			log := ctrl.LoggerFrom(ctx).WithValues(hookLogValues(runtimehooksv1.AfterControlPlaneInitialized)...)
+
 			// The control plane is initialized for the first time. Call all the registered extensions for the hook.
 			hookRequest := &runtimehooksv1.AfterControlPlaneInitializedRequest{
 				Cluster: *cleanupCluster(s.Current.Cluster),
@@ -207,6 +209,8 @@ func (r *Reconciler) callAfterControlPlaneInitialized(ctx context.Context, s *sc
 			if err := hooks.MarkAsDone(ctx, r.Client, s.Current.Cluster, false, runtimehooksv1.AfterControlPlaneInitialized); err != nil {
 				return err
 			}
+
+			log.Info(fmt.Sprintf("Control plane initialized and %s hook completed", runtimecatalog.HookName(runtimehooksv1.AfterControlPlaneInitialized)))
 		}
 	}
 
@@ -246,6 +250,8 @@ func (r *Reconciler) callAfterClusterUpgrade(ctx context.Context, s *scope.Scope
 			!s.UpgradeTracker.MachinePools.IsAnyPendingCreate() && // No MachinePools are pending create
 			!s.UpgradeTracker.MachinePools.IsAnyPendingUpgrade() && // No MachinePools are pending an upgrade
 			!s.UpgradeTracker.MachinePools.IsAnyUpgradeDeferred() { // No MachinePools have deferred an upgrade
+			log = log.WithValues(afterUpgradeHookLogValues(runtimehooksv1.AfterClusterUpgrade, s.Current.Cluster.Spec.Topology.Version)...)
+
 			// Return quickly if the hook is not defined.
 			extensionHandlers, err := r.RuntimeClient.GetAllExtensions(ctx, runtimehooksv1.AfterClusterUpgrade, s.Current.Cluster)
 			if err != nil {
@@ -1378,4 +1384,12 @@ func createErrorWithoutObjectName(ctx context.Context, err error, obj client.Obj
 		return pkgerrors.Errorf("failed to create %s", obj.GetObjectKind().GroupVersionKind().GroupKind().String())
 	}
 	return pkgerrors.New("failed to create object")
+}
+
+func hookLogValues(hook runtimecatalog.Hook) []any {
+	return []any{"hook", runtimecatalog.HookName(hook)}
+}
+
+func afterUpgradeHookLogValues(hook runtimecatalog.Hook, version string) []any {
+	return append(hookLogValues(hook), "version", version)
 }

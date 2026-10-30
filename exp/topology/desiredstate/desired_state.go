@@ -736,9 +736,7 @@ func (g *generator) computeControlPlaneVersion(ctx context.Context, s *scope.Sco
 	s.UpgradeTracker.ControlPlane.IsStartingUpgrade = true
 	s.UpgradeTracker.ControlPlane.IsPendingUpgrade = false
 
-	log.Info(fmt.Sprintf("Control plane %s upgraded from version %s to version %s", s.Current.ControlPlane.Object.GetName(), *currentVersion, nextVersion),
-		"ControlPlaneUpgrades", toUpgradeStep(s.UpgradeTracker.ControlPlane.UpgradePlan),
-		"WorkersUpgrades", toUpgradeStep(s.UpgradeTracker.MachineDeployments.UpgradePlan, s.UpgradeTracker.MachinePools.UpgradePlan),
+	log.WithValues(upgradePlansLogValues(s.UpgradeTracker)...).Info(fmt.Sprintf("Control plane %s upgraded from version %s to version %s", s.Current.ControlPlane.Object.GetName(), *currentVersion, nextVersion),
 		s.Current.ControlPlane.Object.GetKind(), klog.KObj(s.Current.ControlPlane.Object),
 	)
 	return nextVersion, nil
@@ -1190,9 +1188,7 @@ func (g *generator) computeMachineDeploymentVersion(ctx context.Context, s *scop
 
 	nextVersion := s.UpgradeTracker.MachineDeployments.UpgradePlan[0]
 
-	log.Info(fmt.Sprintf("MachineDeployment %s upgraded from version %s to version %s", currentMDState.Object.Name, currentVersion, nextVersion),
-		"ControlPlaneUpgrades", toUpgradeStep(s.UpgradeTracker.ControlPlane.UpgradePlan),
-		"WorkersUpgrades", toUpgradeStep(s.UpgradeTracker.MachineDeployments.UpgradePlan, s.UpgradeTracker.MachinePools.UpgradePlan),
+	log.WithValues(upgradePlansLogValues(s.UpgradeTracker)...).Info(fmt.Sprintf("MachineDeployment %s upgraded from version %s to version %s", currentMDState.Object.Name, currentVersion, nextVersion),
 		"MachineDeployment", klog.KObj(currentMDState.Object),
 	)
 	return nextVersion, nil
@@ -1530,9 +1526,7 @@ func (g *generator) computeMachinePoolVersion(ctx context.Context, s *scope.Scop
 
 	nextVersion := s.UpgradeTracker.MachinePools.UpgradePlan[0]
 
-	log.Info(fmt.Sprintf("MachinePool %s upgraded from version %s to version %s", currentMPState.Object.Name, currentVersion, nextVersion),
-		"ControlPlaneUpgrades", toUpgradeStep(s.UpgradeTracker.ControlPlane.UpgradePlan),
-		"WorkersUpgrades", toUpgradeStep(s.UpgradeTracker.MachineDeployments.UpgradePlan, s.UpgradeTracker.MachinePools.UpgradePlan),
+	log.WithValues(upgradePlansLogValues(s.UpgradeTracker)...).Info(fmt.Sprintf("MachinePool %s upgraded from version %s to version %s", currentMPState.Object.Name, currentVersion, nextVersion),
 		"MachinePool", klog.KObj(currentMPState.Object),
 	)
 	return nextVersion, nil

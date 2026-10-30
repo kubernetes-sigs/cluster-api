@@ -39,7 +39,6 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	utilfeature "k8s.io/component-base/featuregate/testing"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -49,7 +48,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/conversion"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
-	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/contract"
 	testt1v1beta1 "sigs.k8s.io/cluster-api/internal/topology/upgrade/test/t1/v1beta1"
 	testt1webhook "sigs.k8s.io/cluster-api/internal/topology/upgrade/test/t1/webhook"
@@ -100,7 +98,6 @@ func addToAllObj(cluster, prefix string, obj client.Object) {
 // * t2: create cluster2 with clusterClasst1 => should be stable.
 // * t2: rebase cluster2 to clusterClasst2 => should roll out and then be stable.
 func TestAPIAndWebhookChanges(t *testing.T) {
-	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)
 	g := NewWithT(t)
 
 	ns, err := env.CreateNamespace(ctx, "test-drop-defaulter-option")

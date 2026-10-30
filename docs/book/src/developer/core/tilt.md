@@ -191,7 +191,6 @@ provider's yaml. These substitutions are also used when deploying cluster templa
 **Note**: When running E2E tests locally using an existing cluster managed by Tilt, the following substitutions are required for successful tests:
 ```yaml
 kustomize_substitutions:
-  CLUSTER_TOPOLOGY: "true"
   EXP_KUBEADM_BOOTSTRAP_FORMAT_IGNITION: "true"
   EXP_RUNTIME_SDK: "true"
   EXP_MACHINE_SET_PREFLIGHT_CHECKS: "true"

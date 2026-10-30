@@ -18,4 +18,6 @@ limitations under the License.
 // +k8s:openapi-gen=true
 // +kubebuilder:object:generate=true
 // +groupName=cluster.x-k8s.io
+// +kubebuilder:ac:generate=true
+// +kubebuilder:ac:output:package=../../../utils/applyconfigurations/core
 package v1beta2

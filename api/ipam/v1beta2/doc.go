@@ -17,4 +17,6 @@ limitations under the License.
 // Package v1beta2 contains API Schema definitions for the v1beta2 IPAM API.
 // +kubebuilder:object:generate=true
 // +groupName=ipam.cluster.x-k8s.io
+// +kubebuilder:ac:generate=true
+// +kubebuilder:ac:output:package=../../../utils/applyconfigurations/ipam
 package v1beta2

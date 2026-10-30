@@ -85,6 +85,13 @@ jobs:
             git push origin api/${RELEASE_VERSION}
             echo "Created tag api/${RELEASE_VERSION}"
           fi
+
+          # Push utils tag if the utils Go module exists (on this branch).
+          if [ -f utils/go.mod ]; then
+            git tag utils/${RELEASE_VERSION}
+            git push origin utils/${RELEASE_VERSION}
+            echo "Created tag utils/${RELEASE_VERSION}"
+          fi
   release:
     name: create draft release
     runs-on: ubuntu-latest

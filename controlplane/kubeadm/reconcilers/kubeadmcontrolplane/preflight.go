@@ -262,6 +262,7 @@ func preflightCheckCondition(kind string, obj *clusterv1.Machine, conditionType 
 func (r *Reconciler) handlePreflightCheckResults(ctx context.Context, controlPlane *pkg.ControlPlane, res preflightChecksResult) ctrl.Result {
 	controlPlane.PreflightCheckResults = res.PreflightCheckResults
 	if res.succeeded {
+		r.logRateLimiter.Forget(preflightChecksFailedKey(controlPlane.KCP, res))
 		return ctrl.Result{}
 	}
 	if res.deferNextReconcile > 0 {
@@ -274,7 +275,6 @@ func (r *Reconciler) handlePreflightCheckResults(ctx context.Context, controlPla
 			args = append(args, s)
 		}
 		// Note: The values are part of the key, so a change of the reason why the preflight checks fail is logged immediately.
-		// Note: Forget is not called because the key depends on the values, which are unknown when the preflight checks pass.
 		r.logRateLimiter.InfoAtMostEvery(log, logRateLimitInterval, preflightChecksFailedKey(controlPlane.KCP, res), res.logStr, args...)
 	}
 	if res.eventStr != "" {

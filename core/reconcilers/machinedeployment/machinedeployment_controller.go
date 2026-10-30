@@ -142,7 +142,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 	if err != nil {
 		return pkgerrors.Wrap(err, "failed setting up with a controller manager")
 	}
-	r.logRateLimiter = logutil.New(ctx, cache.DefaultTTL)
+	r.logRateLimiter = logutil.New(ctx)
 	r.canUpdateMachineSetCache = cache.New[CanUpdateMachineSetCacheEntry](ctx, cache.HookCacheDefaultTTL)
 	r.controller = c
 	r.recorder = mgr.GetEventRecorderFor("machinedeployment-controller")

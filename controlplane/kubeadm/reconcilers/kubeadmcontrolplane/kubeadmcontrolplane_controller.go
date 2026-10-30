@@ -191,7 +191,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 	if err != nil {
 		return pkgerrors.Wrap(err, "failed setting up with a controller manager")
 	}
-	r.logRateLimiter = logutil.New(ctx, cache.DefaultTTL)
+	r.logRateLimiter = logutil.New(ctx)
 	r.canUpdateMachineCache = cache.New[CanUpdateMachineCacheEntry](ctx, 30*time.Minute)
 	r.controller = c
 	r.recorder = mgr.GetEventRecorderFor("kubeadmcontrolplane-controller")
@@ -544,9 +544,18 @@ func (r *Reconciler) reconcile(ctx context.Context, controlPlane *pkg.ControlPla
 	// Note: If a Machine becomes unhealthy during in-place update reconcileUnhealthyMachines above remediates it.
 	// Note: We have to wait here even if there are no more Machines that need rollout (in-place update in
 	// progress is not counted as needs rollout).
-	if machines := controlPlane.MachinesToCompleteInPlaceUpdate(); machines.Len() > 0 {
-		for _, machine := range machines {
-			// Note: Forget is not called because the entry is not used anymore after the in-place update of the Machine completes, and it expires after the TTL.
+	machinesToCompleteInPlaceUpdate := controlPlane.MachinesToCompleteInPlaceUpdate()
+
+	for _, machine := range controlPlane.Machines {
+		// Note: Forget is called for all the Machines without an in-place update in progress, so a following in-place update of the
+		// same Machine is logged again at Info instead of being considered a repetition of the previous one.
+		if !machinesToCompleteInPlaceUpdate.Has(machine) {
+			r.logRateLimiter.Forget(waitingForInPlaceUpdateKey(controlPlane.KCP, machine))
+		}
+	}
+
+	if machinesToCompleteInPlaceUpdate.Len() > 0 {
+		for _, machine := range machinesToCompleteInPlaceUpdate {
 			r.logRateLimiter.InfoAtMostEvery(log, logRateLimitInterval, waitingForInPlaceUpdateKey(controlPlane.KCP, machine), fmt.Sprintf("Waiting for in-place update of Machine %s to complete", machine.Name), "Machine", klog.KObj(machine))
 		}
 		return ctrl.Result{}, nil // Note: Changes to Machines trigger another reconcile.
@@ -565,11 +574,12 @@ func (r *Reconciler) reconcile(ctx context.Context, controlPlane *pkg.ControlPla
 		slices.Sort(machinesNeedingRolloutNames)
 		slices.Sort(allMessages)
 
-		// Note: Forget is not called because the list of machines changes after one is rolled out.
+		// Note: The names of the Machines are values of the key, so a change of the list (e.g. after a Machine is rolled out) is logged immediately.
 		r.logRateLimiter.InfoAtMostEvery(log, logRateLimitInterval, machinesNeedRolloutKey(controlPlane.KCP, machinesNeedingRolloutNames), fmt.Sprintf("Machines need rollout: %s", strings.Join(machinesNeedingRolloutNames, ",")), "reason", strings.Join(allMessages, ", "))
 		v1beta1conditions.MarkFalse(controlPlane.KCP, controlplanev1.MachinesSpecUpToDateV1Beta1Condition, controlplanev1.RollingUpdateInProgressV1Beta1Reason, clusterv1.ConditionSeverityWarning, "Rolling %d replicas with outdated spec (%d replicas up to date)", len(machinesNeedingRollout), len(controlPlane.Machines)-len(machinesNeedingRollout))
 		return r.updateControlPlane(ctx, controlPlane, machinesNeedingRollout, machinesUpToDateResults)
 	default:
+		r.logRateLimiter.Forget(machinesNeedRolloutKey(controlPlane.KCP, nil))
 		// make sure last upgrade operation is marked as completed.
 		// NOTE: we are checking the condition already exists in order to avoid to set this condition at the first
 		// reconciliation/before a rolling upgrade actually starts.

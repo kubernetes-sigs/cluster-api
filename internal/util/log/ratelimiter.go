@@ -27,19 +27,26 @@ import (
 
 	"github.com/go-logr/logr"
 	"k8s.io/klog/v2"
-	"k8s.io/utils/clock"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"sigs.k8s.io/cluster-api/util/cache"
 )
 
-// repeatedLogVerbosity is the verbosity at which log lines skipped by the Limiter are still logged,
-// so that all the occurrences are available when debugging.
-const repeatedLogVerbosity = 5
+const (
+	// DefaultTTL is the duration for which we keep log entries in the cache. It should be greater than the
+	// re-sync period to avoid that log entries expire before reconcile happens again.
+	DefaultTTL = 30 * time.Minute
+)
 
 // Key identifies a log line that is rate limited, e.g. "waiting for the infrastructure of Machine ns/m-1".
 // Use NewKey to build it.
-type Key string
+type Key struct {
+	// scope identifies what we are waiting for; Forget uses only the scope, so it can be called when the wait ends
+	// without knowing the values.
+	scope string
+	// values are the details of the wait, e.g. the reason; a change of the values is logged immediately.
+	values string
+}
 
 type keyParts struct {
 	objects []string
@@ -66,6 +73,7 @@ func WithObjects(objs ...client.Object) KeyOption {
 
 // WithValues adds the given values to a Key, so that a change of the values, e.g. a different reason why we are
 // waiting, is logged immediately instead of waiting for the interval to elapse.
+// Note: Values are not part of the scope of the Key, so Forget does not need them.
 func WithValues(values ...string) KeyOption {
 	return func(p *keyParts) {
 		p.values = append(p.values, values...)
@@ -79,26 +87,28 @@ func NewKey(messageIdentifier string, opts ...KeyOption) Key {
 		opt(parts)
 	}
 
-	key := messageIdentifier
+	scope := messageIdentifier
 	for _, obj := range parts.objects {
-		key += "|" + obj
+		scope += "|" + obj
 	}
 	// Note: Values are quoted, so values containing the separator cannot collide with a different list of values.
+	values := ""
 	for _, value := range parts.values {
-		key += "|" + strconv.Quote(value)
+		values += "|" + strconv.Quote(value)
 	}
-	return Key(key)
+	return Key{scope: scope, values: values}
 }
 
 type entry struct {
-	key        Key
+	scope      string
+	values     string
 	firstSeen  time.Time
 	lastLogged time.Time
 }
 
 // Key returns the cache key of an entry.
 func (e entry) Key() string {
-	return string(e.key)
+	return e.scope
 }
 
 var _ cache.Entry = entry{}
@@ -107,65 +117,60 @@ var _ cache.Entry = entry{}
 // A nil Limiter does not rate limit, so it is safe to use in unit tests that don't set it up.
 type Limiter struct {
 	cache cache.Cache[entry]
-	clock clock.PassiveClock
-}
-
-// Option customizes a Limiter.
-type Option func(*Limiter)
-
-// WithClock sets the clock used by a Limiter; it is used to control the time in unit tests.
-func WithClock(c clock.PassiveClock) Option {
-	return func(l *Limiter) {
-		l.clock = c
-	}
 }
 
 // New creates a Limiter.
-// ttl is the duration after which the state of a log line is dropped if the line is not logged anymore.
-func New(ctx context.Context, ttl time.Duration, opts ...Option) *Limiter {
-	l := &Limiter{
+// The state of a log line is dropped after DefaultTTL if the line is not logged anymore.
+func New(ctx context.Context) *Limiter {
+	return newWithTTL(ctx, DefaultTTL)
+}
+
+// newWithTTL creates a Limiter that drops the state of a log line after the given ttl.
+// Note: This is used in unit tests that fake time with synctest, because the cache cleanup go routine runs
+// with the real clock and would otherwise drop entries created with the faked clock.
+func newWithTTL(ctx context.Context, ttl time.Duration) *Limiter {
+	return &Limiter{
 		cache: cache.New[entry](ctx, ttl),
-		clock: clock.RealClock{},
 	}
-	for _, opt := range opts {
-		opt(l)
-	}
-	return l
 }
 
 // InfoAtMostEvery logs the Info message the first time it is called for a given key, and then at most once per interval.
 // The calls skipped because the interval did not elapse are logged at a higher verbosity, so all the occurrences are
 // still available when debugging.
+// If the values of the key change, the message is logged immediately; the duration still counts from the first call
+// for the scope of the key, because we are still waiting.
 func (l *Limiter) InfoAtMostEvery(log logr.Logger, interval time.Duration, key Key, msg string, keysAndValues ...any) {
 	if l == nil {
 		log.Info(msg, keysAndValues...)
 		return
 	}
 
-	now := l.clock.Now()
-	e, found := l.cache.Has(string(key))
+	now := time.Now()
+	e, found := l.cache.Has(key.scope)
 	if !found {
-		l.cache.Add(entry{key: key, firstSeen: now, lastLogged: now})
+		l.cache.Add(entry{scope: key.scope, values: key.values, firstSeen: now, lastLogged: now})
 		log.Info(msg, keysAndValues...)
 		return
 	}
 
-	if now.Sub(e.lastLogged) < interval {
-		log.V(repeatedLogVerbosity).Info(msg, keysAndValues...)
+	if e.values == key.values && now.Sub(e.lastLogged) < interval {
+		// Log lines skipped by the Limiter are still logged but with a higher verbosity, so that all the occurrences are available when debugging.
+		log.V(5).Info(msg, keysAndValues...)
 		return
 	}
 
 	// Note: Adding the entry again also extends its expiration.
+	e.values = key.values
 	e.lastLogged = now
 	l.cache.Add(e)
-	log.Info(msg, append(slices.Clone(keysAndValues), "duration", now.Sub(e.firstSeen).Truncate(time.Second))...)
+	log.Info(msg, append(slices.Clone(keysAndValues), "duration", now.Sub(e.firstSeen).Truncate(time.Second/10))...)
 }
 
-// Forget drops the state of a log key.
+// Forget drops the state of the scope of a log key; the values of the key are not considered.
 // It should be called when the wait ends.
 func (l *Limiter) Forget(key Key) {
 	if l == nil {
 		return
 	}
-	l.cache.Delete(entry{key: key})
+	l.cache.Delete(entry{scope: key.scope})
 }

@@ -68,7 +68,6 @@ import (
 	"sigs.k8s.io/cluster-api/pkg/dynamiccache"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
-	"sigs.k8s.io/cluster-api/util/cache"
 	"sigs.k8s.io/cluster-api/util/collections"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
@@ -187,7 +186,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 	if err != nil {
 		return pkgerrors.Wrap(err, "failed setting up with a controller manager")
 	}
-	r.logRateLimiter = logutil.New(ctx, cache.DefaultTTL)
+	r.logRateLimiter = logutil.New(ctx)
 	r.controller = c
 	r.recorder = mgr.GetEventRecorderFor("machineset-controller")
 	r.ssaCache = ssa.NewCache("machineset")
@@ -887,6 +886,11 @@ func (r *Reconciler) syncReplicas(ctx context.Context, s *scope) (ctrl.Result, e
 		return ctrl.Result{}, err
 	}
 
+	// Note: Forget when there are no Machines to delete, so the next scale down is logged at Info even if it has the same values.
+	if res.MachinesToDelete == 0 {
+		r.logRateLimiter.Forget(scalingDownKey(ms, 0))
+	}
+
 	// If there are not enough Machines, create missing Machines unless Machine creation is disabled.
 	if res.MachineCreationDisabled {
 		log.Info("Automatic creation of new machines disabled for MachineSet")
@@ -1135,8 +1139,7 @@ func (r *Reconciler) deleteMachines(ctx context.Context, s *scope, machinesToDel
 	ms := s.machineSet
 	machines := s.machines
 
-	// Note: The values are part of the key, so a change of the scale down is logged immediately.
-	// Note: Forget is not called because there is no single place where a scale down ends.
+	// Note: The replicas and the number of Machines to delete are values of the key, so a change of the scale down is logged immediately.
 	r.logRateLimiter.InfoAtMostEvery(log, logRateLimitInterval, scalingDownKey(ms, machinesToDelete), fmt.Sprintf("MachineSet %s is scaling down to %d replicas by deleting %d Machines", ms.Name, *(ms.Spec.Replicas), machinesToDelete), "replicas", *(ms.Spec.Replicas), "machineCount", len(machines), "order", cmp.Or(ms.Spec.Deletion.Order, clusterv1.RandomMachineSetDeletionOrder))
 
 	// Pick the list of machines to be deleted according to the criteria defined in ms.Spec.Deletion.Order.
@@ -1186,7 +1189,7 @@ func scalingDownKey(ms *clusterv1.MachineSet, machinesToDelete int) logutil.Key 
 }
 
 func waitingForMachineDeletionKey(ms *clusterv1.MachineSet, machine *clusterv1.Machine) logutil.Key {
-	return logutil.NewKey("WaitingForMachineDeletion", logutil.WithObjects(ms), logutil.WithObjects(machine))
+	return logutil.NewKey("WaitingForMachineDeletion", logutil.WithObjects(ms, machine))
 }
 
 func (r *Reconciler) startMoveMachines(ctx context.Context, s *scope, targetMSName string, machinesToMove int, affectsAvailability *bool) (ctrl.Result, error) {

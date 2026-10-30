@@ -29,6 +29,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	kerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -976,6 +978,12 @@ func (g *generator) computeMachineDeployment(ctx context.Context, s *scope.Scope
 		failureDomain = machineDeploymentTopology.FailureDomain
 	}
 
+	if failureDomain != "" && (currentMachineDeployment == nil || currentMachineDeployment.Object == nil) {
+		if err := validateFailureDomain(s, failureDomain, machineDeploymentTopology.Name, s.UpgradeTracker.MachineDeployments.MarkWaitingForFailureDomains); err != nil {
+			return nil, err
+		}
+	}
+
 	deletionOrder := machineDeploymentClass.Deletion.Order
 	if machineDeploymentTopology.Deletion.Order != "" {
 		deletionOrder = machineDeploymentTopology.Deletion.Order
@@ -1351,6 +1359,18 @@ func (g *generator) computeMachinePool(ctx context.Context, s *scope.Scope, mach
 	failureDomains := machinePoolClass.FailureDomains
 	if machinePoolTopology.FailureDomains != nil {
 		failureDomains = machinePoolTopology.FailureDomains
+	}
+
+	if currentMachinePool == nil || currentMachinePool.Object == nil {
+		var errs []error
+		for _, fd := range failureDomains {
+			if err := validateFailureDomain(s, fd, machinePoolTopology.Name, s.UpgradeTracker.MachinePools.MarkWaitingForFailureDomains); err != nil {
+				errs = append(errs, err)
+			}
+		}
+		if err := kerrors.NewAggregate(errs); err != nil {
+			return nil, err
+		}
 	}
 
 	nodeDrainTimeout := machinePoolClass.Deletion.NodeDrainTimeoutSeconds
@@ -1753,4 +1773,38 @@ func cleanupCluster(cluster *clusterv1.Cluster) *clusterv1.Cluster {
 	}
 	cluster.Status = clusterv1.ClusterStatus{}
 	return cluster
+}
+
+// clusterFailureDomainNames returns the set of failure domain names from Cluster.Status.FailureDomains.
+func clusterFailureDomainNames(s *scope.Scope) sets.Set[string] {
+	fds := sets.New[string]()
+	for _, fd := range s.Current.Cluster.Status.FailureDomains {
+		fds.Insert(fd.Name)
+	}
+	return fds
+}
+
+// validateFailureDomain validates the failureDomain requested for a new MachineDeployment/MachinePool against the
+// reported failureDomain(s).
+// NOTE: Validation is intentionally performed only for *new* MachineDeployments/MachinePools. Existing ones are not
+// re-validated, so a failure domain disappearing from Cluster.status.failureDomains (e.g. removed by the
+// infrastructure provider) does not error and block reconciliation of the whole Cluster topology.
+// TODO: Validating edits to the failureDomain of existing MachineDeployments/MachinePools is left to the topology
+// webhook.
+func validateFailureDomain(s *scope.Scope, failureDomain, topologyName string, markWaitingForFailureDomains func(string)) error {
+	if len(s.Current.Cluster.Status.FailureDomains) == 0 {
+		if !ptr.Deref(s.Current.Cluster.Status.Initialization.InfrastructureProvisioned, false) {
+			markWaitingForFailureDomains(topologyName)
+			return nil
+		}
+		return fmt.Errorf("failureDomain %q specified in topology %q cannot be honored because Cluster.status.failureDomains is empty while the infrastructure is already provisioned (the infrastructure provider does not report any failure domain)",
+			failureDomain, topologyName)
+	}
+
+	failureDomainNames := clusterFailureDomainNames(s)
+	if !failureDomainNames.Has(failureDomain) {
+		return fmt.Errorf("failureDomain %q specified in topology %q does not match any failure domain defined in Cluster.status.failureDomains %v",
+			failureDomain, topologyName, failureDomainNames.UnsortedList())
+	}
+	return nil
 }

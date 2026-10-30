@@ -535,7 +535,7 @@ func (cc *clusterCache) Reconcile(ctx context.Context, req reconcile.Request) (r
 
 				// Store that disconnect was done.
 				didDisconnect = true
-				connected = false //nolint:ineffassign // connected is *currently* not used below, let's update it anyway
+				connected = false //nolint:ineffassign,wastedassign // connected is *currently* not used below, let's update it anyway
 			}
 			switch {
 			case unauthorizedErrorOccurred:

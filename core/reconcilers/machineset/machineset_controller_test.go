@@ -20,6 +20,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"slices"
 	"sort"
 	"strings"
 	"testing"
@@ -4596,9 +4597,7 @@ func TestSortMachinesToRemediate(t *testing.T) {
 	t.Run("remediation machines with annotation should be prioritised over other machines", func(t *testing.T) {
 		g := NewWithT(t)
 
-		machines := make([]*clusterv1.Machine, len(unhealthyMachines))
-		copy(machines, unhealthyMachines)
-		machines = append(machines, unhealthyMachinesWithAnnotations...)
+		machines := slices.Concat(unhealthyMachines, unhealthyMachinesWithAnnotations)
 		sortMachinesToRemediate(machines)
 
 		sort.SliceStable(unhealthyMachines, func(i, j int) bool {

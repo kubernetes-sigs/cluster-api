@@ -49,9 +49,9 @@ func TestMachinePoolDefault(t *testing.T) {
 		},
 	}
 	webhook := &MachinePool{}
-	ctx = admission.NewContextWithRequest(ctx, admission.Request{})
-	t.Run("for MachinePool", testutil.CustomDefaultValidateTest[*clusterv1.MachinePool](ctx, mp, webhook))
-	g.Expect(webhook.Default(ctx, mp)).To(Succeed())
+	reqCtx := admission.NewContextWithRequest(ctx, admission.Request{})
+	t.Run("for MachinePool", testutil.CustomDefaultValidateTest[*clusterv1.MachinePool](reqCtx, mp, webhook))
+	g.Expect(webhook.Default(reqCtx, mp)).To(Succeed())
 
 	g.Expect(mp.Labels[clusterv1.ClusterNameLabel]).To(Equal(mp.Spec.ClusterName))
 	g.Expect(mp.Spec.Replicas).To(Equal(ptr.To[int32](1)))

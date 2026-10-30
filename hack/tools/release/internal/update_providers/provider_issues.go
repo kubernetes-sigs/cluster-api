@@ -274,7 +274,7 @@ func getReleaseDetails() (releaseDetails, error) {
 		return releaseDetails{}, pkgerrors.New("release tag must be in format `^v\\d+\\.\\d+\\.\\d+-(alpha|beta|rc)\\.\\d+$` e.g. v1.7.0-beta.0")
 	}
 
-	major, minor, patch := "", "", ""
+	var major, minor, patch string
 	majorMinorPatchPattern := `v(\d+)\.(\d+)\.(\d+)`
 	re := regexp.MustCompile(majorMinorPatchPattern)
 	releaseSemVerMatch := re.FindStringSubmatch(releaseSemVer)

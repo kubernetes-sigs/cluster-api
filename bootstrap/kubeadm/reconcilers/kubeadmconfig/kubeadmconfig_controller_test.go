@@ -1540,7 +1540,7 @@ func TestBootstrapTokenRefreshIfTokenSecretCleaned(t *testing.T) {
 		err = remoteClient.Delete(ctx, &l.Items[0])
 		g.Expect(err).ToNot(HaveOccurred())
 
-		result, err = k.Reconcile(ctx, request)
+		_, err = k.Reconcile(ctx, request)
 		g.Expect(err).To(HaveOccurred())
 		g.Expect(err.Error()).To(ContainSubstring("failed to get bootstrap token secret in order to refresh it"))
 		// New token should not have been created

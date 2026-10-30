@@ -157,9 +157,9 @@ func setScalingUpCondition(_ context.Context, ms *clusterv1.MachineSet, machines
 	// Scaling up.
 	message := fmt.Sprintf("Scaling up from %d to %d replicas", currentReplicas, desiredReplicas)
 	if missingReferencesMessage != "" || len(scaleUpPreflightCheckErrMessages) > 0 {
-		listMessages := make([]string, len(scaleUpPreflightCheckErrMessages))
-		for i, msg := range scaleUpPreflightCheckErrMessages {
-			listMessages[i] = fmt.Sprintf("* Blocked because %s", msg)
+		listMessages := make([]string, 0, len(scaleUpPreflightCheckErrMessages)+1)
+		for _, msg := range scaleUpPreflightCheckErrMessages {
+			listMessages = append(listMessages, fmt.Sprintf("* Blocked because %s", msg))
 		}
 		if missingReferencesMessage != "" {
 			listMessages = append(listMessages, fmt.Sprintf("* Blocked because %s", missingReferencesMessage))

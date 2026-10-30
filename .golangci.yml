@@ -21,6 +21,7 @@ linters:
     - durationcheck # multiplying two durations
     - errcheck # unchecked errors
     - errchkjson # invalid types passed to json encoder
+    - fatcontext # nested contexts in loops and function literals
     - exptostd # golang.org/x/exp functions that can be replaced by std functions
     - forbidigo # allows to block usage of funcs
     - ginkgolinter # ginkgo and gomega
@@ -37,6 +38,7 @@ linters:
     - intrange # suggest using integer range in for loops
     - iotamixing # iota mixed with other values in const blocks
     - loggercheck # check for even key/value pairs in logger calls
+    - makezero # append to slices initialized with non-zero length
     - misspell # spelling
     - nakedret # naked returns (named return parameters and an empty return)
     - nilerr # returning nil after checking err is not nil
@@ -56,6 +58,7 @@ linters:
     - unused # unused constants, variables,functions, types
     - usestdlibvars # using variables/constants from the standard library
     - usetesting # report function to be replace by testing
+    - wastedassign # assignments that are never used
     - whitespace # unnecessary newlines
   settings:
     depguard:

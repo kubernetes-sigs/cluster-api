@@ -18,6 +18,7 @@ package client
 
 import (
 	"context"
+	"sort"
 
 	pkgerrors "github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -74,8 +75,9 @@ func (c *clusterctlClient) Delete(ctx context.Context, options DeleteOptions) er
 		return err
 	}
 
-	// Ensure this command only runs against management clusters with the current Cluster API contract.
-	if err := clusterClient.ProviderInventory().CheckCAPIContract(ctx); err != nil {
+	// Ensure this command only runs against management clusters with the current Cluster API contract, or against
+	// one that a previous delete left without the Cluster API CRDs but with providers in the clusterctl inventory.
+	if err := clusterClient.ProviderInventory().CheckCAPIContract(ctx, cluster.AllowCAPINotInstalledWithInventory{}); err != nil {
 		return err
 	}
 
@@ -171,6 +173,7 @@ func (c *clusterctlClient) Delete(ctx context.Context, options DeleteOptions) er
 	}
 
 	// Delete the selected providers.
+	sortProvidersForDelete(providersToDelete)
 	for _, provider := range providersToDelete {
 		if err := clusterClient.ProviderComponents().Delete(ctx, cluster.DeleteOptions{Provider: provider, IncludeNamespace: options.IncludeNamespace, IncludeCRDs: options.IncludeCRDs, SkipInventory: options.SkipInventory}); err != nil {
 			return err
@@ -178,6 +181,15 @@ func (c *clusterctlClient) Delete(ctx context.Context, options DeleteOptions) er
 	}
 
 	return nil
+}
+
+// sortProvidersForDelete sorts providers by type in the reverse of the install order, keeping the order within a
+// type, so the core provider and its CRDs go last and a delete that fails part way leaves Cluster API in place for
+// the next attempt.
+func sortProvidersForDelete(providers []clusterctlv1.Provider) {
+	sort.SliceStable(providers, func(a, b int) bool {
+		return providers[a].GetProviderType().Order() > providers[b].GetProviderType().Order()
+	})
 }
 
 func appendProviders(list []clusterctlv1.Provider, providerType clusterctlv1.ProviderType, names ...string) ([]clusterctlv1.Provider, error) {

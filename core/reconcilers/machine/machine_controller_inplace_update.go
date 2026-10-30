@@ -33,6 +33,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	runtimecatalog "sigs.k8s.io/cluster-api/api/runtime/catalog"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
 	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/feature"
@@ -169,7 +170,7 @@ type updateMachineResult struct {
 
 // updateMachine calls the UpdateMachine runtime hook for the machine.
 func (r *Reconciler) updateMachine(ctx context.Context, s *scope) (updateMachineResult, error) {
-	log := ctrl.LoggerFrom(ctx)
+	log := ctrl.LoggerFrom(ctx).WithValues(hookLogValues(runtimehooksv1.UpdateMachine)...)
 
 	// Validate that exactly one extension is registered for the UpdateMachine hook.
 	// For the current iteration, we only support a single extension to ensure safe behavior.
@@ -244,13 +245,13 @@ func (r *Reconciler) updateMachine(ctx context.Context, s *scope) (updateMachine
 	case runtimehooksv1.MachineUpdateStatusFailed:
 		s.updatingReason = clusterv1.MachineInPlaceUpdateFailedReason
 		s.updatingMessage = "In-place update failed" + messagesSuffix
-		log.Info(fmt.Sprintf("In-place update of Machine %s failed: extensions returned updateStatus %s, requeuing%s", s.machine.Name, res.updateStatus, logSuffix))
+		log.Info(fmt.Sprintf("Machine %s in-place update failed: extensions returned updateStatus %s, requeuing%s", s.machine.Name, res.updateStatus, logSuffix))
 	case runtimehooksv1.MachineUpdateStatusBlocked:
 		s.updatingReason = clusterv1.MachineInPlaceUpdateBlockedReason
 		s.updatingMessage = "In-place update blocked" + messagesSuffix
-		log.Info(fmt.Sprintf("In-place update of Machine %s blocked: extensions returned updateStatus %s, requeuing%s", s.machine.Name, res.updateStatus, logSuffix))
+		log.Info(fmt.Sprintf("Machine %s in-place update blocked: extensions returned updateStatus %s, requeuing%s", s.machine.Name, res.updateStatus, logSuffix))
 	case runtimehooksv1.MachineUpdateStatusCompleted, runtimehooksv1.MachineUpdateStatusCompletedButDirty:
-		log.Info(fmt.Sprintf("Machine %s has been updated in-place by extensions (updateStatus %s)%s", s.machine.Name, res.updateStatus, logSuffix))
+		log.Info(fmt.Sprintf("Machine %s in-place update completed by extensions (updateStatus %s)%s", s.machine.Name, res.updateStatus, logSuffix))
 	}
 	return res, nil
 }
@@ -430,7 +431,7 @@ func (r *Reconciler) completeInPlaceUpdate(ctx context.Context, s *scope, update
 	// Delete the UpdateMachine cache entry, so the UpdateMachine hook is called again for the next in-place update of this Machine.
 	r.updateMachineCache.Delete(UpdateMachineCacheEntry{Machine: client.ObjectKeyFromObject(s.machine)})
 
-	log.Info("Completed in-place update")
+	log.Info(fmt.Sprintf("Machine %s in-place update completed", s.machine.Name))
 	return nil
 }
 
@@ -528,4 +529,8 @@ func (r externalObjectsCacheEntry) Key() string {
 
 func externalObjectsCacheKey(objGVK schema.GroupVersionKind, obj client.Object) string {
 	return fmt.Sprintf("%s: %s", objGVK, klog.KObj(obj))
+}
+
+func hookLogValues(hook runtimecatalog.Hook) []any {
+	return []any{"hook", runtimecatalog.HookName(hook)}
 }

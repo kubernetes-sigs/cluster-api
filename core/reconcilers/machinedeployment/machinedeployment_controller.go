@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -42,6 +43,7 @@ import (
 	"sigs.k8s.io/cluster-api/core/reconcilers/machinedeployment/mdutil"
 	runtimeclient "sigs.k8s.io/cluster-api/exp/runtime/client"
 	"sigs.k8s.io/cluster-api/feature"
+	logutil "sigs.k8s.io/cluster-api/internal/util/log"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/cache"
@@ -70,6 +72,9 @@ var (
 // in the MachineDeployment controller.
 const machineDeploymentManagerName = "capi-machinedeployment"
 
+// logRateLimitInterval is the interval at which log lines repeated on every reconcile while waiting for something are logged.
+const logRateLimitInterval = time.Minute
+
 // Update permissions on /finalizers subresrouce is required on management clusters with 'OwnerReferencesPermissionEnforcement' plugin enabled.
 // See: https://kubernetes.io/docs/reference/access-authn-authz/admission-controllers/#ownerreferencespermissionenforcement
 //
@@ -94,6 +99,7 @@ type Reconciler struct {
 
 	canUpdateMachineSetCache   cache.Cache[CanUpdateMachineSetCacheEntry]
 	msClientWithDeleteResponse capicontrollerutil.ClientWithDeleteResponse
+	logRateLimiter             *logutil.Limiter
 }
 
 // SetupWithManager sets up the reconciler with the Manager.
@@ -136,6 +142,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 	if err != nil {
 		return pkgerrors.Wrap(err, "failed setting up with a controller manager")
 	}
+	r.logRateLimiter = logutil.New(ctx)
 	r.canUpdateMachineSetCache = cache.New[CanUpdateMachineSetCacheEntry](ctx, cache.HookCacheDefaultTTL)
 	r.controller = c
 	r.recorder = mgr.GetEventRecorderFor("machinedeployment-controller")
@@ -512,6 +519,7 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) error {
 			}
 		}
 
+		r.logRateLimiter.Forget(waitingForMachineSetsDeletionKey(s.machineDeployment))
 		r.controller.ClearConsistencyStore(client.ObjectKeyFromObject(s.machineDeployment), s.machineDeployment.UID)
 		controllerutil.RemoveFinalizer(s.machineDeployment, clusterv1.MachineDeploymentFinalizer)
 		// Also remove the legacy finalizer of the topology/machinedeployment controller if it is still set,
@@ -532,8 +540,12 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) error {
 		}
 	}
 
-	log.Info("Waiting for MachineSets to be deleted", "MachineSets", clog.ObjNamesString(s.machineSets))
+	r.logRateLimiter.InfoAtMostEvery(log, logRateLimitInterval, waitingForMachineSetsDeletionKey(s.machineDeployment), "Waiting for MachineSets to be deleted", "MachineSets", clog.ObjNamesString(s.machineSets))
 	return nil
+}
+
+func waitingForMachineSetsDeletionKey(md *clusterv1.MachineDeployment) logutil.Key {
+	return logutil.NewKey("WaitingForMachineSetsDeletion", logutil.WithObjects(md))
 }
 
 // deleteUnusedTemplates deletes the templates referenced in a topology-owned MachineDeployment if they are not used anymore.

@@ -32,6 +32,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/pkg"
 	"sigs.k8s.io/cluster-api/feature"
+	logutil "sigs.k8s.io/cluster-api/internal/util/log"
 	"sigs.k8s.io/cluster-api/util/collections"
 	"sigs.k8s.io/cluster-api/util/conditions"
 )
@@ -261,6 +262,7 @@ func preflightCheckCondition(kind string, obj *clusterv1.Machine, conditionType 
 func (r *Reconciler) handlePreflightCheckResults(ctx context.Context, controlPlane *pkg.ControlPlane, res preflightChecksResult) ctrl.Result {
 	controlPlane.PreflightCheckResults = res.PreflightCheckResults
 	if res.succeeded {
+		r.logRateLimiter.Forget(preflightChecksFailedKey(controlPlane.KCP, res))
 		return ctrl.Result{}
 	}
 	if res.deferNextReconcile > 0 {
@@ -272,7 +274,8 @@ func (r *Reconciler) handlePreflightCheckResults(ctx context.Context, controlPla
 		for _, s := range res.logKV {
 			args = append(args, s)
 		}
-		log.Info(res.logStr, args...)
+		// Note: The values are part of the key, so a change of the reason why the preflight checks fail is logged immediately.
+		r.logRateLimiter.InfoAtMostEvery(log, logRateLimitInterval, preflightChecksFailedKey(controlPlane.KCP, res), res.logStr, args...)
 	}
 	if res.eventStr != "" {
 		r.recorder.Event(controlPlane.KCP, corev1.EventTypeWarning, "ControlPlaneUnhealthy", res.eventStr)
@@ -282,4 +285,8 @@ func (r *Reconciler) handlePreflightCheckResults(ctx context.Context, controlPla
 		res.requeueAfter = preflightFailedRequeueAfter
 	}
 	return ctrl.Result{RequeueAfter: res.requeueAfter}
+}
+
+func preflightChecksFailedKey(kcp *controlplanev1.KubeadmControlPlane, res preflightChecksResult) logutil.Key {
+	return logutil.NewKey("PreflightChecksFailed", logutil.WithObjects(kcp), logutil.WithValues(append([]string{res.logStr}, res.logKV...)...))
 }

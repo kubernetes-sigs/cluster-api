@@ -54,6 +54,7 @@ import (
 	runtimeclient "sigs.k8s.io/cluster-api/exp/runtime/client"
 	"sigs.k8s.io/cluster-api/feature"
 	contractapi "sigs.k8s.io/cluster-api/internal/contract/api"
+	logutil "sigs.k8s.io/cluster-api/internal/util/log"
 	"sigs.k8s.io/cluster-api/pkg/dynamiccache"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
@@ -73,6 +74,9 @@ import (
 const (
 	drainRetryInterval               = time.Duration(20) * time.Second
 	waitForVolumeDetachRetryInterval = time.Duration(20) * time.Second
+
+	// logRateLimitInterval is the interval at which log lines repeated on every reconcile while waiting for something are logged.
+	logRateLimitInterval = time.Minute
 )
 
 var (
@@ -109,8 +113,9 @@ type Reconciler struct {
 	AdditionalSyncMachineLabels      []*regexp.Regexp
 	AdditionalSyncMachineAnnotations []*regexp.Regexp
 
-	controller capicontrollerutil.Controller
-	recorder   record.EventRecorder
+	controller     capicontrollerutil.Controller
+	recorder       record.EventRecorder
+	logRateLimiter *logutil.Limiter
 
 	// nodeDeletionRetryTimeout determines how long the controller will retry deleting a node
 	// during a single reconciliation.
@@ -180,6 +185,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 		return pkgerrors.Wrap(err, "failed setting up with a controller manager")
 	}
 
+	r.logRateLimiter = logutil.New(ctx)
 	r.updateMachineCache = cache.New[UpdateMachineCacheEntry](ctx, 30*time.Minute)
 	r.externalObjectsCache = cache.New[externalObjectsCacheEntry](ctx, 1*time.Hour)
 	r.controller = c
@@ -638,11 +644,12 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (ctrl.Result
 		return ctrl.Result{}, err
 	}
 	if !infrastructureDeleted {
-		log.Info("Waiting for infrastructure to be deleted", m.Spec.InfrastructureRef.Kind, klog.KRef(m.Namespace, m.Spec.InfrastructureRef.Name))
+		r.logRateLimiter.InfoAtMostEvery(log, logRateLimitInterval, waitingForInfrastructureDeletionKey(m), "Waiting for infrastructure to be deleted", m.Spec.InfrastructureRef.Kind, klog.KRef(m.Namespace, m.Spec.InfrastructureRef.Name))
 		s.deletingReason = clusterv1.MachineDeletingWaitingForInfrastructureDeletionReason
 		s.deletingMessage = fmt.Sprintf("Waiting for %s to be deleted", m.Spec.InfrastructureRef.Kind)
 		return ctrl.Result{}, nil
 	}
+	r.logRateLimiter.Forget(waitingForInfrastructureDeletionKey(m))
 
 	if m.Spec.Bootstrap.ConfigRef.IsDefined() {
 		bootstrapDeleted, err := r.reconcileDeleteBootstrap(ctx, s)
@@ -652,11 +659,12 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (ctrl.Result
 			return ctrl.Result{}, err
 		}
 		if !bootstrapDeleted {
-			log.Info("Waiting for bootstrap to be deleted", m.Spec.Bootstrap.ConfigRef.Kind, klog.KRef(m.Namespace, m.Spec.Bootstrap.ConfigRef.Name))
+			r.logRateLimiter.InfoAtMostEvery(log, logRateLimitInterval, waitingForBootstrapDeletionKey(m), "Waiting for bootstrap to be deleted", m.Spec.Bootstrap.ConfigRef.Kind, klog.KRef(m.Namespace, m.Spec.Bootstrap.ConfigRef.Name))
 			s.deletingReason = clusterv1.MachineDeletingWaitingForBootstrapDeletionReason
 			s.deletingMessage = fmt.Sprintf("Waiting for %s to be deleted", m.Spec.Bootstrap.ConfigRef.Kind)
 			return ctrl.Result{}, nil
 		}
+		r.logRateLimiter.Forget(waitingForBootstrapDeletionKey(m))
 	}
 
 	// We only delete the node after the underlying infrastructure is gone.
@@ -695,6 +703,14 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (ctrl.Result
 	}
 	controllerutil.RemoveFinalizer(m, clusterv1.MachineFinalizer)
 	return ctrl.Result{}, nil
+}
+
+func waitingForInfrastructureDeletionKey(m *clusterv1.Machine) logutil.Key {
+	return logutil.NewKey("WaitingForInfrastructureDeletion", logutil.WithObjects(m))
+}
+
+func waitingForBootstrapDeletionKey(m *clusterv1.Machine) logutil.Key {
+	return logutil.NewKey("WaitingForBootstrapDeletion", logutil.WithObjects(m))
 }
 
 func (r *Reconciler) isNodeDrainAllowed(m *clusterv1.Machine, infraMachine contractapi.InfraMachine) bool {

@@ -53,6 +53,7 @@ import (
 	runtimeclient "sigs.k8s.io/cluster-api/exp/runtime/client"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/util/inplace"
+	logutil "sigs.k8s.io/cluster-api/internal/util/log"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
 	"sigs.k8s.io/cluster-api/pkg/dynamiccache"
 	"sigs.k8s.io/cluster-api/util"
@@ -78,6 +79,9 @@ const (
 	// etcdMemberStartupGracePeriod is the maximum time KCP waits for an etcd
 	// member to get its name after the kubelet registers a new Node.
 	etcdMemberStartupGracePeriod = 20 * time.Second
+
+	// logRateLimitInterval is the interval at which log lines repeated on every reconcile while waiting for something are logged.
+	logRateLimitInterval = time.Minute
 )
 
 var (
@@ -107,6 +111,7 @@ type Reconciler struct {
 	ClusterCache                    clustercache.ClusterCache
 	DynamicCache                    dynamiccache.DynamicCache
 	canUpdateMachineCache           cache.Cache[CanUpdateMachineCacheEntry]
+	logRateLimiter                  *logutil.Limiter
 
 	EtcdDialTimeout time.Duration
 	EtcdCallTimeout time.Duration
@@ -186,6 +191,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 	if err != nil {
 		return pkgerrors.Wrap(err, "failed setting up with a controller manager")
 	}
+	r.logRateLimiter = logutil.New(ctx)
 	r.canUpdateMachineCache = cache.New[CanUpdateMachineCacheEntry](ctx, 30*time.Minute)
 	r.controller = c
 	r.recorder = mgr.GetEventRecorderFor("kubeadmcontrolplane-controller")
@@ -538,9 +544,19 @@ func (r *Reconciler) reconcile(ctx context.Context, controlPlane *pkg.ControlPla
 	// Note: If a Machine becomes unhealthy during in-place update reconcileUnhealthyMachines above remediates it.
 	// Note: We have to wait here even if there are no more Machines that need rollout (in-place update in
 	// progress is not counted as needs rollout).
-	if machines := controlPlane.MachinesToCompleteInPlaceUpdate(); machines.Len() > 0 {
-		for _, machine := range machines {
-			log.Info(fmt.Sprintf("Waiting for in-place update of Machine %s to complete", machine.Name), "Machine", klog.KObj(machine))
+	machinesToCompleteInPlaceUpdate := controlPlane.MachinesToCompleteInPlaceUpdate()
+
+	for _, machine := range controlPlane.Machines {
+		// Note: Forget is called for all the Machines without an in-place update in progress, so a following in-place update of the
+		// same Machine is logged again at Info instead of being considered a repetition of the previous one.
+		if !machinesToCompleteInPlaceUpdate.Has(machine) {
+			r.logRateLimiter.Forget(waitingForInPlaceUpdateKey(controlPlane.KCP, machine))
+		}
+	}
+
+	if machinesToCompleteInPlaceUpdate.Len() > 0 {
+		for _, machine := range machinesToCompleteInPlaceUpdate {
+			r.logRateLimiter.InfoAtMostEvery(log, logRateLimitInterval, waitingForInPlaceUpdateKey(controlPlane.KCP, machine), fmt.Sprintf("Waiting for in-place update of Machine %s to complete", machine.Name), "Machine", klog.KObj(machine))
 		}
 		return ctrl.Result{}, nil // Note: Changes to Machines trigger another reconcile.
 	}
@@ -558,10 +574,12 @@ func (r *Reconciler) reconcile(ctx context.Context, controlPlane *pkg.ControlPla
 		slices.Sort(machinesNeedingRolloutNames)
 		slices.Sort(allMessages)
 
-		log.Info(fmt.Sprintf("Machines need rollout: %s", strings.Join(machinesNeedingRolloutNames, ",")), "reason", strings.Join(allMessages, ", "))
+		// Note: The names of the Machines are values of the key, so a change of the list (e.g. after a Machine is rolled out) is logged immediately.
+		r.logRateLimiter.InfoAtMostEvery(log, logRateLimitInterval, machinesNeedRolloutKey(controlPlane.KCP, machinesNeedingRolloutNames), fmt.Sprintf("Machines need rollout: %s", strings.Join(machinesNeedingRolloutNames, ",")), "reason", strings.Join(allMessages, ", "))
 		v1beta1conditions.MarkFalse(controlPlane.KCP, controlplanev1.MachinesSpecUpToDateV1Beta1Condition, controlplanev1.RollingUpdateInProgressV1Beta1Reason, clusterv1.ConditionSeverityWarning, "Rolling %d replicas with outdated spec (%d replicas up to date)", len(machinesNeedingRollout), len(controlPlane.Machines)-len(machinesNeedingRollout))
 		return r.updateControlPlane(ctx, controlPlane, machinesNeedingRollout, machinesUpToDateResults)
 	default:
+		r.logRateLimiter.Forget(machinesNeedRolloutKey(controlPlane.KCP, nil))
 		// make sure last upgrade operation is marked as completed.
 		// NOTE: we are checking the condition already exists in order to avoid to set this condition at the first
 		// reconciliation/before a rolling upgrade actually starts.
@@ -623,6 +641,14 @@ func (r *Reconciler) reconcile(ctx context.Context, controlPlane *pkg.ControlPla
 		return ctrl.Result{}, err
 	}
 	return ctrl.Result{}, nil
+}
+
+func waitingForInPlaceUpdateKey(kcp *controlplanev1.KubeadmControlPlane, m *clusterv1.Machine) logutil.Key {
+	return logutil.NewKey("WaitingForInPlaceUpdate", logutil.WithObjects(kcp, m))
+}
+
+func machinesNeedRolloutKey(kcp *controlplanev1.KubeadmControlPlane, machinesNeedingRolloutNames []string) logutil.Key {
+	return logutil.NewKey("MachinesNeedRollout", logutil.WithObjects(kcp), logutil.WithValues(machinesNeedingRolloutNames...))
 }
 
 // reconcileClusterCertificates ensures that all the cluster certificates exists and
@@ -711,10 +737,12 @@ func (r *Reconciler) reconcileClusterCertificates(ctx context.Context, controlPl
 // Please see https://github.com/kubernetes-sigs/cluster-api/issues/2064.
 func (r *Reconciler) reconcileDelete(ctx context.Context, controlPlane *pkg.ControlPlane) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
-	log.Info("Reconcile KubeadmControlPlane deletion")
+	r.logRateLimiter.InfoAtMostEvery(log, logRateLimitInterval, reconcileDeletionKey(controlPlane.KCP), "Reconcile KubeadmControlPlane deletion")
 
 	// If no control plane machines remain, remove the finalizer
 	if len(controlPlane.Machines) == 0 {
+		r.logRateLimiter.Forget(reconcileDeletionKey(controlPlane.KCP))
+		r.logRateLimiter.Forget(waitingForMachinesDeletionKey(controlPlane.KCP))
 		controlPlane.DeletingReason = controlplanev1.KubeadmControlPlaneDeletingDeletionCompletedReason
 		controlPlane.DeletingMessage = "Deletion completed"
 
@@ -809,7 +837,7 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, controlPlane *pkg.Cont
 		return ctrl.Result{}, err
 	}
 
-	log.Info("Waiting for control plane Machines to not exist anymore")
+	r.logRateLimiter.InfoAtMostEvery(log, logRateLimitInterval, waitingForMachinesDeletionKey(controlPlane.KCP), "Waiting for control plane Machines to not exist anymore")
 
 	v1beta1conditions.MarkFalse(controlPlane.KCP, controlplanev1.ResizedV1Beta1Condition, clusterv1.DeletingV1Beta1Reason, clusterv1.ConditionSeverityInfo, "")
 
@@ -828,6 +856,14 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, controlPlane *pkg.Cont
 	controlPlane.DeletingReason = controlplanev1.KubeadmControlPlaneDeletingWaitingForMachineDeletionReason
 	controlPlane.DeletingMessage = message
 	return ctrl.Result{RequeueAfter: deleteRequeueAfter}, nil
+}
+
+func reconcileDeletionKey(kcp *controlplanev1.KubeadmControlPlane) logutil.Key {
+	return logutil.NewKey("ReconcileDeletion", logutil.WithObjects(kcp))
+}
+
+func waitingForMachinesDeletionKey(kcp *controlplanev1.KubeadmControlPlane) logutil.Key {
+	return logutil.NewKey("WaitingForMachinesDeletion", logutil.WithObjects(kcp))
 }
 
 // objectsPendingDeleteNames return the names of worker Machines and MachinePools pending delete.
@@ -1303,6 +1339,8 @@ func (r *Reconciler) reconcileEtcdMembers(ctx context.Context, controlPlane *pkg
 	// Potential inconsistencies between the list of members and the list of Machine/Node are
 	// surfaced using the EtcdClusterHealthyCondition; if this condition is true, meaning no inconsistencies exists, return early.
 	if conditions.IsTrue(controlPlane.KCP, controlplanev1.KubeadmControlPlaneEtcdClusterHealthyCondition) {
+		r.logRateLimiter.Forget(waitingForProvisioningMachinesEtcdMembersKey(controlPlane.KCP))
+		r.logRateLimiter.Forget(waitingForNewlyRegisteredNodesEtcdMembersKey(controlPlane.KCP))
 		return ctrl.Result{}, nil
 	}
 
@@ -1343,6 +1381,8 @@ func (r *Reconciler) reconcileEtcdMembers(ctx context.Context, controlPlane *pkg
 
 	// If there are no unexpected members, return.
 	if len(unexpectedMembers) == 0 {
+		r.logRateLimiter.Forget(waitingForProvisioningMachinesEtcdMembersKey(controlPlane.KCP))
+		r.logRateLimiter.Forget(waitingForNewlyRegisteredNodesEtcdMembersKey(controlPlane.KCP))
 		return ctrl.Result{}, nil
 	}
 
@@ -1361,7 +1401,7 @@ func (r *Reconciler) reconcileEtcdMembers(ctx context.Context, controlPlane *pkg
 	// If there are unexpected members, but there is a machine not yet reporting the node name,
 	// there is chance that the unexpected member is the one hosted on the provisioning machine, so wait.
 	if len(provisioningMachines) > 0 {
-		log.Info(fmt.Sprintf("Etcd members %s without corresponding Machines, potential match with provisioning machines %s", strings.Join(unexpectedMembersMsg, ", "), strings.Join(provisioningMachines.UnsortedList(), ", ")),
+		r.logRateLimiter.InfoAtMostEvery(log, logRateLimitInterval, waitingForProvisioningMachinesEtcdMembersKey(controlPlane.KCP), fmt.Sprintf("Etcd members %s without corresponding Machines, potential match with provisioning machines %s", strings.Join(unexpectedMembersMsg, ", "), strings.Join(provisioningMachines.UnsortedList(), ", ")),
 			"unexpectedEtcdMembers", unexpectedMembersMsg, "provisioningMachines", sets.List(provisioningMachines))
 		return ctrl.Result{}, nil
 	}
@@ -1369,7 +1409,7 @@ func (r *Reconciler) reconcileEtcdMembers(ctx context.Context, controlPlane *pkg
 	// etcd static Pod starts. Keep it while a Node was recently registered (grace period) so
 	// we prevent that a NodeRef-before-etcd-name race leads the code below to remove the etcd member too aggressively.
 	if hasUnnamedUnexpectedMember && len(machinesWithNewlyRegisteredNodes) > 0 {
-		log.Info(fmt.Sprintf("Etcd members %s without corresponding Machines, potential match with machines with newly provisioned nodes %s", strings.Join(unexpectedMembersMsg, ", "), strings.Join(machinesWithNewlyRegisteredNodes.UnsortedList(), ", ")),
+		r.logRateLimiter.InfoAtMostEvery(log, logRateLimitInterval, waitingForNewlyRegisteredNodesEtcdMembersKey(controlPlane.KCP), fmt.Sprintf("Etcd members %s without corresponding Machines, potential match with machines with newly provisioned nodes %s", strings.Join(unexpectedMembersMsg, ", "), strings.Join(machinesWithNewlyRegisteredNodes.UnsortedList(), ", ")),
 			"unexpectedEtcdMembers", unexpectedMembersMsg, "machinesWithNewlyRegisteredNodes", sets.List(machinesWithNewlyRegisteredNodes))
 		return ctrl.Result{}, nil
 	}
@@ -1416,6 +1456,14 @@ func (r *Reconciler) reconcileEtcdMembers(ctx context.Context, controlPlane *pkg
 
 	// Force a new reconcile after removing an etcd member.
 	return ctrl.Result{RequeueAfter: 1 * time.Second}, nil // RequeueAfter should be at least 1s, because controller rate limiter is using 1s.
+}
+
+func waitingForProvisioningMachinesEtcdMembersKey(kcp *controlplanev1.KubeadmControlPlane) logutil.Key {
+	return logutil.NewKey("WaitingForProvisioningMachinesEtcdMembers", logutil.WithObjects(kcp))
+}
+
+func waitingForNewlyRegisteredNodesEtcdMembersKey(kcp *controlplanev1.KubeadmControlPlane) logutil.Key {
+	return logutil.NewKey("WaitingForNewlyRegisteredNodesEtcdMembers", logutil.WithObjects(kcp))
 }
 
 func (r *Reconciler) reconcilePreTerminateHook(ctx context.Context, controlPlane *pkg.ControlPlane) (ctrl.Result, error) {

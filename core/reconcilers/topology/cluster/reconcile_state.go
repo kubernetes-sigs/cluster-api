@@ -40,6 +40,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	runtimecatalog "sigs.k8s.io/cluster-api/api/runtime/catalog"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
+	runtimev1 "sigs.k8s.io/cluster-api/api/runtime/v1beta2"
 	"sigs.k8s.io/cluster-api/core/reconcilers/topology/cluster/structuredmerge"
 	"sigs.k8s.io/cluster-api/exp/topology/scope"
 	"sigs.k8s.io/cluster-api/feature"
@@ -524,7 +525,20 @@ func (r *Reconciler) reconcileCluster(ctx context.Context, s *scope.Scope) error
 	log := ctrl.LoggerFrom(ctx)
 
 	currentCluster := s.Current.Cluster
-	desiredCluster := s.Desired.Cluster
+	// Note: Using DeepCopy here to avoid modifying s.Desired.Cluster.
+	desiredCluster := s.Desired.Cluster.DeepCopy()
+
+	// Lifecycle hooks are marked as pending or done on s.Current.Cluster after the desired state has been computed,
+	// so their tracking is taken from s.Current.Cluster. Otherwise the patch would revert it, and for a Cluster read
+	// without annotations it would set annotations to null, dropping every annotation written since the Cluster was read.
+	if pendingHooks, ok := currentCluster.Annotations[runtimev1.PendingHooksAnnotation]; ok {
+		if desiredCluster.Annotations == nil {
+			desiredCluster.Annotations = map[string]string{}
+		}
+		desiredCluster.Annotations[runtimev1.PendingHooksAnnotation] = pendingHooks
+	} else {
+		delete(desiredCluster.Annotations, runtimev1.PendingHooksAnnotation)
+	}
 
 	if maps.Equal(currentCluster.Labels, desiredCluster.Labels) &&
 		maps.Equal(currentCluster.Annotations, desiredCluster.Annotations) &&
@@ -533,9 +547,6 @@ func (r *Reconciler) reconcileCluster(ctx context.Context, s *scope.Scope) error
 		log.V(3).Info("No changes for Cluster")
 		return nil
 	}
-
-	// Note: Using DeepCopy here to avoid modifying s.Current.Cluster (we might be using it later in the same Reconcile).
-	desiredCluster = desiredCluster.DeepCopy()
 
 	patchData, err := client.MergeFrom(currentCluster).Data(desiredCluster)
 	if err != nil {

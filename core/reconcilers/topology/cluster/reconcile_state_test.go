@@ -1482,6 +1482,95 @@ func TestReconcileCluster(t *testing.T) {
 	}
 }
 
+func TestReconcileClusterKeepsAnnotationsAddedDuringReconcile(t *testing.T) {
+	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)
+
+	tests := []struct {
+		name        string
+		annotations map[string]string
+	}{
+		{
+			name:        "Cluster without annotations",
+			annotations: nil,
+		},
+		{
+			name:        "Cluster with an annotation",
+			annotations: map[string]string{"user.example.com/note": "set at creation"},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			namespace, err := env.CreateNamespace(ctx, "reconcile-cluster-annotations")
+			g.Expect(err).ToNot(HaveOccurred())
+
+			ict := builder.TestInfrastructureClusterTemplate(namespace.GetName(), "infra1").Build()
+			cpt := builder.TestControlPlaneTemplate(namespace.GetName(), "cp1").Build()
+			clusterClass := builder.ClusterClass(namespace.GetName(), "class1").
+				WithInfrastructureClusterTemplate(ict).
+				WithControlPlaneTemplate(cpt).
+				Build()
+			g.Expect(env.CreateAndWait(ctx, ict)).To(Succeed())
+			g.Expect(env.CreateAndWait(ctx, cpt)).To(Succeed())
+			g.Expect(env.CreateAndWait(ctx, clusterClass)).To(Succeed())
+
+			cluster := builder.Cluster(namespace.GetName(), "cluster1").
+				WithAnnotations(tt.annotations).
+				WithTopology(&clusterv1.Topology{
+					ClassRef: clusterv1.ClusterClassRef{
+						Name: "class1",
+					},
+					Version: "v1.30.0",
+				}).
+				Build()
+			// Pausing the Cluster so the reconciler running in the background does not reconcile the Cluster for us.
+			cluster.Spec.Paused = ptr.To(true)
+			g.Expect(env.CreateAndWait(ctx, cluster)).To(Succeed())
+
+			// Compute the desired Cluster from the Cluster as read, the same way computeCluster does.
+			desired := cluster.DeepCopy()
+			desired.Labels = map[string]string{
+				clusterv1.ClusterNameLabel:          cluster.Name,
+				clusterv1.ClusterTopologyOwnedLabel: "",
+			}
+			if desired.Annotations == nil {
+				desired.Annotations = map[string]string{}
+			}
+			desired.Spec.InfrastructureRef = contract.ObjToContractVersionedObjectReference(builder.TestInfrastructureCluster(namespace.GetName(), "infrastructure-cluster1").Build())
+			desired.Spec.ControlPlaneRef = contract.ObjToContractVersionedObjectReference(builder.TestControlPlane(namespace.GetName(), "control-plane1").Build())
+
+			s := scope.New(cluster)
+			s.Desired = &scope.ClusterState{Cluster: desired}
+
+			// After the desired state has been computed, someone else annotates the Cluster and
+			// the intent to call AfterControlPlaneInitialized is tracked on s.Current.Cluster.
+			g.Expect(env.Patch(ctx, cluster.DeepCopy(), client.RawPatch(types.MergePatchType, []byte(`{"metadata":{"annotations":{"extension.example.com/prepared":"true"}}}`)))).To(Succeed())
+			g.Expect(hooks.MarkAsPending(ctx, env, s.Current.Cluster, false, runtimehooksv1.AfterControlPlaneInitialized)).To(Succeed())
+
+			r := Reconciler{
+				Client:     env,
+				controller: capicontrollerutil.NewFakeController(),
+				recorder:   env.GetEventRecorderFor("test"),
+				ssaCache:   ssa.NewCache("topology/cluster"),
+			}
+			g.Expect(r.reconcileCluster(ctx, s)).To(Succeed())
+
+			got := &clusterv1.Cluster{}
+			g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(cluster), got)).To(Succeed())
+			g.Expect(got.Spec.InfrastructureRef).To(Equal(desired.Spec.InfrastructureRef))
+			g.Expect(got.Spec.ControlPlaneRef).To(Equal(desired.Spec.ControlPlaneRef))
+			for k, v := range tt.annotations {
+				g.Expect(got.Annotations).To(HaveKeyWithValue(k, v))
+			}
+			g.Expect(got.Annotations).To(HaveKeyWithValue("extension.example.com/prepared", "true"))
+			g.Expect(hooks.IsPending(runtimehooksv1.AfterControlPlaneInitialized, got)).To(BeTrue())
+
+			g.Expect(env.CleanupAndWait(ctx, cluster, clusterClass, ict, cpt)).To(Succeed())
+		})
+	}
+}
+
 func TestReconcileInfrastructureCluster(t *testing.T) {
 	g := NewWithT(t)
 

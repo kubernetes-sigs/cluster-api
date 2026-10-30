@@ -26,6 +26,7 @@ func init() {
 	ctrlmetrics.Registry.MustRegister(healthCheck)
 	ctrlmetrics.Registry.MustRegister(connectionUp)
 	ctrlmetrics.Registry.MustRegister(healthChecksTotal)
+	ctrlmetrics.Registry.MustRegister(kubeconfigSyncTotal)
 }
 
 var (
@@ -43,6 +44,14 @@ var (
 			Help: "Results of all clustercache healthchecks.",
 		}, []string{
 			"cluster_name", "cluster_namespace", "status",
+		},
+	)
+	kubeconfigSyncTotal = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "capi_cluster_cache_kubeconfig_sync_total",
+			Help: "Results of clustercache kubeconfig syncs.",
+		}, []string{
+			"cluster_name", "cluster_namespace", "result",
 		},
 	)
 	connectionUp = prometheus.NewGaugeVec(

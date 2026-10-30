@@ -1679,6 +1679,7 @@ func TestClusterTopologyValidation(t *testing.T) {
 	// NOTE: ClusterTopology feature flag is disabled by default, thus preventing to set Cluster.Topologies.
 	// Enabling the feature flag temporarily for this test.
 	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)
+	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopologyWorkerVersionPinning, true)
 
 	tests := []struct {
 		name                         string
@@ -1690,6 +1691,29 @@ func TestClusterTopologyValidation(t *testing.T) {
 		expectErr                    bool
 		expectWarning                bool
 	}{
+		{
+			// The skew guard must also run on create, not only when spec.topology.version changes.
+			name:      "should reject a Cluster created with a pinned MachineDeployment outside the version skew policy",
+			expectErr: true,
+			in: builder.Cluster("fooboo", "cluster1").
+				WithTopology(builder.ClusterTopology().
+					WithClass("foo").
+					WithVersion("v1.35.0").
+					WithMachineDeployment(builder.MachineDeploymentTopology("workers1").WithClass("aa").WithVersion("v1.31.0").Build()).
+					Build()).
+				Build(),
+		},
+		{
+			name:      "should accept a Cluster created with a pinned MachineDeployment within the version skew policy",
+			expectErr: false,
+			in: builder.Cluster("fooboo", "cluster1").
+				WithTopology(builder.ClusterTopology().
+					WithClass("foo").
+					WithVersion("v1.34.0").
+					WithMachineDeployment(builder.MachineDeploymentTopology("workers1").WithClass("aa").WithVersion("v1.31.0").Build()).
+					Build()).
+				Build(),
+		},
 		{
 			name:      "should return error when topology does not have class",
 			expectErr: true,
@@ -3740,6 +3764,12 @@ func Test_validateTopologyVersionUpdate(t *testing.T) {
 		c.Annotations = map[string]string{clusterv1.ClusterTopologyUnsafeUpdateVersionAnnotation: ""}
 		return c
 	}
+	withMachineDeploymentVersion := func(c *clusterv1.Cluster, version string) *clusterv1.Cluster {
+		c.Spec.Topology.Workers.MachineDeployments = []clusterv1.MachineDeploymentTopology{
+			builder.MachineDeploymentTopology("md-0").WithClass("aa").WithVersion(version).Build(),
+		}
+		return c
+	}
 
 	tests := []struct {
 		name          string
@@ -3784,10 +3814,49 @@ func Test_validateTopologyVersionUpdate(t *testing.T) {
 			clusterClass:  builder.ClusterClass("fooboo", "foo").Build(),
 			expectWarning: true,
 		},
+		{
+			// The pinned MachineDeployment is not upgraded together with the Cluster.
+			name:         "should reject an upgrade beyond the version skew policy of a pinned MachineDeployment",
+			old:          withMachineDeploymentVersion(clusterAt("v1.19.1"), "v1.16.0"),
+			new:          withMachineDeploymentVersion(clusterAt("v1.20.0"), "v1.16.0"),
+			clusterClass: builder.ClusterClass("fooboo", "foo").Build(),
+			expectErrs:   []string{"spec.topology.version: Invalid value: \"v1.20.0\": version does not conform to the Kubernetes version skew policy: it cannot be more than 3 minor versions newer than the version of MachineDeployment md-0 (v1.16.0)"},
+		},
+		{
+			// The old pin is what the MachineDeployment runs while the control plane is upgraded.
+			name:         "should reject an upgrade beyond the version skew policy of a pin changed in the same request",
+			old:          withMachineDeploymentVersion(clusterAt("v1.19.1"), "v1.16.0"),
+			new:          withMachineDeploymentVersion(clusterAt("v1.20.0"), "v1.17.0"),
+			clusterClass: builder.ClusterClass("fooboo", "foo").Build(),
+			expectErrs:   []string{"it cannot be more than 3 minor versions newer than the version of MachineDeployment md-0 (v1.16.0)"},
+		},
+		{
+			name:         "should pass an upgrade within the version skew policy of a pinned MachineDeployment",
+			old:          withMachineDeploymentVersion(clusterAt("v1.19.1"), "v1.17.0"),
+			new:          withMachineDeploymentVersion(clusterAt("v1.20.0"), "v1.17.0"),
+			clusterClass: builder.ClusterClass("fooboo", "foo").Build(),
+		},
+		{
+			// The control plane is upgraded only after the request, so the pin cannot follow the new topology version yet.
+			name:         "should reject a MachineDeployment version above the control plane version when upgrading the topology version",
+			old:          withMachineDeploymentVersion(clusterAt("v1.19.1"), "v1.19.1"),
+			new:          withMachineDeploymentVersion(clusterAt("v1.20.0"), "v1.20.0"),
+			clusterClass: builder.ClusterClass("fooboo", "foo").Build(),
+			expectErrs:   []string{"version cannot be greater than the control plane version"},
+		},
+		{
+			name:          "should skip MachineDeployment version validation with a warning if the unsafe annotation is set",
+			old:           withMachineDeploymentVersion(clusterAt("v1.20.0"), "v1.19.1"),
+			new:           withUnsafeAnnotation(withMachineDeploymentVersion(clusterAt("v1.20.0"), "v1.20.0")),
+			clusterClass:  builder.ClusterClass("fooboo", "foo").Build(),
+			expectWarning: true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
+
+			utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopologyWorkerVersionPinning, true)
 
 			webhook := &Cluster{Client: fake.NewClientBuilder().WithObjects(controlPlaneObjects...).WithScheme(fakeScheme).Build()}
 
@@ -3905,6 +3974,595 @@ func Test_validateTopologyControlPlaneVersion(t *testing.T) {
 	}
 }
 
+func Test_validateTopologyWorkerVersions(t *testing.T) {
+	tests := []struct {
+		name            string
+		topologyVersion string
+		mdVersion       string
+		mdAnnotations   map[string]string
+		mpVersion       string
+		expectErrs      []string
+	}{
+		{
+			name:            "should pass if no version is pinned",
+			topologyVersion: "v1.34.0",
+		},
+		{
+			name:            "should pass if valid versions are pinned",
+			topologyVersion: "v1.34.0",
+			mdVersion:       "v1.33.0",
+			mpVersion:       "v1.33.0",
+		},
+		{
+			// The window is topology.version minus maxWorkerMinorVersionSkew up to topology.version.
+			name:            "should pass at the edge of the skew budget",
+			topologyVersion: "v1.34.0",
+			mdVersion:       "v1.31.0",
+			mpVersion:       "v1.31.0",
+		},
+		{
+			// Skew is judged on major.minor, so pre-release and build metadata do not affect it.
+			name:            "should ignore pre-release and build metadata when judging skew",
+			topologyVersion: "v1.34.0-rc.0",
+			mdVersion:       "v1.31.5+vmware.1",
+			mpVersion:       "v1.34.0-rc.0",
+		},
+		{
+			name:            "should pass a pin on an older pre-release than the topology version",
+			topologyVersion: "v1.34.0",
+			mdVersion:       "v1.34.0-rc.0",
+		},
+		{
+			// Pre-releases are compared, so a worker never runs a newer version than the control plane.
+			name:            "should reject a pin on a newer pre-release than the topology version",
+			topologyVersion: "v1.34.0-alpha.0",
+			mdVersion:       "v1.34.0-beta.0",
+			expectErrs:      []string{"version cannot be greater than Cluster.spec.topology.version \"v1.34.0-alpha.0\""},
+		},
+		{
+			name:            "should reject a pinned version without a v prefix",
+			topologyVersion: "v1.34.0",
+			mdVersion:       "1.33.0",
+			expectErrs:      []string{"must start with v"},
+		},
+		{
+			name:            "should reject a pinned version that is not a semantic version",
+			topologyVersion: "v1.34.0",
+			mdVersion:       "vfoo",
+			expectErrs:      []string{"must be a valid semantic version"},
+		},
+		{
+			// Parsed strictly, like Cluster.spec.topology.version. A tolerantly parsed "v1.34" would
+			// be admitted here and then rejected by the MachineDeployment webhook.
+			name:            "should reject a pinned version that is not strict semver",
+			topologyVersion: "v1.34.0",
+			mdVersion:       "v1.34",
+			expectErrs:      []string{"must be a valid semantic version"},
+		},
+		{
+			name:            "should reject a pin on a newer minor than the topology version",
+			topologyVersion: "v1.33.0",
+			mdVersion:       "v1.34.0",
+			expectErrs:      []string{"version cannot be greater than Cluster.spec.topology.version \"v1.33.0\""},
+		},
+		{
+			// The skew check is minor-granular, so the ceiling is what catches this one.
+			name:            "should reject a pin on a newer patch than the topology version",
+			topologyVersion: "v1.34.0",
+			mdVersion:       "v1.34.9",
+			expectErrs:      []string{"version cannot be greater than Cluster.spec.topology.version \"v1.34.0\""},
+		},
+		{
+			name:            "should reject a MachineDeployment pin outside the skew budget",
+			topologyVersion: "v1.35.0",
+			mdVersion:       "v1.31.0",
+			expectErrs:      []string{"spec.topology.workers.machineDeployments[md-0].version: Invalid value: \"v1.31.0\": version does not conform to the Kubernetes version skew policy: it cannot be more than 3 minor versions older than Cluster.spec.topology.version \"v1.35.0\""},
+		},
+		{
+			name:            "should reject a MachinePool pin outside the skew budget",
+			topologyVersion: "v1.35.0",
+			mpVersion:       "v1.31.0",
+			expectErrs:      []string{"spec.topology.workers.machinePools[mp-0].version: Invalid value: \"v1.31.0\": version does not conform to the Kubernetes version skew policy"},
+		},
+		{
+			// One error per offending pin, so the user sees every one that has to move.
+			name:            "should report every pin outside the skew budget",
+			topologyVersion: "v1.35.0",
+			mdVersion:       "v1.31.0",
+			mpVersion:       "v1.30.0",
+			expectErrs: []string{
+				"spec.topology.workers.machineDeployments[md-0].version",
+				"spec.topology.workers.machinePools[mp-0].version",
+			},
+		},
+		{
+			name:            "should reject a pinned version combined with the defer-upgrade annotation",
+			topologyVersion: "v1.34.0",
+			mdVersion:       "v1.33.0",
+			mdAnnotations:   map[string]string{clusterv1.ClusterTopologyDeferUpgradeAnnotation: ""},
+			expectErrs:      []string{"cannot be set together with the " + clusterv1.ClusterTopologyDeferUpgradeAnnotation},
+		},
+		{
+			name:            "should reject a pinned version combined with the hold-upgrade-sequence annotation",
+			topologyVersion: "v1.34.0",
+			mdVersion:       "v1.33.0",
+			mdAnnotations:   map[string]string{clusterv1.ClusterTopologyHoldUpgradeSequenceAnnotation: ""},
+			expectErrs:      []string{"cannot be set together with the " + clusterv1.ClusterTopologyHoldUpgradeSequenceAnnotation},
+		},
+		{
+			// Build tags are compared, so a worker never runs a newer build than the control plane.
+			name:            "should reject a pin on a newer build than the topology version",
+			topologyVersion: "v1.34.0+vmware.1",
+			mdVersion:       "v1.34.0+vmware.2",
+			expectErrs:      []string{"version cannot be greater than Cluster.spec.topology.version \"v1.34.0+vmware.1\""},
+		},
+		{
+			name:            "should pass a pin on an older build than the topology version",
+			topologyVersion: "v1.34.0+vmware.2",
+			mdVersion:       "v1.34.0+vmware.1",
+		},
+		{
+			// An unparsable topology version is already reported for spec.topology.version.
+			name:            "should not report skew for an unparsable topology version",
+			topologyVersion: "vfoo",
+			mdVersion:       "v1.31.0",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			topology := builder.ClusterTopology().WithClass("foo").WithVersion(tt.topologyVersion).
+				WithMachineDeployment(builder.MachineDeploymentTopology("md-0").WithClass("aa").
+					WithVersion(tt.mdVersion).WithAnnotations(tt.mdAnnotations).Build()).
+				WithMachinePool(builder.MachinePoolTopology("mp-0").WithClass("aa").
+					WithVersion(tt.mpVersion).Build()).
+				Build()
+
+			errs := validateTopologyWorkerVersions(*topology, field.NewPath("spec", "topology"))
+
+			if len(tt.expectErrs) == 0 {
+				g.Expect(errs).To(BeEmpty())
+				return
+			}
+			g.Expect(errs).To(HaveLen(len(tt.expectErrs)))
+			for i, expectErr := range tt.expectErrs {
+				g.Expect(errs[i].Error()).To(ContainSubstring(expectErr))
+			}
+		})
+	}
+}
+
+func Test_validateTopologyWorkerVersionsFeatureGate(t *testing.T) {
+	clusterWith := func(mdVersion, mpVersion string) *clusterv1.Cluster {
+		return builder.Cluster("fooboo", "cluster1").
+			WithTopology(builder.ClusterTopology().WithClass("foo").WithVersion("v1.34.0").
+				WithMachineDeployment(builder.MachineDeploymentTopology("md-0").WithClass("aa").WithVersion(mdVersion).Build()).
+				WithMachinePool(builder.MachinePoolTopology("mp-0").WithClass("aa").WithVersion(mpVersion).Build()).
+				Build()).
+			Build()
+	}
+
+	tests := []struct {
+		name           string
+		versionPinning bool
+		new            *clusterv1.Cluster
+		expectErrs     []string
+	}{
+		{
+			name:           "should pass setting versions if the feature gate is enabled",
+			versionPinning: true,
+			new:            clusterWith("v1.33.0", "v1.33.0"),
+		},
+		{
+			name:           "should pass if no version is set",
+			versionPinning: false,
+			new:            clusterWith("", ""),
+		},
+		{
+			name:           "should reject versions if the feature gate is disabled",
+			versionPinning: false,
+			new:            clusterWith("v1.33.0", "v1.33.0"),
+			expectErrs: []string{
+				"spec.topology.workers.machineDeployments[md-0].version: Forbidden",
+				"spec.topology.workers.machinePools[mp-0].version: Forbidden",
+			},
+		},
+		{
+			name:           "should reject a single version if the feature gate is disabled",
+			versionPinning: false,
+			new:            clusterWith("v1.33.0", ""),
+			expectErrs:     []string{"spec.topology.workers.machineDeployments[md-0].version: Forbidden"},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopologyWorkerVersionPinning, tt.versionPinning)
+
+			errs := validateTopologyWorkerVersionsFeatureGate(tt.new, field.NewPath("spec", "topology"))
+
+			if len(tt.expectErrs) == 0 {
+				g.Expect(errs).To(BeEmpty())
+				return
+			}
+			g.Expect(errs).To(HaveLen(len(tt.expectErrs)))
+			for i, expectErr := range tt.expectErrs {
+				g.Expect(errs[i].Error()).To(ContainSubstring(expectErr))
+			}
+		})
+	}
+}
+
+func Test_validateTopologyWorkerVersionsUpdate(t *testing.T) {
+	// clusterWithPins returns a Cluster with a control plane and one pinned MachineDeployment/MachinePool.
+	clusterWithPins := func(topologyVersion, mdVersion, mpVersion string) *clusterv1.Cluster {
+		return builder.Cluster("fooboo", "cluster1").
+			WithControlPlane(builder.ControlPlane("fooboo", "cluster1-cp").Build()).
+			WithTopology(builder.ClusterTopology().WithClass("foo").WithVersion(topologyVersion).
+				WithMachineDeployment(builder.MachineDeploymentTopology("md-0").WithClass("aa").WithVersion(mdVersion).Build()).
+				WithMachinePool(builder.MachinePoolTopology("mp-0").WithClass("aa").WithVersion(mpVersion).Build()).
+				Build()).
+			Build()
+	}
+	withPendingAfterClusterUpgrade := func(c *clusterv1.Cluster) *clusterv1.Cluster {
+		c.Annotations = map[string]string{runtimev1.PendingHooksAnnotation: "AfterClusterUpgrade"}
+		return c
+	}
+	// clusterWithoutWorkers returns a Cluster with a control plane and no MachineDeployment/MachinePool.
+	clusterWithoutWorkers := func(topologyVersion string) *clusterv1.Cluster {
+		return builder.Cluster("fooboo", "cluster1").
+			WithControlPlane(builder.ControlPlane("fooboo", "cluster1-cp").Build()).
+			WithTopology(builder.ClusterTopology().WithClass("foo").WithVersion(topologyVersion).Build()).
+			Build()
+	}
+
+	tests := []struct {
+		name                     string
+		old                      *clusterv1.Cluster
+		new                      *clusterv1.Cluster
+		controlPlaneVersion      string
+		controlPlaneStatus       string
+		runningMachineDeployment string
+		machineDeploymentMachine string
+		runningMachinePool       string
+		machinePoolNode          string
+		versionPinningDisabled   bool
+		expectErrs               []string
+	}{
+		{
+			name:                "should pass if nothing changed",
+			old:                 clusterWithPins("v1.32.0", "v1.32.0", "v1.32.0"),
+			new:                 clusterWithPins("v1.32.0", "v1.32.0", "v1.32.0"),
+			controlPlaneVersion: "v1.32.0",
+		},
+		{
+			name:                "should pass on the first pin, equal to the control plane version",
+			old:                 clusterWithPins("v1.32.0", "", ""),
+			new:                 clusterWithPins("v1.32.0", "v1.32.0", "v1.32.0"),
+			controlPlaneVersion: "v1.32.0",
+		},
+		{
+			name:                "should pass when raising a pin towards the control plane version",
+			old:                 clusterWithPins("v1.32.0", "v1.31.0", "v1.31.0"),
+			new:                 clusterWithPins("v1.32.0", "v1.32.0", "v1.32.0"),
+			controlPlaneVersion: "v1.32.0",
+		},
+		{
+			name:                "should reject a pin above the control plane version",
+			old:                 clusterWithPins("v1.32.0", "v1.32.0", "v1.32.0"),
+			new:                 clusterWithPins("v1.32.0", "v1.33.0", "v1.32.0"),
+			controlPlaneVersion: "v1.32.0",
+			expectErrs:          []string{"version cannot be greater than the control plane version"},
+		},
+		{
+			name:                "should reject a downgrade of a pin",
+			old:                 clusterWithPins("v1.32.0", "v1.32.0", "v1.32.0"),
+			new:                 clusterWithPins("v1.32.0", "v1.31.0", "v1.32.0"),
+			controlPlaneVersion: "v1.32.0",
+			expectErrs:          []string{"version cannot be decreased"},
+		},
+		{
+			// Pre-releases are compared, so a pin cannot be moved back to a pre-release.
+			name:                "should reject a downgrade of a pin to a pre-release",
+			old:                 clusterWithPins("v1.32.0", "v1.32.0", "v1.32.0"),
+			new:                 clusterWithPins("v1.32.0", "v1.32.0-rc.0", "v1.32.0"),
+			controlPlaneVersion: "v1.32.0",
+			expectErrs:          []string{"version cannot be decreased"},
+		},
+		{
+			name:                "should reject a downgrade of a pin to an older build",
+			old:                 clusterWithPins("v1.32.0+vmware.2", "v1.32.0+vmware.2", "v1.32.0+vmware.2"),
+			new:                 clusterWithPins("v1.32.0+vmware.2", "v1.32.0+vmware.1", "v1.32.0+vmware.2"),
+			controlPlaneVersion: "v1.32.0+vmware.2",
+			expectErrs:          []string{"version cannot be decreased"},
+		},
+		{
+			name:                "should reject a pin violating the version skew policy",
+			old:                 clusterWithPins("v1.32.0", "v1.32.0", "v1.32.0"),
+			new:                 clusterWithPins("v1.32.0", "v1.28.0", "v1.32.0"),
+			controlPlaneVersion: "v1.32.0",
+			// Note: a decrease is also reported, the skew error is the second one.
+			expectErrs: []string{"version cannot be decreased", "it cannot be more than 3 minor versions older than the control plane version"},
+		},
+		{
+			name:                "should reject unpinning while the pin is behind the topology version",
+			old:                 clusterWithPins("v1.32.0", "v1.31.0", "v1.32.0"),
+			new:                 clusterWithPins("v1.32.0", "", "v1.32.0"),
+			controlPlaneVersion: "v1.32.0",
+			expectErrs:          []string{"version can be unset only if it is equal to Cluster.spec.topology.version"},
+		},
+		{
+			name:                "should pass when unpinning a pin equal to the topology version",
+			old:                 clusterWithPins("v1.32.0", "v1.32.0", "v1.32.0"),
+			new:                 clusterWithPins("v1.32.0", "", "v1.32.0"),
+			controlPlaneVersion: "v1.32.0",
+		},
+		{
+			name:                     "should reject unpinning before the pin reached the MachineDeployment",
+			old:                      clusterWithPins("v1.32.0", "v1.32.0", "v1.32.0"),
+			new:                      clusterWithPins("v1.32.0", "", "v1.32.0"),
+			runningMachineDeployment: "v1.31.0",
+			expectErrs:               []string{"version can be unset only once MachineDeployment cluster1-md-0 runs version \"v1.32.0\", current version is \"v1.31.0\""},
+		},
+		{
+			name:                     "should pass unpinning once the pin reached the MachineDeployment",
+			old:                      clusterWithPins("v1.32.0", "v1.32.0", "v1.32.0"),
+			new:                      clusterWithPins("v1.32.0", "", "v1.32.0"),
+			runningMachineDeployment: "v1.32.0",
+		},
+		{
+			// The first pin has no previous pin to compare to, so it is validated against the version
+			// the MachineDeployment actually runs.
+			name:                     "should reject a first pin below the running version",
+			old:                      clusterWithPins("v1.32.0", "", "v1.32.0"),
+			new:                      clusterWithPins("v1.32.0", "v1.31.0", "v1.32.0"),
+			controlPlaneVersion:      "v1.32.0",
+			runningMachineDeployment: "v1.32.0",
+			expectErrs:               []string{"version cannot be lower than the version currently running"},
+		},
+		{
+			name:                     "should pass a first pin equal to the running version",
+			old:                      clusterWithPins("v1.32.0", "", "v1.32.0"),
+			new:                      clusterWithPins("v1.32.0", "v1.32.0", "v1.32.0"),
+			controlPlaneVersion:      "v1.32.0",
+			runningMachineDeployment: "v1.32.0",
+		},
+		{
+			// Like Cluster.spec.topology.version, a version can be set only once the Cluster completed
+			// its previous upgrade.
+			name:                     "should reject a pin while a MachineDeployment is still behind the topology version",
+			old:                      clusterWithPins("v1.32.0", "", "v1.32.0"),
+			new:                      clusterWithPins("v1.32.0", "v1.31.0", "v1.32.0"),
+			controlPlaneVersion:      "v1.32.0",
+			runningMachineDeployment: "v1.31.0",
+			expectErrs:               []string{"MachineDeployment/MachinePool versions cannot be changed: there are still MachineDeployments completing a previous upgrade: [cluster1-md-0]"},
+		},
+		{
+			name:                "should reject a pin while the AfterClusterUpgrade hook is still blocking",
+			old:                 withPendingAfterClusterUpgrade(clusterWithPins("v1.32.0", "v1.31.0", "v1.32.0")),
+			new:                 withPendingAfterClusterUpgrade(clusterWithPins("v1.32.0", "v1.32.0", "v1.32.0")),
+			controlPlaneVersion: "v1.32.0",
+			expectErrs:          []string{"MachineDeployment/MachinePool versions cannot be changed: the \"AfterClusterUpgrade\" hook is still blocking"},
+		},
+		{
+			// The feature gate rejects every version, so unsetting must always be possible.
+			name:                   "should pass unpinning a pin behind the topology version if the feature gate is disabled",
+			old:                    clusterWithPins("v1.32.0", "v1.31.0", "v1.32.0"),
+			new:                    clusterWithPins("v1.32.0", "", "v1.32.0"),
+			versionPinningDisabled: true,
+		},
+		{
+			// Pre-releases are compared, so a worker never runs a newer version than the control plane.
+			// Note: the topology version is upgraded in the same request, so the control plane is the ceiling.
+			name:                "should reject a pin on a newer pre-release than the control plane version",
+			old:                 clusterWithPins("v1.32.0-alpha.0", "v1.32.0-alpha.0", "v1.32.0-alpha.0"),
+			new:                 clusterWithPins("v1.32.0", "v1.32.0-beta.0", "v1.32.0-alpha.0"),
+			controlPlaneVersion: "v1.32.0-alpha.0",
+			expectErrs:          []string{"version cannot be greater than the control plane version"},
+		},
+		{
+			// Build tags are compared, so a worker never runs a newer build than the control plane.
+			// Note: the topology version is upgraded in the same request, so the control plane is the ceiling.
+			name:                "should reject a pin on a newer build than the control plane version",
+			old:                 clusterWithPins("v1.32.0+vmware.1", "v1.32.0+vmware.1", "v1.32.0+vmware.1"),
+			new:                 clusterWithPins("v1.32.0+vmware.2", "v1.32.0+vmware.2", "v1.32.0+vmware.1"),
+			controlPlaneVersion: "v1.32.0+vmware.1",
+			expectErrs:          []string{"version cannot be greater than the control plane version"},
+		},
+		{
+			// A MachineDeployment/MachinePool added with a version is validated like a first pin.
+			// Note: the topology version is upgraded in the same request, so the control plane is the ceiling.
+			name:                "should reject adding a MachineDeployment and a MachinePool with a version above the control plane version",
+			old:                 clusterWithoutWorkers("v1.31.0"),
+			new:                 clusterWithPins("v1.32.0", "v1.32.0", "v1.32.0"),
+			controlPlaneVersion: "v1.31.0",
+			expectErrs: []string{
+				"spec.topology.workers.machineDeployments[md-0].version: Invalid value: \"v1.32.0\": version cannot be greater than the control plane version",
+				"spec.topology.workers.machinePools[mp-0].version: Invalid value: \"v1.32.0\": version cannot be greater than the control plane version",
+			},
+		},
+		{
+			name:                "should pass adding a MachineDeployment and a MachinePool with a version within the control plane version",
+			old:                 clusterWithoutWorkers("v1.32.0"),
+			new:                 clusterWithPins("v1.32.0", "v1.31.0", "v1.32.0"),
+			controlPlaneVersion: "v1.32.0",
+		},
+		{
+			name:                     "should reject changing a pin while the MachineDeployment is upgrading",
+			old:                      clusterWithPins("v1.32.0", "v1.31.0", "v1.32.0"),
+			new:                      clusterWithPins("v1.32.0", "v1.32.0", "v1.32.0"),
+			controlPlaneVersion:      "v1.32.0",
+			runningMachineDeployment: "v1.31.0",
+			machineDeploymentMachine: "v1.30.0",
+			expectErrs:               []string{"MachineDeployment/MachinePool versions cannot be changed: there are still MachineDeployments completing a previous upgrade: [cluster1-md-0]"},
+		},
+		{
+			name:                     "should reject unpinning while the MachineDeployment is upgrading",
+			old:                      clusterWithPins("v1.32.0", "v1.32.0", "v1.32.0"),
+			new:                      clusterWithPins("v1.32.0", "", "v1.32.0"),
+			controlPlaneVersion:      "v1.32.0",
+			runningMachineDeployment: "v1.32.0",
+			machineDeploymentMachine: "v1.31.0",
+			expectErrs:               []string{"version cannot be changed while MachineDeployment cluster1-md-0 is still completing a previous upgrade"},
+		},
+		{
+			name:                     "should pass changing a pin when the MachineDeployment is not upgrading",
+			old:                      clusterWithPins("v1.32.0", "v1.31.0", "v1.32.0"),
+			new:                      clusterWithPins("v1.32.0", "v1.32.0", "v1.32.0"),
+			controlPlaneVersion:      "v1.32.0",
+			runningMachineDeployment: "v1.31.0",
+			machineDeploymentMachine: "v1.31.0",
+		},
+		{
+			name:                "should reject changing a pin while the MachinePool is upgrading",
+			old:                 clusterWithPins("v1.32.0", "v1.32.0", "v1.31.0"),
+			new:                 clusterWithPins("v1.32.0", "v1.32.0", "v1.32.0"),
+			controlPlaneVersion: "v1.32.0",
+			runningMachinePool:  "v1.31.0",
+			machinePoolNode:     "v1.30.0",
+			expectErrs:          []string{"MachineDeployment/MachinePool versions cannot be changed: there are still MachinePools completing a previous upgrade: [cluster1-mp-0]"},
+		},
+		{
+			name:                "should pass changing a pin when the MachinePool is not upgrading",
+			old:                 clusterWithPins("v1.32.0", "v1.32.0", "v1.31.0"),
+			new:                 clusterWithPins("v1.32.0", "v1.32.0", "v1.32.0"),
+			controlPlaneVersion: "v1.32.0",
+			runningMachinePool:  "v1.31.0",
+			machinePoolNode:     "v1.31.0",
+		},
+		{
+			// While upgrading, the control plane version is the target of the upgrade, not the version it runs.
+			name:                "should reject a pin while the control plane is upgrading",
+			old:                 clusterWithPins("v1.33.0", "v1.32.0", "v1.33.0"),
+			new:                 clusterWithPins("v1.33.0", "v1.33.0", "v1.33.0"),
+			controlPlaneVersion: "v1.33.0",
+			controlPlaneStatus:  "v1.32.0",
+			expectErrs:          []string{"MachineDeployment/MachinePool versions cannot be changed: control plane is still completing a previous upgrade"},
+		},
+		{
+			// The control plane is not upgrading yet, but it did not reach Cluster.spec.topology.version.
+			name:                "should reject a pin while the control plane did not reach the topology version",
+			old:                 clusterWithPins("v1.34.0", "v1.31.0", "v1.34.0"),
+			new:                 clusterWithPins("v1.34.0", "v1.32.0", "v1.34.0"),
+			controlPlaneVersion: "v1.33.0",
+			expectErrs:          []string{"MachineDeployment/MachinePool versions cannot be changed: Cluster.spec.topology.version 1.34.0 was not propagated to control plane yet (control plane version 1.33.0)"},
+		},
+		{
+			name:                "should pass unpinning while the control plane is upgrading",
+			old:                 clusterWithPins("v1.33.0", "v1.33.0", "v1.33.0"),
+			new:                 clusterWithPins("v1.33.0", "", "v1.33.0"),
+			controlPlaneVersion: "v1.33.0",
+			controlPlaneStatus:  "v1.32.0",
+		},
+		{
+			// Without the control plane the change cannot be validated, so it is rejected.
+			name:       "should reject a change if the control plane cannot be read",
+			old:        clusterWithPins("v1.32.0", "v1.31.0", "v1.32.0"),
+			new:        clusterWithPins("v1.32.0", "v1.32.0", "v1.32.0"),
+			expectErrs: []string{"MachineDeployment/MachinePool versions cannot be changed: failed to check if control plane is upgrading: failed to get control plane object"},
+		},
+		{
+			// Unpinning does not depend on the control plane, so it is allowed even if it cannot be read.
+			name: "should pass unpinning even if the control plane cannot be read",
+			old:  clusterWithPins("v1.32.0", "v1.32.0", "v1.32.0"),
+			new:  clusterWithPins("v1.32.0", "", "v1.32.0"),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopologyWorkerVersionPinning, !tt.versionPinningDisabled)
+
+			objs := []client.Object{builder.GenericControlPlaneCRD}
+			if tt.controlPlaneVersion != "" {
+				controlPlaneStatus := tt.controlPlaneStatus
+				if controlPlaneStatus == "" {
+					controlPlaneStatus = tt.controlPlaneVersion
+				}
+				objs = append(objs, builder.ControlPlane("fooboo", "cluster1-cp").WithVersion(tt.controlPlaneVersion).
+					WithStatusFields(map[string]interface{}{"status.version": controlPlaneStatus}).
+					Build())
+			}
+			if tt.runningMachineDeployment != "" {
+				objs = append(objs, builder.MachineDeployment("fooboo", "cluster1-md-0").WithLabels(map[string]string{
+					clusterv1.ClusterNameLabel:                          "cluster1",
+					clusterv1.ClusterTopologyOwnedLabel:                 "",
+					clusterv1.ClusterTopologyMachineDeploymentNameLabel: "md-0",
+				}).WithVersion(tt.runningMachineDeployment).
+					WithSelector(*metav1.SetAsLabelSelector(labels.Set{clusterv1.ClusterTopologyMachineDeploymentNameLabel: "md-0"})).Build())
+			}
+			if tt.machineDeploymentMachine != "" {
+				objs = append(objs, builder.Machine("fooboo", "cluster1-md-0-1").WithLabels(map[string]string{
+					clusterv1.ClusterNameLabel:                          "cluster1",
+					clusterv1.ClusterTopologyMachineDeploymentNameLabel: "md-0",
+				}).WithVersion(tt.machineDeploymentMachine).Build())
+			}
+			var workloadObjs []client.Object
+			if tt.runningMachinePool != "" {
+				mp := builder.MachinePool("fooboo", "cluster1-mp-0").WithLabels(map[string]string{
+					clusterv1.ClusterNameLabel:                    "cluster1",
+					clusterv1.ClusterTopologyOwnedLabel:           "",
+					clusterv1.ClusterTopologyMachinePoolNameLabel: "mp-0",
+				}).WithVersion(tt.runningMachinePool)
+				if tt.machinePoolNode != "" {
+					mp = mp.WithStatus(clusterv1.MachinePoolStatus{NodeRefs: []corev1.ObjectReference{{Name: "mp-node-1"}}})
+					workloadObjs = append(workloadObjs, &corev1.Node{
+						ObjectMeta: metav1.ObjectMeta{Name: "mp-node-1"},
+						Status:     corev1.NodeStatus{NodeInfo: corev1.NodeSystemInfo{KubeletVersion: tt.machinePoolNode}},
+					})
+				}
+				objs = append(objs, mp.Build())
+			}
+			webhook := &Cluster{
+				Client:             fake.NewClientBuilder().WithObjects(objs...).WithScheme(fakeScheme).Build(),
+				ClusterCacheReader: &fakeClusterCache{client: fake.NewClientBuilder().WithObjects(workloadObjs...).Build()},
+			}
+
+			errs := webhook.validateTopologyWorkerVersionsUpdate(ctx, tt.old, tt.new, field.NewPath("spec", "topology"))
+
+			if len(tt.expectErrs) == 0 {
+				g.Expect(errs).To(BeEmpty())
+				return
+			}
+			g.Expect(errs).To(HaveLen(len(tt.expectErrs)))
+			for i, expectErr := range tt.expectErrs {
+				g.Expect(errs[i].Error()).To(ContainSubstring(expectErr))
+			}
+		})
+	}
+}
+
+func Test_workerVersionSkewSupported(t *testing.T) {
+	tests := []struct {
+		name         string
+		controlPlane string
+		worker       string
+		want         bool
+	}{
+		{name: "same version", controlPlane: "v1.32.0", worker: "v1.32.0", want: true},
+		{name: "worker one minor older", controlPlane: "v1.32.0", worker: "v1.31.5", want: true},
+		{name: "worker three minors older", controlPlane: "v1.32.0", worker: "v1.29.0", want: true},
+		{name: "worker four minors older", controlPlane: "v1.32.0", worker: "v1.28.0", want: false},
+		{name: "worker newer minor", controlPlane: "v1.32.0", worker: "v1.33.0", want: false},
+		{name: "worker newer patch is allowed", controlPlane: "v1.32.0", worker: "v1.32.1", want: true},
+		{name: "worker newer major", controlPlane: "v1.32.0", worker: "v2.0.0", want: false},
+		{name: "worker older major", controlPlane: "v2.0.0", worker: "v1.32.0", want: false},
+		// Control plane minor lower than the tolerated skew must not underflow.
+		{name: "low control plane minor", controlPlane: "v1.2.0", worker: "v1.1.0", want: true},
+		{name: "low control plane minor, worker at zero", controlPlane: "v1.2.0", worker: "v1.0.0", want: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			g.Expect(workerVersionSkewSupported(semver.MustParse(tt.controlPlane[1:]), semver.MustParse(tt.worker[1:]))).To(Equal(tt.want))
+		})
+	}
+}
+
 func Test_validateTopologyMachineDeploymentVersions(t *testing.T) {
 	tests := []struct {
 		name              string
@@ -3989,6 +4647,79 @@ func Test_validateTopologyMachineDeploymentVersions(t *testing.T) {
 					// clusterv1.ClusterTopologyOwnedLabel:                 "",
 					clusterv1.ClusterTopologyMachineDeploymentNameLabel: "workers1",
 				}).WithVersion("v1.18.1").Build(),
+			},
+		},
+		{
+			// A pinned MachineDeployment intentionally sits at another version, so it must not be
+			// reported as completing a previous upgrade.
+			name:      "should update if machine deployment pins an older version",
+			expectErr: false,
+			old: builder.Cluster("fooboo", "cluster1").
+				WithTopology(builder.ClusterTopology().
+					WithClass("foo").
+					WithVersion("v1.19.1").
+					WithMachineDeployment(
+						builder.MachineDeploymentTopology("workers1").
+							WithClass("aa").
+							WithVersion("v1.18.1").
+							Build()).
+					Build()).
+				Build(),
+			additionalObjects: []client.Object{
+				builder.MachineDeployment("fooboo", "cluster1-workers1").WithLabels(map[string]string{
+					clusterv1.ClusterNameLabel:                          "cluster1",
+					clusterv1.ClusterTopologyOwnedLabel:                 "",
+					clusterv1.ClusterTopologyMachineDeploymentNameLabel: "workers1",
+				}).WithVersion("v1.18.1").Build(),
+			},
+		},
+		{
+			name:      "should block update if the pin did not reach the machine deployment yet",
+			expectErr: true,
+			old: builder.Cluster("fooboo", "cluster1").
+				WithTopology(builder.ClusterTopology().
+					WithClass("foo").
+					WithVersion("v1.19.1").
+					WithMachineDeployment(
+						builder.MachineDeploymentTopology("workers1").
+							WithClass("aa").
+							WithVersion("v1.18.1").
+							Build()).
+					Build()).
+				Build(),
+			additionalObjects: []client.Object{
+				builder.MachineDeployment("fooboo", "cluster1-workers1").WithLabels(map[string]string{
+					clusterv1.ClusterNameLabel:                          "cluster1",
+					clusterv1.ClusterTopologyOwnedLabel:                 "",
+					clusterv1.ClusterTopologyMachineDeploymentNameLabel: "workers1",
+				}).WithVersion("v1.17.1").Build(),
+			},
+		},
+		{
+			// The pin only changes the version comparison, not the real upgrading check.
+			name:      "should block update if pinned machine deployment is upgrading",
+			expectErr: true,
+			old: builder.Cluster("fooboo", "cluster1").
+				WithTopology(builder.ClusterTopology().
+					WithClass("foo").
+					WithVersion("v1.19.1").
+					WithMachineDeployment(
+						builder.MachineDeploymentTopology("workers1").
+							WithClass("aa").
+							WithVersion("v1.18.1").
+							Build()).
+					Build()).
+				Build(),
+			additionalObjects: []client.Object{
+				builder.MachineDeployment("fooboo", "cluster1-workers1").WithLabels(map[string]string{
+					clusterv1.ClusterNameLabel:                          "cluster1",
+					clusterv1.ClusterTopologyOwnedLabel:                 "",
+					clusterv1.ClusterTopologyMachineDeploymentNameLabel: "workers1",
+				}).WithVersion("v1.18.1").WithSelector(*metav1.SetAsLabelSelector(labels.Set{clusterv1.ClusterTopologyMachineDeploymentNameLabel: "workers1"})).Build(),
+				builder.Machine("fooboo", "cluster1-workers1-1").WithLabels(map[string]string{
+					clusterv1.ClusterNameLabel:                          "cluster1",
+					clusterv1.ClusterTopologyMachineDeploymentNameLabel: "workers1",
+				}).WithVersion("v1.17.1").Build(),
 			},
 		},
 	}
@@ -4126,6 +4857,83 @@ func Test_validateTopologyMachinePoolVersions(t *testing.T) {
 				}).WithVersion("v1.19.1").WithStatus(clusterv1.MachinePoolStatus{NodeRefs: []corev1.ObjectReference{{Name: "mp-node-1"}}}).Build(),
 			},
 			workloadObjects: []client.Object{},
+		},
+		{
+			// A pinned MachinePool intentionally sits at another version, so it must not be reported
+			// as completing a previous upgrade.
+			name:      "should update if machine pool pins an older version",
+			expectErr: false,
+			old: builder.Cluster("fooboo", "cluster1").
+				WithTopology(builder.ClusterTopology().
+					WithClass("foo").
+					WithVersion("v1.19.1").
+					WithMachinePool(
+						builder.MachinePoolTopology("pool1").
+							WithClass("aa").
+							WithVersion("v1.18.1").
+							Build()).
+					Build()).
+				Build(),
+			additionalObjects: []client.Object{
+				builder.MachinePool("fooboo", "cluster1-pool1").WithLabels(map[string]string{
+					clusterv1.ClusterNameLabel:                    "cluster1",
+					clusterv1.ClusterTopologyOwnedLabel:           "",
+					clusterv1.ClusterTopologyMachinePoolNameLabel: "pool1",
+				}).WithVersion("v1.18.1").Build(),
+			},
+			workloadObjects: []client.Object{},
+		},
+		{
+			name:      "should block update if the pin did not reach the machine pool yet",
+			expectErr: true,
+			old: builder.Cluster("fooboo", "cluster1").
+				WithTopology(builder.ClusterTopology().
+					WithClass("foo").
+					WithVersion("v1.19.1").
+					WithMachinePool(
+						builder.MachinePoolTopology("pool1").
+							WithClass("aa").
+							WithVersion("v1.18.1").
+							Build()).
+					Build()).
+				Build(),
+			additionalObjects: []client.Object{
+				builder.MachinePool("fooboo", "cluster1-pool1").WithLabels(map[string]string{
+					clusterv1.ClusterNameLabel:                    "cluster1",
+					clusterv1.ClusterTopologyOwnedLabel:           "",
+					clusterv1.ClusterTopologyMachinePoolNameLabel: "pool1",
+				}).WithVersion("v1.17.1").Build(),
+			},
+			workloadObjects: []client.Object{},
+		},
+		{
+			// The pin only changes the version comparison, not the real upgrading check.
+			name:      "should block update if pinned machine pool is upgrading",
+			expectErr: true,
+			old: builder.Cluster("fooboo", "cluster1").
+				WithTopology(builder.ClusterTopology().
+					WithClass("foo").
+					WithVersion("v1.19.1").
+					WithMachinePool(
+						builder.MachinePoolTopology("pool1").
+							WithClass("aa").
+							WithVersion("v1.18.1").
+							Build()).
+					Build()).
+				Build(),
+			additionalObjects: []client.Object{
+				builder.MachinePool("fooboo", "cluster1-pool1").WithLabels(map[string]string{
+					clusterv1.ClusterNameLabel:                    "cluster1",
+					clusterv1.ClusterTopologyOwnedLabel:           "",
+					clusterv1.ClusterTopologyMachinePoolNameLabel: "pool1",
+				}).WithVersion("v1.18.1").WithStatus(clusterv1.MachinePoolStatus{NodeRefs: []corev1.ObjectReference{{Name: "mp-node-1"}}}).Build(),
+			},
+			workloadObjects: []client.Object{
+				&corev1.Node{
+					ObjectMeta: metav1.ObjectMeta{Name: "mp-node-1"},
+					Status:     corev1.NodeStatus{NodeInfo: corev1.NodeSystemInfo{KubeletVersion: "v1.17.1"}},
+				},
+			},
 		},
 	}
 	for _, tt := range tests {

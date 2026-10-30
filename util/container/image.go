@@ -127,6 +127,14 @@ func ImageTagIsValid(tagName string) bool {
 	return !ociTagAllowedChars.MatchString(tagName)
 }
 
+// ValidateImageRepository ensures that a given image repository (e.g. registry.k8s.io or example.com/some/path)
+// can be used as a prefix for image references.
+func ValidateImageRepository(repository string) error {
+	// Image references are built as <repository>/<name>, so validate a reference built the same way.
+	_, err := reference.ParseNormalizedNamed(repository + "/pause")
+	return err
+}
+
 // SemverToOCIImageTag is a helper function that replaces all
 // non-allowed symbols in tag strings with underscores.
 // Image tag can only contain lowercase and uppercase letters, digits,

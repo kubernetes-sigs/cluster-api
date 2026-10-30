@@ -36,6 +36,7 @@ import (
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	runtimecatalog "sigs.k8s.io/cluster-api/api/runtime/catalog"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/pkg"
 	"sigs.k8s.io/cluster-api/feature"
@@ -97,7 +98,7 @@ func (r *Reconciler) canUpdateMachine(ctx context.Context, controlPlane *pkg.Con
 		return r.overrideCanUpdateMachineFunc(ctx, machine, machineUpToDateResult)
 	}
 
-	log := ctrl.LoggerFrom(ctx).WithValues("Machine", klog.KObj(machine))
+	log := ctrl.LoggerFrom(ctx).WithValues(append(hookLogValues(runtimehooksv1.CanUpdateMachine), "Machine", klog.KObj(machine))...)
 
 	// Machine cannot be updated in-place if the feature gate is not enabled.
 	if !feature.Gates.Enabled(feature.InPlaceUpdates) {
@@ -540,4 +541,8 @@ func matchesUnstructuredSpec(patched, desired runtime.RawExtension) (equal bool,
 			},
 		},
 	)
+}
+
+func hookLogValues(hook runtimecatalog.Hook) []any {
+	return []any{"hook", runtimecatalog.HookName(hook)}
 }

@@ -34,6 +34,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	runtimecatalog "sigs.k8s.io/cluster-api/api/runtime/catalog"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
 	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/internal/util/compare"
@@ -94,7 +95,7 @@ func (p *rolloutPlanner) canUpdateMachineSetInPlace(ctx context.Context, oldMS, 
 		return p.overrideCanUpdateMachineSetInPlace(ctx, oldMS, newMS)
 	}
 
-	log := ctrl.LoggerFrom(ctx).WithValues("MachineSet", klog.KObj(oldMS))
+	log := ctrl.LoggerFrom(ctx).WithValues(append(hookLogValues(runtimehooksv1.CanUpdateMachineSet), "MachineSet", klog.KObj(oldMS))...)
 
 	templateObjects, err := p.getTemplateObjects(ctx, oldMS, newMS)
 	if err != nil {
@@ -526,4 +527,8 @@ func (p *rolloutPlanner) getTemplateObjects(ctx context.Context, oldMS, newMS *c
 	}
 
 	return templateObjects, nil
+}
+
+func hookLogValues(hook runtimecatalog.Hook) []any {
+	return []any{"hook", runtimecatalog.HookName(hook)}
 }

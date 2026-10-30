@@ -651,7 +651,7 @@ After above Pods have been removed from the Node, the following Pods will be evi
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			setScalingDownCondition(ctx, tt.ms, tt.machines, tt.getAndAdoptMachinesForMachineSetSucceeded)
+			setScalingDownCondition(ctx, metav1.Now(), tt.ms, tt.machines, tt.getAndAdoptMachinesForMachineSetSucceeded)
 
 			condition := conditions.Get(tt.ms, clusterv1.MachineSetScalingDownCondition)
 			g.Expect(condition).ToNot(BeNil())
@@ -937,7 +937,7 @@ func Test_setMachinesUpToDateCondition(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			setMachinesUpToDateCondition(ctx, tt.machineSet, tt.machines, tt.getAndAdoptMachinesForMachineSetSucceeded)
+			setMachinesUpToDateCondition(ctx, metav1.Now(), tt.machineSet, tt.machines, tt.getAndAdoptMachinesForMachineSetSucceeded)
 
 			condition := conditions.Get(tt.machineSet, clusterv1.MachineSetMachinesUpToDateCondition)
 			g.Expect(condition).ToNot(BeNil())
@@ -1138,7 +1138,7 @@ func Test_setDeletingCondition(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			setDeletingCondition(ctx, tt.machineSet, tt.machines, tt.getAndAdoptMachinesForMachineSetSucceeded)
+			setDeletingCondition(ctx, metav1.Now(), tt.machineSet, tt.machines, tt.getAndAdoptMachinesForMachineSetSucceeded)
 
 			condition := conditions.Get(tt.machineSet, clusterv1.MachineSetDeletingCondition)
 			g.Expect(condition).ToNot(BeNil())
@@ -1249,7 +1249,7 @@ After above Pods have been removed from the Node, the following Pods will be evi
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			got := aggregateStaleMachines(tt.machines)
+			got := aggregateStaleMachines(metav1.Now(), tt.machines)
 			g.Expect(got).To(Equal(tt.expectMessage))
 		})
 	}

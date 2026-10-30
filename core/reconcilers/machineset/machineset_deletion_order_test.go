@@ -296,7 +296,7 @@ func TestMachineRandomDelete(t *testing.T) {
 		t.Run(test.desc, func(t *testing.T) {
 			g := NewWithT(t)
 
-			result := getMachinesToDeletePrioritized(test.machines, test.diff, randomDeletionOrder)
+			result := getMachinesToDeletePrioritized(now, test.machines, test.diff, randomDeletionOrder)
 			g.Expect(result).To(BeComparableTo(test.expect))
 		})
 	}
@@ -458,7 +458,7 @@ func TestMachineNewestDelete(t *testing.T) {
 		t.Run(test.desc, func(t *testing.T) {
 			g := NewWithT(t)
 
-			result := getMachinesToDeletePrioritized(test.machines, test.diff, newestDeletionOrder)
+			result := getMachinesToDeletePrioritized(currentTime, test.machines, test.diff, newestDeletionOrder)
 			g.Expect(result).To(BeComparableTo(test.expect))
 		})
 	}
@@ -672,7 +672,7 @@ func TestMachineOldestDelete(t *testing.T) {
 		t.Run(test.desc, func(t *testing.T) {
 			g := NewWithT(t)
 
-			result := getMachinesToDeletePrioritized(test.machines, test.diff, oldestDeletionOrder)
+			result := getMachinesToDeletePrioritized(currentTime, test.machines, test.diff, oldestDeletionOrder)
 			g.Expect(result).To(BeComparableTo(test.expect))
 		})
 	}
@@ -764,7 +764,7 @@ func TestMachineDeleteMultipleSamePriority(t *testing.T) {
 				shuffledMachines[i] = machines[j]
 			}
 
-			result := getMachinesToDeletePrioritized(shuffledMachines, test.diff, test.deletePriority)
+			result := getMachinesToDeletePrioritized(metav1.Now(), shuffledMachines, test.diff, test.deletePriority)
 			g.Expect(result).To(BeComparableTo(machines[:test.diff]))
 		})
 	}

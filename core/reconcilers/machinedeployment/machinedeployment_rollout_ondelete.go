@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"sort"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -31,9 +32,9 @@ import (
 )
 
 // rolloutOnDelete reconcile machine sets controlled by a MachineDeployment that is using the OnDelete strategy.
-func (r *Reconciler) rolloutOnDelete(ctx context.Context, md *clusterv1.MachineDeployment, msList []*clusterv1.MachineSet, machines collections.Machines, templateExists bool) error {
+func (r *Reconciler) rolloutOnDelete(ctx context.Context, reconcileStartTime metav1.Time, md *clusterv1.MachineDeployment, msList []*clusterv1.MachineSet, machines collections.Machines, templateExists bool) error {
 	planner := newRolloutPlanner(r.Client, r.RuntimeClient, r.canUpdateMachineSetCache)
-	if err := planner.init(ctx, md, msList, machines.UnsortedList(), true, templateExists); err != nil {
+	if err := planner.init(ctx, reconcileStartTime, md, msList, machines.UnsortedList(), true, templateExists); err != nil {
 		return err
 	}
 

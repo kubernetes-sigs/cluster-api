@@ -124,7 +124,7 @@ func (p *rolloutPlanner) now() time.Time {
 //
 // Note: rollout planner might change desired state later on in the planning phase, e.g. add/remove annotations influencing
 // how to perform scale up/down operations.
-func (p *rolloutPlanner) init(ctx context.Context, md *clusterv1.MachineDeployment, msList []*clusterv1.MachineSet, machines []*clusterv1.Machine, createNewMSIfNotExist bool, mdTemplateExists bool) error {
+func (p *rolloutPlanner) init(ctx context.Context, reconcileStartTime metav1.Time, md *clusterv1.MachineDeployment, msList []*clusterv1.MachineSet, machines []*clusterv1.Machine, createNewMSIfNotExist bool, mdTemplateExists bool) error {
 	if md == nil {
 		return pkgerrors.New("machineDeployment is nil, this is unexpected")
 	}
@@ -152,7 +152,7 @@ func (p *rolloutPlanner) init(ctx context.Context, md *clusterv1.MachineDeployme
 	// Try to find a MachineSet which matches the MachineDeployments intent, the newMS; consider all the other MachineSets as oldMs.
 	// NOTE: Fields propagated in-place from the MD are not considered by the comparison, they are not relevant for the rollout decision.
 	// NOTE: Expiration of MD rolloutAfter is relevant for the rollout decision, and thus it is considered in FindNewAndOldMachineSets.
-	currentNewMS, currentOldMSs, upToDateResults, createReason := mdutil.FindNewAndOldMachineSets(md, msList, metav1.Now())
+	currentNewMS, currentOldMSs, upToDateResults, createReason := mdutil.FindNewAndOldMachineSets(md, msList, reconcileStartTime)
 	p.upToDateResults = upToDateResults
 
 	// Compute desired state for the old MS, with mandatory labels, fields in-place propagated from the MachineDeployment etc.

@@ -733,7 +733,7 @@ func TestEvaluateExpressions(t *testing.T) {
 			}
 
 			expressionCache := cache.New[ProgramEntry](t.Context(), 1*time.Hour)
-			unhealthyConditionsMessages, nextCheck, err := EvaluateExpressions(expressionCache, c, mhc, tt.node, tt.machine, now)
+			unhealthyConditionsMessages, nextCheck, err := EvaluateExpressions(expressionCache, c, mhc, tt.node, tt.machine, metav1.NewTime(now))
 			if tt.expectedError {
 				g.Expect(err).To(HaveOccurred())
 				return

@@ -23,6 +23,7 @@ import (
 	celgo "github.com/google/cel-go/cel"
 	celast "github.com/google/cel-go/common/ast"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
@@ -124,13 +125,13 @@ func EvaluateExpressions(
 	mhc *clusterv1.MachineHealthCheck,
 	node *corev1.Node,
 	machine *clusterv1.Machine,
-	reconciliationTime time.Time,
+	reconcileStartTime metav1.Time,
 ) ([]string, time.Duration, error) {
 	if len(mhc.Spec.Checks.UnhealthyExpressions) == 0 {
 		return nil, 0, nil
 	}
 
-	if entry, nextCheck := tryToGetResultsFromCache(expressionResultCache, mhc, node, machine, reconciliationTime); entry != nil {
+	if entry, nextCheck := tryToGetResultsFromCache(expressionResultCache, mhc, node, machine, reconcileStartTime); entry != nil {
 		// Refresh the cache entry so we can cache forever when NextCheckTime is not set.
 		expressionResultCache.Add(*entry)
 		return entry.UnhealthyConditionsMessages, nextCheck, nil
@@ -138,9 +139,9 @@ func EvaluateExpressions(
 
 	var nodeVal *nodeForCEL
 	if node != nil {
-		nodeVal = &nodeForCEL{conditions: node.Status.Conditions, now: reconciliationTime}
+		nodeVal = &nodeForCEL{conditions: node.Status.Conditions, now: reconcileStartTime.Time}
 	}
-	machineVal := &machineForCEL{conditions: machine.Status.Conditions, now: reconciliationTime}
+	machineVal := &machineForCEL{conditions: machine.Status.Conditions, now: reconcileStartTime.Time}
 
 	var unhealthyConditionsMessages []string
 	var nextChecks []time.Duration
@@ -164,7 +165,7 @@ func EvaluateExpressions(
 		UnhealthyConditionsMessages:  unhealthyConditionsMessages,
 	}
 	if nextCheck != 0 {
-		entry.NextCheckTime = new(reconciliationTime.Add(nextCheck))
+		entry.NextCheckTime = new(reconcileStartTime.Add(nextCheck))
 	}
 	if node != nil {
 		entry.NodeKey = client.ObjectKeyFromObject(node)
@@ -175,7 +176,7 @@ func EvaluateExpressions(
 	return unhealthyConditionsMessages, nextCheck, nil
 }
 
-func tryToGetResultsFromCache(expressionResultCache cache.Cache[ExpressionResultEntry], mhc *clusterv1.MachineHealthCheck, node *corev1.Node, machine *clusterv1.Machine, reconciliationTime time.Time) (*ExpressionResultEntry, time.Duration) {
+func tryToGetResultsFromCache(expressionResultCache cache.Cache[ExpressionResultEntry], mhc *clusterv1.MachineHealthCheck, node *corev1.Node, machine *clusterv1.Machine, reconcileStartTime metav1.Time) (*ExpressionResultEntry, time.Duration) {
 	entry, ok := expressionResultCache.Has(ExpressionResultEntry{
 		MachineHealthCheckKey: client.ObjectKeyFromObject(mhc),
 		MachineKey:            client.ObjectKeyFromObject(machine),
@@ -210,7 +211,7 @@ func tryToGetResultsFromCache(expressionResultCache cache.Cache[ExpressionResult
 		return &entry, 0
 	}
 
-	timeUntilNextCheck := entry.NextCheckTime.Sub(reconciliationTime)
+	timeUntilNextCheck := entry.NextCheckTime.Sub(reconcileStartTime.Time)
 
 	// If NextCheckTime is in the past, don't use the cache.
 	if timeUntilNextCheck <= 0 {

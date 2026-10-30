@@ -617,7 +617,7 @@ func runOnDeleteTestCase(ctx context.Context, t *testing.T, tt onDeleteSequenceT
 				}
 
 				// init the rollout planner and plan next step for a rollout.
-				err := p.init(ctx, current.machineDeployment, current.machineSets, current.machines(), true, true)
+				err := p.init(ctx, metav1.Now(), current.machineDeployment, current.machineSets, current.machines(), true, true)
 				g.Expect(err).ToNot(HaveOccurred())
 
 				err = p.planOnDelete(ctx)

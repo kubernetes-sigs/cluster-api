@@ -448,17 +448,17 @@ func MachineTemplateDeepCopyRolloutFields(template *clusterv1.MachineTemplateSpe
 
 // FindNewAndOldMachineSets returns the newMS for a MachineDeployment (the one with the same machine template, ignoring
 // in-place mutable fields) as well as return oldMSs.
-// Note: If the reconciliation time is after the deployment's `rolloutAfter` time, a MS has to be newer than
+// Note: If the reconcile start time is after the deployment's `rolloutAfter` time, a MS has to be newer than
 // `rolloutAfter` to be considered as matching the deployment's intent.
 // NOTE: If we find a matching MachineSet which only differs in in-place mutable fields we can use it to
 // fulfill the intent of the MachineDeployment by just updating the MachineSet to propagate in-place mutable fields.
 // Thus we don't have to create a new MachineSet and we can avoid an unnecessary rollout.
-func FindNewAndOldMachineSets(deployment *clusterv1.MachineDeployment, msList []*clusterv1.MachineSet, reconciliationTime metav1.Time) (newMS *clusterv1.MachineSet, oldMSs []*clusterv1.MachineSet, upToDateResults map[string]UpToDateResult, createReason string) {
+func FindNewAndOldMachineSets(deployment *clusterv1.MachineDeployment, msList []*clusterv1.MachineSet, reconcileStartTime metav1.Time) (newMS *clusterv1.MachineSet, oldMSs []*clusterv1.MachineSet, upToDateResults map[string]UpToDateResult, createReason string) {
 	if len(msList) == 0 {
 		return nil, nil, nil, "no MachineSets exist for the MachineDeployment"
 	}
 
-	// It could happen that there is more than one newMS candidate when reconciliationTime is > rolloutAfter; considering this, the
+	// It could happen that there is more than one newMS candidate when reconcileStartTime is > rolloutAfter; considering this, the
 	// current implementation treats candidates that will be discarded as old machine sets not eligible for in-place updates.
 	// NOTE: We could also have more than one MS candidate in the very unlikely case where
 	// the diff logic MachineTemplateUpToDate is changed by dropping one of the existing criteria (version, failureDomain, infra/BootstrapRef).
@@ -478,7 +478,7 @@ func FindNewAndOldMachineSets(deployment *clusterv1.MachineDeployment, msList []
 		} else {
 			oldMSs = append(oldMSs, ms)
 			// Override the EligibleForInPlaceUpdate decision if rollout after is expired.
-			if !deployment.Spec.Rollout.After.IsZero() && deployment.Spec.Rollout.After.Before(&reconciliationTime) && ms.CreationTimestamp.Before(ptr.To(deployment.Spec.Rollout.After)) {
+			if !deployment.Spec.Rollout.After.IsZero() && deployment.Spec.Rollout.After.Before(&reconcileStartTime) && ms.CreationTimestamp.Before(ptr.To(deployment.Spec.Rollout.After)) {
 				upToDateResult.EligibleForInPlaceUpdate = false
 				upToDateResult.LogMessages = append(upToDateResult.LogMessages, "MachineDeployment spec.rolloutAfter expired")
 				// No need to set an additional condition message, it is not used anywhere.
@@ -504,8 +504,8 @@ func FindNewAndOldMachineSets(deployment *clusterv1.MachineDeployment, msList []
 		return newMSCandidates[0], oldMSs, upToDateResults, ""
 	}
 
-	// If reconciliation time is before RolloutAfter, pick the first matching MachineSet.
-	if reconciliationTime.Before(&deployment.Spec.Rollout.After) {
+	// If reconcile start time is before RolloutAfter, pick the first matching MachineSet.
+	if reconcileStartTime.Before(&deployment.Spec.Rollout.After) {
 		for _, ms := range newMSCandidates[1:] {
 			oldMSs = append(oldMSs, ms)
 			upToDateResults[ms.Name] = UpToDateResult{

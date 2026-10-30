@@ -105,6 +105,10 @@ func (v *viperReader) Init(ctx context.Context, path string) error {
 				}
 			}
 
+			if err := os.MkdirAll(configDirectory, 0750); err != nil {
+				return err
+			}
+
 			downloadConfigFile := filepath.Join(configDirectory, DownloadConfigFile)
 			err = downloadFile(ctx, url.String(), downloadConfigFile)
 			if err != nil {

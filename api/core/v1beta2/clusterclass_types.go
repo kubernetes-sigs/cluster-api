@@ -748,6 +748,7 @@ type MachineDeploymentClassRolloutSpec struct {
 // MachineDeploymentClassRolloutStrategy describes how to replace existing machines
 // with new ones.
 // +kubebuilder:validation:MinProperties=1
+// +kubebuilder:validation:XValidation:rule="(oldSelf.hasValue() && self == oldSelf.value()) || !has(self.rollingUpdate) || self.type == 'RollingUpdate'",optionalOldSelf=true,message="rollingUpdate can only be set if type is RollingUpdate"
 type MachineDeploymentClassRolloutStrategy struct {
 	// type of rollout. Allowed values are RollingUpdate and OnDelete.
 	// Default is RollingUpdate.

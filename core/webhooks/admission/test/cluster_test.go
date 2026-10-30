@@ -21,6 +21,7 @@ import (
 
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util/test/builder"
@@ -101,4 +102,35 @@ func Test_ValidateCluster(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestClusterTopologyRolloutStrategyValidation(t *testing.T) {
+	g := NewWithT(t)
+
+	ns, err := env.CreateNamespace(ctx, "test-cluster-rollout-strategy")
+	g.Expect(err).ToNot(HaveOccurred())
+	t.Cleanup(func() {
+		g.Expect(env.Cleanup(ctx, ns)).To(Succeed())
+	})
+
+	maxSurge := intstr.FromInt32(1)
+	cluster := builder.Cluster(ns.Name, "cluster-ondelete-rollingupdate").
+		WithTopology(
+			builder.ClusterTopology().
+				WithClass("class1").
+				WithVersion("v1.22.2").
+				WithMachineDeployment(
+					builder.MachineDeploymentTopology("md1").
+						WithClass("aa").
+						Build()).
+				Build()).
+		Build()
+	cluster.Spec.Topology.Workers.MachineDeployments[0].Rollout.Strategy = clusterv1.MachineDeploymentTopologyRolloutStrategy{
+		Type:          clusterv1.OnDeleteMachineDeploymentStrategyType,
+		RollingUpdate: clusterv1.MachineDeploymentTopologyRolloutStrategyRollingUpdate{MaxSurge: &maxSurge},
+	}
+
+	err = env.Create(ctx, cluster)
+	g.Expect(err).To(HaveOccurred())
+	g.Expect(err.Error()).To(ContainSubstring(rollingUpdateCELErrMsg))
 }

@@ -4297,6 +4297,88 @@ func TestValidateAutoscalerAnnotationsForCluster(t *testing.T) {
 	}
 }
 
+func TestMachineHealthCheckDisabledWarnings(t *testing.T) {
+	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)
+
+	tests := []struct {
+		name         string
+		mutate       func(*clusterv1.Cluster)
+		wantPathPart string
+	}{
+		{
+			name: "Should warn when control plane healthCheck overrides are set while healthCheck is disabled",
+			mutate: func(cluster *clusterv1.Cluster) {
+				cluster.Spec.Topology.ControlPlane.HealthCheck = clusterv1.ControlPlaneTopologyHealthCheck{
+					Enabled: ptr.To(false),
+					Checks: clusterv1.ControlPlaneTopologyHealthCheckChecks{
+						NodeStartupTimeoutSeconds: ptr.To[int32](30),
+					},
+				}
+			},
+			wantPathPart: "spec.topology.controlPlane.healthCheck",
+		},
+		{
+			name: "Should warn when MachineDeployment healthCheck overrides are set while healthCheck is disabled",
+			mutate: func(cluster *clusterv1.Cluster) {
+				cluster.Spec.Topology.Workers.MachineDeployments[0].HealthCheck = clusterv1.MachineDeploymentTopologyHealthCheck{
+					Enabled: ptr.To(false),
+					Checks: clusterv1.MachineDeploymentTopologyHealthCheckChecks{
+						NodeStartupTimeoutSeconds: ptr.To[int32](30),
+					},
+				}
+			},
+			wantPathPart: "spec.topology.workers.machineDeployments[workers1].healthCheck",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			cluster := builder.Cluster("ns", "cluster1").
+				WithTopology(builder.ClusterTopology().
+					WithClass("class1").
+					WithVersion("v1.29.0").
+					WithMachineDeployment(builder.MachineDeploymentTopology("workers1").
+						WithClass("md-class-1").
+						Build()).
+					Build()).
+				Build()
+			clusterClass := builder.ClusterClass("ns", "class1").
+				WithControlPlaneInfrastructureMachineTemplate(builder.InfrastructureMachineTemplate("ns", "cp-machine-template").Build()).
+				WithWorkerMachineDeploymentClasses(*builder.MachineDeploymentClass("md-class-1").Build()).
+				Build()
+			conditions.Set(clusterClass, metav1.Condition{
+				Type:   clusterv1.ClusterClassVariablesReadyCondition,
+				Status: metav1.ConditionTrue,
+				Reason: clusterv1.ClusterClassVariablesReadyReason,
+			})
+
+			tt.mutate(cluster)
+
+			// Disabled MHC with config overrides is allowed to support temporarily pausing remediation.
+			g.Expect(validateMachineHealthChecks(cache.New[cel.ProgramEntry](ctx, 1*time.Hour), cluster, clusterClass)).To(BeEmpty())
+
+			warnings := machineHealthCheckDisabledWarnings(cluster)
+			g.Expect(warnings).To(HaveLen(1))
+			g.Expect(warnings[0]).To(ContainSubstring(tt.wantPathPart))
+			g.Expect(warnings[0]).To(ContainSubstring("checks and remediation are ignored while enabled is false"))
+
+			fakeClient := fake.NewClientBuilder().
+				WithObjects(clusterClass).
+				WithScheme(fakeScheme).
+				Build()
+			webhook := &Cluster{Client: fakeClient}
+
+			warnings, err := webhook.ValidateCreate(ctx, cluster)
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(warnings).To(HaveLen(1))
+			g.Expect(warnings[0]).To(ContainSubstring(tt.wantPathPart))
+			g.Expect(warnings[0]).To(ContainSubstring("checks and remediation are ignored while enabled is false"))
+		})
+	}
+}
+
 func refToUnstructured(ref *clusterv1.ClusterClassTemplateReference) *unstructured.Unstructured {
 	gvk := ref.GroupVersionKind()
 	output := &unstructured.Unstructured{}

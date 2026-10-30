@@ -271,6 +271,7 @@ func (webhook *Cluster) validateTopology(ctx context.Context, oldCluster, newClu
 	allErrs = append(allErrs, validateTopologyMetadata(newCluster.Spec.Topology, fldPath)...)
 
 	allErrs = append(allErrs, validateTopologyRollout(newCluster.Spec.Topology, fldPath)...)
+	allWarnings = append(allWarnings, machineHealthCheckDisabledWarnings(newCluster)...)
 
 	allErrs = append(allErrs, validateTopologyTaints(newCluster.Spec.Topology, fldPath)...)
 
@@ -777,6 +778,30 @@ func validateMachineHealthChecks(mhcProgramCache cache.Cache[cel.ProgramEntry], 
 	}
 
 	return allErrs
+}
+
+// machineHealthCheckDisabledWarnings returns warnings, not errors, for MachineHealthCheck overrides set while enabled is false.
+// Setting overrides while remediation is disabled is legitimate when temporarily pausing remediation without losing
+// configuration, so rejecting it would break existing Clusters and that workflow.
+func machineHealthCheckDisabledWarnings(cluster *clusterv1.Cluster) admission.Warnings {
+	var allWarnings admission.Warnings
+
+	controlPlaneHealthCheck := &cluster.Spec.Topology.ControlPlane.HealthCheck
+	if controlPlaneHealthCheck.Enabled != nil && !*controlPlaneHealthCheck.Enabled && controlPlaneHealthCheck.IsDefined() {
+		fldPath := field.NewPath("spec", "topology", "controlPlane", "healthCheck")
+		allWarnings = append(allWarnings, fmt.Sprintf("%s: checks and remediation are ignored while enabled is false", fldPath.String()))
+	}
+
+	for i := range cluster.Spec.Topology.Workers.MachineDeployments {
+		md := cluster.Spec.Topology.Workers.MachineDeployments[i]
+		mdHealthCheck := &md.HealthCheck
+		if mdHealthCheck.Enabled != nil && !*mdHealthCheck.Enabled && mdHealthCheck.IsDefined() {
+			fldPath := field.NewPath("spec", "topology", "workers", "machineDeployments").Key(md.Name).Child("healthCheck")
+			allWarnings = append(allWarnings, fmt.Sprintf("%s: checks and remediation are ignored while enabled is false", fldPath.String()))
+		}
+	}
+
+	return allWarnings
 }
 
 // machineDeploymentClassOfName find a MachineDeploymentClass of the given name in the provided ClusterClass.

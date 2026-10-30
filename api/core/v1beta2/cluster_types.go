@@ -1194,6 +1194,7 @@ type MachineDeploymentTopologyRolloutSpec struct {
 // MachineDeploymentTopologyRolloutStrategy describes how to replace existing machines
 // with new ones.
 // +kubebuilder:validation:MinProperties=1
+// +kubebuilder:validation:XValidation:rule="(oldSelf.hasValue() && self == oldSelf.value()) || !has(self.rollingUpdate) || self.type == 'RollingUpdate'",optionalOldSelf=true,message="rollingUpdate can only be set if type is RollingUpdate"
 type MachineDeploymentTopologyRolloutStrategy struct {
 	// type of rollout. Allowed values are RollingUpdate and OnDelete.
 	// Default is RollingUpdate.

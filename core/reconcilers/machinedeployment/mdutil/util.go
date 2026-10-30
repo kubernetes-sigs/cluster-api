@@ -135,7 +135,6 @@ func Revision(obj runtime.Object) (int64, error) {
 var annotationsToSkip = map[string]bool{
 	corev1.LastAppliedConfigAnnotation:  true,
 	clusterv1.RevisionAnnotation:        true,
-	revisionHistoryAnnotation:           true,
 	clusterv1.DesiredReplicasAnnotation: true,
 	clusterv1.MaxReplicasAnnotation:     true,
 
@@ -173,11 +172,6 @@ func getIntFromAnnotation(ms *clusterv1.MachineSet, annotationKey string, logger
 	}
 	return int32(intValue), true
 }
-
-// revisionHistoryAnnotation maintains the history of all old revisions that a machine set has served for a machine deployment.
-//
-// Deprecated: This annotation is deprecated and is going to be removed in the next release.
-const revisionHistoryAnnotation = "machinedeployment.clusters.x-k8s.io/revision-history"
 
 // MachineSetAnnotationsFromMachineDeployment return the annotations that should be set on all the MachineSets and
 // that are derived from the controlling MachineDeployment.
@@ -220,23 +214,6 @@ func ComputeRevisionAnnotations(ctx context.Context, newMS *clusterv1.MachineSet
 				newRevision = currentRevision
 			}
 		}
-
-		// Ensure we preserve the revision history annotation in any case if it already exists.
-		// Note: With Server-Side-Apply not setting the annotation would drop it.
-		revisionHistory, revisionHistoryExists := newMS.Annotations[revisionHistoryAnnotation]
-		if revisionHistoryExists {
-			annotations[revisionHistoryAnnotation] = revisionHistory
-		}
-
-		// If the revision changes then add the old revision to the revision history annotation
-		if currentRevisionExists && currentRevision != newRevision {
-			oldRevisions := strings.Split(revisionHistory, ",")
-			if oldRevisions[0] == "" {
-				annotations[revisionHistoryAnnotation] = currentRevision
-			} else {
-				annotations[revisionHistoryAnnotation] = strings.Join(append(oldRevisions, currentRevision), ",")
-			}
-		}
 	}
 
 	annotations[clusterv1.RevisionAnnotation] = newRevision
@@ -248,9 +225,6 @@ func GetRevisionAnnotations(_ context.Context, oldMS *clusterv1.MachineSet) map[
 	annotations := map[string]string{}
 	if v, ok := oldMS.Annotations[clusterv1.RevisionAnnotation]; ok {
 		annotations[clusterv1.RevisionAnnotation] = v
-	}
-	if v, ok := oldMS.Annotations[revisionHistoryAnnotation]; ok {
-		annotations[revisionHistoryAnnotation] = v
 	}
 	return annotations
 }

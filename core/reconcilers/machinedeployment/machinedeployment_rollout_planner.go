@@ -358,7 +358,7 @@ func computeDesiredMS(ctx context.Context, deployment *clusterv1.MachineDeployme
 	// Set annotations and .spec.template.annotations.
 	// Note: Additional annotations might be added by the rollout planner later in the same reconcile.
 	// Note: Intentionally, we are not setting the following labels:
-	// - clusterv1.RevisionAnnotation + the deprecated revisionHistoryAnnotation
+	// - clusterv1.RevisionAnnotation
 	//   - for newMS, we should always keep those annotations upToDate
 	//   - for oldMS, we should carry over those annotations from previous reconcile
 	// - clusterv1.DisableMachineCreateAnnotation

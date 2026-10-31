@@ -917,11 +917,13 @@ func TestGetPodsForEvictionDaemonSetLookupError(t *testing.T) {
 			pod := &corev1.Pod{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "daemonset-pod", Namespace: metav1.NamespaceDefault,
-					Labels:          map[string]string{"cluster.x-k8s.io/drain": drainLabel},
 					OwnerReferences: []metav1.OwnerReference{{APIVersion: "apps/v1", Kind: "DaemonSet", Name: "daemonset", Controller: ptr.To(true)}},
 				},
 				Spec:   corev1.PodSpec{NodeName: "node-1"},
 				Status: corev1.PodStatus{Phase: corev1.PodRunning},
+			}
+			if drainLabel != "" {
+				pod.Labels = map[string]string{clusterv1.PodDrainLabel: drainLabel}
 			}
 			lookupErr := apierrors.NewTimeoutError("daemonset lookup failed", 0)
 			remoteClient := fake.NewClientBuilder().

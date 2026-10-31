@@ -910,6 +910,46 @@ func TestGetPodsForEviction(t *testing.T) {
 	}
 }
 
+func TestGetPodsForEvictionDaemonSetLookupError(t *testing.T) {
+	for _, drainLabel := range []string{"", "skip", "wait-completed"} {
+		t.Run("drain label="+drainLabel, func(t *testing.T) {
+			g := NewWithT(t)
+			pod := &corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "daemonset-pod", Namespace: metav1.NamespaceDefault,
+					Labels:          map[string]string{"cluster.x-k8s.io/drain": drainLabel},
+					OwnerReferences: []metav1.OwnerReference{{APIVersion: "apps/v1", Kind: "DaemonSet", Name: "daemonset", Controller: ptr.To(true)}},
+				},
+				Spec:   corev1.PodSpec{NodeName: "node-1"},
+				Status: corev1.PodStatus{Phase: corev1.PodRunning},
+			}
+			lookupErr := apierrors.NewTimeoutError("daemonset lookup failed", 0)
+			remoteClient := fake.NewClientBuilder().
+				WithObjects(pod, &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: metav1.NamespaceDefault}}).
+				WithIndex(&corev1.Pod{}, "spec.nodeName", podByNodeName).
+				WithInterceptorFuncs(interceptor.Funcs{
+					Get: func(ctx context.Context, c client.WithWatch, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
+						if _, ok := obj.(*appsv1.DaemonSet); ok {
+							return lookupErr
+						}
+						return c.Get(ctx, key, obj, opts...)
+					},
+				}).Build()
+			scheme := runtime.NewScheme()
+			g.Expect(clusterv1.AddToScheme(scheme)).To(Succeed())
+			drainer := &Helper{
+				Client:       fake.NewClientBuilder().WithScheme(scheme).Build(),
+				RemoteClient: remoteClient,
+			}
+
+			list, err := drainer.GetPodsForEviction(context.Background(), &clusterv1.Cluster{}, &clusterv1.Machine{}, "node-1")
+			g.Expect(err).To(HaveOccurred())
+			g.Expect(err.Error()).To(ContainSubstring(lookupErr.Error()))
+			g.Expect(list).To(BeNil())
+		})
+	}
+}
+
 func Test_getMatchingMachineDrainRules(t *testing.T) {
 	cluster := &clusterv1.Cluster{
 		ObjectMeta: metav1.ObjectMeta{

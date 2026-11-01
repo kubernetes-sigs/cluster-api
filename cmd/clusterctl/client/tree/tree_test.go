@@ -23,6 +23,7 @@ import (
 	"time"
 
 	. "github.com/onsi/gomega"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -534,6 +535,7 @@ func Test_createGroupNode(t *testing.T) {
 			Namespace: "ns",
 			Name:      "my-machine",
 		},
+		Spec: clusterv1.MachineSpec{Version: "v1.35.0"},
 		Status: clusterv1.MachineStatus{
 			Conditions: []metav1.Condition{
 				{Type: clusterv1.AvailableCondition, Status: metav1.ConditionTrue},
@@ -551,6 +553,7 @@ func Test_createGroupNode(t *testing.T) {
 			Namespace: "ns",
 			Name:      "sibling-machine",
 		},
+		Spec: clusterv1.MachineSpec{Version: "v1.35.0"},
 		Status: clusterv1.MachineStatus{
 			Conditions: []metav1.Condition{
 				{Type: clusterv1.ReadyCondition, LastTransitionTime: beforeNow},
@@ -567,15 +570,17 @@ func Test_createGroupNode(t *testing.T) {
 			Name:      "", // random string
 			Namespace: "ns",
 			Annotations: map[string]string{
-				VirtualObjectAnnotation:    "True",
-				GroupObjectAnnotation:      "True",
-				GroupItemsAnnotation:       "my-machine, sibling-machine",
-				GroupItemsReadyCounter:     "2",
-				GroupItemsAvailableCounter: "2",
-				GroupItemsUpToDateCounter:  "0",
+				VirtualObjectAnnotation:     "True",
+				GroupObjectAnnotation:       "True",
+				GroupItemsVersionAnnotation: "v1.35.0",
+				GroupItemsAnnotation:        "my-machine, sibling-machine",
+				GroupItemsReadyCounter:      "2",
+				GroupItemsAvailableCounter:  "2",
+				GroupItemsUpToDateCounter:   "0",
 			},
 			UID: types.UID(""), // random string
 		},
+		Items: []client.Object{obj, sibling},
 		Status: NodeStatus{
 			Conditions: []metav1.Condition{
 				{Type: clusterv1.AvailableCondition, Status: metav1.ConditionTrue},
@@ -613,6 +618,7 @@ func Test_createV1Beta1GroupNode(t *testing.T) {
 			Namespace: "ns",
 			Name:      "my-machine",
 		},
+		Spec: clusterv1.MachineSpec{Version: "v1.35.0"},
 		Status: clusterv1.MachineStatus{
 			Deprecated: &clusterv1.MachineDeprecatedStatus{
 				V1Beta1: &clusterv1.MachineV1Beta1DeprecatedStatus{
@@ -632,6 +638,7 @@ func Test_createV1Beta1GroupNode(t *testing.T) {
 			Namespace: "ns",
 			Name:      "sibling-machine",
 		},
+		Spec: clusterv1.MachineSpec{Version: "v1.35.0"},
 		Status: clusterv1.MachineStatus{
 			Deprecated: &clusterv1.MachineDeprecatedStatus{
 				V1Beta1: &clusterv1.MachineV1Beta1DeprecatedStatus{
@@ -652,12 +659,14 @@ func Test_createV1Beta1GroupNode(t *testing.T) {
 			Name:      "", // random string
 			Namespace: "ns",
 			Annotations: map[string]string{
-				VirtualObjectAnnotation: "True",
-				GroupObjectAnnotation:   "True",
-				GroupItemsAnnotation:    "my-machine, sibling-machine",
+				VirtualObjectAnnotation:     "True",
+				GroupObjectAnnotation:       "True",
+				GroupItemsVersionAnnotation: "v1.35.0",
+				GroupItemsAnnotation:        "my-machine, sibling-machine",
 			},
 			UID: types.UID(""), // random string
 		},
+		Items: []client.Object{obj, sibling},
 		Status: NodeStatus{
 			Deprecated: &NodeDeprecatedStatus{
 				V1Beta1: &NodeV1Beta1DeprecatedStatus{
@@ -687,6 +696,8 @@ func Test_updateGroupNode(t *testing.T) {
 	now := metav1.Now()
 	beforeNow := metav1.Time{Time: now.Add(-1 * time.Hour)}
 
+	first := fakeMachine("first-machine")
+
 	group := &NodeObject{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "MachineGroup",
@@ -698,13 +709,14 @@ func Test_updateGroupNode(t *testing.T) {
 			Annotations: map[string]string{
 				VirtualObjectAnnotation:    "True",
 				GroupObjectAnnotation:      "True",
-				GroupItemsAnnotation:       "my-machine, sibling-machine",
+				GroupItemsAnnotation:       "first-machine",
 				GroupItemsReadyCounter:     "2",
 				GroupItemsAvailableCounter: "2",
 				GroupItemsUpToDateCounter:  "0",
 			},
 			UID: types.UID(""), // random string
 		},
+		Items: []client.Object{first},
 		Status: NodeStatus{
 			Conditions: []metav1.Condition{
 				{Type: clusterv1.AvailableCondition, Status: metav1.ConditionTrue},
@@ -742,13 +754,14 @@ func Test_updateGroupNode(t *testing.T) {
 			Annotations: map[string]string{
 				VirtualObjectAnnotation:    "True",
 				GroupObjectAnnotation:      "True",
-				GroupItemsAnnotation:       "another-machine, my-machine, sibling-machine",
+				GroupItemsAnnotation:       "another-machine, first-machine",
 				GroupItemsReadyCounter:     "3",
 				GroupItemsAvailableCounter: "3",
 				GroupItemsUpToDateCounter:  "0",
 			},
 			UID: types.UID(""), // random string
 		},
+		Items: []client.Object{obj, first},
 		Status: NodeStatus{
 			Conditions: []metav1.Condition{
 				{Type: clusterv1.AvailableCondition, Status: metav1.ConditionTrue},
@@ -768,6 +781,8 @@ func Test_updateV1Beta1GroupNode(t *testing.T) {
 	now := metav1.Now()
 	beforeNow := metav1.Time{Time: now.Add(-1 * time.Hour)}
 
+	first := fakeMachine("first-machine")
+
 	group := &NodeObject{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "MachineGroup",
@@ -779,10 +794,11 @@ func Test_updateV1Beta1GroupNode(t *testing.T) {
 			Annotations: map[string]string{
 				VirtualObjectAnnotation: "True",
 				GroupObjectAnnotation:   "True",
-				GroupItemsAnnotation:    "my-machine, sibling-machine",
+				GroupItemsAnnotation:    "first-machine",
 			},
 			UID: types.UID(""), // random string
 		},
+		Items: []client.Object{first},
 		Status: NodeStatus{
 			Deprecated: &NodeDeprecatedStatus{
 				V1Beta1: &NodeV1Beta1DeprecatedStatus{
@@ -828,10 +844,11 @@ func Test_updateV1Beta1GroupNode(t *testing.T) {
 			Annotations: map[string]string{
 				VirtualObjectAnnotation: "True",
 				GroupObjectAnnotation:   "True",
-				GroupItemsAnnotation:    "another-machine, my-machine, sibling-machine",
+				GroupItemsAnnotation:    "another-machine, first-machine",
 			},
 			UID: types.UID(""), // random string
 		},
+		Items: []client.Object{obj, first},
 		Status: NodeStatus{
 			Deprecated: &NodeDeprecatedStatus{
 				V1Beta1: &NodeV1Beta1DeprecatedStatus{
@@ -1206,7 +1223,8 @@ func Test_Add_Grouping(t *testing.T) {
 		args            args
 		wantNodesPrefix []string
 		wantVisible     bool
-		wantItems       string
+		wantItems       []string
+		wantVersion     string
 	}{
 		{
 			name: "should never group the first child object",
@@ -1220,36 +1238,53 @@ func Test_Add_Grouping(t *testing.T) {
 			name: "should group child node if it has same kind and conditions of an existing one",
 			args: args{
 				siblings: []client.Object{
-					fakeMachine("first-machine",
+					fakeMachine("first-machine", withMachineVersion("v1.35.0"),
 						withMachineCondition(metav1.Condition{Type: clusterv1.ReadyCondition, Status: metav1.ConditionTrue}),
 					),
 				},
-				obj: fakeMachine("second-machine",
+				obj: fakeMachine("second-machine", withMachineVersion("v1.35.0"),
 					withMachineCondition(metav1.Condition{Type: clusterv1.ReadyCondition, Status: metav1.ConditionTrue}),
 				),
 			},
 			wantNodesPrefix: []string{"zz_True"},
 			wantVisible:     false,
-			wantItems:       "first-machine, second-machine",
+			wantItems:       []string{"first-machine", "second-machine"},
+			wantVersion:     "v1.35.0",
 		},
 		{
 			name: "should group child node if it has same kind and conditions of an existing group",
 			args: args{
 				siblings: []client.Object{
-					fakeMachine("first-machine",
+					fakeMachine("first-machine", withMachineVersion("v1.35.0"),
 						withMachineCondition(metav1.Condition{Type: clusterv1.ReadyCondition, Status: metav1.ConditionTrue}),
 					),
-					fakeMachine("second-machine",
+					fakeMachine("second-machine", withMachineVersion("v1.35.0"),
 						withMachineCondition(metav1.Condition{Type: clusterv1.ReadyCondition, Status: metav1.ConditionTrue}),
 					),
 				},
-				obj: fakeMachine("third-machine",
+				obj: fakeMachine("third-machine", withMachineVersion("v1.35.0"),
 					withMachineCondition(metav1.Condition{Type: clusterv1.ReadyCondition, Status: metav1.ConditionTrue}),
 				),
 			},
 			wantNodesPrefix: []string{"zz_True"},
 			wantVisible:     false,
-			wantItems:       "first-machine, second-machine, third-machine",
+			wantItems:       []string{"first-machine", "second-machine", "third-machine"},
+			wantVersion:     "v1.35.0",
+		},
+		{
+			name: "should not group child node if it has same kind and conditions of an existing one but a different version",
+			args: args{
+				siblings: []client.Object{
+					fakeMachine("first-machine", withMachineVersion("v1.35.0"),
+						withMachineCondition(metav1.Condition{Type: clusterv1.ReadyCondition, Status: metav1.ConditionTrue}),
+					),
+				},
+				obj: fakeMachine("second-machine", withMachineVersion("v1.36.0"),
+					withMachineCondition(metav1.Condition{Type: clusterv1.ReadyCondition, Status: metav1.ConditionTrue}),
+				),
+			},
+			wantNodesPrefix: []string{"first-machine", "second-machine"},
+			wantVisible:     true,
 		},
 		{
 			name: "should not group child node if it has different kind",
@@ -1266,7 +1301,7 @@ func Test_Add_Grouping(t *testing.T) {
 			},
 			wantNodesPrefix: []string{"zz_True", "other-object"},
 			wantVisible:     true,
-			wantItems:       "first-machine, second-machine",
+			wantItems:       []string{"first-machine", "second-machine"},
 		},
 	}
 	for _, tt := range tests {
@@ -1296,7 +1331,14 @@ func Test_Add_Grouping(t *testing.T) {
 				g.Expect(found).To(BeTrue(), "Found object with name %q, waiting for one of %s", obj.GetName(), tt.wantNodesPrefix)
 
 				if strings.HasPrefix(obj.GetName(), "zz_") {
-					g.Expect(GetGroupItems(obj)).To(Equal(tt.wantItems))
+					gotItems := []string{}
+					for _, item := range GetGroupItemObjects(obj) {
+						gotItems = append(gotItems, item.GetName())
+					}
+					g.Expect(obj.GetAnnotations()).To(HaveKeyWithValue(GroupItemsVersionAnnotation, tt.wantVersion))
+					g.Expect(GetGroupItemsVersion(obj)).To(Equal(tt.wantVersion))
+					g.Expect(gotItems).To(Equal(tt.wantItems))
+					g.Expect(GetGroupItems(obj)).To(Equal(strings.Join(tt.wantItems, GroupItemsSeparator)))
 				}
 			}
 		})
@@ -1318,7 +1360,8 @@ func Test_Add_Grouping_V1Beta1(t *testing.T) {
 		args            args
 		wantNodesPrefix []string
 		wantVisible     bool
-		wantItems       string
+		wantItems       []string
+		wantVersion     string
 	}{
 		{
 			name: "should never group the first child object",
@@ -1332,36 +1375,53 @@ func Test_Add_Grouping_V1Beta1(t *testing.T) {
 			name: "should group child node if it has same kind and conditions of an existing one",
 			args: args{
 				siblings: []client.Object{
-					fakeMachine("first-machine",
+					fakeMachine("first-machine", withMachineVersion("v1.35.0"),
 						withMachineV1Beta1Condition(v1beta1conditions.TrueCondition(clusterv1.ReadyV1Beta1Condition)),
 					),
 				},
-				obj: fakeMachine("second-machine",
+				obj: fakeMachine("second-machine", withMachineVersion("v1.35.0"),
 					withMachineV1Beta1Condition(v1beta1conditions.TrueCondition(clusterv1.ReadyV1Beta1Condition)),
 				),
 			},
 			wantNodesPrefix: []string{"zz_True"},
 			wantVisible:     false,
-			wantItems:       "first-machine, second-machine",
+			wantItems:       []string{"first-machine", "second-machine"},
+			wantVersion:     "v1.35.0",
 		},
 		{
 			name: "should group child node if it has same kind and conditions of an existing group",
 			args: args{
 				siblings: []client.Object{
-					fakeMachine("first-machine",
+					fakeMachine("first-machine", withMachineVersion("v1.35.0"),
 						withMachineV1Beta1Condition(v1beta1conditions.TrueCondition(clusterv1.ReadyV1Beta1Condition)),
 					),
-					fakeMachine("second-machine",
+					fakeMachine("second-machine", withMachineVersion("v1.35.0"),
 						withMachineV1Beta1Condition(v1beta1conditions.TrueCondition(clusterv1.ReadyV1Beta1Condition)),
 					),
 				},
-				obj: fakeMachine("third-machine",
+				obj: fakeMachine("third-machine", withMachineVersion("v1.35.0"),
 					withMachineV1Beta1Condition(v1beta1conditions.TrueCondition(clusterv1.ReadyV1Beta1Condition)),
 				),
 			},
 			wantNodesPrefix: []string{"zz_True"},
 			wantVisible:     false,
-			wantItems:       "first-machine, second-machine, third-machine",
+			wantItems:       []string{"first-machine", "second-machine", "third-machine"},
+			wantVersion:     "v1.35.0",
+		},
+		{
+			name: "should not group child node if it has same kind and conditions of an existing one but a different version",
+			args: args{
+				siblings: []client.Object{
+					fakeMachine("first-machine", withMachineVersion("v1.35.0"),
+						withMachineV1Beta1Condition(&clusterv1.Condition{Type: clusterv1.ReadyV1Beta1Condition, Status: corev1.ConditionTrue}),
+					),
+				},
+				obj: fakeMachine("second-machine", withMachineVersion("v1.36.0"),
+					withMachineV1Beta1Condition(&clusterv1.Condition{Type: clusterv1.ReadyV1Beta1Condition, Status: corev1.ConditionTrue}),
+				),
+			},
+			wantNodesPrefix: []string{"first-machine", "second-machine"},
+			wantVisible:     true,
 		},
 		{
 			name: "should not group child node if it has different kind",
@@ -1378,7 +1438,7 @@ func Test_Add_Grouping_V1Beta1(t *testing.T) {
 			},
 			wantNodesPrefix: []string{"zz_True", "other-object"},
 			wantVisible:     true,
-			wantItems:       "first-machine, second-machine",
+			wantItems:       []string{"first-machine", "second-machine"},
 		},
 	}
 	for _, tt := range tests {
@@ -1408,7 +1468,14 @@ func Test_Add_Grouping_V1Beta1(t *testing.T) {
 				g.Expect(found).To(BeTrue(), "Found object with name %q, waiting for one of %s", obj.GetName(), tt.wantNodesPrefix)
 
 				if strings.HasPrefix(obj.GetName(), "zz_") {
-					g.Expect(GetGroupItems(obj)).To(Equal(tt.wantItems))
+					gotItems := []string{}
+					for _, item := range GetGroupItemObjects(obj) {
+						gotItems = append(gotItems, item.GetName())
+					}
+					g.Expect(obj.GetAnnotations()).To(HaveKeyWithValue(GroupItemsVersionAnnotation, tt.wantVersion))
+					g.Expect(GetGroupItemsVersion(obj)).To(Equal(tt.wantVersion))
+					g.Expect(gotItems).To(Equal(tt.wantItems))
+					g.Expect(GetGroupItems(obj)).To(Equal(strings.Join(tt.wantItems, GroupItemsSeparator)))
 				}
 			}
 		})
@@ -1472,6 +1539,12 @@ func fakeMachine(name string, options ...machineOption) *clusterv1.Machine {
 		opt(m)
 	}
 	return m
+}
+
+func withMachineVersion(version string) func(*clusterv1.Machine) {
+	return func(m *clusterv1.Machine) {
+		m.Spec.Version = version
+	}
 }
 
 func withMachineV1Beta1Condition(c *clusterv1.Condition) func(*clusterv1.Machine) {

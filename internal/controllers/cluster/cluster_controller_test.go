@@ -90,6 +90,16 @@ func TestClusterReconciler(t *testing.T) {
 			return len(instance.Finalizers) > 0
 		}, timeout).Should(BeTrue())
 
+		// Validate the ControlPlaneInitialized condition reports the missing control plane.
+		g.Eventually(func(g Gomega) {
+			g.Expect(env.Get(ctx, key, instance)).To(Succeed())
+
+			condition := conditions.Get(instance, clusterv1.ClusterControlPlaneInitializedCondition)
+			g.Expect(condition).ToNot(BeNil())
+			g.Expect(condition.Status).To(Equal(metav1.ConditionUnknown))
+			g.Expect(condition.Reason).To(Equal(clusterv1.ClusterControlPlaneDoesNotExistReason))
+		}, timeout).Should(Succeed())
+
 		// Validate the RemoteConnectionProbe condition is false (because kubeconfig Secret doesn't exist)
 		g.Eventually(func(g Gomega) {
 			g.Expect(env.Get(ctx, key, instance)).To(Succeed())

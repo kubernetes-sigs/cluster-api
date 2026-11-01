@@ -23,6 +23,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/go-logr/logr"
 	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -502,13 +503,7 @@ func (r *Reconciler) reconcileMachineHealthCheck(ctx context.Context, current, d
 		return nil
 	}
 
-	diff := patchHelper.Diff()
-	patchData := patchHelper.PatchData()
-	if diff == "" && patchData == "" {
-		log.Info(fmt.Sprintf("Patching MachineHealthCheck %s", current.Name))
-	} else {
-		log.Info(fmt.Sprintf("Patching MachineHealthCheck %s", current.Name), "diff", diff, "patch", patchData)
-	}
+	logPatch(log, fmt.Sprintf("Patching MachineHealthCheck %s", current.Name), patchHelper)
 	if _, err := patchHelper.Patch(ctx); err != nil {
 		return pkgerrors.Wrapf(err, "failed to patch MachineHealthCheck %s", klog.KObj(current))
 	}
@@ -810,13 +805,7 @@ func (r *Reconciler) updateMachineDeployment(ctx context.Context, s *scope.Scope
 		return nil
 	}
 
-	diff := patchHelper.Diff()
-	patchData := patchHelper.PatchData()
-	if diff == "" && patchData == "" {
-		log.Info(fmt.Sprintf("Patching MachineDeployment %s", desiredMD.Object.Name))
-	} else {
-		log.Info(fmt.Sprintf("Patching MachineDeployment %s", desiredMD.Object.Name), "diff", diff, "patch", patchData)
-	}
+	logPatch(log, fmt.Sprintf("Patching MachineDeployment %s", desiredMD.Object.Name), patchHelper)
 	modifiedResourceVersion, err := patchHelper.Patch(ctx)
 	if err != nil {
 		// Best effort cleanup of the InfrastructureMachineTemplate & BootstrapTemplate (only on template rotation).
@@ -1067,13 +1056,7 @@ func (r *Reconciler) updateMachinePool(ctx context.Context, s *scope.Scope, mpTo
 		return nil
 	}
 
-	diff := patchHelper.Diff()
-	patchData := patchHelper.PatchData()
-	if diff == "" && patchData == "" {
-		log.Info(fmt.Sprintf("Patching MachinePool %s", desiredMP.Object.Name))
-	} else {
-		log.Info(fmt.Sprintf("Patching MachinePool %s", desiredMP.Object.Name), "diff", diff, "patch", patchData)
-	}
+	logPatch(log, fmt.Sprintf("Patching MachinePool %s", desiredMP.Object.Name), patchHelper)
 	modifiedResourceVersion, err := patchHelper.Patch(ctx)
 	if err != nil {
 		return pkgerrors.Wrapf(err, "failed to patch MachinePool %s", klog.KObj(currentMP.Object))
@@ -1208,13 +1191,7 @@ func (r *Reconciler) reconcileReferencedObject(ctx context.Context, in reconcile
 		return false, nil
 	}
 
-	diff := patchHelper.Diff()
-	patchData := patchHelper.PatchData()
-	if diff == "" && patchData == "" {
-		log.Info(fmt.Sprintf("Patching %s %s", in.current.GetKind(), in.current.GetName()))
-	} else {
-		log.Info(fmt.Sprintf("Patching %s %s", in.current.GetKind(), in.current.GetName()), "diff", diff, "patch", patchData)
-	}
+	logPatch(log, fmt.Sprintf("Patching %s %s", in.current.GetKind(), in.current.GetName()), patchHelper)
 	if _, err := patchHelper.Patch(ctx); err != nil {
 		return false, pkgerrors.Wrapf(err, "failed to patch %s %s", in.current.GetKind(), klog.KObj(in.current))
 	}
@@ -1304,13 +1281,7 @@ func (r *Reconciler) reconcileReferencedTemplate(ctx context.Context, in reconci
 	// If there are no changes in the spec, and thus only changes in metadata, instead of doing a full template
 	// rotation we patch the object in place. This avoids recreating machines.
 	if !patchHelper.HasSpecChanges() {
-		diff := patchHelper.Diff()
-		patchData := patchHelper.PatchData()
-		if diff == "" && patchData == "" {
-			log.Info(fmt.Sprintf("Patching %s %s", in.current.GetKind(), in.current.GetName()))
-		} else {
-			log.Info(fmt.Sprintf("Patching %s %s", in.current.GetKind(), in.current.GetName()), "diff", diff, "patch", patchData)
-		}
+		logPatch(log, fmt.Sprintf("Patching %s %s", in.current.GetKind(), in.current.GetName()), patchHelper)
 		if _, err := patchHelper.Patch(ctx); err != nil {
 			return false, pkgerrors.Wrapf(err, "failed to patch %s %s", in.desired.GetKind(), klog.KObj(in.desired))
 		}
@@ -1325,13 +1296,7 @@ func (r *Reconciler) reconcileReferencedTemplate(ctx context.Context, in reconci
 	newName := names.SimpleNameGenerator.GenerateName(in.templateNamePrefix)
 	in.desired.SetName(newName)
 
-	diff := patchHelper.Diff()
-	patchData := patchHelper.PatchData()
-	if diff == "" && patchData == "" {
-		log.Info(fmt.Sprintf("Rotating %s %s, new name %s", in.current.GetKind(), in.current.GetName(), newName))
-	} else {
-		log.Info(fmt.Sprintf("Rotating %s %s, new name %s", in.current.GetKind(), in.current.GetName(), newName), "diff", diff, "patch", patchData)
-	}
+	logPatch(log, fmt.Sprintf("Rotating %s %s, new name %s", in.current.GetKind(), in.current.GetName(), newName), patchHelper)
 	log.Info(fmt.Sprintf("Creating %s %s", in.desired.GetKind(), newName))
 	helper, err := structuredmerge.NewServerSidePatchHelper(ctx, nil, in.desired, r.Client, r.ssaCache)
 	if err != nil {
@@ -1400,4 +1365,20 @@ func hookLogValues(hook runtimecatalog.Hook) []any {
 
 func afterUpgradeHookLogValues(hook runtimecatalog.Hook, version string) []any {
 	return append(hookLogValues(hook), "version", version)
+}
+
+// logPatch logs the patch to be applied.
+// Note: The diff carries the same information as the patch, but is a lot more verbose, so it is added to the log line only at V(4) and above.
+func logPatch(log logr.Logger, msg string, patchHelper structuredmerge.PatchHelper) {
+	diff := patchHelper.Diff()
+	patchData := patchHelper.PatchData()
+	if diff == "" && patchData == "" {
+		log.Info(msg)
+		return
+	}
+	if log.V(4).Enabled() {
+		log.Info(msg, "patch", patchData, "diff", diff)
+		return
+	}
+	log.Info(msg, "patch", patchData)
 }

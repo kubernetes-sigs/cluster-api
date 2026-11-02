@@ -20,6 +20,7 @@ package util
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math"
 	"math/rand"
@@ -64,7 +65,7 @@ var (
 
 	// ErrUnstructuredFieldNotFound determines that a field
 	// in an unstructured object could not be found.
-	ErrUnstructuredFieldNotFound = fmt.Errorf("field not found")
+	ErrUnstructuredFieldNotFound = errors.New("field not found")
 )
 
 // RandomString returns a random alphanumeric string.

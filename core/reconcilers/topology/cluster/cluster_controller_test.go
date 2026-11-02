@@ -18,6 +18,7 @@ package cluster
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"maps"
 	"testing"
@@ -1095,7 +1096,7 @@ func setupTestEnvForIntegrationTests(ns *corev1.Namespace) (func() error, error)
 
 func assertClusterTopologyReconciledCondition(cluster *clusterv1.Cluster) error {
 	if !conditions.Has(cluster, clusterv1.ClusterTopologyReconciledCondition) {
-		return fmt.Errorf("cluster should have the TopologyReconciled condition set")
+		return errors.New("cluster should have the TopologyReconciled condition set")
 	}
 	return nil
 }
@@ -1420,7 +1421,7 @@ func assertTemplateClonedFromNameAnnotation(got client.Object) error {
 // referenceExistsWithCorrectKindAndAPIGroup asserts that the passed ContractVersionedObjectReference is not nil and that it has the correct kind and apiGroup.
 func referenceExistsWithCorrectKindAndAPIGroup(reference clusterv1.ContractVersionedObjectReference, kind string, apiGroup string) error {
 	if !reference.IsDefined() {
-		return fmt.Errorf("object reference passed was nil")
+		return errors.New("object reference passed was nil")
 	}
 	if reference.Kind != kind {
 		return fmt.Errorf("object reference kind %v does not match expected %v", reference.Kind, kind)

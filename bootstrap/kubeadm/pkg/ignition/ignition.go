@@ -19,6 +19,7 @@ limitations under the License.
 package ignition
 
 import (
+	"errors"
 	"fmt"
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
@@ -56,11 +57,11 @@ type ControlPlaneInput struct {
 // NewNode returns Ignition configuration for new worker node joining the cluster.
 func NewNode(input *NodeInput) ([]byte, string, error) {
 	if input == nil {
-		return nil, "", fmt.Errorf("input can't be nil")
+		return nil, "", errors.New("input can't be nil")
 	}
 
 	if input.NodeInput == nil {
-		return nil, "", fmt.Errorf("node input can't be nil")
+		return nil, "", errors.New("node input can't be nil")
 	}
 
 	input.WriteFiles = append(input.WriteFiles, input.AdditionalFiles...)
@@ -72,11 +73,11 @@ func NewNode(input *NodeInput) ([]byte, string, error) {
 // NewJoinControlPlane returns Ignition configuration for new controlplane node joining the cluster.
 func NewJoinControlPlane(input *ControlPlaneJoinInput) ([]byte, string, error) {
 	if input == nil {
-		return nil, "", fmt.Errorf("input can't be nil")
+		return nil, "", errors.New("input can't be nil")
 	}
 
 	if input.ControlPlaneJoinInput == nil {
-		return nil, "", fmt.Errorf("controlplane join input can't be nil")
+		return nil, "", errors.New("controlplane join input can't be nil")
 	}
 
 	input.WriteFiles = input.AsFiles()
@@ -89,11 +90,11 @@ func NewJoinControlPlane(input *ControlPlaneJoinInput) ([]byte, string, error) {
 // NewInitControlPlane returns Ignition configuration for bootstrapping new cluster.
 func NewInitControlPlane(input *ControlPlaneInput) ([]byte, string, error) {
 	if input == nil {
-		return nil, "", fmt.Errorf("input can't be nil")
+		return nil, "", errors.New("input can't be nil")
 	}
 
 	if input.ControlPlaneInput == nil {
-		return nil, "", fmt.Errorf("controlplane input can't be nil")
+		return nil, "", errors.New("controlplane input can't be nil")
 	}
 
 	input.WriteFiles = input.AsFiles()

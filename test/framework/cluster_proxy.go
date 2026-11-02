@@ -791,7 +791,7 @@ func (d *inMemoryDialer) DialContext(ctx context.Context, addr string) (net.Conn
 	}
 
 	if len(podList.Items) == 0 {
-		return nil, fmt.Errorf("no capd-controller-manager pod found on the management cluster")
+		return nil, errors.New("no capd-controller-manager pod found on the management cluster")
 	}
 
 	// We assume exactly one CAPD controller manager pod.

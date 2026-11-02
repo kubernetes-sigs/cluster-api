@@ -18,6 +18,7 @@ package docker
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	pkgerrors "github.com/pkg/errors"
@@ -200,7 +201,7 @@ func (s *LoadBalancer) UpdateConfiguration(ctx context.Context, weights map[stri
 		return pkgerrors.WithStack(err)
 	}
 	if string(readLoadBalancerConfig) != loadBalancerConfig {
-		return fmt.Errorf("read load balancer configuration does not match written file")
+		return errors.New("read load balancer configuration does not match written file")
 	}
 
 	return pkgerrors.WithStack(s.container.Kill(ctx, "SIGHUP"))

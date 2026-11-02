@@ -17,6 +17,7 @@ limitations under the License.
 package conditions
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/onsi/gomega"
@@ -103,7 +104,7 @@ func (m matchCondition) Match(actual interface{}) (success bool, err error) {
 
 	actualCondition, ok := actual.(metav1.Condition)
 	if !ok {
-		return false, fmt.Errorf("actual should be of type metav1.Condition")
+		return false, errors.New("actual should be of type metav1.Condition")
 	}
 
 	ok, err = gomega.Equal(m.expected.Type).Match(actualCondition.Type)

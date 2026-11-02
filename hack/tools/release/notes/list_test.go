@@ -19,7 +19,7 @@ limitations under the License.
 package main
 
 import (
-	"fmt"
+	"errors"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -214,7 +214,7 @@ func Test_githubFromToPRLister_listPRs(t *testing.T) {
 		{
 			name: "Fail when toRef and previousReleaseRef set blank",
 			lister: newGithubFromToPRListerWithClient(
-				newMockGithubClientWithError("diff", fmt.Errorf("invalid ref")),
+				newMockGithubClientWithError("diff", errors.New("invalid ref")),
 				ref{reType: "tags", value: "v0.26.0"},
 				ref{reType: "tags", value: ""},
 				"main",

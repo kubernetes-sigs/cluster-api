@@ -19,7 +19,7 @@ limitations under the License.
 package main
 
 import (
-	"fmt"
+	"errors"
 	"time"
 )
 
@@ -152,7 +152,7 @@ func newMockGithubClientWithError(operation string, err error) *mockGithubClient
 // newMockGithubClientForInvalidRef creates a mock client that simulates invalid ref scenarios.
 func newMockGithubClientForInvalidRef() *mockGithubClient {
 	mock := newMockGithubClient()
-	mock.diffError = fmt.Errorf("invalid ref")
+	mock.diffError = errors.New("invalid ref")
 	return mock
 }
 

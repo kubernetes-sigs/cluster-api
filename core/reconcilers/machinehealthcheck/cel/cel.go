@@ -17,6 +17,7 @@ limitations under the License.
 package cel
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
@@ -253,7 +254,7 @@ func evaluateExpression(programCache cache.Cache[ProgramEntry], expression strin
 
 	result, ok := out.Value().(bool)
 	if !ok {
-		return false, 0, fmt.Errorf("expression did not evaluate to a bool")
+		return false, 0, errors.New("expression did not evaluate to a bool")
 	}
 
 	var nextChecks []time.Duration

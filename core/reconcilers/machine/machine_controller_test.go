@@ -18,6 +18,7 @@ package machine
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"testing"
 	"time"
@@ -3408,7 +3409,7 @@ type fakeClientWithNodeDeletionErr struct {
 func (fc fakeClientWithNodeDeletionErr) Delete(ctx context.Context, obj client.Object, opts ...client.DeleteOption) error {
 	gvk, err := apiutil.GVKForObject(obj, fakeScheme)
 	if err == nil && gvk.Kind == "Node" {
-		return fmt.Errorf("fake error")
+		return errors.New("fake error")
 	}
 	return fc.Client.Delete(ctx, obj, opts...)
 }

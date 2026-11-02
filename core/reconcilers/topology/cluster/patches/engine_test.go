@@ -19,6 +19,7 @@ package patches
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 	"testing"
@@ -1213,7 +1214,7 @@ func TestApply(t *testing.T) {
 									}
 									return nil
 								}
-								return fmt.Errorf("could not find request item for ControlPlane InfrastructureMachineTemplate")
+								return errors.New("could not find request item for ControlPlane InfrastructureMachineTemplate")
 							case *runtimehooksv1.ValidateTopologyRequest:
 								return nil // Nothing to validate.
 							default:
@@ -1573,10 +1574,10 @@ func setFields(obj *unstructured.Unstructured, fields map[string]interface{}) {
 	for k, v := range fields {
 		fieldParts := strings.Split(k, ".")
 		if len(fieldParts) == 0 {
-			panic(fmt.Errorf("fieldParts invalid"))
+			panic(errors.New("fieldParts invalid"))
 		}
 		if !strings.HasPrefix(k, "spec.") && !strings.HasPrefix(k, "metadata.labels") && !strings.HasPrefix(k, "metadata.annotations") {
-			panic(fmt.Errorf("can not set fields outside spec or metadata.labels/annotations"))
+			panic(errors.New("can not set fields outside spec or metadata.labels/annotations"))
 		}
 		if err := unstructured.SetNestedField(obj.UnstructuredContent(), v, strings.Split(k, ".")...); err != nil {
 			panic(err)

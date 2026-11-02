@@ -19,6 +19,7 @@ package machineset
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"slices"
 	"sort"
@@ -2810,7 +2811,7 @@ func TestMachineSetReconciler_cleanupOrphanedBootstrapConfigsInfraMachines(t *te
 			if clientObject.GetObjectKind().GroupVersionKind().Kind == "Machine" {
 				applyCounter++
 				if applyCounter == 2 { // Note: fail for the second create machine only
-					return fmt.Errorf("inject error for create Machine")
+					return errors.New("inject error for create Machine")
 				}
 			}
 			return c.Apply(ctx, obj, opts...)
@@ -3078,7 +3079,7 @@ func TestMachineSetReconciler_createMachines(t *testing.T) {
 						if clientObject.GetObjectKind().GroupVersionKind().Kind == "Machine" {
 							*i++
 							if *i == 2 { // Note: fail for the second machine only (there should not be call for following machines)
-								return fmt.Errorf("inject error for create Machine")
+								return errors.New("inject error for create Machine")
 							}
 						}
 						return c.Apply(ctx, obj, opts...)
@@ -3238,7 +3239,7 @@ func TestMachineSetReconciler_deleteMachines(t *testing.T) {
 			interceptorFuncs: interceptor.Funcs{
 				Delete: func(ctx context.Context, client client.WithWatch, obj client.Object, opts ...client.DeleteOption) error {
 					if obj.GetName() == "m1" {
-						return fmt.Errorf("error when deleting m1")
+						return errors.New("error when deleting m1")
 					}
 					return client.Delete(ctx, obj, opts...)
 				},
@@ -3562,7 +3563,7 @@ func TestMachineSetReconciler_startMoveMachines(t *testing.T) {
 			interceptorFuncs: interceptor.Funcs{
 				Patch: func(ctx context.Context, client client.WithWatch, obj client.Object, patch client.Patch, opts ...client.PatchOption) error {
 					if obj.GetName() == "m1" {
-						return fmt.Errorf("error when moving m1")
+						return errors.New("error when moving m1")
 					}
 					return client.Patch(ctx, obj, patch, opts...)
 				},

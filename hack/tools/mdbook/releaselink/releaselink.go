@@ -21,6 +21,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -52,13 +53,13 @@ func (l ReleaseLink) Process(input *plugin.Input) error {
 
 		tags := reflect.StructTag(strings.TrimSpace(args))
 		if gomodule, found = tags.Lookup("gomodule"); !found {
-			return "", fmt.Errorf("releaselink requires tag \"gomodule\" to be set")
+			return "", errors.New("releaselink requires tag \"gomodule\" to be set")
 		}
 		if asset, found = tags.Lookup("asset"); !found {
-			return "", fmt.Errorf("releaselink requires tag \"asset\" to be set")
+			return "", errors.New("releaselink requires tag \"asset\" to be set")
 		}
 		if repo, found = tags.Lookup("repo"); !found {
-			return "", fmt.Errorf("releaselink requires tag \"repo\" to be set")
+			return "", errors.New("releaselink requires tag \"repo\" to be set")
 		}
 		versionRange := semver.MustParseRange(tags.Get("version"))
 		includePrereleases := tags.Get("prereleases") == "true"

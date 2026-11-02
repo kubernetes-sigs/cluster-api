@@ -20,6 +20,7 @@ import (
 	"cmp"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math"
 	"sort"
@@ -1008,7 +1009,7 @@ func (r *Reconciler) listMSOwnedObjectsFromContractVersionedRef(ctx context.Cont
 	err = meta.EachListItem(objList, func(obj runtime.Object) error {
 		clientObj, ok := obj.(client.Object)
 		if !ok {
-			return fmt.Errorf("unexpected object in list")
+			return errors.New("unexpected object in list")
 		}
 
 		// Note: Only consider objects that are still owned by the current MachineSet.

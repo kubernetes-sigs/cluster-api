@@ -18,7 +18,7 @@ package external
 
 import (
 	"context"
-	"fmt"
+	"errors"
 	"strings"
 
 	pkgerrors "github.com/pkg/errors"
@@ -227,7 +227,7 @@ func GenerateTemplate(in *GenerateTemplateInput) (*unstructured.Unstructured, er
 		// Tolerate the case where neither TemplateRef nor TemplateName and TemplateGroupKind is set
 		// This is needed for ClusterClass inline templates.
 	default:
-		return nil, fmt.Errorf("failed to generate template, if set, exactly one of TemplateRef or TemplateName & TemplateGroupKind must be set")
+		return nil, errors.New("failed to generate template, if set, exactly one of TemplateRef or TemplateName & TemplateGroupKind must be set")
 	}
 	to.SetAnnotations(annotations)
 

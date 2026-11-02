@@ -18,7 +18,7 @@ package machinepool
 
 import (
 	"context"
-	"fmt"
+	"errors"
 	"testing"
 	"time"
 
@@ -602,7 +602,7 @@ func TestReconcileMachinePoolRequest(t *testing.T) {
 			trackerClientFake := fake.NewClientBuilder().WithInterceptorFuncs(interceptor.Funcs{
 				Delete: func(_ context.Context, _ client.WithWatch, _ client.Object, _ ...client.DeleteOption) error {
 					if tc.errOnDeleteNode {
-						return fmt.Errorf("node deletion failed")
+						return errors.New("node deletion failed")
 					}
 					return nil
 				},

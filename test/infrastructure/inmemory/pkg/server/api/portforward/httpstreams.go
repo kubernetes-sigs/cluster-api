@@ -257,12 +257,12 @@ func (p *httpStreamPair) add(stream httpstream.Stream) (bool, error) {
 	switch stream.Headers().Get(corev1.StreamType) {
 	case corev1.StreamTypeError:
 		if p.errorStream != nil {
-			return false, fmt.Errorf("error stream already assigned")
+			return false, errors.New("error stream already assigned")
 		}
 		p.errorStream = stream
 	case corev1.StreamTypeData:
 		if p.dataStream != nil {
-			return false, fmt.Errorf("data stream already assigned")
+			return false, errors.New("data stream already assigned")
 		}
 		p.dataStream = stream
 	}

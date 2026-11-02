@@ -18,6 +18,7 @@ package clustercache
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -198,7 +199,7 @@ type HealthCheckingState struct {
 
 // ErrClusterNotConnected is returned by the ClusterCache when e.g. a Client cannot be returned
 // because there is no connection to the workload cluster.
-var ErrClusterNotConnected = fmt.Errorf("connection to the workload cluster is down")
+var ErrClusterNotConnected = errors.New("connection to the workload cluster is down")
 
 // Watcher is an interface that can start a Watch.
 type Watcher interface {

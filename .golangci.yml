@@ -368,6 +368,7 @@ linters:
         - name: identical-ifelseif-conditions
         - name: identical-switch-conditions
         - name: inefficient-map-lookup
+        - name: redundant-build-tag
         - name: string-of-int
         - name: time-date
         - name: time-equal

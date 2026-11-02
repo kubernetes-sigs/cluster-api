@@ -24,7 +24,7 @@ import (
 
 	"github.com/blang/semver/v4"
 	pkgerrors "github.com/pkg/errors"
-	v1 "k8s.io/api/admission/v1"
+	admissionv1 "k8s.io/api/admission/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -78,7 +78,7 @@ func (webhook *MachineDeployment) Default(ctx context.Context, m *clusterv1.Mach
 	}
 
 	var oldMD *clusterv1.MachineDeployment
-	if req.Operation == v1.Update {
+	if req.Operation == admissionv1.Update {
 		oldMD = &clusterv1.MachineDeployment{}
 		if err := webhook.decoder.DecodeRaw(req.OldObject, oldMD); err != nil {
 			return pkgerrors.Wrapf(err, "failed to decode oldObject to MachineDeployment")

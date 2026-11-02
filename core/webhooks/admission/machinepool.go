@@ -24,7 +24,7 @@ import (
 
 	"github.com/blang/semver/v4"
 	pkgerrors "github.com/pkg/errors"
-	v1 "k8s.io/api/admission/v1"
+	admissionv1 "k8s.io/api/admission/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/utils/ptr"
@@ -71,7 +71,7 @@ func (webhook *MachinePool) Default(ctx context.Context, m *clusterv1.MachinePoo
 		dryRun = *req.DryRun
 	}
 	var oldMP *clusterv1.MachinePool
-	if req.Operation == v1.Update {
+	if req.Operation == admissionv1.Update {
 		oldMP = &clusterv1.MachinePool{}
 		if err := webhook.decoder.DecodeRaw(req.OldObject, oldMP); err != nil {
 			return pkgerrors.Wrapf(err, "failed to decode oldObject to MachinePool")

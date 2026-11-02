@@ -1254,11 +1254,11 @@ func TestComputeRevisionAnnotations(t *testing.T) {
 			g := NewWithT(t)
 			got, gotRevision, err := ComputeRevisionAnnotations(ctx, tt.ms, tt.oldMSs)
 			if tt.wantErr {
-				g.Expect(err).ShouldNot(HaveOccurred())
+				g.Expect(err).ToNot(HaveOccurred())
 			} else {
 				g.Expect(err).ToNot(HaveOccurred())
-				g.Expect(got).Should(Equal(tt.want))
-				g.Expect(gotRevision).Should(Equal(tt.wantRevision))
+				g.Expect(got).To(Equal(tt.want))
+				g.Expect(gotRevision).To(Equal(tt.wantRevision))
 			}
 		})
 	}

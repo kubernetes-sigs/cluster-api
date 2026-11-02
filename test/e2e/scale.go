@@ -1027,7 +1027,7 @@ func modifyMachineDeployments(baseClusterTemplateYAML []byte, count int64) []byt
 	Expect(scheme.AddConversionFunc((*clusterv1beta1.Cluster)(nil), (*clusterv1.Cluster)(nil), func(a, b interface{}, _ conversion.Scope) error {
 		return clusterv1beta1.Convert_v1beta1_Cluster_To_v1beta2_Cluster(a.(*clusterv1beta1.Cluster), b.(*clusterv1.Cluster), nil)
 	})).To(Succeed())
-	Expect(scheme.Convert(&objs[0], cluster, nil)).Should(Succeed())
+	Expect(scheme.Convert(&objs[0], cluster, nil)).To(Succeed())
 
 	// Verify the Cluster Topology.
 	Expect(cluster.Spec.Topology.IsDefined()).To(BeTrue(), "Should be a ClusterClass based Cluster")

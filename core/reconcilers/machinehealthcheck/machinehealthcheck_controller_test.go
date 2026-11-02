@@ -1511,7 +1511,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 		}
 
 		reqCtx := admission.NewContextWithRequest(ctx, admission.Request{})
-		g.Expect((&coreadmission.MachineSet{}).Default(reqCtx, machineSet)).Should(Succeed())
+		g.Expect((&coreadmission.MachineSet{}).Default(reqCtx, machineSet)).To(Succeed())
 		g.Expect(env.Create(ctx, machineSet)).To(Succeed())
 
 		// Ensure machines have been created.

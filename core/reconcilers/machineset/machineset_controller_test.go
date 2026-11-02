@@ -503,7 +503,7 @@ func TestMachineSetReconciler(t *testing.T) {
 			Propagation: clusterv1.MachineTaintPropagationAlways,
 		}
 		instance.Spec.Template.Spec.Taints = []clusterv1.MachineTaint{additionalTaint}
-		g.Expect(patchHelper.Patch(ctx, instance)).Should(Succeed())
+		g.Expect(patchHelper.Patch(ctx, instance)).To(Succeed())
 
 		t.Log("Verifying new NodeDrainTimeoutSeconds value is set on Machines")
 		g.Eventually(func() bool {
@@ -618,7 +618,7 @@ func TestMachineSetReconciler(t *testing.T) {
 			clusterv1.RevisionAnnotation: "9",
 		})
 		instance.Spec.Replicas = ptr.To(int32(1))
-		g.Expect(patchHelper.Patch(ctx, instance)).Should(Succeed())
+		g.Expect(patchHelper.Patch(ctx, instance)).To(Succeed())
 
 		// Verify that we have 1 replicas.
 		g.Eventually(func() (ready int) {
@@ -1630,30 +1630,30 @@ func TestMachineSetReconciler_syncMachines(t *testing.T) {
 	// Verify in-place mutable fields are updated on the Machine.
 	updatedInPlaceMutatingMachine = inPlaceMutatingMachine.DeepCopy()
 	g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(updatedInPlaceMutatingMachine), updatedInPlaceMutatingMachine)).To(Succeed())
-	g.Expect(updatedInPlaceMutatingMachine.Labels).Should(Equal(expectedLabels))
-	g.Expect(updatedInPlaceMutatingMachine.Annotations).Should(Equal(ms.Spec.Template.Annotations))
-	g.Expect(updatedInPlaceMutatingMachine.Spec.Deletion.NodeDrainTimeoutSeconds).Should(Equal(ms.Spec.Template.Spec.Deletion.NodeDrainTimeoutSeconds))
-	g.Expect(updatedInPlaceMutatingMachine.Spec.Deletion.NodeDeletionTimeoutSeconds).Should(Equal(ms.Spec.Template.Spec.Deletion.NodeDeletionTimeoutSeconds))
-	g.Expect(updatedInPlaceMutatingMachine.Spec.Deletion.NodeVolumeDetachTimeoutSeconds).Should(Equal(ms.Spec.Template.Spec.Deletion.NodeVolumeDetachTimeoutSeconds))
-	g.Expect(updatedInPlaceMutatingMachine.Spec.MinReadySeconds).Should(Equal(ms.Spec.Template.Spec.MinReadySeconds))
-	g.Expect(updatedInPlaceMutatingMachine.Spec.ReadinessGates).Should(Equal(readinessGates))
-	g.Expect(updatedInPlaceMutatingMachine.Spec.Taints).Should(Equal(machineTaints))
+	g.Expect(updatedInPlaceMutatingMachine.Labels).To(Equal(expectedLabels))
+	g.Expect(updatedInPlaceMutatingMachine.Annotations).To(Equal(ms.Spec.Template.Annotations))
+	g.Expect(updatedInPlaceMutatingMachine.Spec.Deletion.NodeDrainTimeoutSeconds).To(Equal(ms.Spec.Template.Spec.Deletion.NodeDrainTimeoutSeconds))
+	g.Expect(updatedInPlaceMutatingMachine.Spec.Deletion.NodeDeletionTimeoutSeconds).To(Equal(ms.Spec.Template.Spec.Deletion.NodeDeletionTimeoutSeconds))
+	g.Expect(updatedInPlaceMutatingMachine.Spec.Deletion.NodeVolumeDetachTimeoutSeconds).To(Equal(ms.Spec.Template.Spec.Deletion.NodeVolumeDetachTimeoutSeconds))
+	g.Expect(updatedInPlaceMutatingMachine.Spec.MinReadySeconds).To(Equal(ms.Spec.Template.Spec.MinReadySeconds))
+	g.Expect(updatedInPlaceMutatingMachine.Spec.ReadinessGates).To(Equal(readinessGates))
+	g.Expect(updatedInPlaceMutatingMachine.Spec.Taints).To(Equal(machineTaints))
 
 	// Verify in-place mutable fields are updated on InfrastructureMachine
 	updatedInfraMachine = infraMachine.DeepCopy()
 	g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(updatedInfraMachine), updatedInfraMachine)).To(Succeed())
-	g.Expect(updatedInfraMachine.GetLabels()).Should(Equal(expectedLabels))
-	g.Expect(updatedInfraMachine.GetAnnotations()).Should(Equal(ms.Spec.Template.Annotations))
+	g.Expect(updatedInfraMachine.GetLabels()).To(Equal(expectedLabels))
+	g.Expect(updatedInfraMachine.GetAnnotations()).To(Equal(ms.Spec.Template.Annotations))
 	// Verify spec remains the same
-	g.Expect(updatedInfraMachine.Object).Should(HaveKeyWithValue("spec", infraMachineSpec))
+	g.Expect(updatedInfraMachine.Object).To(HaveKeyWithValue("spec", infraMachineSpec))
 
 	// Verify in-place mutable fields are updated on the BootstrapConfig.
 	updatedBootstrapConfig = bootstrapConfig.DeepCopy()
 	g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(updatedBootstrapConfig), updatedBootstrapConfig)).To(Succeed())
-	g.Expect(updatedBootstrapConfig.GetLabels()).Should(Equal(expectedLabels))
-	g.Expect(updatedBootstrapConfig.GetAnnotations()).Should(Equal(ms.Spec.Template.Annotations))
+	g.Expect(updatedBootstrapConfig.GetLabels()).To(Equal(expectedLabels))
+	g.Expect(updatedBootstrapConfig.GetAnnotations()).To(Equal(ms.Spec.Template.Annotations))
 	// Verify spec remains the same
-	g.Expect(updatedBootstrapConfig.Object).Should(HaveKeyWithValue("spec", bootstrapConfigSpec))
+	g.Expect(updatedBootstrapConfig.Object).To(HaveKeyWithValue("spec", bootstrapConfigSpec))
 
 	// Verify ManagedFields
 	g.Eventually(func(g Gomega) {
@@ -1687,14 +1687,14 @@ func TestMachineSetReconciler_syncMachines(t *testing.T) {
 	// Verify in-place mutable fields are updated on the deleting Machine.
 	updatedDeletingMachine := deletingMachine.DeepCopy()
 	g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(updatedDeletingMachine), updatedDeletingMachine)).To(Succeed())
-	g.Expect(updatedDeletingMachine.Labels).Should(Equal(deletingMachine.Labels))           // Not propagated to a deleting Machine
-	g.Expect(updatedDeletingMachine.Annotations).Should(Equal(deletingMachine.Annotations)) // Not propagated to a deleting Machine
-	g.Expect(updatedDeletingMachine.Spec.Deletion.NodeDrainTimeoutSeconds).Should(Equal(ms.Spec.Template.Spec.Deletion.NodeDrainTimeoutSeconds))
-	g.Expect(updatedDeletingMachine.Spec.Deletion.NodeDeletionTimeoutSeconds).Should(Equal(ms.Spec.Template.Spec.Deletion.NodeDeletionTimeoutSeconds))
-	g.Expect(updatedDeletingMachine.Spec.Deletion.NodeVolumeDetachTimeoutSeconds).Should(Equal(ms.Spec.Template.Spec.Deletion.NodeVolumeDetachTimeoutSeconds))
-	g.Expect(updatedDeletingMachine.Spec.MinReadySeconds).Should(Equal(ms.Spec.Template.Spec.MinReadySeconds))
-	g.Expect(updatedDeletingMachine.Spec.ReadinessGates).Should(Equal(readinessGates))
-	g.Expect(updatedDeletingMachine.Spec.Taints).Should(Equal(machineTaints))
+	g.Expect(updatedDeletingMachine.Labels).To(Equal(deletingMachine.Labels))           // Not propagated to a deleting Machine
+	g.Expect(updatedDeletingMachine.Annotations).To(Equal(deletingMachine.Annotations)) // Not propagated to a deleting Machine
+	g.Expect(updatedDeletingMachine.Spec.Deletion.NodeDrainTimeoutSeconds).To(Equal(ms.Spec.Template.Spec.Deletion.NodeDrainTimeoutSeconds))
+	g.Expect(updatedDeletingMachine.Spec.Deletion.NodeDeletionTimeoutSeconds).To(Equal(ms.Spec.Template.Spec.Deletion.NodeDeletionTimeoutSeconds))
+	g.Expect(updatedDeletingMachine.Spec.Deletion.NodeVolumeDetachTimeoutSeconds).To(Equal(ms.Spec.Template.Spec.Deletion.NodeVolumeDetachTimeoutSeconds))
+	g.Expect(updatedDeletingMachine.Spec.MinReadySeconds).To(Equal(ms.Spec.Template.Spec.MinReadySeconds))
+	g.Expect(updatedDeletingMachine.Spec.ReadinessGates).To(Equal(readinessGates))
+	g.Expect(updatedDeletingMachine.Spec.Taints).To(Equal(machineTaints))
 	// Verify the machine spec is otherwise unchanged.
 	deletingMachine.Spec.Deletion.NodeDrainTimeoutSeconds = ms.Spec.Template.Spec.Deletion.NodeDrainTimeoutSeconds
 	deletingMachine.Spec.Deletion.NodeDeletionTimeoutSeconds = ms.Spec.Template.Spec.Deletion.NodeDeletionTimeoutSeconds
@@ -1702,7 +1702,7 @@ func TestMachineSetReconciler_syncMachines(t *testing.T) {
 	deletingMachine.Spec.MinReadySeconds = ms.Spec.Template.Spec.MinReadySeconds
 	deletingMachine.Spec.ReadinessGates = ms.Spec.Template.Spec.ReadinessGates
 	deletingMachine.Spec.Taints = machineTaints
-	g.Expect(updatedDeletingMachine.Spec).Should(BeComparableTo(deletingMachine.Spec))
+	g.Expect(updatedDeletingMachine.Spec).To(BeComparableTo(deletingMachine.Spec))
 
 	//
 	// Verify managedField mitigation (purge managedFields and verify they are re-added)
@@ -1861,7 +1861,7 @@ func TestMachineSetReconciler_reconcileUnhealthyMachines(t *testing.T) {
 
 		// Verify the healthy machine is not deleted and does not have the OwnerRemediated condition.
 		m = &clusterv1.Machine{}
-		g.Expect(r.Client.Get(ctx, client.ObjectKeyFromObject(healthyMachine), m)).Should(Succeed())
+		g.Expect(r.Client.Get(ctx, client.ObjectKeyFromObject(healthyMachine), m)).To(Succeed())
 		g.Expect(m.DeletionTimestamp.IsZero()).To(BeTrue())
 		g.Expect(v1beta1conditions.Has(m, clusterv1.MachineOwnerRemediatedV1Beta1Condition)).To(BeFalse())
 		g.Expect(conditions.Has(m, clusterv1.MachineOwnerRemediatedCondition)).To(BeFalse())
@@ -2190,7 +2190,7 @@ func TestMachineSetReconciler_reconcileUnhealthyMachines(t *testing.T) {
 		// Verify that no action was taken on the Machine: MachineOwnerRemediated should be false
 		// and the Machine wasn't deleted.
 		g.Expect(r.Client.Get(ctx, client.ObjectKeyFromObject(unhealthyMachine), m)).To(Succeed())
-		g.Expect(unhealthyMachine.DeletionTimestamp).Should(BeZero())
+		g.Expect(unhealthyMachine.DeletionTimestamp).To(BeZero())
 		c := conditions.Get(m, clusterv1.MachineOwnerRemediatedCondition)
 		g.Expect(c).ToNot(BeNil())
 		g.Expect(*c).To(conditions.MatchCondition(metav1.Condition{
@@ -4405,27 +4405,27 @@ func assertMachine(g *WithT, actualMachine *clusterv1.Machine, expectedMachine *
 		}
 	}
 	if expectedMachine.Name != "" {
-		g.Expect(actualMachine.Name).Should(Equal(expectedMachine.Name))
+		g.Expect(actualMachine.Name).To(Equal(expectedMachine.Name))
 	}
 	// Check UID
 	if expectedMachine.UID != "" {
-		g.Expect(actualMachine.UID).Should(Equal(expectedMachine.UID))
+		g.Expect(actualMachine.UID).To(Equal(expectedMachine.UID))
 	}
 	// Check Namespace
-	g.Expect(actualMachine.Namespace).Should(Equal(expectedMachine.Namespace))
+	g.Expect(actualMachine.Namespace).To(Equal(expectedMachine.Namespace))
 	// Check Labels
 	for k, v := range expectedMachine.Labels {
-		g.Expect(actualMachine.Labels).Should(HaveKeyWithValue(k, v))
+		g.Expect(actualMachine.Labels).To(HaveKeyWithValue(k, v))
 	}
 	// Check Annotations
 	for k, v := range expectedMachine.Annotations {
-		g.Expect(actualMachine.Annotations).Should(HaveKeyWithValue(k, v))
+		g.Expect(actualMachine.Annotations).To(HaveKeyWithValue(k, v))
 	}
 	// Check Spec
-	g.Expect(actualMachine.Spec).Should(BeComparableTo(expectedMachine.Spec))
+	g.Expect(actualMachine.Spec).To(BeComparableTo(expectedMachine.Spec))
 	// Check Finalizer
 	if expectedMachine.Finalizers != nil {
-		g.Expect(actualMachine.Finalizers).Should(Equal(expectedMachine.Finalizers))
+		g.Expect(actualMachine.Finalizers).To(Equal(expectedMachine.Finalizers))
 	}
 }
 

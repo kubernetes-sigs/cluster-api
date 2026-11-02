@@ -194,7 +194,7 @@ func TestKubeadmConfigReconciler_TestSecretOwnerReferenceReconciliation(t *testi
 		g.Expect(myclient.Get(ctx, key, actual)).To(Succeed())
 
 		controllerOwner := metav1.GetControllerOf(actual)
-		g.Expect(controllerOwner).To(Not(BeNil()))
+		g.Expect(controllerOwner).ToNot(BeNil())
 		g.Expect(controllerOwner.Kind).To(Equal("KubeadmConfig"))
 		g.Expect(controllerOwner.Name).To(Equal(config.Name))
 	})
@@ -206,7 +206,7 @@ func TestKubeadmConfigReconciler_TestSecretOwnerReferenceReconciliation(t *testi
 		g.Expect(myclient.Get(ctx, key, actual)).To(Succeed())
 
 		controllerOwner := metav1.GetControllerOf(actual)
-		g.Expect(controllerOwner).To(Not(BeNil()))
+		g.Expect(controllerOwner).ToNot(BeNil())
 		g.Expect(controllerOwner.Kind).To(Equal("KubeadmConfig"))
 		g.Expect(controllerOwner.Name).To(Equal(config.Name))
 	})
@@ -230,7 +230,7 @@ func TestKubeadmConfigReconciler_TestSecretOwnerReferenceReconciliation(t *testi
 		g.Expect(myclient.Get(ctx, key, actual)).To(Succeed())
 
 		controllerOwner := metav1.GetControllerOf(actual)
-		g.Expect(controllerOwner).To(Not(BeNil()))
+		g.Expect(controllerOwner).ToNot(BeNil())
 		g.Expect(controllerOwner.Kind).To(Equal("Machine"))
 		g.Expect(controllerOwner.Name).To(Equal(machine.Name))
 	})
@@ -1194,12 +1194,12 @@ func TestBootstrapTokenTTLExtension(t *testing.T) {
 	}
 
 	patchHelper, err := patch.NewHelper(workerMachine, myclient)
-	g.Expect(err).ShouldNot(HaveOccurred())
+	g.Expect(err).ToNot(HaveOccurred())
 	workerMachine.Status.Initialization.InfrastructureProvisioned = ptr.To(true)
 	g.Expect(patchHelper.Patch(ctx, workerMachine)).To(Succeed())
 
 	patchHelper, err = patch.NewHelper(controlPlaneJoinMachine, myclient)
-	g.Expect(err).ShouldNot(HaveOccurred())
+	g.Expect(err).ToNot(HaveOccurred())
 	controlPlaneJoinMachine.Status.Initialization.InfrastructureProvisioned = ptr.To(true)
 	g.Expect(patchHelper.Patch(ctx, controlPlaneJoinMachine)).To(Succeed())
 
@@ -1242,14 +1242,14 @@ func TestBootstrapTokenTTLExtension(t *testing.T) {
 	}
 
 	patchHelper, err = patch.NewHelper(workerMachine, myclient)
-	g.Expect(err).ShouldNot(HaveOccurred())
+	g.Expect(err).ToNot(HaveOccurred())
 	workerMachine.Status.NodeRef = clusterv1.MachineNodeReference{
 		Name: "worker-node",
 	}
 	g.Expect(patchHelper.Patch(ctx, workerMachine)).To(Succeed())
 
 	patchHelper, err = patch.NewHelper(controlPlaneJoinMachine, myclient)
-	g.Expect(err).ShouldNot(HaveOccurred())
+	g.Expect(err).ToNot(HaveOccurred())
 	controlPlaneJoinMachine.Status.NodeRef = clusterv1.MachineNodeReference{
 		Name: "control-plane-node",
 	}
@@ -1391,7 +1391,7 @@ func TestBootstrapTokenRotationMachinePool(t *testing.T) {
 	}
 
 	patchHelper, err := patch.NewHelper(workerMachinePool, myclient)
-	g.Expect(err).ShouldNot(HaveOccurred())
+	g.Expect(err).ToNot(HaveOccurred())
 	workerMachinePool.Status.Initialization.InfrastructureProvisioned = ptr.To(true)
 	g.Expect(patchHelper.Patch(ctx, workerMachinePool, patch.WithStatusObservedGeneration{})).To(Succeed())
 
@@ -1469,7 +1469,7 @@ func TestBootstrapTokenRotationMachinePool(t *testing.T) {
 		} else {
 			expirationTime, err := time.Parse(time.RFC3339, string(item.Data[bootstrapapi.BootstrapTokenExpirationKey]))
 			g.Expect(err).ToNot(HaveOccurred())
-			g.Expect(expirationTime).Should(BeTemporally("~", time.Now().UTC().Add(k.TokenTTL), 10*time.Second))
+			g.Expect(expirationTime).To(BeTemporally("~", time.Now().UTC().Add(k.TokenTTL), 10*time.Second))
 			foundNew = true
 		}
 	}
@@ -2183,7 +2183,7 @@ func TestKubeadmConfigReconciler_Reconcile_ExactlyOneControlPlaneMachineInitiali
 	for _, c := range confList.Items {
 		// Ensure the DataSecretName is only set for controlPlaneInitConfigFirst.
 		if c.Name == controlPlaneInitConfigFirst.Name {
-			g.Expect(c.Status.DataSecretName).To(Not(BeEmpty()))
+			g.Expect(c.Status.DataSecretName).ToNot(BeEmpty())
 		}
 		if c.Name == controlPlaneInitConfigSecond.Name {
 			g.Expect(c.Status.DataSecretName).To(BeEmpty())

@@ -796,9 +796,9 @@ func AssertMachineDeploymentReplicas(ctx context.Context, input AssertMachineDep
 			Name:      input.MachineDeployment.Name,
 		}
 		g.Expect(input.GetLister.Get(ctx, key, md)).To(Succeed(), fmt.Sprintf("failed to get MachineDeployment %s", klog.KObj(input.MachineDeployment)))
-		g.Expect(md.Spec.Replicas).Should(Not(BeNil()), fmt.Sprintf("MachineDeployment %s replicas should not be nil", klog.KObj(md)))
-		g.Expect(*md.Spec.Replicas).Should(Equal(input.Replicas), fmt.Sprintf("MachineDeployment %s replicas should match expected replicas", klog.KObj(md)))
-		g.Expect(ptr.Deref(md.Status.Replicas, 0)).Should(Equal(input.Replicas), fmt.Sprintf("MachineDeployment %s status.replicas should match expected replicas", klog.KObj(md)))
+		g.Expect(md.Spec.Replicas).ToNot(BeNil(), fmt.Sprintf("MachineDeployment %s replicas should not be nil", klog.KObj(md)))
+		g.Expect(*md.Spec.Replicas).To(Equal(input.Replicas), fmt.Sprintf("MachineDeployment %s replicas should match expected replicas", klog.KObj(md)))
+		g.Expect(ptr.Deref(md.Status.Replicas, 0)).To(Equal(input.Replicas), fmt.Sprintf("MachineDeployment %s status.replicas should match expected replicas", klog.KObj(md)))
 
 		// Check all replicas have a NodeRef (i.e. they have a corresponding Node).
 		selectorMap, err := metav1.LabelSelectorAsMap(&input.MachineDeployment.Spec.Selector)

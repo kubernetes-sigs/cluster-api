@@ -1161,7 +1161,7 @@ func Test_providerUpgrader_ApplyPlan(t *testing.T) {
 			err := u.ApplyPlan(ctx, tt.opts, tt.contract)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
-				g.Expect(err.Error()).Should(ContainSubstring(tt.errorMsg))
+				g.Expect(err.Error()).To(ContainSubstring(tt.errorMsg))
 				return
 			}
 
@@ -1413,7 +1413,7 @@ func Test_providerUpgrader_ApplyCustomPlan(t *testing.T) {
 			err := u.ApplyCustomPlan(ctx, tt.opts, tt.providersToUpgrade...)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
-				g.Expect(err.Error()).Should(ContainSubstring(tt.errorMsg))
+				g.Expect(err.Error()).To(ContainSubstring(tt.errorMsg))
 				return
 			}
 

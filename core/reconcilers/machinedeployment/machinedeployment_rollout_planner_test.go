@@ -416,75 +416,75 @@ func TestComputeDesiredMS(t *testing.T) {
 func assertDesiredMS(g *WithT, md *clusterv1.MachineDeployment, actualMS *clusterv1.MachineSet, expectedMS *clusterv1.MachineSet) {
 	// check UID
 	if expectedMS.UID != "" {
-		g.Expect(actualMS.UID).Should(Equal(expectedMS.UID))
+		g.Expect(actualMS.UID).To(Equal(expectedMS.UID))
 	}
 	// Check Name
 	if expectedMS.Name != "" {
-		g.Expect(actualMS.Name).Should(Equal(expectedMS.Name))
+		g.Expect(actualMS.Name).To(Equal(expectedMS.Name))
 	}
 	// Check Namespace
-	g.Expect(actualMS.Namespace).Should(Equal(expectedMS.Namespace))
+	g.Expect(actualMS.Namespace).To(Equal(expectedMS.Namespace))
 
 	// Check CreationTimestamp
-	g.Expect(actualMS.CreationTimestamp.IsZero()).Should(BeFalse())
+	g.Expect(actualMS.CreationTimestamp.IsZero()).To(BeFalse())
 
 	// Check Ownership
-	g.Expect(util.IsControlledBy(actualMS, md, clusterv1.GroupVersion.WithKind("MachineDeployment").GroupKind())).Should(BeTrue())
+	g.Expect(util.IsControlledBy(actualMS, md, clusterv1.GroupVersion.WithKind("MachineDeployment").GroupKind())).To(BeTrue())
 
 	// Check finalizers
-	g.Expect(actualMS.Finalizers).Should(Equal(expectedMS.Finalizers))
+	g.Expect(actualMS.Finalizers).To(Equal(expectedMS.Finalizers))
 
 	// Check Replicas
-	g.Expect(actualMS.Spec.Replicas).ShouldNot(BeNil())
-	g.Expect(actualMS.Spec.Replicas).Should(HaveValue(Equal(*expectedMS.Spec.Replicas)))
+	g.Expect(actualMS.Spec.Replicas).ToNot(BeNil())
+	g.Expect(actualMS.Spec.Replicas).To(HaveValue(Equal(*expectedMS.Spec.Replicas)))
 
 	// Check ClusterName
-	g.Expect(actualMS.Spec.ClusterName).Should(Equal(expectedMS.Spec.ClusterName))
+	g.Expect(actualMS.Spec.ClusterName).To(Equal(expectedMS.Spec.ClusterName))
 
 	// Check Labels
 	for k, v := range expectedMS.Labels {
-		g.Expect(actualMS.Labels).Should(HaveKeyWithValue(k, v))
+		g.Expect(actualMS.Labels).To(HaveKeyWithValue(k, v))
 	}
 	for k, v := range expectedMS.Spec.Template.Labels {
-		g.Expect(actualMS.Spec.Template.Labels).Should(HaveKeyWithValue(k, v))
+		g.Expect(actualMS.Spec.Template.Labels).To(HaveKeyWithValue(k, v))
 	}
 	// Verify that the labels also has the unique identifier key.
-	g.Expect(actualMS.Labels).Should(HaveKey(clusterv1.MachineDeploymentUniqueLabel))
-	g.Expect(actualMS.Spec.Template.Labels).Should(HaveKey(clusterv1.MachineDeploymentUniqueLabel))
+	g.Expect(actualMS.Labels).To(HaveKey(clusterv1.MachineDeploymentUniqueLabel))
+	g.Expect(actualMS.Spec.Template.Labels).To(HaveKey(clusterv1.MachineDeploymentUniqueLabel))
 
 	// Check Annotations
 	// Note: More nuanced validation of the Revision annotation calculations are done when testing `ComputeMachineSetAnnotations`.
 	for k, v := range expectedMS.Annotations {
-		g.Expect(actualMS.Annotations).Should(HaveKeyWithValue(k, v))
+		g.Expect(actualMS.Annotations).To(HaveKeyWithValue(k, v))
 	}
 	// annotations that must not be propagated from MD have been removed.
-	g.Expect(actualMS.Annotations).ShouldNot(HaveKey(corev1.LastAppliedConfigAnnotation))
-	g.Expect(actualMS.Annotations).ShouldNot(HaveKey(conversionutil.DataAnnotation))
+	g.Expect(actualMS.Annotations).ToNot(HaveKey(corev1.LastAppliedConfigAnnotation))
+	g.Expect(actualMS.Annotations).ToNot(HaveKey(conversionutil.DataAnnotation))
 
 	// annotations that must be derived from MD have been set.
-	g.Expect(actualMS.Annotations).Should(HaveKeyWithValue(clusterv1.DesiredReplicasAnnotation, fmt.Sprintf("%d", *md.Spec.Replicas)))
-	g.Expect(actualMS.Annotations).Should(HaveKeyWithValue(clusterv1.MaxReplicasAnnotation, fmt.Sprintf("%d", *(md.Spec.Replicas)+mdutil.MaxSurge(*md))))
+	g.Expect(actualMS.Annotations).To(HaveKeyWithValue(clusterv1.DesiredReplicasAnnotation, fmt.Sprintf("%d", *md.Spec.Replicas)))
+	g.Expect(actualMS.Annotations).To(HaveKeyWithValue(clusterv1.MaxReplicasAnnotation, fmt.Sprintf("%d", *(md.Spec.Replicas)+mdutil.MaxSurge(*md))))
 
 	// annotations that we are intentionally not setting in this func are not there
-	g.Expect(actualMS.Annotations).ShouldNot(HaveKey(clusterv1.RevisionAnnotation))
-	g.Expect(actualMS.Annotations).ShouldNot(HaveKey("machinedeployment.clusters.x-k8s.io/revision-history"))
-	g.Expect(actualMS.Annotations).ShouldNot(HaveKey(clusterv1.DisableMachineCreateAnnotation))
+	g.Expect(actualMS.Annotations).ToNot(HaveKey(clusterv1.RevisionAnnotation))
+	g.Expect(actualMS.Annotations).ToNot(HaveKey("machinedeployment.clusters.x-k8s.io/revision-history"))
+	g.Expect(actualMS.Annotations).ToNot(HaveKey(clusterv1.DisableMachineCreateAnnotation))
 
 	for k, v := range expectedMS.Spec.Template.Annotations {
-		g.Expect(actualMS.Spec.Template.Annotations).Should(HaveKeyWithValue(k, v))
+		g.Expect(actualMS.Spec.Template.Annotations).To(HaveKeyWithValue(k, v))
 	}
 
 	// Check MinReadySeconds
-	g.Expect(actualMS.Spec.Template.Spec.MinReadySeconds).Should(Equal(expectedMS.Spec.Template.Spec.MinReadySeconds))
+	g.Expect(actualMS.Spec.Template.Spec.MinReadySeconds).To(Equal(expectedMS.Spec.Template.Spec.MinReadySeconds))
 
 	// Check Order
-	g.Expect(actualMS.Spec.Deletion.Order).Should(Equal(expectedMS.Spec.Deletion.Order))
+	g.Expect(actualMS.Spec.Deletion.Order).To(Equal(expectedMS.Spec.Deletion.Order))
 
 	// Check MachineTemplateSpec
-	g.Expect(actualMS.Spec.Template.Spec).Should(BeComparableTo(expectedMS.Spec.Template.Spec))
+	g.Expect(actualMS.Spec.Template.Spec).To(BeComparableTo(expectedMS.Spec.Template.Spec))
 
 	// Check MachineNamingSpec
-	g.Expect(actualMS.Spec.MachineNaming.Template).Should(BeComparableTo(expectedMS.Spec.MachineNaming.Template))
+	g.Expect(actualMS.Spec.MachineNaming.Template).To(BeComparableTo(expectedMS.Spec.MachineNaming.Template))
 }
 
 // machineControllerMutator fakes a small part of the Machine controller, just what is required for the rollout to progress.

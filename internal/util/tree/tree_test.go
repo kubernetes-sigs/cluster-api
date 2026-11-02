@@ -302,7 +302,7 @@ func Test_V1Beta1TreePrefix(t *testing.T) {
 			// We only check whether the output starts with the expected prefix,
 			// meaning expectPrefix does not contain the full expected output.
 			outputString := output.String()
-			g.Expect(outputString).Should(MatchTable(tt.expectPrefix))
+			g.Expect(outputString).To(MatchTable(tt.expectPrefix))
 		})
 	}
 }
@@ -536,7 +536,7 @@ func Test_TreePrefix(t *testing.T) {
 			// Compare the output with the expected prefix.
 			// We only check whether the output starts with the expected prefix,
 			// meaning expectPrefix does not contain the full expected output.
-			g.Expect(outputString).Should(MatchTable(tt.expectPrefix))
+			g.Expect(outputString).To(MatchTable(tt.expectPrefix))
 		})
 	}
 }

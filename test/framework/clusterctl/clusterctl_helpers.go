@@ -436,9 +436,9 @@ func ApplyCustomClusterTemplateAndWait(ctx context.Context, input ApplyCustomClu
 		workloadCluster := input.ClusterProxy.GetWorkloadCluster(ctx, result.Cluster.Namespace, result.Cluster.Name)
 
 		cniYaml, err := os.ReadFile(input.CNIManifestPath)
-		Expect(err).ShouldNot(HaveOccurred())
+		Expect(err).ToNot(HaveOccurred())
 
-		Expect(workloadCluster.CreateOrUpdate(ctx, cniYaml)).Should(Succeed())
+		Expect(workloadCluster.CreateOrUpdate(ctx, cniYaml)).To(Succeed())
 	}
 
 	log.Logf("Waiting for control plane of cluster %s to be ready", klog.KRef(input.Namespace, input.ClusterName))

@@ -2093,39 +2093,39 @@ func TestKubeadmControlPlaneReconciler_syncMachines(t *testing.T) {
 	// Verify in-place mutable fields are updated on the Machine.
 	updatedInPlaceMutatingMachine = inPlaceMutatingMachine.DeepCopy()
 	g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(updatedInPlaceMutatingMachine), updatedInPlaceMutatingMachine)).To(Succeed())
-	g.Expect(updatedInPlaceMutatingMachine.Labels).Should(Equal(expectedLabels))
+	g.Expect(updatedInPlaceMutatingMachine.Labels).To(Equal(expectedLabels))
 	expectedAnnotations := map[string]string{}
 	for k, v := range kcp.Spec.MachineTemplate.ObjectMeta.Annotations {
 		expectedAnnotations[k] = v
 	}
 	// The pre-terminate annotation should always be added
 	expectedAnnotations[controlplanev1.PreTerminateHookCleanupAnnotation] = ""
-	g.Expect(updatedInPlaceMutatingMachine.Annotations).Should(Equal(expectedAnnotations))
-	g.Expect(updatedInPlaceMutatingMachine.Spec.Deletion.NodeDrainTimeoutSeconds).Should(Equal(kcp.Spec.MachineTemplate.Spec.Deletion.NodeDrainTimeoutSeconds))
-	g.Expect(updatedInPlaceMutatingMachine.Spec.Deletion.NodeDeletionTimeoutSeconds).Should(Equal(kcp.Spec.MachineTemplate.Spec.Deletion.NodeDeletionTimeoutSeconds))
-	g.Expect(updatedInPlaceMutatingMachine.Spec.Deletion.NodeVolumeDetachTimeoutSeconds).Should(Equal(kcp.Spec.MachineTemplate.Spec.Deletion.NodeVolumeDetachTimeoutSeconds))
+	g.Expect(updatedInPlaceMutatingMachine.Annotations).To(Equal(expectedAnnotations))
+	g.Expect(updatedInPlaceMutatingMachine.Spec.Deletion.NodeDrainTimeoutSeconds).To(Equal(kcp.Spec.MachineTemplate.Spec.Deletion.NodeDrainTimeoutSeconds))
+	g.Expect(updatedInPlaceMutatingMachine.Spec.Deletion.NodeDeletionTimeoutSeconds).To(Equal(kcp.Spec.MachineTemplate.Spec.Deletion.NodeDeletionTimeoutSeconds))
+	g.Expect(updatedInPlaceMutatingMachine.Spec.Deletion.NodeVolumeDetachTimeoutSeconds).To(Equal(kcp.Spec.MachineTemplate.Spec.Deletion.NodeVolumeDetachTimeoutSeconds))
 	// Verify that the non in-place mutating fields remain the same.
-	g.Expect(updatedInPlaceMutatingMachine.Spec.FailureDomain).Should(Equal(inPlaceMutatingMachine.Spec.FailureDomain))
-	g.Expect(updatedInPlaceMutatingMachine.Spec.ProviderID).Should(Equal(inPlaceMutatingMachine.Spec.ProviderID))
-	g.Expect(updatedInPlaceMutatingMachine.Spec.Version).Should(Equal(inPlaceMutatingMachine.Spec.Version))
-	g.Expect(updatedInPlaceMutatingMachine.Spec.InfrastructureRef).Should(BeComparableTo(inPlaceMutatingMachine.Spec.InfrastructureRef))
-	g.Expect(updatedInPlaceMutatingMachine.Spec.Bootstrap).Should(BeComparableTo(inPlaceMutatingMachine.Spec.Bootstrap))
+	g.Expect(updatedInPlaceMutatingMachine.Spec.FailureDomain).To(Equal(inPlaceMutatingMachine.Spec.FailureDomain))
+	g.Expect(updatedInPlaceMutatingMachine.Spec.ProviderID).To(Equal(inPlaceMutatingMachine.Spec.ProviderID))
+	g.Expect(updatedInPlaceMutatingMachine.Spec.Version).To(Equal(inPlaceMutatingMachine.Spec.Version))
+	g.Expect(updatedInPlaceMutatingMachine.Spec.InfrastructureRef).To(BeComparableTo(inPlaceMutatingMachine.Spec.InfrastructureRef))
+	g.Expect(updatedInPlaceMutatingMachine.Spec.Bootstrap).To(BeComparableTo(inPlaceMutatingMachine.Spec.Bootstrap))
 
 	// Verify in-place mutable fields are updated on InfrastructureMachine
 	updatedInfraMachine = existingInfraMachine.DeepCopy()
 	g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(updatedInfraMachine), updatedInfraMachine)).To(Succeed())
-	g.Expect(updatedInfraMachine.GetLabels()).Should(Equal(expectedLabels))
-	g.Expect(updatedInfraMachine.GetAnnotations()).Should(Equal(kcp.Spec.MachineTemplate.ObjectMeta.Annotations))
+	g.Expect(updatedInfraMachine.GetLabels()).To(Equal(expectedLabels))
+	g.Expect(updatedInfraMachine.GetAnnotations()).To(Equal(kcp.Spec.MachineTemplate.ObjectMeta.Annotations))
 	// Verify spec remains the same
-	g.Expect(updatedInfraMachine.Object).Should(HaveKeyWithValue("spec", infraMachineSpec))
+	g.Expect(updatedInfraMachine.Object).To(HaveKeyWithValue("spec", infraMachineSpec))
 
 	// Verify in-place mutable fields are updated on the KubeadmConfig.
 	updatedKubeadmConfig = existingKubeadmConfig.DeepCopy()
 	g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(updatedKubeadmConfig), updatedKubeadmConfig)).To(Succeed())
-	g.Expect(updatedKubeadmConfig.GetLabels()).Should(Equal(expectedLabels))
-	g.Expect(updatedKubeadmConfig.GetAnnotations()).Should(Equal(kcp.Spec.MachineTemplate.ObjectMeta.Annotations))
+	g.Expect(updatedKubeadmConfig.GetLabels()).To(Equal(expectedLabels))
+	g.Expect(updatedKubeadmConfig.GetAnnotations()).To(Equal(kcp.Spec.MachineTemplate.ObjectMeta.Annotations))
 	// Verify spec remains the same
-	g.Expect(updatedKubeadmConfig.Spec).Should(BeComparableTo(existingKubeadmConfig.Spec))
+	g.Expect(updatedKubeadmConfig.Spec).To(BeComparableTo(existingKubeadmConfig.Spec))
 
 	// Verify ManagedFields
 	g.Eventually(func(g Gomega) {
@@ -2149,16 +2149,16 @@ func TestKubeadmControlPlaneReconciler_syncMachines(t *testing.T) {
 	// Verify in-place mutable fields are updated on the deleting Machine.
 	updatedDeletingMachine := deletingMachine.DeepCopy()
 	g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(updatedDeletingMachine), updatedDeletingMachine)).To(Succeed())
-	g.Expect(updatedDeletingMachine.Labels).Should(Equal(deletingMachine.Labels))           // Not propagated to a deleting Machine
-	g.Expect(updatedDeletingMachine.Annotations).Should(Equal(deletingMachine.Annotations)) // Not propagated to a deleting Machine
-	g.Expect(updatedDeletingMachine.Spec.Deletion.NodeDrainTimeoutSeconds).Should(Equal(kcp.Spec.MachineTemplate.Spec.Deletion.NodeDrainTimeoutSeconds))
-	g.Expect(updatedDeletingMachine.Spec.Deletion.NodeDeletionTimeoutSeconds).Should(Equal(kcp.Spec.MachineTemplate.Spec.Deletion.NodeDeletionTimeoutSeconds))
-	g.Expect(updatedDeletingMachine.Spec.Deletion.NodeVolumeDetachTimeoutSeconds).Should(Equal(kcp.Spec.MachineTemplate.Spec.Deletion.NodeVolumeDetachTimeoutSeconds))
+	g.Expect(updatedDeletingMachine.Labels).To(Equal(deletingMachine.Labels))           // Not propagated to a deleting Machine
+	g.Expect(updatedDeletingMachine.Annotations).To(Equal(deletingMachine.Annotations)) // Not propagated to a deleting Machine
+	g.Expect(updatedDeletingMachine.Spec.Deletion.NodeDrainTimeoutSeconds).To(Equal(kcp.Spec.MachineTemplate.Spec.Deletion.NodeDrainTimeoutSeconds))
+	g.Expect(updatedDeletingMachine.Spec.Deletion.NodeDeletionTimeoutSeconds).To(Equal(kcp.Spec.MachineTemplate.Spec.Deletion.NodeDeletionTimeoutSeconds))
+	g.Expect(updatedDeletingMachine.Spec.Deletion.NodeVolumeDetachTimeoutSeconds).To(Equal(kcp.Spec.MachineTemplate.Spec.Deletion.NodeVolumeDetachTimeoutSeconds))
 	// Verify the machine spec is otherwise unchanged.
 	deletingMachine.Spec.Deletion.NodeDrainTimeoutSeconds = kcp.Spec.MachineTemplate.Spec.Deletion.NodeDrainTimeoutSeconds
 	deletingMachine.Spec.Deletion.NodeDeletionTimeoutSeconds = kcp.Spec.MachineTemplate.Spec.Deletion.NodeDeletionTimeoutSeconds
 	deletingMachine.Spec.Deletion.NodeVolumeDetachTimeoutSeconds = kcp.Spec.MachineTemplate.Spec.Deletion.NodeVolumeDetachTimeoutSeconds
-	g.Expect(updatedDeletingMachine.Spec).Should(BeComparableTo(deletingMachine.Spec))
+	g.Expect(updatedDeletingMachine.Spec).To(BeComparableTo(deletingMachine.Spec))
 }
 
 func TestKubeadmControlPlaneReconciler_reconcileControlPlaneAndMachinesConditions(t *testing.T) {

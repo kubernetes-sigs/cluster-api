@@ -290,7 +290,7 @@ func TestExtensionReconciler_Reconcile(t *testing.T) {
 		g.Expect(err).ToNot(HaveOccurred())
 
 		for _, registry := range []runtimeregistry.ExtensionRegistry{registry, registryReadOnly} {
-			g.Expect(env.Get(ctx, util.ObjectKey(extensionConfig), extensionConfig)).To(Not(Succeed()))
+			g.Expect(env.Get(ctx, util.ObjectKey(extensionConfig), extensionConfig)).ToNot(Succeed())
 			_, err = registry.Get("first.ext1")
 			g.Expect(err).To(HaveOccurred())
 			_, err = registry.Get("third.ext1")

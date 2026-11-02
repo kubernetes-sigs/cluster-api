@@ -56,7 +56,7 @@ func TestCreateNode(t *testing.T) {
 	}
 	_, err := createNode(ctx, createOpts)
 
-	g.Expect(err).ShouldNot(HaveOccurred())
+	g.Expect(err).ToNot(HaveOccurred())
 
 	callLog := containerRuntime.RunContainerCalls()
 	g.Expect(callLog).To(HaveLen(1))
@@ -92,7 +92,7 @@ func TestCreateNodeWithConfiguredDockerNetwork(t *testing.T) {
 	}
 	_, err := createNode(ctx, createOpts)
 
-	g.Expect(err).ShouldNot(HaveOccurred())
+	g.Expect(err).ToNot(HaveOccurred())
 	callLog := containerRuntime.RunContainerCalls()
 	g.Expect(callLog).To(HaveLen(1))
 	g.Expect(callLog[0].RunConfig.Network).To(Equal("custom-network"))
@@ -108,8 +108,8 @@ func TestCreateControlPlaneNode(t *testing.T) {
 	m := Manager{}
 	node, err := m.CreateControlPlaneNode(ctx, "TestName", "TestCluster", "100.100.100.100", 80, []v1alpha4.Mount{}, []v1alpha4.PortMapping{}, make(map[string]string), container.IPv4IPFamily, kind.Mapping{Image: "TestImage"})
 
-	g.Expect(err).ShouldNot(HaveOccurred())
-	g.Expect(node.Role()).Should(Equal(constants.ControlPlaneNodeRoleValue))
+	g.Expect(err).ToNot(HaveOccurred())
+	g.Expect(node.Role()).To(Equal(constants.ControlPlaneNodeRoleValue))
 
 	callLog := containerRuntime.RunContainerCalls()
 	g.Expect(callLog).To(HaveLen(1))
@@ -131,8 +131,8 @@ func TestCreateWorkerNode(t *testing.T) {
 	m := Manager{}
 	node, err := m.CreateWorkerNode(ctx, "TestName", "TestCluster", []v1alpha4.Mount{}, []v1alpha4.PortMapping{}, make(map[string]string), container.IPv4IPFamily, kind.Mapping{Image: "TestImage"})
 
-	g.Expect(err).ShouldNot(HaveOccurred())
-	g.Expect(node.Role()).Should(Equal(constants.WorkerNodeRoleValue))
+	g.Expect(err).ToNot(HaveOccurred())
+	g.Expect(node.Role()).To(Equal(constants.WorkerNodeRoleValue))
 
 	callLog := containerRuntime.RunContainerCalls()
 	g.Expect(callLog).To(HaveLen(1))
@@ -154,8 +154,8 @@ func TestCreateExternalLoadBalancerNode(t *testing.T) {
 	m := Manager{}
 	node, err := m.CreateExternalLoadBalancerNode(ctx, "TestName", "TestImage", "TestCluster", "100.100.100.100", 0, container.IPv4IPFamily)
 
-	g.Expect(err).ShouldNot(HaveOccurred())
-	g.Expect(node.Role()).Should(Equal(constants.ExternalLoadBalancerNodeRoleValue))
+	g.Expect(err).ToNot(HaveOccurred())
+	g.Expect(node.Role()).To(Equal(constants.ExternalLoadBalancerNodeRoleValue))
 
 	callLog := containerRuntime.RunContainerCalls()
 	g.Expect(callLog).To(HaveLen(1))

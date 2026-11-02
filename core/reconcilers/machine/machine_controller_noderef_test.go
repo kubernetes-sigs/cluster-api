@@ -583,8 +583,8 @@ func TestNodeLabelSync(t *testing.T) {
 		g.Expect(env.Create(ctx, infraMachine)).To(Succeed())
 		// Set InfrastructureMachine .status.interruptible and .status.ready to true.
 		interruptibleTrueInfraMachine := infraMachine.DeepCopy()
-		g.Expect(unstructured.SetNestedMap(interruptibleTrueInfraMachine.Object, interruptibleTrueInfraMachineStatus, "status")).Should(Succeed())
-		g.Expect(env.Status().Patch(ctx, interruptibleTrueInfraMachine, client.MergeFrom(infraMachine))).Should(Succeed())
+		g.Expect(unstructured.SetNestedMap(interruptibleTrueInfraMachine.Object, interruptibleTrueInfraMachineStatus, "status")).To(Succeed())
+		g.Expect(env.Status().Patch(ctx, interruptibleTrueInfraMachine, client.MergeFrom(infraMachine))).To(Succeed())
 
 		g.Expect(env.Create(ctx, machine)).To(Succeed())
 
@@ -621,8 +621,8 @@ func TestNodeLabelSync(t *testing.T) {
 
 		// Set InfrastructureMachine .status.interruptible to false.
 		interruptibleFalseInfraMachine := interruptibleTrueInfraMachine.DeepCopy()
-		g.Expect(unstructured.SetNestedMap(interruptibleFalseInfraMachine.Object, interruptibleFalseInfraMachineStatus, "status")).Should(Succeed())
-		g.Expect(env.Status().Patch(ctx, interruptibleFalseInfraMachine, client.MergeFrom(interruptibleTrueInfraMachine))).Should(Succeed())
+		g.Expect(unstructured.SetNestedMap(interruptibleFalseInfraMachine.Object, interruptibleFalseInfraMachineStatus, "status")).To(Succeed())
+		g.Expect(env.Status().Patch(ctx, interruptibleFalseInfraMachine, client.MergeFrom(interruptibleTrueInfraMachine))).To(Succeed())
 
 		// Remove managed labels from Machine.
 		modifiedMachine := machine.DeepCopy()

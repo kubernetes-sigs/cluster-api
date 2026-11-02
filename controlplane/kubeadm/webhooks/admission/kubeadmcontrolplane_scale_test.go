@@ -216,8 +216,8 @@ func TestKubeadmControlPlaneValidateScale(t *testing.T) {
 			}
 
 			resp := scaleHandler.Handle(context.Background(), tt.admissionRequest)
-			g.Expect(resp.Allowed).Should(Equal(tt.expectRespAllowed))
-			g.Expect(resp.Result.Message).Should(Equal(tt.expectRespMessage))
+			g.Expect(resp.Allowed).To(Equal(tt.expectRespAllowed))
+			g.Expect(resp.Result.Message).To(Equal(tt.expectRespMessage))
 		})
 	}
 }

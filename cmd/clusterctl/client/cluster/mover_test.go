@@ -946,11 +946,11 @@ func Test_objectMover_restoreTargetObject(t *testing.T) {
 					continue
 				}
 
-				g.Expect(oAfter.GetAPIVersion()).Should(Equal(oTo.GetAPIVersion()))
-				g.Expect(oAfter.GetName()).Should(Equal(oTo.GetName()))
-				g.Expect(oAfter.GetCreationTimestamp()).Should(Equal(oTo.GetCreationTimestamp()))
-				g.Expect(oAfter.GetUID()).Should(Equal(oTo.GetUID()))
-				g.Expect(oAfter.GetOwnerReferences()).Should(BeComparableTo(oTo.GetOwnerReferences()))
+				g.Expect(oAfter.GetAPIVersion()).To(Equal(oTo.GetAPIVersion()))
+				g.Expect(oAfter.GetName()).To(Equal(oTo.GetName()))
+				g.Expect(oAfter.GetCreationTimestamp()).To(Equal(oTo.GetCreationTimestamp()))
+				g.Expect(oAfter.GetUID()).To(Equal(oTo.GetUID()))
+				g.Expect(oAfter.GetOwnerReferences()).To(BeComparableTo(oTo.GetOwnerReferences()))
 			}
 		})
 	}

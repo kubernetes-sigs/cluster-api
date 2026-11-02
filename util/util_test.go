@@ -622,7 +622,7 @@ func TestIsExternalManagedControlPlane(t *testing.T) {
 			},
 		}
 		result := IsExternalManagedControlPlane(controlPlane)
-		g.Expect(result).Should(BeTrue())
+		g.Expect(result).To(BeTrue())
 	})
 
 	t.Run("should return false if control plane status externalManagedControlPlane is false", func(*testing.T) {
@@ -634,7 +634,7 @@ func TestIsExternalManagedControlPlane(t *testing.T) {
 			},
 		}
 		result := IsExternalManagedControlPlane(controlPlane)
-		g.Expect(result).Should(BeFalse())
+		g.Expect(result).To(BeFalse())
 	})
 
 	t.Run("should return false if control plane status externalManagedControlPlane is not set", func(*testing.T) {
@@ -646,7 +646,7 @@ func TestIsExternalManagedControlPlane(t *testing.T) {
 			},
 		}
 		result := IsExternalManagedControlPlane(controlPlane)
-		g.Expect(result).Should(BeFalse())
+		g.Expect(result).To(BeFalse())
 	})
 }
 
@@ -661,7 +661,7 @@ func TestEnsureOwnerRef(t *testing.T) {
 			Name:       "test-cluster",
 		}
 		obj.OwnerReferences = EnsureOwnerRef(obj.OwnerReferences, ref)
-		g.Expect(obj.OwnerReferences).Should(ContainElement(ref))
+		g.Expect(obj.OwnerReferences).To(ContainElement(ref))
 	})
 
 	t.Run("should not duplicate owner references", func(*testing.T) {
@@ -682,8 +682,8 @@ func TestEnsureOwnerRef(t *testing.T) {
 			Name:       "test-cluster",
 		}
 		obj.OwnerReferences = EnsureOwnerRef(obj.OwnerReferences, ref)
-		g.Expect(obj.OwnerReferences).Should(ContainElement(ref))
-		g.Expect(obj.OwnerReferences).Should(HaveLen(1))
+		g.Expect(obj.OwnerReferences).To(ContainElement(ref))
+		g.Expect(obj.OwnerReferences).To(HaveLen(1))
 	})
 
 	t.Run("should update the APIVersion if duplicate", func(*testing.T) {
@@ -708,8 +708,8 @@ func TestEnsureOwnerRef(t *testing.T) {
 			Name:       "test-cluster",
 		}
 		obj.OwnerReferences = EnsureOwnerRef(obj.OwnerReferences, ref)
-		g.Expect(obj.OwnerReferences).Should(ContainElement(ref))
-		g.Expect(obj.OwnerReferences).Should(HaveLen(1))
+		g.Expect(obj.OwnerReferences).To(ContainElement(ref))
+		g.Expect(obj.OwnerReferences).To(HaveLen(1))
 	})
 }
 

@@ -91,7 +91,7 @@ func TestNewCertificatesForInitialControlPlane(t *testing.T) {
 			decodedCert, err := certs.DecodeCertPEM(caCert.KeyPair.Cert)
 			g.Expect(err).ToNot(HaveOccurred())
 
-			g.Expect(decodedCert.NotAfter).Should(BeTemporally("~", test.expectedExpiry, 1*time.Minute))
+			g.Expect(decodedCert.NotAfter).To(BeTemporally("~", test.expectedExpiry, 1*time.Minute))
 		})
 	}
 }

@@ -280,9 +280,9 @@ func TestAddHook(t *testing.T) {
 				c.AddHook(v1alpha1.GroupVersion, tt.hook, tt.hookMeta)
 			}
 			if tt.wantPanic {
-				g.Expect(testFunc).Should(Panic())
+				g.Expect(testFunc).To(Panic())
 			} else {
-				g.Expect(testFunc).ShouldNot(Panic())
+				g.Expect(testFunc).ToNot(Panic())
 			}
 		})
 	}

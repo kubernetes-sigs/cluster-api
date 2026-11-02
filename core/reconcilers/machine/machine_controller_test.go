@@ -141,13 +141,13 @@ func TestWatches(t *testing.T) {
 
 	// Patch infra machine ready
 	patchHelper, err := patch.NewHelper(infraMachine, env)
-	g.Expect(err).ShouldNot(HaveOccurred())
+	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(unstructured.SetNestedField(infraMachine.Object, true, "status", "initialization", "provisioned")).To(Succeed())
 	g.Expect(patchHelper.Patch(ctx, infraMachine, patch.WithStatusObservedGeneration{})).To(Succeed())
 
 	// Patch bootstrap ready
 	patchHelper, err = patch.NewHelper(defaultBootstrap, env)
-	g.Expect(err).ShouldNot(HaveOccurred())
+	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(unstructured.SetNestedField(defaultBootstrap.Object, true, "status", "initialization", "dataSecretCreated")).To(Succeed())
 	g.Expect(unstructured.SetNestedField(defaultBootstrap.Object, "secretData", "status", "dataSecretName")).To(Succeed())
 	g.Expect(patchHelper.Patch(ctx, defaultBootstrap, patch.WithStatusObservedGeneration{})).To(Succeed())
@@ -285,13 +285,13 @@ func TestWatchesDelete(t *testing.T) {
 
 	// Patch infra machine ready
 	patchHelper, err := patch.NewHelper(infraMachine, env)
-	g.Expect(err).ShouldNot(HaveOccurred())
+	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(unstructured.SetNestedField(infraMachine.Object, true, "status", "initialization", "provisioned")).To(Succeed())
 	g.Expect(patchHelper.Patch(ctx, infraMachine, patch.WithStatusObservedGeneration{})).To(Succeed())
 
 	// Patch bootstrap ready
 	patchHelper, err = patch.NewHelper(defaultBootstrap, env)
-	g.Expect(err).ShouldNot(HaveOccurred())
+	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(unstructured.SetNestedField(defaultBootstrap.Object, true, "status", "initialization", "dataSecretCreated")).To(Succeed())
 	g.Expect(unstructured.SetNestedField(defaultBootstrap.Object, "secretData", "status", "dataSecretName")).To(Succeed())
 	g.Expect(patchHelper.Patch(ctx, defaultBootstrap, patch.WithStatusObservedGeneration{})).To(Succeed())
@@ -3241,19 +3241,19 @@ func TestNodeToMachine(t *testing.T) {
 
 	// Patch infra expectedMachine ready
 	patchHelper, err := patch.NewHelper(infraMachine, env)
-	g.Expect(err).ShouldNot(HaveOccurred())
+	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(unstructured.SetNestedField(infraMachine.Object, true, "status", "initialization", "provisioned")).To(Succeed())
 	g.Expect(patchHelper.Patch(ctx, infraMachine, patch.WithStatusObservedGeneration{})).To(Succeed())
 
 	// Patch infra randomMachine ready
 	patchHelper, err = patch.NewHelper(infraMachine2, env)
-	g.Expect(err).ShouldNot(HaveOccurred())
+	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(unstructured.SetNestedField(infraMachine2.Object, true, "status", "initialization", "provisioned")).To(Succeed())
 	g.Expect(patchHelper.Patch(ctx, infraMachine2, patch.WithStatusObservedGeneration{})).To(Succeed())
 
 	// Patch bootstrap ready
 	patchHelper, err = patch.NewHelper(defaultBootstrap, env)
-	g.Expect(err).ShouldNot(HaveOccurred())
+	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(unstructured.SetNestedField(defaultBootstrap.Object, true, "status", "initialization", "dataSecretCreated")).To(Succeed())
 	g.Expect(unstructured.SetNestedField(defaultBootstrap.Object, "secretData", "status", "dataSecretName")).To(Succeed())
 	g.Expect(patchHelper.Patch(ctx, defaultBootstrap, patch.WithStatusObservedGeneration{})).To(Succeed())

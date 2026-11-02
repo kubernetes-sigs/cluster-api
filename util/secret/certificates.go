@@ -545,8 +545,14 @@ func newSelfSignedCACert(key crypto.Signer, validityPeriodDays int32) (*x509.Cer
 		notAfter = now.Add(time.Duration(validityPeriodDays) * time.Hour * 24)
 	}
 
+	// Use a random 128-bit serial number, as recommended by RFC 5280 and the CA/Browser Forum baseline requirements.
+	serial, err := rand.Int(rand.Reader, new(big.Int).Lsh(big.NewInt(1), 128))
+	if err != nil {
+		return nil, pkgerrors.Wrap(err, "failed to generate serial number for self signed CA certificate")
+	}
+
 	tmpl := x509.Certificate{
-		SerialNumber: new(big.Int).SetInt64(0),
+		SerialNumber: serial,
 		Subject: pkix.Name{
 			CommonName:   cfg.CommonName,
 			Organization: cfg.Organization,

@@ -22,6 +22,7 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"math/big"
+	"strings"
 	"testing"
 	"time"
 
@@ -472,4 +473,15 @@ func TestRegenerateClientCerts(t *testing.T) {
 	g.Expect(err).ToNot(HaveOccurred())
 
 	g.Expect(newCert.NotAfter).To(BeTemporally(">", oldCert.NotAfter))
+}
+
+func TestRegenerateSecretMissingCluster(t *testing.T) {
+	g := NewWithT(t)
+
+	// The kubeconfig does not contain an entry for the cluster the Secret belongs to.
+	kubeconfigSecret := validSecret.DeepCopy()
+	kubeconfigSecret.Data[secret.KubeconfigDataName] = []byte(strings.Replace(validKubeConfig, "  name: test1\ncontexts:", "  name: other\ncontexts:", 1))
+	c := fake.NewClientBuilder().WithObjects(kubeconfigSecret).Build()
+
+	g.Expect(RegenerateSecret(ctx, c, kubeconfigSecret)).To(MatchError(ContainSubstring(`failed to find cluster "test1" in kubeconfig Secret`)))
 }

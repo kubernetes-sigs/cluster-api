@@ -373,13 +373,14 @@ linters:
         - name: inefficient-map-lookup
         - name: redundant-import-alias
         - name: redundant-build-tag
+        - name: redundant-import-alias
         - name: string-of-int
         - name: time-date
         - name: time-equal
         - name: unconditional-recursion
-        - name: use-errors-new
-        - name: unnecessary-if
         - name: unexported-naming
+        - name: unnecessary-if
+        - name: use-errors-new
         - name: useless-break
         - name: useless-fallthrough
         - name: waitgroup-by-value

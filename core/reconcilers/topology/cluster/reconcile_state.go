@@ -1376,9 +1376,8 @@ func logPatch(log logr.Logger, msg string, patchHelper structuredmerge.PatchHelp
 		log.Info(msg)
 		return
 	}
-	if log.V(4).Enabled() {
-		log.Info(msg, "patch", patchData, "diff", diff)
-		return
-	}
 	log.Info(msg, "patch", patchData)
+	if log.V(4).Enabled() {
+		log.V(4).Info(msg, "diff", diff)
+	}
 }

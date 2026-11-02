@@ -133,6 +133,15 @@ func createRESTConfig(ctx context.Context, clientConfig *clusterAccessorClientCo
 		return nil, errors.WithMessage(err, "error creating REST config: error parsing kubeconfig")
 	}
 
+	// Note: Using ExecProvider is not supported in ClusterCache as we don't want our controllers to exec.
+	if restConfig.ExecProvider != nil {
+		return nil, errors.New("ExecProvider is not supported in ClusterCache")
+	}
+	// Note: Using AuthProvider is not supported as we are not registering plugins like e.g. oidc in Cluster API.
+	if restConfig.AuthProvider != nil {
+		return nil, errors.New("AuthProvider is not supported in ClusterCache")
+	}
+
 	restConfig.UserAgent = clientConfig.UserAgent
 	restConfig.Timeout = clientConfig.Timeout
 	restConfig.QPS = clientConfig.QPS

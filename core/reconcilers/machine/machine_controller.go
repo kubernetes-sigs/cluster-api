@@ -495,11 +495,6 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (ctrl.Result
 	if err != nil {
 		switch err {
 		case errNoControlPlaneNodes, errLastControlPlaneNode, errNilNodeRef, errClusterIsBeingDeleted, errControlPlaneIsBeingDeleted:
-			nodeName := ""
-			if m.Status.NodeRef.IsDefined() {
-				nodeName = m.Status.NodeRef.Name
-			}
-			log.Info("Skipping deletion of Kubernetes Node associated with Machine as it is not allowed", "Node", klog.KRef("", nodeName), "cause", err.Error())
 		default:
 			s.deletingReason = clusterv1.MachineDeletingInternalErrorReason
 			s.deletingMessage = "Please check controller logs for errors" //nolint:goconst // Not making this a constant for now

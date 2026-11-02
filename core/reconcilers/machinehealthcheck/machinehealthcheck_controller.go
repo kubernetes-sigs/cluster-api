@@ -51,6 +51,7 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/core/reconcilers/machine"
 	"sigs.k8s.io/cluster-api/core/reconcilers/machinehealthcheck/cel"
+	logutil "sigs.k8s.io/cluster-api/internal/util/log"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/cache"
@@ -74,6 +75,9 @@ const (
 	unhealthyTargetsKeyLog = "unhealthyTargets"
 	unhealthyRangeKeyLog   = "unhealthyRange"
 	totalTargetKeyLog      = "totalTarget"
+
+	// logRateLimitInterval is the interval at which log lines repeated on every reconcile while waiting for something are logged.
+	logRateLimitInterval = time.Minute
 )
 
 var (
@@ -99,7 +103,8 @@ type Reconciler struct {
 	recorder          record.EventRecorder
 	overrideRateLimit time.Duration
 
-	predicateLog *logr.Logger
+	predicateLog   *logr.Logger
+	logRateLimiter *logutil.Limiter
 }
 
 // SetupWithManager sets up the reconciler with the Manager.
@@ -141,6 +146,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 	}
 
 	r.controller = c
+	r.logRateLimiter = logutil.New(ctx)
 	r.recorder = mgr.GetEventRecorderFor("machinehealthcheck-controller")
 	r.expressionResultCache = cache.New[cel.ExpressionResultEntry](ctx, 30*time.Minute)
 	return nil

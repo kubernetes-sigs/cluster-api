@@ -746,6 +746,10 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, controlPlane *pkg.Cont
 		controlPlane.DeletingReason = controlplanev1.KubeadmControlPlaneDeletingDeletionCompletedReason
 		controlPlane.DeletingMessage = "Deletion completed"
 
+		// Note: The KubeadmControlPlane is gone once the patch removing the finalizers succeeds; if the patch fails the next reconcile logs this line again.
+		if controllerutil.ContainsFinalizer(controlPlane.KCP, controlplanev1.KubeadmControlPlaneFinalizer) {
+			log.Info(fmt.Sprintf("KubeadmControlPlane %s deleted", controlPlane.KCP.Name), "duration", time.Since(controlPlane.KCP.DeletionTimestamp.Time).Truncate(time.Second/10))
+		}
 		r.controller.ClearConsistencyStore(client.ObjectKeyFromObject(controlPlane.KCP), controlPlane.KCP.UID)
 		controllerutil.RemoveFinalizer(controlPlane.KCP, controlplanev1.KubeadmControlPlaneFinalizer)
 		return ctrl.Result{}, nil

@@ -40,6 +40,7 @@ import (
 	"sigs.k8s.io/cluster-api/internal/hooks"
 	"sigs.k8s.io/cluster-api/internal/util/inplace"
 	"sigs.k8s.io/cluster-api/util/cache"
+	"sigs.k8s.io/cluster-api/util/conditions"
 )
 
 // reconcileInPlaceUpdate handles the in-place update workflow for a Machine.
@@ -251,7 +252,7 @@ func (r *Reconciler) updateMachine(ctx context.Context, s *scope) (updateMachine
 		s.updatingMessage = "In-place update blocked" + messagesSuffix
 		log.Info(fmt.Sprintf("Machine %s in-place update blocked: extensions returned updateStatus %s, requeuing%s", s.machine.Name, res.updateStatus, logSuffix))
 	case runtimehooksv1.MachineUpdateStatusCompleted, runtimehooksv1.MachineUpdateStatusCompletedButDirty:
-		log.Info(fmt.Sprintf("Machine %s in-place update completed by extensions (updateStatus %s)%s", s.machine.Name, res.updateStatus, logSuffix))
+		log.Info(fmt.Sprintf("Extensions completed in-place update of Machine %s (updateStatus %s)%s", s.machine.Name, res.updateStatus, logSuffix))
 	}
 	return res, nil
 }
@@ -431,7 +432,14 @@ func (r *Reconciler) completeInPlaceUpdate(ctx context.Context, s *scope, update
 	// Delete the UpdateMachine cache entry, so the UpdateMachine hook is called again for the next in-place update of this Machine.
 	r.updateMachineCache.Delete(UpdateMachineCacheEntry{Machine: client.ObjectKeyFromObject(s.machine)})
 
-	log.Info(fmt.Sprintf("Machine %s in-place update completed", s.machine.Name))
+	// Note: We use LastTransitionTime of MachineInPlaceUpdatingReason to compute duration of an in-place update operation.
+	// This will include only the timespan from after triggering the in-place to here (e.g. it won't include the time
+	// that KCP took to trigger in place update, or the time that the MachineSet controller took to complete move and trigger in place).
+	kvPairs := []any{}
+	if c := conditions.Get(s.machine, clusterv1.MachineUpdatingCondition); c != nil && c.Status == metav1.ConditionTrue {
+		kvPairs = append(kvPairs, "duration", time.Since(c.LastTransitionTime.Time).Truncate(time.Second/10))
+	}
+	log.Info(fmt.Sprintf("Machine %s in-place update completed", s.machine.Name), kvPairs...)
 	return nil
 }
 

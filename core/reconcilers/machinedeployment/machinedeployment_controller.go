@@ -519,6 +519,10 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) error {
 			}
 		}
 
+		// Note: The MachineDeployment is gone once the patch removing the finalizers succeeds; if the patch fails the next reconcile logs this line again.
+		if controllerutil.ContainsFinalizer(s.machineDeployment, clusterv1.MachineDeploymentFinalizer) {
+			log.Info(fmt.Sprintf("MachineDeployment %s deleted", s.machineDeployment.Name), "duration", time.Since(s.machineDeployment.DeletionTimestamp.Time).Truncate(time.Second/10))
+		}
 		r.logRateLimiter.Forget(waitingForMachineSetsDeletionKey(s.machineDeployment))
 		r.controller.ClearConsistencyStore(client.ObjectKeyFromObject(s.machineDeployment), s.machineDeployment.UID)
 		controllerutil.RemoveFinalizer(s.machineDeployment, clusterv1.MachineDeploymentFinalizer)
@@ -536,7 +540,7 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) error {
 			}
 			// Note: We intentionally log after Delete because we want this log line to show up only after DeletionTimestamp has been set.
 			// Also, setting DeletionTimestamp doesn't mean the MachineSet is actually deleted (deletion takes some time).
-			log.Info(fmt.Sprintf("MachineSet %s deleting (MachineDeployment deleting)", ms.Name), "MachineSet", klog.KObj(ms))
+			log.Info(fmt.Sprintf("MachineSet %s deleting (MachineDeployment deleting)", ms.Name), "MachineSet", klog.KObj(ms), "reason", "MachineDeploymentDeleted")
 		}
 	}
 

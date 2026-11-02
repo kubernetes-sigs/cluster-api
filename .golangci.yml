@@ -21,6 +21,7 @@ linters:
     - durationcheck # multiplying two durations
     - errcheck # unchecked errors
     - errchkjson # invalid types passed to json encoder
+    - errname # error types and sentinel errors naming
     - fatcontext # nested contexts in loops and function literals
     - exptostd # golang.org/x/exp functions that can be replaced by std functions
     - forbidigo # allows to block usage of funcs

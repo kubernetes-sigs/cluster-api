@@ -58,6 +58,9 @@ Cluster API Provider Docker
 ### CAPDO
 Cluster API Provider DigitalOcean
 
+### CAPE
+Cluster API Provider evroc
+
 ### CAPG
 Cluster API Google Cloud Provider
 

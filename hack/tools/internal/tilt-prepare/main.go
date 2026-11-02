@@ -482,7 +482,7 @@ func runTaskGroup(ctx context.Context, name string, tasks map[string]taskFunctio
 	// Wait until either WaitGroup is done or an error is received through the error channel.
 	select {
 	case <-wgDone:
-		break
+		// All tasks completed successfully.
 	case err := <-errors:
 		// cancel all the running tasks
 		cancel(err)

@@ -619,7 +619,7 @@ func validateProvider(r Provider) error {
 		clusterctlv1.IPAMProviderType,
 		clusterctlv1.RuntimeExtensionProviderType,
 		clusterctlv1.AddonProviderType:
-		break
+		// Valid provider type.
 	default:
 		return pkgerrors.Errorf("invalid provider type. Allowed values are [%s, %s, %s, %s, %s, %s, %s]",
 			clusterctlv1.CoreProviderType,

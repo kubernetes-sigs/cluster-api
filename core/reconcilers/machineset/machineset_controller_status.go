@@ -57,20 +57,20 @@ func (r *Reconciler) updateStatus(ctx context.Context, s *scope) error {
 
 	// Update the ScalingUp and ScalingDown condition.
 	setScalingUpCondition(ctx, s.machineSet, s.machines, s.bootstrapObjectNotFound, s.infrastructureObjectNotFound, s.getAndAdoptMachinesForMachineSetSucceeded, s.scaleUpPreflightCheckErrMessages)
-	setScalingDownCondition(ctx, s.machineSet, s.machines, s.getAndAdoptMachinesForMachineSetSucceeded)
+	setScalingDownCondition(ctx, s.reconcileStartTime, s.machineSet, s.machines, s.getAndAdoptMachinesForMachineSetSucceeded)
 
 	// MachinesReady condition: aggregate the Machine's Ready condition.
 	setMachinesReadyCondition(ctx, s.machineSet, s.machines, s.getAndAdoptMachinesForMachineSetSucceeded)
 
 	// MachinesUpToDate condition: aggregate the Machine's UpToDate condition.
-	setMachinesUpToDateCondition(ctx, s.machineSet, s.machines, s.getAndAdoptMachinesForMachineSetSucceeded)
+	setMachinesUpToDateCondition(ctx, s.reconcileStartTime, s.machineSet, s.machines, s.getAndAdoptMachinesForMachineSetSucceeded)
 
 	machines := collections.FromMachines(s.machines...)
 	machinesToBeRemediated := machines.Filter(collections.IsUnhealthyAndOwnerRemediated)
 	unhealthyMachines := machines.Filter(collections.IsUnhealthy)
 	setRemediatingCondition(ctx, s.machineSet, machinesToBeRemediated, unhealthyMachines, s.getAndAdoptMachinesForMachineSetSucceeded)
 
-	setDeletingCondition(ctx, s.machineSet, s.machines, s.getAndAdoptMachinesForMachineSetSucceeded)
+	setDeletingCondition(ctx, s.reconcileStartTime, s.machineSet, s.machines, s.getAndAdoptMachinesForMachineSetSucceeded)
 
 	return nil
 }
@@ -174,7 +174,7 @@ func setScalingUpCondition(_ context.Context, ms *clusterv1.MachineSet, machines
 	})
 }
 
-func setScalingDownCondition(_ context.Context, ms *clusterv1.MachineSet, machines []*clusterv1.Machine, getAndAdoptMachinesForMachineSetSucceeded bool) {
+func setScalingDownCondition(_ context.Context, reconcileStartTime metav1.Time, ms *clusterv1.MachineSet, machines []*clusterv1.Machine, getAndAdoptMachinesForMachineSetSucceeded bool) {
 	// If we got unexpected errors in listing the machines (this should never happen), surface them.
 	if !getAndAdoptMachinesForMachineSetSucceeded {
 		conditions.Set(ms, metav1.Condition{
@@ -212,7 +212,7 @@ func setScalingDownCondition(_ context.Context, ms *clusterv1.MachineSet, machin
 	// Scaling down.
 	if currentReplicas > desiredReplicas {
 		message := fmt.Sprintf("Scaling down from %d to %d replicas", currentReplicas, desiredReplicas)
-		staleMessage := aggregateStaleMachines(machines)
+		staleMessage := aggregateStaleMachines(reconcileStartTime, machines)
 		if staleMessage != "" {
 			message += fmt.Sprintf(":\n* Blocked because %s", staleMessage)
 		}
@@ -283,7 +283,7 @@ func setMachinesReadyCondition(ctx context.Context, machineSet *clusterv1.Machin
 	conditions.Set(machineSet, *readyCondition)
 }
 
-func setMachinesUpToDateCondition(ctx context.Context, machineSet *clusterv1.MachineSet, machinesSlice []*clusterv1.Machine, getAndAdoptMachinesForMachineSetSucceeded bool) {
+func setMachinesUpToDateCondition(ctx context.Context, reconcileStartTime metav1.Time, machineSet *clusterv1.MachineSet, machinesSlice []*clusterv1.Machine, getAndAdoptMachinesForMachineSetSucceeded bool) {
 	log := ctrl.LoggerFrom(ctx)
 	// If we got unexpected errors in listing the machines (this should never happen), surface them.
 	if !getAndAdoptMachinesForMachineSetSucceeded {
@@ -300,7 +300,7 @@ func setMachinesUpToDateCondition(ctx context.Context, machineSet *clusterv1.Mac
 	// This is done to ensure the MachinesUpToDate condition doesn't flicker after a new Machine is created,
 	// because it can take a bit until the UpToDate condition is set on a new Machine.
 	machines := collections.FromMachines(machinesSlice...).Filter(func(machine *clusterv1.Machine) bool {
-		return conditions.Has(machine, clusterv1.MachineUpToDateCondition) || time.Since(machine.CreationTimestamp.Time) > 10*time.Second
+		return conditions.Has(machine, clusterv1.MachineUpToDateCondition) || reconcileStartTime.Sub(machine.CreationTimestamp.Time) > 10*time.Second
 	})
 
 	if len(machines) == 0 {
@@ -389,7 +389,7 @@ func setRemediatingCondition(ctx context.Context, machineSet *clusterv1.MachineS
 	})
 }
 
-func setDeletingCondition(_ context.Context, machineSet *clusterv1.MachineSet, machines []*clusterv1.Machine, getAndAdoptMachinesForMachineSetSucceeded bool) {
+func setDeletingCondition(_ context.Context, reconcileStartTime metav1.Time, machineSet *clusterv1.MachineSet, machines []*clusterv1.Machine, getAndAdoptMachinesForMachineSetSucceeded bool) {
 	// If we got unexpected errors in listing the machines (this should never happen), surface them.
 	if !getAndAdoptMachinesForMachineSetSucceeded {
 		conditions.Set(machineSet, metav1.Condition{
@@ -417,7 +417,7 @@ func setDeletingCondition(_ context.Context, machineSet *clusterv1.MachineSet, m
 		} else {
 			message = fmt.Sprintf("Deleting %d Machines", len(machines))
 		}
-		staleMessage := aggregateStaleMachines(machines)
+		staleMessage := aggregateStaleMachines(reconcileStartTime, machines)
 		if staleMessage != "" {
 			message += fmt.Sprintf(":\n* %s", staleMessage)
 		}
@@ -453,7 +453,7 @@ func calculateMissingReferencesMessage(ms *clusterv1.MachineSet, bootstrapTempla
 	return fmt.Sprintf("%s do not exist", strings.Join(missingObjects, " and "))
 }
 
-func aggregateStaleMachines(machines []*clusterv1.Machine) string {
+func aggregateStaleMachines(reconcileStartTime metav1.Time, machines []*clusterv1.Machine) string {
 	if len(machines) == 0 {
 		return ""
 	}
@@ -461,7 +461,7 @@ func aggregateStaleMachines(machines []*clusterv1.Machine) string {
 	machineNames := []string{}
 	delayReasons := sets.Set[string]{}
 	for _, machine := range machines {
-		if !machine.GetDeletionTimestamp().IsZero() && time.Since(machine.GetDeletionTimestamp().Time) > time.Minute*15 {
+		if !machine.GetDeletionTimestamp().IsZero() && reconcileStartTime.Sub(machine.GetDeletionTimestamp().Time) > time.Minute*15 {
 			machineNames = append(machineNames, machine.GetName())
 
 			deletingCondition := conditions.Get(machine, clusterv1.MachineDeletingCondition)
@@ -470,7 +470,7 @@ func aggregateStaleMachines(machines []*clusterv1.Machine) string {
 				deletingCondition.Reason == clusterv1.MachineDeletingDrainingNodeReason &&
 				machine.Status.Deletion != nil &&
 				!machine.Status.Deletion.NodeDrainStartTime.Time.IsZero() &&
-				time.Since(machine.Status.Deletion.NodeDrainStartTime.Time) > 5*time.Minute {
+				reconcileStartTime.Sub(machine.Status.Deletion.NodeDrainStartTime.Time) > 5*time.Minute {
 				if strings.Contains(deletingCondition.Message, "cannot evict pod as it would violate the pod's disruption budget.") {
 					delayReasons.Insert("PodDisruptionBudgets")
 				}

@@ -57,7 +57,7 @@ func UpToDate(
 	cluster *clusterv1.Cluster,
 	machine *clusterv1.Machine,
 	kcp *controlplanev1.KubeadmControlPlane,
-	reconciliationTime *metav1.Time,
+	reconcileStartTime *metav1.Time,
 	infraMachines map[string]*unstructured.Unstructured,
 	kubeadmConfigs map[string]*bootstrapv1.KubeadmConfig,
 ) (bool, *UpToDateResult, error) {
@@ -78,7 +78,7 @@ func UpToDate(
 	}
 
 	// Machines whose certificates are about to expire.
-	if collections.ShouldRolloutBefore(reconciliationTime, kcp.Spec.Rollout.Before)(machine) {
+	if collections.ShouldRolloutBefore(reconcileStartTime, kcp.Spec.Rollout.Before)(machine) {
 		res.LogMessages = append(res.LogMessages, "certificates will expire soon, rolloutBefore expired")
 		res.ConditionMessages = append(res.ConditionMessages, "Certificates will expire soon")
 		res.EligibleForInPlaceUpdate = false
@@ -86,7 +86,7 @@ func UpToDate(
 
 	// Machines that are scheduled for rollout (KCP.Spec.RolloutAfter set,
 	// the RolloutAfter deadline is expired, and the machine was created before the deadline).
-	if collections.ShouldRolloutAfter(reconciliationTime, kcp.Spec.Rollout.After)(machine) {
+	if collections.ShouldRolloutAfter(reconcileStartTime, kcp.Spec.Rollout.After)(machine) {
 		res.LogMessages = append(res.LogMessages, "rolloutAfter expired")
 		res.ConditionMessages = append(res.ConditionMessages, "KubeadmControlPlane spec.rolloutAfter expired")
 		res.EligibleForInPlaceUpdate = false

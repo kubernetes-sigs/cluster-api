@@ -73,8 +73,10 @@ type ControlPlane struct {
 	// MachinesNotUpToDate should always be used instead to check if a Machine is up-to-date.
 	machinesUpToDateResults map[string]UpToDateResult
 
-	// reconciliationTime is the time of the current reconciliation, and should be used for all "now" calculations
-	reconciliationTime metav1.Time
+	// reconcileStartTime is the start time of the current reconciliation. It should be used for all calculations
+	// that make decision based on when the reconcile happened. There are some cases where using time.Now() is more
+	// appropriate, e.g. when computing cache durations and RequeueAfter after calling the CanUpdateMachine hook.
+	reconcileStartTime metav1.Time
 
 	// InfraMachineTemplateIsNotFound is true if getting the infra machine template object failed with an NotFound err
 	InfraMachineTemplateIsNotFound bool
@@ -136,7 +138,7 @@ type CanUpdateMachineResults struct {
 }
 
 // NewControlPlane returns an instantiated ControlPlane.
-func NewControlPlane(ctx context.Context, managementCluster ManagementCluster, dynamicCache dynamiccache.DynamicCache, client client.Client, cluster *clusterv1.Cluster, kcp *controlplanev1.KubeadmControlPlane, ownedMachines collections.Machines) (*ControlPlane, error) {
+func NewControlPlane(ctx context.Context, reconcileStartTime metav1.Time, managementCluster ManagementCluster, dynamicCache dynamiccache.DynamicCache, client client.Client, cluster *clusterv1.Cluster, kcp *controlplanev1.KubeadmControlPlane, ownedMachines collections.Machines) (*ControlPlane, error) {
 	infraMachines, err := getInfraMachines(ctx, dynamicCache, ownedMachines)
 	if err != nil {
 		return nil, err
@@ -155,11 +157,10 @@ func NewControlPlane(ctx context.Context, managementCluster ManagementCluster, d
 	}
 
 	// Select machines that should be rolled out because of an outdated configuration or because rolloutAfter/Before expired.
-	reconciliationTime := metav1.Now()
 	machinesNotUptoDate := make(collections.Machines, len(ownedMachines))
 	machinesUpToDateResults := map[string]UpToDateResult{}
 	for _, m := range ownedMachines {
-		upToDate, upToDateResult, err := UpToDate(ctx, dynamicCache, cluster, m, kcp, &reconciliationTime, infraMachines, kubeadmConfigs)
+		upToDate, upToDateResult, err := UpToDate(ctx, dynamicCache, cluster, m, kcp, &reconcileStartTime, infraMachines, kubeadmConfigs)
 		if err != nil {
 			return nil, err
 		}
@@ -180,7 +181,7 @@ func NewControlPlane(ctx context.Context, managementCluster ManagementCluster, d
 		machinesUpToDateResults: machinesUpToDateResults,
 		KubeadmConfigs:          kubeadmConfigs,
 		InfraResources:          infraMachines,
-		reconciliationTime:      reconciliationTime,
+		reconcileStartTime:      reconcileStartTime,
 		managementCluster:       managementCluster,
 	}, nil
 }

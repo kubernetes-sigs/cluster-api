@@ -195,6 +195,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 
 // Reconcile reconciles the passed in object.
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (retres ctrl.Result, reterr error) {
+	reconcileStartTime := metav1.Now()
 	machineSet := &clusterv1.MachineSet{}
 	if err := r.Client.Get(ctx, req.NamespacedName, machineSet); err != nil {
 		if apierrors.IsNotFound(err) {
@@ -236,7 +237,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (retres ct
 	s := &scope{
 		cluster:            cluster,
 		machineSet:         machineSet,
-		reconciliationTime: time.Now(),
+		reconcileStartTime: reconcileStartTime,
 	}
 
 	defer func() {
@@ -314,7 +315,7 @@ type scope struct {
 	getAndAdoptMachinesForMachineSetSucceeded bool
 	owningMachineDeployment                   *clusterv1.MachineDeployment
 	scaleUpPreflightCheckErrMessages          []string
-	reconciliationTime                        time.Time
+	reconcileStartTime                        metav1.Time
 }
 
 type machineSetReconcileBlockingFunc func(ctx context.Context, s *scope) (ctrl.Result, bool, error)
@@ -1642,7 +1643,7 @@ func (r *Reconciler) reconcileV1Beta1Status(ctx context.Context, s *scope) error
 
 		if noderefutil.IsNodeReady(node) {
 			readyReplicasCount++
-			if noderefutil.IsNodeAvailable(node, ptr.Deref(ms.Spec.Template.Spec.MinReadySeconds, 0), metav1.Now()) {
+			if noderefutil.IsNodeAvailable(node, ptr.Deref(ms.Spec.Template.Spec.MinReadySeconds, 0), s.reconcileStartTime) {
 				availableReplicasCount++
 			}
 		} else if machine.GetDeletionTimestamp().IsZero() {

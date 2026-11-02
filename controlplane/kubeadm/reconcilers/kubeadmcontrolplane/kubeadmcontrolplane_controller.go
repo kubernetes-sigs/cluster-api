@@ -214,6 +214,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 
 // Reconcile reconciles the passed in object.
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (res ctrl.Result, reterr error) {
+	reconcileStartTime := metav1.Now()
 	log := ctrl.LoggerFrom(ctx)
 
 	// Fetch the KubeadmControlPlane instance.
@@ -258,7 +259,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (res ctrl.
 
 	// Initialize the control plane scope; this includes also checking for orphan machines and
 	// adopt them if necessary.
-	controlPlane, adoptableMachineFound, err := r.initControlPlaneScope(ctx, cluster, kcp)
+	controlPlane, adoptableMachineFound, err := r.initControlPlaneScope(ctx, reconcileStartTime, cluster, kcp)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -330,12 +331,12 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (res ctrl.
 // adopt them if necessary.
 // The func also returns a boolean indicating if adoptableMachine have been found and processed, but this doesn't imply those machines
 // have been actually adopted).
-func (r *Reconciler) initControlPlaneScope(ctx context.Context, cluster *clusterv1.Cluster, kcp *controlplanev1.KubeadmControlPlane) (*pkg.ControlPlane, bool, error) {
+func (r *Reconciler) initControlPlaneScope(ctx context.Context, reconcileStartTime metav1.Time, cluster *clusterv1.Cluster, kcp *controlplanev1.KubeadmControlPlane) (*pkg.ControlPlane, bool, error) {
 	log := ctrl.LoggerFrom(ctx)
 
 	// Return early if the cluster is not yet in a state where control plane machines exists
 	if !ptr.Deref(cluster.Status.Initialization.InfrastructureProvisioned, false) || !cluster.Spec.ControlPlaneEndpoint.IsValid() {
-		controlPlane, err := pkg.NewControlPlane(ctx, r.managementCluster, r.DynamicCache, r.Client, cluster, kcp, collections.Machines{})
+		controlPlane, err := pkg.NewControlPlane(ctx, reconcileStartTime, r.managementCluster, r.DynamicCache, r.Client, cluster, kcp, collections.Machines{})
 		if err != nil {
 			log.Error(err, "Failed to initialize control plane scope")
 			return nil, false, err
@@ -363,7 +364,7 @@ func (r *Reconciler) initControlPlaneScope(ctx context.Context, cluster *cluster
 		return nil, false, err
 	}
 
-	controlPlane, err := pkg.NewControlPlane(ctx, r.managementCluster, r.DynamicCache, r.Client, cluster, kcp, ownedMachines)
+	controlPlane, err := pkg.NewControlPlane(ctx, reconcileStartTime, r.managementCluster, r.DynamicCache, r.Client, cluster, kcp, ownedMachines)
 	if err != nil {
 		log.Error(err, "Failed to initialize control plane scope")
 		return nil, false, err

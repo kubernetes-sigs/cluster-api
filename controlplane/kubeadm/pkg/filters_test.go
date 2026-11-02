@@ -1701,7 +1701,7 @@ func TestMatchesInfraMachine(t *testing.T) {
 }
 
 func TestUpToDate(t *testing.T) {
-	reconciliationTime := metav1.Now()
+	reconcileStartTime := metav1.Now()
 
 	defaultKcp := &controlplanev1.KubeadmControlPlane{
 		ObjectMeta: metav1.ObjectMeta{
@@ -1729,7 +1729,7 @@ func TestUpToDate(t *testing.T) {
 				Before: controlplanev1.KubeadmControlPlaneRolloutBeforeSpec{
 					CertificatesExpiryDays: 60, // rollout if certificates will expire in less then 60 days.
 				},
-				After: metav1.Time{Time: reconciliationTime.Add(10 * 24 * time.Hour)}, // rollout 10 days from now.
+				After: metav1.Time{Time: reconcileStartTime.Add(10 * 24 * time.Hour)}, // rollout 10 days from now.
 			},
 		},
 	}
@@ -1757,7 +1757,7 @@ func TestUpToDate(t *testing.T) {
 
 	defaultMachine := &clusterv1.Machine{
 		ObjectMeta: metav1.ObjectMeta{
-			CreationTimestamp: metav1.Time{Time: reconciliationTime.Add(-2 * 24 * time.Hour)}, // two days ago.
+			CreationTimestamp: metav1.Time{Time: reconcileStartTime.Add(-2 * 24 * time.Hour)}, // two days ago.
 		},
 		Spec: clusterv1.MachineSpec{
 			Version: "v1.30.0",
@@ -1775,7 +1775,7 @@ func TestUpToDate(t *testing.T) {
 			},
 		},
 		Status: clusterv1.MachineStatus{
-			CertificatesExpiryDate: metav1.Time{Time: reconciliationTime.Add(100 * 24 * time.Hour)}, // certificates will expire in 100 days from now.
+			CertificatesExpiryDate: metav1.Time{Time: reconcileStartTime.Add(100 * 24 * time.Hour)}, // certificates will expire in 100 days from now.
 		},
 	}
 
@@ -1881,7 +1881,7 @@ func TestUpToDate(t *testing.T) {
 			name: "rollout after expired",
 			kcp: func() *controlplanev1.KubeadmControlPlane {
 				kcp := defaultKcp.DeepCopy()
-				kcp.Spec.Rollout.After = metav1.Time{Time: reconciliationTime.Add(-1 * 24 * time.Hour)} // one day ago
+				kcp.Spec.Rollout.After = metav1.Time{Time: reconcileStartTime.Add(-1 * 24 * time.Hour)} // one day ago
 				return kcp
 			}(),
 			machine:                        defaultMachine, // created two days ago
@@ -1898,7 +1898,7 @@ func TestUpToDate(t *testing.T) {
 			kcp: func() *controlplanev1.KubeadmControlPlane {
 				kcp := defaultKcp.DeepCopy()
 				kcp.Spec.Rollout.Before.CertificatesExpiryDays = 150
-				kcp.Spec.Rollout.After = metav1.Time{Time: reconciliationTime.Add(-1 * 24 * time.Hour)}
+				kcp.Spec.Rollout.After = metav1.Time{Time: reconcileStartTime.Add(-1 * 24 * time.Hour)}
 				return kcp
 			}(),
 			machine:                        defaultMachine,
@@ -2039,7 +2039,7 @@ func TestUpToDate(t *testing.T) {
 			fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(builder.TestInfrastructureMachineTemplateCRD, infraMachineTemplate1, infraMachineTemplate2).Build()
 			c := dynamiccache.NewFakeDynamicCache(fakeClient, setup.DynamicCacheOptions())
 
-			upToDate, res, err := UpToDate(t.Context(), c, &clusterv1.Cluster{}, tt.machine, tt.kcp, &reconciliationTime, tt.infraConfigs, tt.machineConfigs)
+			upToDate, res, err := UpToDate(t.Context(), c, &clusterv1.Cluster{}, tt.machine, tt.kcp, &reconcileStartTime, tt.infraConfigs, tt.machineConfigs)
 			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(upToDate).To(Equal(tt.expectUptoDate))
 			g.Expect(res).ToNot(BeNil())

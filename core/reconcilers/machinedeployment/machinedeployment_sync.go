@@ -24,6 +24,7 @@ import (
 	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apirand "k8s.io/apimachinery/pkg/util/rand"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
@@ -39,13 +40,13 @@ import (
 
 // sync is responsible for reconciling deployments on scaling events or when they
 // are paused.
-func (r *Reconciler) sync(ctx context.Context, md *clusterv1.MachineDeployment, msList []*clusterv1.MachineSet, machines collections.Machines, templateExists bool) error {
+func (r *Reconciler) sync(ctx context.Context, reconcileStartTime metav1.Time, md *clusterv1.MachineDeployment, msList []*clusterv1.MachineSet, machines collections.Machines, templateExists bool) error {
 	// Use the rollout planner to take benefit of the common logic for:
 	// - identifying newMS and OldMS when necessary
 	// - computing desired state for newMS and OldMS, including managing rollout related annotations and
 	//   in-place propagation of labels, annotations and other fields.
 	planner := newRolloutPlanner(r.Client, r.RuntimeClient, r.canUpdateMachineSetCache)
-	if err := planner.init(ctx, md, msList, machines.UnsortedList(), false, templateExists); err != nil {
+	if err := planner.init(ctx, reconcileStartTime, md, msList, machines.UnsortedList(), false, templateExists); err != nil {
 		return err
 	}
 

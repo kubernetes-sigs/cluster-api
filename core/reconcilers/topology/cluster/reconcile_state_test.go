@@ -4411,7 +4411,7 @@ func Test_createErrorWithoutObjectName(t *testing.T) {
 			},
 		},
 	}
-	NoCausesDetailsError := &apierrors.StatusError{
+	noCausesDetailsError := &apierrors.StatusError{
 		ErrStatus: metav1.Status{
 			Status:  metav1.StatusFailure,
 			Code:    http.StatusUnprocessableEntity,
@@ -4481,7 +4481,7 @@ func Test_createErrorWithoutObjectName(t *testing.T) {
 		},
 		{
 			name:     "Remove name from status error with details but no causes",
-			input:    NoCausesDetailsError,
+			input:    noCausesDetailsError,
 			expected: expectedNoCausesDetailsError,
 			obj:      builder.TestControlPlane("default", "cp1").Build(),
 		},

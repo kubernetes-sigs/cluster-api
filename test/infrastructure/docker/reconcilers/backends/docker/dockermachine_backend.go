@@ -300,7 +300,7 @@ func (r *MachineBackendReconciler) reconcileLoadBalancer(ctx context.Context, cl
 }
 
 func (r *MachineBackendReconciler) reconcileCGroups(ctx context.Context, dockerMachine *infrav1.DevMachine, externalMachine *docker.Machine) (ctrl.Result, error) { //nolint:unparam
-	const WaitCGroupsTask = "WaitCGroups"
+	const waitCGroupsTask = "WaitCGroups"
 
 	// no-op if already completed.
 	if conditions.IsTrue(dockerMachine, infrav1.DevMachineDockerCGroupsReadyCondition) {
@@ -328,13 +328,13 @@ func (r *MachineBackendReconciler) reconcileCGroups(ctx context.Context, dockerM
 		return ctrl.Result{}, nil
 	}
 
-	// run the WaitCGroupsTask or wait for its completion.
-	taskState := r.TaskManager.GetStatus(dockerMachine, WaitCGroupsTask)
+	// run the waitCGroupsTask or wait for its completion.
+	taskState := r.TaskManager.GetStatus(dockerMachine, waitCGroupsTask)
 	switch {
 	case taskState == nil:
-		// WaitCGroupsTask not yet performed, start it.
+		// waitCGroupsTask not yet performed, start it.
 		var err error
-		taskState, err = r.TaskManager.RegisterTask(ctx, dockerMachine, WaitCGroupsTask, []Operation{
+		taskState, err = r.TaskManager.RegisterTask(ctx, dockerMachine, waitCGroupsTask, []Operation{
 			{
 				Description: "Waiting for cgroups ready",
 				F: func(ctx context.Context) error {
@@ -360,7 +360,7 @@ func (r *MachineBackendReconciler) reconcileCGroups(ctx context.Context, dockerM
 			Message: taskState.String(),
 		})
 	case !taskState.Completed && taskState.Err == nil:
-		// WaitCGroupsTask in progress, report state.
+		// waitCGroupsTask in progress, report state.
 		conditions.Set(dockerMachine, metav1.Condition{
 			Type:    infrav1.DevMachineDockerCGroupsReadyCondition,
 			Status:  metav1.ConditionFalse,
@@ -368,17 +368,17 @@ func (r *MachineBackendReconciler) reconcileCGroups(ctx context.Context, dockerM
 			Message: taskState.String(),
 		})
 	case taskState.Err != nil:
-		// WaitCGroupsTask failed, retry.
+		// waitCGroupsTask failed, retry.
 		conditions.Set(dockerMachine, metav1.Condition{
 			Type:    infrav1.DevMachineDockerCGroupsReadyCondition,
 			Status:  metav1.ConditionFalse,
 			Reason:  infrav1.DevMachineDockerCGroupsNotReadyReason,
 			Message: taskState.String(),
 		})
-		r.TaskManager.ResetStatus(dockerMachine, WaitCGroupsTask)
+		r.TaskManager.ResetStatus(dockerMachine, waitCGroupsTask)
 		r.DeferNextReconcileForObject(dockerMachine, time.Now().Add(5*time.Second))
 	case taskState.Completed:
-		// WaitCGroupsTask completed, report state.
+		// waitCGroupsTask completed, report state.
 		conditions.Set(dockerMachine, metav1.Condition{
 			Type:   infrav1.DevMachineDockerCGroupsReadyCondition,
 			Status: metav1.ConditionTrue,
@@ -389,7 +389,7 @@ func (r *MachineBackendReconciler) reconcileCGroups(ctx context.Context, dockerM
 }
 
 func (r *MachineBackendReconciler) reconcilePreLoadedImages(ctx context.Context, dockerMachine *infrav1.DevMachine, externalMachine *docker.Machine) (ctrl.Result, error) { //nolint:unparam
-	const PreLoadImagesTask = "PreLoadImages"
+	const preLoadImagesTask = "PreLoadImages"
 
 	// no-op if already completed.
 	if conditions.IsTrue(dockerMachine, infrav1.DevMachineDockerPreLoadedImagesReadyCondition) {
@@ -436,11 +436,11 @@ func (r *MachineBackendReconciler) reconcilePreLoadedImages(ctx context.Context,
 		return ctrl.Result{}, nil
 	}
 
-	// run the PreLoadImagesTask or wait for its completion.
-	taskState := r.TaskManager.GetStatus(dockerMachine, PreLoadImagesTask)
+	// run the preLoadImagesTask or wait for its completion.
+	taskState := r.TaskManager.GetStatus(dockerMachine, preLoadImagesTask)
 	switch {
 	case taskState == nil:
-		// PreLoadImagesTask not it performed, start it.
+		// preLoadImagesTask not it performed, start it.
 		operations := make([]Operation, 0, len(dockerMachine.Spec.Backend.Docker.PreLoadImages))
 		for _, image := range dockerMachine.Spec.Backend.Docker.PreLoadImages {
 			operations = append(operations, Operation{
@@ -453,7 +453,7 @@ func (r *MachineBackendReconciler) reconcilePreLoadedImages(ctx context.Context,
 			})
 		}
 		var err error
-		taskState, err = r.TaskManager.RegisterTask(ctx, dockerMachine, PreLoadImagesTask, operations, 5*time.Minute)
+		taskState, err = r.TaskManager.RegisterTask(ctx, dockerMachine, preLoadImagesTask, operations, 5*time.Minute)
 		if err != nil {
 			conditions.Set(dockerMachine, metav1.Condition{
 				Type:    infrav1.DevMachineDockerPreLoadedImagesReadyCondition,
@@ -470,7 +470,7 @@ func (r *MachineBackendReconciler) reconcilePreLoadedImages(ctx context.Context,
 			Message: taskState.String(),
 		})
 	case !taskState.Completed && taskState.Err == nil:
-		// PreLoadImagesTask in progress, report state.
+		// preLoadImagesTask in progress, report state.
 		conditions.Set(dockerMachine, metav1.Condition{
 			Type:    infrav1.DevMachineDockerPreLoadedImagesReadyCondition,
 			Status:  metav1.ConditionFalse,
@@ -478,17 +478,17 @@ func (r *MachineBackendReconciler) reconcilePreLoadedImages(ctx context.Context,
 			Message: taskState.String(),
 		})
 	case taskState.Err != nil:
-		// PreLoadImagesTask failed, retry.
+		// preLoadImagesTask failed, retry.
 		conditions.Set(dockerMachine, metav1.Condition{
 			Type:    infrav1.DevMachineDockerPreLoadedImagesReadyCondition,
 			Status:  metav1.ConditionFalse,
 			Reason:  infrav1.DevMachineDockerPreLoadedImagesNotReadyReason,
 			Message: taskState.String(),
 		})
-		r.TaskManager.ResetStatus(dockerMachine, PreLoadImagesTask)
+		r.TaskManager.ResetStatus(dockerMachine, preLoadImagesTask)
 		r.DeferNextReconcileForObject(dockerMachine, time.Now().Add(5*time.Second))
 	case taskState.Completed:
-		// PreLoadImagesTask completed, report state.
+		// preLoadImagesTask completed, report state.
 		conditions.Set(dockerMachine, metav1.Condition{
 			Type:   infrav1.DevMachineDockerPreLoadedImagesReadyCondition,
 			Status: metav1.ConditionTrue,
@@ -499,7 +499,7 @@ func (r *MachineBackendReconciler) reconcilePreLoadedImages(ctx context.Context,
 }
 
 func (r *MachineBackendReconciler) reconcileBootstrap(ctx context.Context, machine *clusterv1.Machine, dataSecretName *string, version string, dockerMachine *infrav1.DevMachine, externalMachine *docker.Machine) (ctrl.Result, error) { //nolint:unparam
-	const CloudInitOrIgnitionTask = "CloudInitOrIgnition"
+	const cloudInitOrIgnitionTask = "CloudInitOrIgnition"
 	log := ctrl.LoggerFrom(ctx)
 
 	// no-op if already completed or failed.
@@ -550,8 +550,8 @@ func (r *MachineBackendReconciler) reconcileBootstrap(ctx context.Context, machi
 		return ctrl.Result{}, nil
 	}
 
-	// run the CloudInitOrIgnitionTask or wait for its completion.
-	taskState := r.TaskManager.GetStatus(dockerMachine, CloudInitOrIgnitionTask)
+	// run the cloudInitOrIgnitionTask or wait for its completion.
+	taskState := r.TaskManager.GetStatus(dockerMachine, cloudInitOrIgnitionTask)
 	switch {
 	case taskState == nil:
 		log.Info("Checking for sentinel file")
@@ -580,7 +580,7 @@ func (r *MachineBackendReconciler) reconcileBootstrap(ctx context.Context, machi
 		}
 		log.Info("Sentinel file does not exist, bootstrapping the machine for the first time")
 
-		// CloudInitOrIgnitionTask not it performed, start it.
+		// cloudInitOrIgnitionTask not it performed, start it.
 
 		// Fetch boostrap data for this machine.
 		bootstrapData, format, err := r.getBootstrapData(ctx, dockerMachine.Namespace, *dataSecretName)
@@ -616,7 +616,7 @@ func (r *MachineBackendReconciler) reconcileBootstrap(ctx context.Context, machi
 		if dockerMachine.Spec.Backend.Docker.BootstrapTimeout != nil {
 			timeout = dockerMachine.Spec.Backend.Docker.BootstrapTimeout.Duration
 		}
-		taskState, err = r.TaskManager.RegisterTask(ctx, dockerMachine, CloudInitOrIgnitionTask, operations, timeout)
+		taskState, err = r.TaskManager.RegisterTask(ctx, dockerMachine, cloudInitOrIgnitionTask, operations, timeout)
 		if err != nil {
 			conditions.Set(dockerMachine, metav1.Condition{
 				Type:    infrav1.DevMachineBootstrapCompletedCondition,
@@ -633,7 +633,7 @@ func (r *MachineBackendReconciler) reconcileBootstrap(ctx context.Context, machi
 			Message: taskState.String(),
 		})
 	case !taskState.Completed && taskState.Err == nil:
-		// CloudInitOrIgnitionTask in progress, report state.
+		// cloudInitOrIgnitionTask in progress, report state.
 		// Note: It is not possible to re-run kubeadm init/join, also we would like to triage issue in this case.
 		conditions.Set(dockerMachine, metav1.Condition{
 			Type:    infrav1.DevMachineBootstrapCompletedCondition,
@@ -642,7 +642,7 @@ func (r *MachineBackendReconciler) reconcileBootstrap(ctx context.Context, machi
 			Message: taskState.String(),
 		})
 	case taskState.Err != nil:
-		// CloudInitOrIgnitionTask failed.
+		// cloudInitOrIgnitionTask failed.
 		// Note: when bootstrap fails on a Machine, there is no retry.
 		cmdErr := &cmdError{}
 		if pkgerrors.As(taskState.Err, &cmdErr) {
@@ -664,7 +664,7 @@ func (r *MachineBackendReconciler) reconcileBootstrap(ctx context.Context, machi
 			Message: taskState.String(),
 		})
 	case taskState.Completed:
-		// CloudInitOrIgnitionTask completed, report state.
+		// cloudInitOrIgnitionTask completed, report state.
 		conditions.Set(dockerMachine, metav1.Condition{
 			Type:   infrav1.DevMachineBootstrapCompletedCondition,
 			Status: metav1.ConditionTrue,

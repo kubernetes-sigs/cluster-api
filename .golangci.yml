@@ -377,6 +377,7 @@ linters:
         - name: unconditional-recursion
         - name: use-errors-new
         - name: unnecessary-if
+        - name: unexported-naming
         - name: useless-break
         - name: useless-fallthrough
         - name: waitgroup-by-value

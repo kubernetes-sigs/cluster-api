@@ -104,8 +104,8 @@ func KCPAdoptionSpec(ctx context.Context, inputGetter func() KCPAdoptionSpecInpu
 
 		clusterName := fmt.Sprintf("%s-%s", specName, util.RandomString(6))
 		client := input.BootstrapClusterProxy.GetClient()
-		WaitForClusterIntervals := input.E2EConfig.GetIntervals(specName, "wait-cluster")
-		WaitForControlPlaneIntervals := input.E2EConfig.GetIntervals(specName, "wait-control-plane")
+		waitForClusterIntervals := input.E2EConfig.GetIntervals(specName, "wait-cluster")
+		waitForControlPlaneIntervals := input.E2EConfig.GetIntervals(specName, "wait-control-plane")
 
 		infrastructureProvider := clusterctl.DefaultInfrastructureProvider
 		if input.InfrastructureProvider != nil {
@@ -144,19 +144,19 @@ func KCPAdoptionSpec(ctx context.Context, inputGetter func() KCPAdoptionSpecInpu
 			Getter:    client,
 			Namespace: namespace.Name,
 			Name:      clusterName,
-		}, WaitForClusterIntervals...)
+		}, waitForClusterIntervals...)
 
 		framework.WaitForClusterMachineNodeRefs(ctx, framework.WaitForClusterMachineNodeRefsInput{
 			GetLister: client,
 			Cluster:   cluster,
-		}, WaitForControlPlaneIntervals...)
+		}, waitForControlPlaneIntervals...)
 
 		workloadCluster := input.BootstrapClusterProxy.GetWorkloadCluster(ctx, cluster.Namespace, cluster.Name)
 		framework.WaitForClusterMachinesReady(ctx, framework.WaitForClusterMachinesReadyInput{
 			GetLister:  input.BootstrapClusterProxy.GetClient(),
 			NodeGetter: workloadCluster.GetClient(),
 			Cluster:    cluster,
-		}, WaitForControlPlaneIntervals...)
+		}, waitForControlPlaneIntervals...)
 
 		By("Applying the cluster template yaml to the cluster with the 'kcp' selector")
 		selector = labels.NewSelector().Add(must(labels.NewRequirement("kcp-adoption.step2", selection.Exists, nil)))

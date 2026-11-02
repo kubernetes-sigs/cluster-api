@@ -81,6 +81,8 @@ type releaseDetails struct {
 	ReleaseNotesLink      string
 }
 
+// main is the entrypoint of the open issues utility.
+//
 // Example command:
 //
 //	GITHUB_ISSUE_OPENER_TOKEN="fake" RELEASE_TAG="v1.6.0-alpha.0" RELEASE_DATE="2023-11-28" PROVIDER_ISSUES_DRY_RUN="true" make release-provider-issues-tool

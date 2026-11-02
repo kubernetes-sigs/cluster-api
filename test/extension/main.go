@@ -66,13 +66,13 @@ var (
 	// NOTE: it is not mandatory to use scheme in custom RuntimeExtension, but working with typed API objects makes code
 	// easier to read and less error-prone than using unstructured or working with raw json/yaml.
 	scheme = runtime.NewScheme()
-	// Creates a logger to be used during the main func using controller runtime utilities
+	// setupLog is a logger to be used during the main func using controller runtime utilities.
 	// NOTE: it is not mandatory to use controller runtime utilities in custom RuntimeExtension, but it is recommended
 	// because it makes log from those components similar to log from controllers.
 	setupLog       = ctrl.Log.WithName("setup")
 	controllerName = "cluster-api-test-extension-manager"
 
-	// flags.
+	// enableLeaderElection and the following variables are flags.
 	enableLeaderElection        bool
 	leaderElectionLeaseDuration time.Duration
 	leaderElectionRenewDeadline time.Duration

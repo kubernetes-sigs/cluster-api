@@ -29,6 +29,7 @@ linters:
     - gocheckcompilerdirectives # invalid go compiler directives
     - gocritic # bugs, performance, style (we could add custom ones to this one)
     - godot # checks that comments end in a period
+    - godoclint # godoc comments conventions
     - godox # block FIXMEs
     - depguard # blocks dependencies
     - goprintffuncname # printft-like functions should be named with f at the end
@@ -195,6 +196,15 @@ linters:
         - opinionated
         - performance
         - style
+    godoclint:
+      default: none
+      enable:
+        - deprecated
+        - no-unused-link
+        - start-with-name
+      options:
+        start-with-name:
+          include-unexported: true
     godot:
       #   declarations - for top level declaration comments (default);
       #   toplevel     - for top level comments;

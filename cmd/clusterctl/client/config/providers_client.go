@@ -46,6 +46,7 @@ const (
 	DOProviderName         = "digitalocean"
 	ExoscaleProviderName   = "exoscale"
 	GCPProviderName        = "gcp"
+	// HarvesterProviderName is the name of the harvester provider.
 	// Note: harvester is currently on rancher-sandbox, but the plan is to move it on the harvester GitHub org (also owned by Rancher).
 	HarvesterProviderName      = "harvester-harvester"
 	HetznerProviderName        = "hetzner"

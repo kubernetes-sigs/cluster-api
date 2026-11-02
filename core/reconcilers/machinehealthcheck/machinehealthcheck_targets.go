@@ -51,7 +51,7 @@ const (
 )
 
 var (
-	// We allow users to disable the nodeStartupTimeout by setting the duration to 0.
+	// disabledNodeStartupTimeout is the value of the disabled nodeStartupTimeout: we allow users to disable the nodeStartupTimeout by setting the duration to 0.
 	disabledNodeStartupTimeout = metav1.Duration{Duration: time.Duration(0)}
 )
 

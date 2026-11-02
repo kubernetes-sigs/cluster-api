@@ -64,6 +64,7 @@ const (
 	scaleDeployClusterInSeparateNamespaces = "CAPI_SCALE_DEPLOY_CLUSTER_IN_SEPARATE_NAMESPACES"
 	scaleUseCrossNamespaceClusterClass     = "CAPI_SCALE_USE_CROSS_NAMESPACE_CLUSTER_CLASS"
 
+	// scaleClusterNamePlaceholder and scaleClusterNamespacePlaceholder are the placeholders for the name and namespace of the scale clusters.
 	// Note: Names must consist of lower case alphanumeric characters or '-'.
 	scaleClusterNamePlaceholder      = "scale-cluster-name-placeholder"
 	scaleClusterNamespacePlaceholder = "scale-cluster-namespace-placeholder"

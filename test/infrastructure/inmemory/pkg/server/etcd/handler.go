@@ -65,7 +65,7 @@ func NewEtcdServerHandler(manager inmemoryruntime.Manager, log logr.Logger, reso
 	return svr
 }
 
-// clusterServerServer implements the MaintenanceServer grpc server.
+// maintenanceServer implements the MaintenanceServer grpc server.
 type maintenanceServer struct {
 	*baseServer
 	pb.UnimplementedMaintenanceServer

@@ -35,8 +35,8 @@ type BootstrapTokenString struct {
 }
 
 const (
-	// When a token is matched with 'BootstrapTokenPattern', the size of validated substrings returned by
-	// regexp functions which contains 'Submatch' in their names will be 3.
+	// validatedSubstringsSize is the size of validated substrings returned by regexp functions which contains 'Submatch'
+	// in their names, when a token is matched with 'BootstrapTokenPattern'. It is 3.
 	// Submatch 0 is the match of the entire expression, submatch 1 is
 	// the match of the first parenthesized subexpression, and so on.
 	// e.g.:

@@ -38,7 +38,7 @@ func newNotesGenerator(lister prLister, processor prProcessor, printer entriesPr
 	}
 }
 
-// PR is a GitHub PR.
+// pr is a GitHub PR.
 type pr struct {
 	number uint64
 	title  string

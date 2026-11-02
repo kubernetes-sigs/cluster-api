@@ -246,7 +246,7 @@ func mirror(from Getter, targetCondition clusterv1.ConditionType, options ...Mir
 	return condition
 }
 
-// Aggregates all the Ready condition from a list of dependent objects into the target object;
+// aggregate aggregates all the Ready condition from a list of dependent objects into the target object;
 // if the Ready condition does not exist in one of the source object, the object is excluded from
 // the aggregation; if none of the source object have ready condition, no target conditions is generated.
 // NOTE: Considering that we are aggregating Ready conditions with positive polarity, also the resulting condition will have positive polarity.

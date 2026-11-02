@@ -1155,7 +1155,7 @@ func (r *Reconciler) resolveDiscoveryKubeConfig(cfg bootstrapv1.FileDiscovery) (
 	}, nil
 }
 
-// resolveSecretUserContent returns passwd fetched from a referenced secret object.
+// resolveSecretPasswordContent returns passwd fetched from a referenced secret object.
 func (r *Reconciler) resolveSecretPasswordContent(ctx context.Context, ns string, source bootstrapv1.User) ([]byte, error) {
 	secret := &corev1.Secret{}
 	key := types.NamespacedName{Namespace: ns, Name: source.PasswdFrom.Secret.Name}
@@ -1491,7 +1491,7 @@ func (r *Reconciler) storeBootstrapData(ctx context.Context, scope *Scope, data 
 	return nil
 }
 
-// Ensure the bootstrap secret has the KubeadmConfig as a controller OwnerReference.
+// ensureBootstrapSecretOwnersRef ensures the bootstrap secret has the KubeadmConfig as a controller OwnerReference.
 func (r *Reconciler) ensureBootstrapSecretOwnersRef(ctx context.Context, scope *Scope) error {
 	secret := &corev1.Secret{}
 	err := r.SecretCachingClient.Get(ctx, client.ObjectKey{Namespace: scope.Config.Namespace, Name: scope.Config.Name}, secret)

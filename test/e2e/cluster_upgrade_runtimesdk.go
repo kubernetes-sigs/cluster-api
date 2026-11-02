@@ -716,7 +716,7 @@ func extensionConfig(name, extensionServiceNamespace, extensionServiceName strin
 	return cfg
 }
 
-// Check that each hook in hooks has been called at least once by checking if its actualResponseStatus is in the hook response configmap.
+// checkLifecycleHookResponses checks that each hook in hooks has been called at least once by checking if its actualResponseStatus is in the hook response configmap.
 // If the provided hooks have both keys and values, check that the values match those in the hook response configmap.
 func checkLifecycleHookResponses(ctx context.Context, c client.Client, cluster *clusterv1.Cluster, extensionConfigName string, expectedHookResponses map[string]string) {
 	Eventually(func() error {
@@ -734,7 +734,7 @@ func checkLifecycleHookResponses(ctx context.Context, c client.Client, cluster *
 	}, 30*time.Second).Should(Succeed(), "Lifecycle hook calls were not as expected")
 }
 
-// Check that each hook in expectedHooks has been called at least once by checking if its actualResponseStatus is in the hook response configmap.
+// checkLifecycleHooksCalledAtLeastOnce checks that each hook in expectedHooks has been called at least once by checking if its actualResponseStatus is in the hook response configmap.
 func checkLifecycleHooksCalledAtLeastOnce(ctx context.Context, c client.Client, cluster *clusterv1.Cluster, extensionConfigName string, hook string, attributes []string) error {
 	responseData := getLifecycleHookResponsesFromConfigMap(ctx, c, cluster, extensionConfigName)
 	hookName := computeHookName(hook, attributes)

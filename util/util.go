@@ -399,7 +399,7 @@ func IsControlledBy(obj metav1.Object, owner client.Object, ownerGK schema.Group
 	return refersTo(controllerRef, owner, ownerGK)
 }
 
-// Returns true if a and b point to the same object based on Group, Kind and Name.
+// referSameObject returns true if a and b point to the same object based on Group, Kind and Name.
 func referSameObject(a, b metav1.OwnerReference) bool {
 	aGV, err := schema.ParseGroupVersion(a.APIVersion)
 	if err != nil {
@@ -414,7 +414,7 @@ func referSameObject(a, b metav1.OwnerReference) bool {
 	return aGV.Group == bGV.Group && a.Kind == b.Kind && a.Name == b.Name
 }
 
-// Returns true if ref refers to obj based on Group, Kind and Name.
+// refersTo returns true if ref refers to obj based on Group, Kind and Name.
 func refersTo(ref *metav1.OwnerReference, obj client.Object, objGK schema.GroupKind) bool {
 	refGv, err := schema.ParseGroupVersion(ref.APIVersion)
 	if err != nil {

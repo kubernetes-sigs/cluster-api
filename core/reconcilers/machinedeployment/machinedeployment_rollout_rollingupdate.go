@@ -690,7 +690,7 @@ func (p *rolloutPlanner) scaleDownOldMSs(ctx context.Context, oldMSs []*clusterv
 	return totalScaleDownCount, totalAvailableReplicas
 }
 
-// This funcs tries to detect and address the case when a rollout is not making progress because both scaling down and scaling up are blocked.
+// reconcileDeadlockBreaker tries to detect and address the case when a rollout is not making progress because both scaling down and scaling up are blocked.
 // Note: This func must be called after computing scale up/down intent for all the MachineSets.
 // Note: This func only address deadlock due to unavailable machines not getting deleted on oldMSs, e.g. due to a wrong configuration.
 // Note: Unblocking deadlocks when unavailable replicas exist only on oldMSs, is required also because replicas on oldMSs are not remediated by MHC.

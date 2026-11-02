@@ -75,6 +75,7 @@ var (
 	controllerName = "cluster-api-docker-controller-manager"
 
 	// flags.
+
 	enableLeaderElection        bool
 	leaderElectionLeaseDuration time.Duration
 	leaderElectionRenewDeadline time.Duration
@@ -96,6 +97,7 @@ var (
 	managerOptions              = flags.ManagerOptions{}
 	logOptions                  = logs.NewOptions()
 	// CAPD specific flags.
+
 	devMachineConcurrency         int
 	devClusterConcurrency         int
 	devMachineTemplateConcurrency int

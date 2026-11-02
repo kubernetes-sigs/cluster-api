@@ -44,6 +44,7 @@ const (
 	releaseCandidate = "RELEASE CANDIDATE"
 
 	// Pre-release type constants.
+
 	preReleaseAlpha = "alpha"
 	preReleaseBeta  = "beta"
 	preReleaseRC    = "rc"

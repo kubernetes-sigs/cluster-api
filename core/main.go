@@ -100,6 +100,7 @@ var (
 	controllerName = "cluster-api-controller-manager"
 
 	// flags.
+
 	enableLeaderElection        bool
 	leaderElectionLeaseDuration time.Duration
 	leaderElectionRenewDeadline time.Duration
@@ -123,6 +124,7 @@ var (
 	managerOptions              = flags.ManagerOptions{}
 	logOptions                  = logs.NewOptions()
 	// core Cluster API specific flags.
+
 	remoteConnectionGracePeriod      time.Duration
 	remoteConditionsGracePeriod      time.Duration
 	clusterTopologyConcurrency       int

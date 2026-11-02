@@ -80,6 +80,7 @@ var (
 	controllerName = "cluster-api-kubeadm-control-plane-manager"
 
 	// flags.
+
 	enableLeaderElection        bool
 	leaderElectionLeaseDuration time.Duration
 	leaderElectionRenewDeadline time.Duration
@@ -102,7 +103,9 @@ var (
 	healthAddr                  string
 	managerOptions              = flags.ManagerOptions{}
 	logOptions                  = logs.NewOptions()
+
 	// KCP specific flags.
+
 	remoteConditionsGracePeriod    time.Duration
 	kubeadmControlPlaneConcurrency int
 	clusterCacheConcurrency        int

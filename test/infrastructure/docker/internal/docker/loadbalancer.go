@@ -99,7 +99,7 @@ func getLoadBalancerImage(imageRepository, imageTag string) string {
 	return fmt.Sprintf("%s/%s:%s", imageRepository, image, imageTag)
 }
 
-// ContainerName is the name of the docker container with the load balancer.
+// containerName is the name of the docker container with the load balancer.
 func (s *LoadBalancer) containerName() string {
 	return fmt.Sprintf("%s-lb", s.name)
 }

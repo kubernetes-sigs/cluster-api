@@ -2180,7 +2180,7 @@ func (r *Reconciler) computeDesiredInfraMachine(ctx context.Context, ms *cluster
 	return infraMachine, nil
 }
 
-// Returns the machines to be remediated in the following order
+// sortMachinesToRemediate sorts the machines to be remediated in the following order:
 //   - Machines with RemediateMachineAnnotation annotation if any,
 //   - Machines failing to come up first because
 //     there is a chance that they are not hosting any workloads (minimize disruption).

@@ -49,7 +49,7 @@ const (
 var (
 	//go:embed assets/cert-manager-test-resources.yaml
 	certManagerTestManifest []byte
-	// namespaces for all relevant objects in a cert-manager installation.
+	// certManagerNamespaces are the namespaces for all relevant objects in a cert-manager installation.
 	// It also includes relevant resources in the kube-system namespace, which is used by cert-manager
 	// for leader election (https://github.com/cert-manager/cert-manager/issues/6716).
 	certManagerNamespaces = []string{certManagerNamespace, metav1.NamespaceSystem}

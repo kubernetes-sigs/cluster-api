@@ -69,10 +69,10 @@ const (
 )
 
 var (
-	// Defines the default version to be used for the provider CR if no version is specified in the tilt-provider.yaml|json file.
+	// defaultProviderVersion defines the default version to be used for the provider CR if no version is specified in the tilt-provider.yaml|json file.
 	defaultProviderVersion = "v1.15.99"
 
-	// This data struct mirrors a subset of info from the providers struct in the tilt file
+	// providers is a data struct that mirrors a subset of info from the providers struct in the tilt file
 	// which is containing "hard-coded" tilt-provider.yaml files for the providers managed in the Cluster API repository.
 	providers = map[string]tiltProviderConfig{
 		"core": {
@@ -158,7 +158,7 @@ func init() {
 	_ = clusterctlv1.AddToScheme(scheme.Scheme)
 }
 
-// This tool aims to speed up tilt startup time by running in parallel a set of task
+// main is the entrypoint of this tool, which aims to speed up tilt startup time by running in parallel a set of task
 // preparing everything is required for tilt up.
 func main() {
 	// Set clusterctl logger with a log level of 5.

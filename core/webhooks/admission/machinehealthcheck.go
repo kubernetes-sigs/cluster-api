@@ -34,9 +34,9 @@ import (
 )
 
 var (
-	// Minimum time allowed for a node to start up.
+	// minNodeStartupTimeoutSeconds is the minimum time allowed for a node to start up.
 	minNodeStartupTimeoutSeconds = int32(30)
-	// We allow users to disable the nodeStartupTimeout by setting the duration to 0.
+	// disabledNodeStartupTimeoutSeconds is the value to disable the nodeStartupTimeout. We allow users to disable it by setting the duration to 0.
 	disabledNodeStartupTimeoutSeconds = int32(0)
 )
 

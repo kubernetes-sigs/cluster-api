@@ -34,7 +34,7 @@ type githubClient struct {
 	repo string
 }
 
-// to allow for mocking in tests.
+// githubClientInterface is an interface to allow for mocking in tests.
 type githubClientInterface interface {
 	getDiffAllCommits(base, head string) (*githubDiff, error)
 	getRef(ref string) (githubRef, error)

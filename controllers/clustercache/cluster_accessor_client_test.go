@@ -17,6 +17,9 @@ limitations under the License.
 package clustercache
 
 import (
+	"fmt"
+	"os"
+	"path/filepath"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -25,6 +28,8 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+
+	"sigs.k8s.io/cluster-api/util/secret"
 )
 
 func TestRunningOnWorkloadCluster(t *testing.T) {
@@ -141,6 +146,98 @@ func TestRunningOnWorkloadCluster(t *testing.T) {
 			found, err := runningOnWorkloadCluster(ctx, tt.currentControllerMetadata, c)
 			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(found).To(Equal(tt.expected))
+		})
+	}
+}
+
+func TestCreateRESTConfig(t *testing.T) {
+	const (
+		namespace   = "default"
+		clusterName = "test-cluster"
+	)
+
+	kubeconfig := func(clusterFields, userFields string) string {
+		return fmt.Sprintf(`apiVersion: v1
+kind: Config
+clusters:
+- name: c
+  cluster:
+    server: https://test-cluster.example.com:6443
+%s
+contexts:
+- name: c
+  context:
+    cluster: c
+    user: u
+current-context: c
+users:
+- name: u
+  user:
+%s
+`, clusterFields, userFields)
+	}
+
+	// client-go verifies that referenced files exist when parsing the kubeconfig.
+	dir := t.TempDir()
+	filePath := filepath.Join(dir, "file")
+	if err := os.WriteFile(filePath, []byte("data"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	tests := []struct {
+		name       string
+		kubeconfig string
+		wantErr    string
+	}{
+		{
+			name:       "inline credentials are accepted",
+			kubeconfig: kubeconfig("    insecure-skip-tls-verify: true", "    token: token"),
+		},
+		{
+			name:       "tokenFile is rejected",
+			kubeconfig: kubeconfig("    insecure-skip-tls-verify: true", "    tokenFile: "+filePath),
+			wantErr:    "BearerTokenFile is not supported in ClusterCache",
+		},
+		{
+			name:       "client-certificate file is rejected",
+			kubeconfig: kubeconfig("    insecure-skip-tls-verify: true", "    client-certificate: "+filePath+"\n    client-key: "+filePath),
+			wantErr:    "TLSClientConfig.CertFile is not supported in ClusterCache",
+		},
+		{
+			name:       "client-key file is rejected",
+			kubeconfig: kubeconfig("    insecure-skip-tls-verify: true", "    client-certificate-data: ZGF0YQ==\n    client-key: "+filePath),
+			wantErr:    "TLSClientConfig.KeyFile is not supported in ClusterCache",
+		},
+		{
+			name:       "certificate-authority file is rejected",
+			kubeconfig: kubeconfig("    certificate-authority: "+filePath, "    token: token"),
+			wantErr:    "TLSClientConfig.CAFile is not supported in ClusterCache",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			kubeconfigSecret := &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      secret.Name(clusterName, secret.Kubeconfig),
+					Namespace: namespace,
+				},
+				Data: map[string][]byte{
+					secret.KubeconfigDataName: []byte(tt.kubeconfig),
+				},
+			}
+			c := fake.NewClientBuilder().WithObjects(kubeconfigSecret).Build()
+
+			restConfig, err := createRESTConfig(ctx, &clusterAccessorClientConfig{}, c, client.ObjectKey{Namespace: namespace, Name: clusterName})
+			if tt.wantErr != "" {
+				g.Expect(err).To(MatchError(ContainSubstring(tt.wantErr)))
+				g.Expect(restConfig).To(BeNil())
+				return
+			}
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(restConfig).ToNot(BeNil())
 		})
 	}
 }

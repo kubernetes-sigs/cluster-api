@@ -153,7 +153,7 @@ for the inventory of the providers currently installed in the management cluster
 Cluster API providers require a cert-manager version supporting the `cert-manager.io/v1` API to be installed in the cluster.
 
 While doing init, clusterctl checks if there is a version of cert-manager already installed. If not, clusterctl will
-install a default version (currently cert-manager v1.21.2). See [clusterctl configuration](../configuration.md) for
+install a default version (currently cert-manager v1.21.3). See [clusterctl configuration](../configuration.md) for
 available options to customize this operation.
 
 > [!NOTE]

@@ -551,7 +551,7 @@ func TestMachineSetReconciler(t *testing.T) {
 				}
 				ready++
 			}
-			return
+			return ready
 		}, timeout*3).Should(BeEquivalentTo(replicas))
 
 		// Verify that each machine has the desired kubelet version,
@@ -632,7 +632,7 @@ func TestMachineSetReconciler(t *testing.T) {
 				}
 				ready++
 			}
-			return
+			return ready
 		}, timeout*3).Should(BeEquivalentTo(1))
 	})
 }
@@ -2417,7 +2417,7 @@ func TestMachineSetReconciler_reconcileUnhealthyMachines(t *testing.T) {
 				m := &machineList.Items[i]
 				res = append(res, m)
 			}
-			return
+			return res
 		}
 
 		s = &scope{

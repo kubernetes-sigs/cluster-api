@@ -562,7 +562,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 
 				unhealthy++
 			}
-			return
+			return unhealthy
 		}).Should(Equal(1))
 
 		g.Eventually(func() (ownerRemediated int) {
@@ -584,7 +584,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 
 				ownerRemediated++
 			}
-			return
+			return ownerRemediated
 		}).Should(Equal(1))
 	})
 
@@ -672,7 +672,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 
 				unhealthy++
 			}
-			return
+			return unhealthy
 		}).Should(Equal(1))
 
 		g.Eventually(func() (ownerRemediated int) {
@@ -694,7 +694,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 
 				ownerRemediated++
 			}
-			return
+			return ownerRemediated
 		}).Should(Equal(1))
 	})
 
@@ -2068,7 +2068,7 @@ func assertMachinesNotHealthy(g *WithT, mhc *clusterv1.MachineHealthCheck, expec
 
 			unhealthy++
 		}
-		return
+		return unhealthy
 	}).Should(Equal(expectNotHealthy))
 }
 
@@ -2100,7 +2100,7 @@ func assertMachinesOwnerRemediated(g *WithT, mhc *clusterv1.MachineHealthCheck, 
 
 			ownerRemediated++
 		}
-		return
+		return ownerRemediated
 	}).Should(Equal(expectOwnerRemediated))
 }
 

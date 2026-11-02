@@ -350,6 +350,7 @@ linters:
         - name: bool-literal-in-expr
         - name: constant-logical-expr
         - name: atomic
+        - name: bare-return
         - name: comment-spacings
           arguments:
             - nolint

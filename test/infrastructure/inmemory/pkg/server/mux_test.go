@@ -314,6 +314,54 @@ func TestAPI_corev1_CRUD(t *testing.T) {
 	g.Expect(err).ToNot(HaveOccurred())
 }
 
+func TestAPI_corev1_Status(t *testing.T) {
+	t.Parallel()
+	g := NewWithT(t)
+
+	wcmux, restConfig := setupWorkloadClusterListener(g, getCustomPorts())
+	defer func() { _ = wcmux.Shutdown(ctx) }()
+
+	c, err := getDirectClient(restConfig)
+	g.Expect(err).ToNot(HaveOccurred())
+
+	n := &corev1.Node{
+		ObjectMeta: metav1.ObjectMeta{Name: "foo"},
+		Status: corev1.NodeStatus{
+			Conditions: []corev1.NodeCondition{
+				{Type: corev1.NodeReady, Status: corev1.ConditionTrue},
+				{Type: corev1.NodeMemoryPressure, Status: corev1.ConditionFalse},
+			},
+		},
+	}
+	g.Expect(c.Create(ctx, n)).To(Succeed())
+
+	// get status
+
+	node := &corev1.Node{}
+	g.Expect(c.SubResource("status").Get(ctx, n, node)).To(Succeed())
+	g.Expect(node.Status.Conditions).To(BeComparableTo(n.Status.Conditions))
+
+	// update status
+
+	n2 := node.DeepCopy()
+	n2.Status.Conditions[0].Status = corev1.ConditionFalse
+	g.Expect(c.Status().Update(ctx, n2)).To(Succeed())
+
+	node = &corev1.Node{}
+	g.Expect(c.Get(ctx, client.ObjectKeyFromObject(n), node)).To(Succeed())
+	g.Expect(node.Status.Conditions).To(BeComparableTo(n2.Status.Conditions))
+
+	// patch status
+
+	n3 := node.DeepCopy()
+	n3.Status.Conditions[0].Status = corev1.ConditionTrue
+	g.Expect(c.Status().Patch(ctx, n3, client.MergeFrom(node))).To(Succeed())
+
+	node = &corev1.Node{}
+	g.Expect(c.Get(ctx, client.ObjectKeyFromObject(n), node)).To(Succeed())
+	g.Expect(node.Status.Conditions).To(BeComparableTo(n3.Status.Conditions))
+}
+
 func TestAPI_rbacv1_CRUD(t *testing.T) {
 	t.Parallel()
 	g := NewWithT(t)

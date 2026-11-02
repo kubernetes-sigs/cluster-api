@@ -132,6 +132,20 @@ func createRESTConfig(ctx context.Context, clientConfig *clusterAccessorClientCo
 	if err != nil {
 		return nil, errors.WithMessage(err, "error creating REST config: error parsing kubeconfig")
 	}
+	// Note: File-based credentials are not supported, as file paths would be resolved against the
+	// controller's own filesystem. The kubeconfig Secret must contain all credential data inline.
+	if restConfig.BearerTokenFile != "" {
+		return nil, pkgerrors.New("BearerTokenFile is not supported in ClusterCache")
+	}
+	if restConfig.CertFile != "" {
+		return nil, pkgerrors.New("TLSClientConfig.CertFile is not supported in ClusterCache")
+	}
+	if restConfig.KeyFile != "" {
+		return nil, pkgerrors.New("TLSClientConfig.KeyFile is not supported in ClusterCache")
+	}
+	if restConfig.CAFile != "" {
+		return nil, pkgerrors.New("TLSClientConfig.CAFile is not supported in ClusterCache")
+	}
 
 	restConfig.UserAgent = clientConfig.UserAgent
 	restConfig.Timeout = clientConfig.Timeout

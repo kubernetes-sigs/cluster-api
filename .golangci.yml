@@ -39,6 +39,7 @@ linters:
     - iotamixing # iota mixed with other values in const blocks
     - loggercheck # check for even key/value pairs in logger calls
     - makezero # append to slices initialized with non-zero length
+    - mirror # suggests alternative bytes/strings functions to avoid allocations
     - misspell # spelling
     - nakedret # naked returns (named return parameters and an empty return)
     - nilerr # returning nil after checking err is not nil

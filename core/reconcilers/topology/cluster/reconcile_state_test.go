@@ -1992,7 +1992,7 @@ func testReconcileControlPlane(t *testing.T, controlPlaneContractVersion string)
 				// This check is only performed when we had an initial template that has been changed
 				if gotRotation {
 					pattern := fmt.Sprintf("%s.*", topologynames.ControlPlaneInfrastructureMachineTemplateNamePrefix(s.Current.Cluster.Name))
-					ok, err := regexp.Match(pattern, []byte(gotInfrastructureMachineRef.Name))
+					ok, err := regexp.MatchString(pattern, gotInfrastructureMachineRef.Name)
 					g.Expect(err).ToNot(HaveOccurred())
 					g.Expect(ok).To(BeTrue())
 				}

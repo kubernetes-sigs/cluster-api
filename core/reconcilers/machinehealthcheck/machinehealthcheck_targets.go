@@ -34,6 +34,7 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/core/reconcilers/machinehealthcheck/cel"
+	logutil "sigs.k8s.io/cluster-api/internal/util/log"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/cache"
@@ -414,10 +415,13 @@ func (r *Reconciler) healthCheckTargets(targets []healthCheckTarget, logger logr
 			return nil, nil, nil, err
 		}
 
+		if nextCheck > 0 && !needsRemediation {
+			r.logRateLimiter.InfoAtMostEvery(logger, logRateLimitInterval, waitingForMachineGoUnhealthyKey(t.MHC, t.Machine), "Target is likely to go unhealthy", "timeUntilUnhealthy", nextCheck.Truncate(time.Second/10).String())
+		} else {
+			r.logRateLimiter.Forget(waitingForMachineGoUnhealthyKey(t.MHC, t.Machine))
+		}
+
 		if nextCheck > 0 {
-			if !needsRemediation {
-				logger.V(2).Info("Target is likely to go unhealthy", "timeUntilUnhealthy", nextCheck.Truncate(time.Second).String())
-			}
 			nextChecks = append(nextChecks, nextCheck)
 		}
 
@@ -436,6 +440,10 @@ func (r *Reconciler) healthCheckTargets(targets []healthCheckTarget, logger logr
 		}
 	}
 	return healthy, unhealthy, nextChecks, nil
+}
+
+func waitingForMachineGoUnhealthyKey(mhc *clusterv1.MachineHealthCheck, m *clusterv1.Machine) logutil.Key {
+	return logutil.NewKey("WaitingForMachineGoUnhealthy", logutil.WithObjects(mhc, m))
 }
 
 // getNodeCondition returns node condition by type.

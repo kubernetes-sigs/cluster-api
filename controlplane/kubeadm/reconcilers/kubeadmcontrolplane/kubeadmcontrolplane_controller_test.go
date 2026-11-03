@@ -4800,6 +4800,9 @@ func TestKubeadmControlPlaneReconciler_reconcileDelete(t *testing.T) {
 		machines.UnsortedList()[2].DeletionTimestamp = &metav1.Time{Time: time.Now()}
 
 		fakeClient := newFakeClient(initObjs...)
+		// Note: The finalizer keeps the KCP around with a deletionTimestamp, which is what reconcileDelete expects.
+		g.Expect(fakeClient.Delete(ctx, kcp)).To(Succeed())
+		g.Expect(fakeClient.Get(ctx, client.ObjectKeyFromObject(kcp), kcp)).To(Succeed())
 
 		r := &Reconciler{
 			Client:              fakeClient,
@@ -5022,6 +5025,9 @@ func TestKubeadmControlPlaneReconciler_reconcileDelete(t *testing.T) {
 		controllerutil.AddFinalizer(kcp, controlplanev1.KubeadmControlPlaneFinalizer)
 
 		fakeClient := newFakeClient(cluster.DeepCopy(), kcp.DeepCopy())
+		// Note: The finalizer keeps the KCP around with a deletionTimestamp, which is what reconcileDelete expects.
+		g.Expect(fakeClient.Delete(ctx, kcp)).To(Succeed())
+		g.Expect(fakeClient.Get(ctx, client.ObjectKeyFromObject(kcp), kcp)).To(Succeed())
 
 		r := &Reconciler{
 			Client:              fakeClient,

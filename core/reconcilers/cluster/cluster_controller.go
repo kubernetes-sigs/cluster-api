@@ -509,6 +509,10 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (reconcile.R
 	s.deletingReason = clusterv1.ClusterDeletingDeletionCompletedReason
 	s.deletingMessage = "Deletion completed"
 
+	// Note: The Cluster is gone once the patch removing the finalizers succeeds; if the patch fails the next reconcile logs this line again.
+	if controllerutil.ContainsFinalizer(cluster, clusterv1.ClusterFinalizer) {
+		log.Info(fmt.Sprintf("Cluster %s deleted", cluster.Name), "duration", time.Since(cluster.DeletionTimestamp.Time).Truncate(time.Second/10))
+	}
 	controllerutil.RemoveFinalizer(cluster, clusterv1.ClusterFinalizer)
 	r.recorder.Eventf(cluster, corev1.EventTypeNormal, "Deleted", "Cluster %s has been deleted", cluster.Name)
 	return ctrl.Result{}, nil

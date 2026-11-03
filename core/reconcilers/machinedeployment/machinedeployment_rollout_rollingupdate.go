@@ -271,7 +271,7 @@ func (p *rolloutPlanner) canUpdateMachineSetInPlaceDecisions(ctx context.Context
 			msg := blockedMessage(res)
 			p.canUpdateMachineSetResults.rolloutBlockedMessages = append(p.canUpdateMachineSetResults.rolloutBlockedMessages, canUpdateMachineSetHookMessage(oldMS, msg))
 			p.addNotef(oldMS, "rollout blocked, %s", msg)
-			log.V(5).Info(fmt.Sprintf("MachineSet %s cannot be rolled out: rollout is blocked by CanUpdateMachineSet hook: %s", oldMS.Name, msg), "MachineSet", klog.KObj(oldMS))
+			log.V(5).Info(fmt.Sprintf("MachineSet %s cannot be rolled out: rollout is blocked by CanUpdateMachineSet hook: %s", oldMS.Name, msg), "MachineSet", klog.KObj(oldMS), "reason", "CanUpdateMachineSetBlocked", "hook", "CanUpdateMachineSet")
 		case oldMSRolloutReplaceDecision:
 			p.replaceCandidates.Insert(oldMS.Name)
 			if res.canUpdateMachineSet {

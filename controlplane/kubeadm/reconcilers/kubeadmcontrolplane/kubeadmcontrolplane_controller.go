@@ -566,17 +566,10 @@ func (r *Reconciler) reconcile(ctx context.Context, controlPlane *pkg.ControlPla
 	machinesNeedingRollout, machinesUpToDateResults := controlPlane.MachinesNeedingRollout()
 	switch {
 	case len(machinesNeedingRollout) > 0:
-		var allMessages []string
-		machinesNeedingRolloutNames := make([]string, 0, machinesNeedingRollout.Len())
-		for _, m := range machinesNeedingRollout {
-			machinesNeedingRolloutNames = append(machinesNeedingRolloutNames, m.Name)
-			allMessages = append(allMessages, fmt.Sprintf("Machine %s needs rollout: %s", m.Name, strings.Join(machinesUpToDateResults[m.Name].LogMessages, ", ")))
-		}
-		slices.Sort(machinesNeedingRolloutNames)
-		slices.Sort(allMessages)
+		machinesNeedingRolloutNames, allMessages := rolloutNamesAndMessages(machinesNeedingRollout, machinesUpToDateResults)
 
 		// Note: The names of the Machines are values of the key, so a change of the list (e.g. after a Machine is rolled out) is logged immediately.
-		r.logRateLimiter.InfoAtMostEvery(log, logRateLimitInterval, machinesNeedRolloutKey(controlPlane.KCP, machinesNeedingRolloutNames), fmt.Sprintf("Machines need rollout: %s", strings.Join(machinesNeedingRolloutNames, ",")), "reason", strings.Join(allMessages, ", "))
+		r.logRateLimiter.InfoAtMostEvery(log, logRateLimitInterval, machinesNeedRolloutKey(controlPlane.KCP, machinesNeedingRolloutNames), fmt.Sprintf("Machines need rollout: %s", strings.Join(machinesNeedingRolloutNames, ",")), "reason", strings.Join(allMessages, "; "))
 		v1beta1conditions.MarkFalse(controlPlane.KCP, controlplanev1.MachinesSpecUpToDateV1Beta1Condition, controlplanev1.RollingUpdateInProgressV1Beta1Reason, clusterv1.ConditionSeverityWarning, "Rolling %d replicas with outdated spec (%d replicas up to date)", len(machinesNeedingRollout), len(controlPlane.Machines)-len(machinesNeedingRollout))
 		return r.updateControlPlane(ctx, controlPlane, machinesNeedingRollout, machinesUpToDateResults)
 	default:
@@ -642,6 +635,25 @@ func (r *Reconciler) reconcile(ctx context.Context, controlPlane *pkg.ControlPla
 		return ctrl.Result{}, err
 	}
 	return ctrl.Result{}, nil
+}
+
+func rolloutNamesAndMessages(machinesNeedingRollout collections.Machines, machinesUpToDateResults map[string]pkg.UpToDateResult) ([]string, []string) {
+	// Note: Machines with the same reason are logged together to avoid repeating the same (potentially long) reason once per Machine.
+	machineNamesByReason := map[string][]string{}
+	machinesNeedingRolloutNames := make([]string, 0, machinesNeedingRollout.Len())
+	for _, m := range machinesNeedingRollout {
+		machinesNeedingRolloutNames = append(machinesNeedingRolloutNames, m.Name)
+		reason := strings.Join(machinesUpToDateResults[m.Name].LogMessages, ", ")
+		machineNamesByReason[reason] = append(machineNamesByReason[reason], m.Name)
+	}
+	slices.Sort(machinesNeedingRolloutNames)
+	allMessages := make([]string, 0, len(machineNamesByReason))
+	for reason, names := range machineNamesByReason {
+		slices.Sort(names)
+		allMessages = append(allMessages, fmt.Sprintf("Machines %s need rollout: %s", strings.Join(names, ","), reason))
+	}
+	slices.Sort(allMessages)
+	return machinesNeedingRolloutNames, allMessages
 }
 
 func waitingForInPlaceUpdateKey(kcp *controlplanev1.KubeadmControlPlane, m *clusterv1.Machine) logutil.Key {

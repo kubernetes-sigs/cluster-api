@@ -26,6 +26,7 @@ import (
 	pkgerrors "github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
 
@@ -188,24 +189,28 @@ func dryRunSSAPatch(ctx context.Context, dryRunCtx *dryRunSSAPatchInput) (bool, 
 			}
 			patchString = string(patchBytes)
 
-			originalJSONWithChanges, err := jsonpatch.MergePatch(originalJSON, patchBytes)
-			if err != nil {
-				return false, false, "", "", pkgerrors.Wrapf(err, "failed to apply diff to original object")
-			}
+			// Note: The diff carries the same information as the patch but it is a lot more verbose and expensive to compute,
+			// so we compute it only if it is going to be logged.
+			if ctrl.LoggerFrom(ctx).V(4).Enabled() {
+				originalJSONWithChanges, err := jsonpatch.MergePatch(originalJSON, patchBytes)
+				if err != nil {
+					return false, false, "", "", pkgerrors.Wrapf(err, "failed to apply diff to original object")
+				}
 
-			originalYAML, err := yaml.JSONToYAML(originalJSON)
-			if err != nil {
-				return false, false, "", "", pkgerrors.Wrapf(err, "failed to convert original object to yaml")
-			}
+				originalYAML, err := yaml.JSONToYAML(originalJSON)
+				if err != nil {
+					return false, false, "", "", pkgerrors.Wrapf(err, "failed to convert original object to yaml")
+				}
 
-			originalYAMLWithChanges, err := yaml.JSONToYAML(originalJSONWithChanges)
-			if err != nil {
-				return false, false, "", "", pkgerrors.Wrapf(err, "failed to convert original object with diff to yaml")
-			}
+				originalYAMLWithChanges, err := yaml.JSONToYAML(originalJSONWithChanges)
+				if err != nil {
+					return false, false, "", "", pkgerrors.Wrapf(err, "failed to convert original object with diff to yaml")
+				}
 
-			diffString = cmp.Diff(string(originalYAML), string(originalYAMLWithChanges))
-			diffString = strings.ReplaceAll(diffString, "\u00A0", " ") // No-Break Space (NBSP)
-			diffString = strings.ReplaceAll(diffString, "\t", "  ")
+				diffString = cmp.Diff(string(originalYAML), string(originalYAMLWithChanges))
+				diffString = strings.ReplaceAll(diffString, "\u00A0", " ") // No-Break Space (NBSP)
+				diffString = strings.ReplaceAll(diffString, "\t", "  ")
+			}
 		}
 	}
 

@@ -25,7 +25,7 @@ fi
 VERSION=${1}
 GO_ARCH="$(go env GOARCH)"
 DB_MIRRORS=(
-  "mirror.gcr.io/aquasecurity/trivy-db"
+  "mirror.gcr.io/aquasec/trivy-db"
   "ghcr.io/aquasecurity/trivy-db"
   "public.ecr.aws/aquasecurity/trivy-db"
   "aquasec/trivy-db"

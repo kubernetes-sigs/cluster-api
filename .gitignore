@@ -85,3 +85,6 @@ tmp
 
 # Claude's configuration
 .claude/
+
+# Codex configuration
+.codex

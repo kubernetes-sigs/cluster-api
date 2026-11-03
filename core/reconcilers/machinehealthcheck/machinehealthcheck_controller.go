@@ -180,6 +180,7 @@ func machineIsChangedPredicate() predicate.Funcs {
 
 // Reconcile reconciles the passed in object.
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, reterr error) {
+	reconcileStartTime := metav1.Now()
 	log := ctrl.LoggerFrom(ctx)
 
 	// Fetch the MachineHealthCheck instance
@@ -240,10 +241,10 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 	}
 	mhc.Labels[clusterv1.ClusterNameLabel] = mhc.Spec.ClusterName
 
-	return r.reconcile(ctx, log, cluster, mhc)
+	return r.reconcile(ctx, reconcileStartTime, log, cluster, mhc)
 }
 
-func (r *Reconciler) reconcile(ctx context.Context, logger logr.Logger, cluster *clusterv1.Cluster, mhc *clusterv1.MachineHealthCheck) (ctrl.Result, error) {
+func (r *Reconciler) reconcile(ctx context.Context, reconcileStartTime metav1.Time, logger logr.Logger, cluster *clusterv1.Cluster, mhc *clusterv1.MachineHealthCheck) (ctrl.Result, error) {
 	// Ensure the MachineHealthCheck is owned by the Cluster it belongs to
 	mhc.SetOwnerReferences(util.EnsureOwnerRef(mhc.GetOwnerReferences(), metav1.OwnerReference{
 		APIVersion: clusterv1.GroupVersion.String(),
@@ -287,8 +288,7 @@ func (r *Reconciler) reconcile(ctx context.Context, logger logr.Logger, cluster 
 	}
 
 	// health check all targets and reconcile mhc status
-	reconciliationTime := time.Now()
-	healthy, unhealthy, nextChecks, err := r.healthCheckTargets(targets, logger, reconciliationTime, metav1.Duration{Duration: time.Duration(*nodeStartupTimeout) * time.Second})
+	healthy, unhealthy, nextChecks, err := r.healthCheckTargets(targets, logger, reconcileStartTime, metav1.Duration{Duration: time.Duration(*nodeStartupTimeout) * time.Second})
 	if err != nil {
 		return ctrl.Result{}, err
 	}

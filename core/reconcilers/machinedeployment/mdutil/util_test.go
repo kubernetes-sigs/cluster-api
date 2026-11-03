@@ -448,7 +448,7 @@ func TestFindNewAndOldMachineSets(t *testing.T) {
 		Name                    string
 		deployment              clusterv1.MachineDeployment
 		msList                  []*clusterv1.MachineSet
-		reconciliationTime      metav1.Time
+		reconcileStartTime      metav1.Time
 		expectedNewMS           *clusterv1.MachineSet
 		expectedOldMSs          []*clusterv1.MachineSet
 		expectedUpToDateResults map[string]UpToDateResult
@@ -560,51 +560,51 @@ func TestFindNewAndOldMachineSets(t *testing.T) {
 			expectedCreateReason: fmt.Sprintf(`couldn't find MachineSet matching MachineDeployment spec template: MachineSet %s needs rollout: spec.infrastructureRef InfrastructureMachineTemplate old-infra-ref, InfrastructureMachineTemplate new-infra-ref required`, oldMS.Name),
 		},
 		{
-			Name:               "Get nil if no MachineSet matches the desired intent of the MachineDeployment, reconciliationTime is > rolloutAfter",
+			Name:               "Get nil if no MachineSet matches the desired intent of the MachineDeployment, reconcileStartTime is > rolloutAfter",
 			deployment:         *deploymentWithRolloutAfter,
 			msList:             []*clusterv1.MachineSet{&oldMSCreatedThreeBeforeRolloutAfter},
-			reconciliationTime: oneAfterRolloutAfter,
+			reconcileStartTime: oneAfterRolloutAfter,
 			expectedNewMS:      nil,
 			expectedOldMSs:     []*clusterv1.MachineSet{&oldMSCreatedThreeBeforeRolloutAfter},
 			expectedUpToDateResults: map[string]UpToDateResult{
 				oldMS.Name: {
 					ConditionMessages: []string{"InfrastructureMachine is not up-to-date"},
 					LogMessages: []string{
-						// An additional message must be added to old machine sets when reconciliationTime is > rolloutAfter.
+						// An additional message must be added to old machine sets when reconcileStartTime is > rolloutAfter.
 						"spec.infrastructureRef InfrastructureMachineTemplate old-infra-ref, InfrastructureMachineTemplate new-infra-ref required",
 						"MachineDeployment spec.rolloutAfter expired",
 					},
-					// EligibleForInPlaceUpdate decision should change for oldMS when reconciliationTime is > rolloutAfter.
+					// EligibleForInPlaceUpdate decision should change for oldMS when reconcileStartTime is > rolloutAfter.
 					EligibleForInPlaceUpdate: false,
 				},
 			},
 			expectedCreateReason: fmt.Sprintf(`couldn't find MachineSet matching MachineDeployment spec template: MachineSet %s needs rollout: spec.infrastructureRef InfrastructureMachineTemplate old-infra-ref, InfrastructureMachineTemplate new-infra-ref required, MachineDeployment spec.rolloutAfter expired`, oldMS.Name),
 		},
 		{
-			Name:               "Get nil if no MachineSet matches the desired intent of the MachineDeployment, reconciliationTime is > rolloutAfter, MachineSet created at rolloutAfter",
+			Name:               "Get nil if no MachineSet matches the desired intent of the MachineDeployment, reconcileStartTime is > rolloutAfter, MachineSet created at rolloutAfter",
 			deployment:         *deploymentWithRolloutAfter,
 			msList:             []*clusterv1.MachineSet{&oldMSCreatedAtRolloutAfter},
-			reconciliationTime: oneAfterRolloutAfter,
+			reconcileStartTime: oneAfterRolloutAfter,
 			expectedNewMS:      nil,
 			expectedOldMSs:     []*clusterv1.MachineSet{&oldMSCreatedAtRolloutAfter},
 			expectedUpToDateResults: map[string]UpToDateResult{
 				oldMS.Name: {
 					ConditionMessages: []string{"InfrastructureMachine is not up-to-date"},
 					LogMessages: []string{
-						// No additional message must be added to old machine sets when reconciliationTime is > rolloutAfter but MachineSet is created at rolloutAfter.
+						// No additional message must be added to old machine sets when reconcileStartTime is > rolloutAfter but MachineSet is created at rolloutAfter.
 						"spec.infrastructureRef InfrastructureMachineTemplate old-infra-ref, InfrastructureMachineTemplate new-infra-ref required",
 					},
-					// EligibleForInPlaceUpdate decision should not change for oldMS when reconciliationTime is > rolloutAfter but MachineSet is created at rolloutAfter.
+					// EligibleForInPlaceUpdate decision should not change for oldMS when reconcileStartTime is > rolloutAfter but MachineSet is created at rolloutAfter.
 					EligibleForInPlaceUpdate: true,
 				},
 			},
 			expectedCreateReason: fmt.Sprintf(`couldn't find MachineSet matching MachineDeployment spec template: MachineSet %s needs rollout: spec.infrastructureRef InfrastructureMachineTemplate old-infra-ref, InfrastructureMachineTemplate new-infra-ref required`, oldMS.Name),
 		},
 		{
-			Name:               "Get the MachineSet if reconciliationTime < rolloutAfter",
+			Name:               "Get the MachineSet if reconcileStartTime < rolloutAfter",
 			deployment:         *deploymentWithRolloutAfter,
 			msList:             []*clusterv1.MachineSet{&msCreatedTwoBeforeRolloutAfter, &msCreatedThreeBeforeRolloutAfter},
-			reconciliationTime: oneBeforeRolloutAfter,
+			reconcileStartTime: oneBeforeRolloutAfter,
 			expectedNewMS:      &msCreatedThreeBeforeRolloutAfter,
 			expectedOldMSs:     []*clusterv1.MachineSet{&msCreatedTwoBeforeRolloutAfter},
 			expectedUpToDateResults: map[string]UpToDateResult{
@@ -617,10 +617,10 @@ func TestFindNewAndOldMachineSets(t *testing.T) {
 			},
 		},
 		{
-			Name:               "Get nil if reconciliationTime is > rolloutAfter and no MachineSet is created after rolloutAfter",
+			Name:               "Get nil if reconcileStartTime is > rolloutAfter and no MachineSet is created after rolloutAfter",
 			deployment:         *deploymentWithRolloutAfter,
 			msList:             []*clusterv1.MachineSet{&msCreatedTwoBeforeRolloutAfter, &msCreatedThreeBeforeRolloutAfter, &oldMSCreatedThreeBeforeRolloutAfter},
-			reconciliationTime: oneAfterRolloutAfter,
+			reconcileStartTime: oneAfterRolloutAfter,
 			expectedNewMS:      nil,
 			expectedOldMSs:     []*clusterv1.MachineSet{&oldMSCreatedThreeBeforeRolloutAfter, &msCreatedThreeBeforeRolloutAfter, &msCreatedTwoBeforeRolloutAfter},
 			expectedUpToDateResults: map[string]UpToDateResult{
@@ -634,20 +634,20 @@ func TestFindNewAndOldMachineSets(t *testing.T) {
 					ConditionMessages: []string{"InfrastructureMachine is not up-to-date"},
 					LogMessages: []string{
 						"spec.infrastructureRef InfrastructureMachineTemplate old-infra-ref, InfrastructureMachineTemplate new-infra-ref required",
-						// An additional message must be added to old machine sets when reconciliationTime is > rolloutAfter.
+						// An additional message must be added to old machine sets when reconcileStartTime is > rolloutAfter.
 						"MachineDeployment spec.rolloutAfter expired",
 					},
-					// EligibleForInPlaceUpdate decision should change for oldMS when reconciliationTime is > rolloutAfter.
+					// EligibleForInPlaceUpdate decision should change for oldMS when reconcileStartTime is > rolloutAfter.
 					EligibleForInPlaceUpdate: false,
 				},
 			},
 			expectedCreateReason: fmt.Sprintf("spec.rollout.after on MachineDeployment set to %s, no MachineSet has been created afterwards", rolloutAfter.Format(time.RFC3339)),
 		},
 		{
-			Name:               "Get MachineSet created after RolloutAfter if reconciliationTime is > rolloutAfter",
+			Name:               "Get MachineSet created after RolloutAfter if reconcileStartTime is > rolloutAfter",
 			deployment:         *deploymentWithRolloutAfter,
 			msList:             []*clusterv1.MachineSet{&msCreatedAfterRolloutAfter, &msCreatedTwoBeforeRolloutAfter},
-			reconciliationTime: twoAfterRolloutAfter,
+			reconcileStartTime: twoAfterRolloutAfter,
 			expectedNewMS:      &msCreatedAfterRolloutAfter,
 			expectedOldMSs:     []*clusterv1.MachineSet{&msCreatedTwoBeforeRolloutAfter},
 			expectedUpToDateResults: map[string]UpToDateResult{
@@ -660,10 +660,10 @@ func TestFindNewAndOldMachineSets(t *testing.T) {
 			},
 		},
 		{
-			Name:               "Get MachineSet created at RolloutAfter if reconciliationTime is > rolloutAfter",
+			Name:               "Get MachineSet created at RolloutAfter if reconcileStartTime is > rolloutAfter",
 			deployment:         *deploymentWithRolloutAfter,
 			msList:             []*clusterv1.MachineSet{&msCreatedAtRolloutAfter, &msCreatedTwoBeforeRolloutAfter},
-			reconciliationTime: twoAfterRolloutAfter,
+			reconcileStartTime: twoAfterRolloutAfter,
 			expectedNewMS:      &msCreatedAtRolloutAfter,
 			expectedOldMSs:     []*clusterv1.MachineSet{&msCreatedTwoBeforeRolloutAfter},
 			expectedUpToDateResults: map[string]UpToDateResult{
@@ -677,10 +677,10 @@ func TestFindNewAndOldMachineSets(t *testing.T) {
 		},
 		{
 			// https://github.com/kubernetes-sigs/cluster-api/issues/12260
-			Name:               "Get MachineSet created exactly in RolloutAfter if reconciliationTime > rolloutAfter",
+			Name:               "Get MachineSet created exactly in RolloutAfter if reconcileStartTime > rolloutAfter",
 			deployment:         *deploymentWithRolloutAfter,
 			msList:             []*clusterv1.MachineSet{&msCreatedExactlyInRolloutAfter, &msCreatedTwoBeforeRolloutAfter},
-			reconciliationTime: oneAfterRolloutAfter,
+			reconcileStartTime: oneAfterRolloutAfter,
 			expectedNewMS:      &msCreatedExactlyInRolloutAfter,
 			expectedOldMSs:     []*clusterv1.MachineSet{&msCreatedTwoBeforeRolloutAfter},
 			expectedUpToDateResults: map[string]UpToDateResult{
@@ -693,10 +693,10 @@ func TestFindNewAndOldMachineSets(t *testing.T) {
 			},
 		},
 		{
-			Name:               "Get MachineSet created after RolloutAfter if reconciliationTime is > rolloutAfter (inverse order in ms list)",
+			Name:               "Get MachineSet created after RolloutAfter if reconcileStartTime is > rolloutAfter (inverse order in ms list)",
 			deployment:         *deploymentWithRolloutAfter,
 			msList:             []*clusterv1.MachineSet{&msCreatedTwoBeforeRolloutAfter, &msCreatedAfterRolloutAfter},
-			reconciliationTime: twoAfterRolloutAfter,
+			reconcileStartTime: twoAfterRolloutAfter,
 			expectedNewMS:      &msCreatedAfterRolloutAfter,
 			expectedOldMSs:     []*clusterv1.MachineSet{&msCreatedTwoBeforeRolloutAfter},
 			expectedUpToDateResults: map[string]UpToDateResult{
@@ -714,7 +714,7 @@ func TestFindNewAndOldMachineSets(t *testing.T) {
 		t.Run(test.Name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			newMS, oldMSs, upToDateResults, createReason := FindNewAndOldMachineSets(&test.deployment, test.msList, test.reconciliationTime)
+			newMS, oldMSs, upToDateResults, createReason := FindNewAndOldMachineSets(&test.deployment, test.msList, test.reconcileStartTime)
 			g.Expect(newMS).To(BeComparableTo(test.expectedNewMS))
 			g.Expect(oldMSs).To(BeComparableTo(test.expectedOldMSs))
 			g.Expect(upToDateResults).To(BeComparableTo(test.expectedUpToDateResults))
@@ -840,6 +840,7 @@ func TestNewMSNewReplicas(t *testing.T) {
 		strategyType       clusterv1.MachineDeploymentRolloutStrategyType
 		deploymentReplicas int32
 		maxSurge           int32
+		maxSurgeLimit      *int
 		oldMSReplicas      int32
 		newMSReplicas      int32
 		expected           int32
@@ -860,6 +861,39 @@ func TestNewMSNewReplicas(t *testing.T) {
 			strategyType:       clusterv1.RollingUpdateMachineDeploymentStrategyType,
 			deploymentReplicas: 6,
 			maxSurge:           3,
+			oldMSReplicas:      5,
+			newMSReplicas:      2,
+			expected:           4, // +2 (6 MachineDeployment spec.replicas + 3 maxSurge - 7 current Machines)
+			expectedNote:       "7 current Machines < 6 MachineDeployment spec.replicas + 3 maxSurge",
+		},
+		{
+			Name:               "RollingUpdate strategy, maxSurgeLimit lower than maxSurge reduces maxSurge, can not scale up",
+			strategyType:       clusterv1.RollingUpdateMachineDeploymentStrategyType,
+			deploymentReplicas: 6,
+			maxSurge:           3,
+			maxSurgeLimit:      ptr.To(1),
+			oldMSReplicas:      5,
+			newMSReplicas:      2,
+			expected:           2, // without the limit it would scale up by +2 (6 MachineDeployment spec.replicas + 3 maxSurge - 7 current Machines)
+			expectedNote:       "7 current Machines >= 6 MachineDeployment spec.replicas + 1 maxSurge",
+		},
+		{
+			Name:               "RollingUpdate strategy, maxSurgeLimit 0 does not use maxSurge, scale up only to deploymentReplicas",
+			strategyType:       clusterv1.RollingUpdateMachineDeploymentStrategyType,
+			deploymentReplicas: 6,
+			maxSurge:           3,
+			maxSurgeLimit:      ptr.To(0),
+			oldMSReplicas:      3,
+			newMSReplicas:      2,
+			expected:           3, // +1 (6 MachineDeployment spec.replicas + 0 maxSurge - 5 current Machines), without the limit it would scale up by +4
+			expectedNote:       "5 current Machines < 6 MachineDeployment spec.replicas + 0 maxSurge",
+		},
+		{
+			Name:               "RollingUpdate strategy, maxSurgeLimit greater than maxSurge does not increase maxSurge",
+			strategyType:       clusterv1.RollingUpdateMachineDeploymentStrategyType,
+			deploymentReplicas: 6,
+			maxSurge:           3,
+			maxSurgeLimit:      ptr.To(5),
 			oldMSReplicas:      5,
 			newMSReplicas:      2,
 			expected:           4, // +2 (6 MachineDeployment spec.replicas + 3 maxSurge - 7 current Machines)
@@ -902,7 +936,7 @@ func TestNewMSNewReplicas(t *testing.T) {
 			}
 			*(newMS.Spec.Replicas) = test.newMSReplicas
 			*(oldMS.Spec.Replicas) = test.oldMSReplicas
-			ms, note, err := NewMSNewReplicas(&newDeployment, []*clusterv1.MachineSet{&oldMS, &newMS}, *newMS.Spec.Replicas)
+			ms, note, err := NewMSNewReplicas(&newDeployment, []*clusterv1.MachineSet{&oldMS, &newMS}, *newMS.Spec.Replicas, test.maxSurgeLimit)
 			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(ms).To(Equal(test.expected))
 			g.Expect(note).To(Equal(test.expectedNote))

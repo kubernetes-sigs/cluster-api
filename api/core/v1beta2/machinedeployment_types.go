@@ -22,8 +22,12 @@ import (
 )
 
 const (
-	// MachineDeploymentTopologyFinalizer is the finalizer used by the topology MachineDeployment controller to
+	// MachineDeploymentTopologyFinalizer was the finalizer used by the topology MachineDeployment controller to
 	// clean up referenced template resources if necessary when a MachineDeployment is being deleted.
+	//
+	// Deprecated: The topology MachineDeployment controller has been merged into the MachineDeployment controller,
+	// which now handles the cleanup based on MachineDeploymentFinalizer. This finalizer is not set anymore and is only
+	// removed by the MachineDeployment controller from MachineDeployments which still have it.
 	MachineDeploymentTopologyFinalizer = "machinedeployment.topology.cluster.x-k8s.io"
 
 	// MachineDeploymentFinalizer is the finalizer used by the MachineDeployment controller to
@@ -156,7 +160,15 @@ const (
 	// MachineDeploymentNotRollingOutReason surfaces when all the machines are up-to-date.
 	MachineDeploymentNotRollingOutReason = NotRollingOutReason
 
-	// MachineDeploymentRollingOutInternalErrorReason surfaces unexpected failures when listing machines.
+	// MachineDeploymentRollingOutWaitingForRolloutDecisionReason surfaces when the rollout is
+	// waiting for the rollout decision (i.e. a decision from CanUpdateMachineSet on how to move forward).
+	MachineDeploymentRollingOutWaitingForRolloutDecisionReason = "WaitingForRolloutDecision"
+
+	// MachineDeploymentRollingOutRolloutBlockedReason surfaces when the rollout is blocked
+	// (i.e. CanUpdateMachineSet does not allow any operation that can be used to roll out the changes).
+	MachineDeploymentRollingOutRolloutBlockedReason = "RolloutBlocked"
+
+	// MachineDeploymentRollingOutInternalErrorReason surfaces unexpected failures during rollout.
 	MachineDeploymentRollingOutInternalErrorReason = InternalErrorReason
 )
 
@@ -289,7 +301,10 @@ type MachineDeploymentSpec struct {
 	// +optional
 	Deletion MachineDeploymentDeletionSpec `json:"deletion,omitempty,omitzero"`
 
-	// paused indicates that the deployment is paused.
+	// paused when set to true indicates that the MachineDeployment should halt
+	// rolling out changes to its Machines.
+	//
+	// When only the rollout is paused, other changes such as scaling up, down or remediation are still allowed.
 	// +optional
 	Paused *bool `json:"paused,omitempty"`
 }

@@ -153,10 +153,29 @@ var (
 
 func buildSetOfPRNumbers(commits []githubCommitNode) map[string]bool {
 	prNumbers := make(map[string]bool)
+	mergedCommitParents := make(map[string]struct{})
+	for _, commit := range commits {
+		if !mergeCommitMessage.MatchString(commit.Commit.Message) {
+			continue
+		}
+		// Only the second parent and later are commits brought in by the merge;
+		// the first parent is the previous tip of the base branch.
+		if len(commit.Parents) < 2 {
+			continue
+		}
+		for _, parent := range commit.Parents[1:] {
+			mergedCommitParents[parent.SHA] = struct{}{}
+		}
+	}
+
 	for _, commit := range commits {
 		match := mergeCommitMessage.FindStringSubmatch(commit.Commit.Message)
 		if len(match) == 2 {
 			prNumbers[match[1]] = false
+			continue
+		}
+
+		if _, ok := mergedCommitParents[commit.SHA]; ok {
 			continue
 		}
 

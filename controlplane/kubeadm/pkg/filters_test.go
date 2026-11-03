@@ -38,6 +38,7 @@ import (
 	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/pkg/types/upstream"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/pkg/desiredstate"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/setup"
+	"sigs.k8s.io/cluster-api/internal/util/compare"
 	"sigs.k8s.io/cluster-api/pkg/dynamiccache"
 	"sigs.k8s.io/cluster-api/util/test/builder"
 )
@@ -435,6 +436,7 @@ func TestMatchesKubeadmConfig(t *testing.T) {
 				KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
 					ClusterConfiguration: bootstrapv1.ClusterConfiguration{},
 					InitConfiguration: bootstrapv1.InitConfiguration{
+						SkipPhases: []string{"addon/coredns", "addon/kube-proxy"},
 						NodeRegistration: bootstrapv1.NodeRegistrationOptions{
 							Name: "name",
 						},
@@ -471,6 +473,7 @@ func TestMatchesKubeadmConfig(t *testing.T) {
 				},
 				Spec: bootstrapv1.KubeadmConfigSpec{
 					InitConfiguration: bootstrapv1.InitConfiguration{
+						SkipPhases: []string{"addon/coredns", "addon/kube-proxy"},
 						NodeRegistration: bootstrapv1.NodeRegistrationOptions{
 							Name: "name",
 						},
@@ -485,6 +488,106 @@ func TestMatchesKubeadmConfig(t *testing.T) {
 		g.Expect(isKubeadmConfigForJoin(desiredKubeadmConfig)).To(BeTrue())
 		g.Expect(match).To(BeTrue())
 		g.Expect(reason).To(BeEmpty())
+	})
+	t.Run("returns false if JoinConfiguration is not equal: skipPhases is the same in the returned KubeadmConfigs", func(t *testing.T) {
+		g := NewWithT(t)
+		kcp := &controlplanev1.KubeadmControlPlane{
+			Spec: controlplanev1.KubeadmControlPlaneSpec{
+				KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
+					ClusterConfiguration: bootstrapv1.ClusterConfiguration{},
+					InitConfiguration: bootstrapv1.InitConfiguration{
+						Patches: bootstrapv1.Patches{
+							Directory: "/test/patches", // This field has changed
+						},
+						SkipPhases: []string{"addon/coredns", "addon/kube-proxy"},
+					},
+					JoinConfiguration: bootstrapv1.JoinConfiguration{
+						Patches: bootstrapv1.Patches{
+							Directory: "/test/patches", // This field has changed
+						},
+						// SkipPhases: is not set to []string{"addon/coredns", "addon/kube-proxy"} here, but this
+						// field should be the same for both returned KubeadmConfigs so in-place updates
+						// don't have to account for this diff.
+					},
+				},
+				Version: "v1.30.0",
+			},
+		}
+		m := &clusterv1.Machine{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: "default",
+				Name:      "test",
+			},
+			Spec: clusterv1.MachineSpec{
+				Bootstrap: clusterv1.Bootstrap{
+					ConfigRef: clusterv1.ContractVersionedObjectReference{
+						Kind:     "KubeadmConfig",
+						Name:     "test",
+						APIGroup: bootstrapv1.GroupVersion.Group,
+					},
+				},
+			},
+		}
+		machineConfigs := map[string]*bootstrapv1.KubeadmConfig{
+			m.Name: {
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "default",
+					Name:      "test",
+				},
+				Spec: bootstrapv1.KubeadmConfigSpec{
+					InitConfiguration: bootstrapv1.InitConfiguration{
+						Patches: bootstrapv1.Patches{
+							Directory: "/test/patches/old", // This field has changed
+						},
+						SkipPhases: []string{"addon/coredns", "addon/kube-proxy"},
+					},
+				},
+			},
+		}
+		reason, currentKubeadmConfig, desiredKubeadmConfig, match, err := matchesKubeadmConfig(machineConfigs, kcp, &clusterv1.Cluster{}, m)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(currentKubeadmConfig).ToNot(BeNil())
+		g.Expect(desiredKubeadmConfig).ToNot(BeNil())
+		g.Expect(isKubeadmConfigForJoin(desiredKubeadmConfig)).To(BeTrue())
+		g.Expect(match).To(BeFalse())
+		// Diff should show diff between InitConfigurations (skipPhases is the same in this case).
+		g.Expect(reason).To(BeComparableTo(`Machine KubeadmConfig is outdated: diff: &v1beta2.KubeadmConfigSpec{
+    ClusterConfiguration: {},
+    InitConfiguration: v1beta2.InitConfiguration{
+      ... // 2 identical fields
+      LocalAPIEndpoint: {},
+      SkipPhases:       {"addon/coredns", "addon/kube-proxy"},
+-     Patches:          v1beta2.Patches{Directory: "/test/patches/old"},
++     Patches:          v1beta2.Patches{Directory: "/test/patches"},
+      Timeouts:         {},
+    },
+    JoinConfiguration: {NodeRegistration: {ImagePullPolicy: "IfNotPresent"}},
+    Files:             nil,
+    ... // 10 identical fields
+  }`))
+		// Verify what is sent in CanUpdateMachine.
+		desiredKubeadmConfigWithJoinForDiff, currentKubeadmConfigWithJoinForDiff := PrepareKubeadmConfigsForDiff(desiredKubeadmConfig, currentKubeadmConfig, true)
+		match, diff, err := compare.Diff(&currentKubeadmConfigWithJoinForDiff.Spec, &desiredKubeadmConfigWithJoinForDiff.Spec)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(match).To(BeFalse())
+		// Diff should show diff between JoinConfiguration and InitConfiguration converted to JoinConfiguration.
+		// The conversion to JoinConfiguration should omit phases that cannot be set in JoinConfiguration because
+		// they are not supported for kubeadm join.
+		g.Expect(diff).To(BeComparableTo(`&v1beta2.KubeadmConfigSpec{
+    ClusterConfiguration: {},
+    InitConfiguration:    {NodeRegistration: {ImagePullPolicy: "IfNotPresent"}},
+    JoinConfiguration: v1beta2.JoinConfiguration{
+      ... // 3 identical fields
+      ControlPlane: &{},
+      SkipPhases:   nil,
+-     Patches:      v1beta2.Patches{Directory: "/test/patches/old"},
++     Patches:      v1beta2.Patches{Directory: "/test/patches"},
+      Timeouts:     {},
+    },
+    Files:     nil,
+    DiskSetup: {},
+    ... // 9 identical fields
+  }`))
 	})
 	t.Run("returns false if InitConfiguration is NOT equal", func(t *testing.T) {
 		g := NewWithT(t)
@@ -1598,7 +1701,7 @@ func TestMatchesInfraMachine(t *testing.T) {
 }
 
 func TestUpToDate(t *testing.T) {
-	reconciliationTime := metav1.Now()
+	reconcileStartTime := metav1.Now()
 
 	defaultKcp := &controlplanev1.KubeadmControlPlane{
 		ObjectMeta: metav1.ObjectMeta{
@@ -1626,7 +1729,7 @@ func TestUpToDate(t *testing.T) {
 				Before: controlplanev1.KubeadmControlPlaneRolloutBeforeSpec{
 					CertificatesExpiryDays: 60, // rollout if certificates will expire in less then 60 days.
 				},
-				After: metav1.Time{Time: reconciliationTime.Add(10 * 24 * time.Hour)}, // rollout 10 days from now.
+				After: metav1.Time{Time: reconcileStartTime.Add(10 * 24 * time.Hour)}, // rollout 10 days from now.
 			},
 		},
 	}
@@ -1654,7 +1757,7 @@ func TestUpToDate(t *testing.T) {
 
 	defaultMachine := &clusterv1.Machine{
 		ObjectMeta: metav1.ObjectMeta{
-			CreationTimestamp: metav1.Time{Time: reconciliationTime.Add(-2 * 24 * time.Hour)}, // two days ago.
+			CreationTimestamp: metav1.Time{Time: reconcileStartTime.Add(-2 * 24 * time.Hour)}, // two days ago.
 		},
 		Spec: clusterv1.MachineSpec{
 			Version: "v1.30.0",
@@ -1672,7 +1775,7 @@ func TestUpToDate(t *testing.T) {
 			},
 		},
 		Status: clusterv1.MachineStatus{
-			CertificatesExpiryDate: metav1.Time{Time: reconciliationTime.Add(100 * 24 * time.Hour)}, // certificates will expire in 100 days from now.
+			CertificatesExpiryDate: metav1.Time{Time: reconcileStartTime.Add(100 * 24 * time.Hour)}, // certificates will expire in 100 days from now.
 		},
 	}
 
@@ -1714,6 +1817,7 @@ func TestUpToDate(t *testing.T) {
 		infraConfigs                   map[string]*unstructured.Unstructured
 		machineConfigs                 map[string]*bootstrapv1.KubeadmConfig
 		expectUptoDate                 bool
+		expectConfigurationNotUpToDate bool
 		expectEligibleForInPlaceUpdate bool
 		expectLogMessages              []string
 		expectConditionMessages        []string
@@ -1730,6 +1834,34 @@ func TestUpToDate(t *testing.T) {
 			expectConditionMessages:        nil,
 		},
 		{
+			name: "delete annotation, configuration matches",
+			kcp:  defaultKcp,
+			machine: func() *clusterv1.Machine {
+				machine := defaultMachine.DeepCopy()
+				machine.Annotations = map[string]string{clusterv1.DeleteMachineAnnotation: ""}
+				return machine
+			}(),
+			infraConfigs:                   defaultInfraConfigs,
+			machineConfigs:                 defaultMachineConfigs,
+			expectUptoDate:                 true,
+			expectEligibleForInPlaceUpdate: false,
+			expectConfigurationNotUpToDate: false,
+		},
+		{
+			name: "remediate annotation, configuration matches",
+			kcp:  defaultKcp,
+			machine: func() *clusterv1.Machine {
+				machine := defaultMachine.DeepCopy()
+				machine.Annotations = map[string]string{clusterv1.RemediateMachineAnnotation: ""}
+				return machine
+			}(),
+			infraConfigs:                   defaultInfraConfigs,
+			machineConfigs:                 defaultMachineConfigs,
+			expectUptoDate:                 true,
+			expectEligibleForInPlaceUpdate: false,
+			expectConfigurationNotUpToDate: false,
+		},
+		{
 			name: "certificate are expiring soon",
 			kcp: func() *controlplanev1.KubeadmControlPlane {
 				kcp := defaultKcp.DeepCopy()
@@ -1743,12 +1875,13 @@ func TestUpToDate(t *testing.T) {
 			expectEligibleForInPlaceUpdate: false,
 			expectLogMessages:              []string{"certificates will expire soon, rolloutBefore expired"},
 			expectConditionMessages:        []string{"Certificates will expire soon"},
+			expectConfigurationNotUpToDate: false,
 		},
 		{
 			name: "rollout after expired",
 			kcp: func() *controlplanev1.KubeadmControlPlane {
 				kcp := defaultKcp.DeepCopy()
-				kcp.Spec.Rollout.After = metav1.Time{Time: reconciliationTime.Add(-1 * 24 * time.Hour)} // one day ago
+				kcp.Spec.Rollout.After = metav1.Time{Time: reconcileStartTime.Add(-1 * 24 * time.Hour)} // one day ago
 				return kcp
 			}(),
 			machine:                        defaultMachine, // created two days ago
@@ -1758,6 +1891,24 @@ func TestUpToDate(t *testing.T) {
 			expectEligibleForInPlaceUpdate: false,
 			expectLogMessages:              []string{"rolloutAfter expired"},
 			expectConditionMessages:        []string{"KubeadmControlPlane spec.rolloutAfter expired"},
+			expectConfigurationNotUpToDate: false,
+		},
+		{
+			name: "rollout before and rollout after expired, configuration matches",
+			kcp: func() *controlplanev1.KubeadmControlPlane {
+				kcp := defaultKcp.DeepCopy()
+				kcp.Spec.Rollout.Before.CertificatesExpiryDays = 150
+				kcp.Spec.Rollout.After = metav1.Time{Time: reconcileStartTime.Add(-1 * 24 * time.Hour)}
+				return kcp
+			}(),
+			machine:                        defaultMachine,
+			infraConfigs:                   defaultInfraConfigs,
+			machineConfigs:                 defaultMachineConfigs,
+			expectUptoDate:                 false,
+			expectEligibleForInPlaceUpdate: false,
+			expectLogMessages:              []string{"certificates will expire soon, rolloutBefore expired", "rolloutAfter expired"},
+			expectConditionMessages:        []string{"Certificates will expire soon", "KubeadmControlPlane spec.rolloutAfter expired"},
+			expectConfigurationNotUpToDate: false,
 		},
 		{
 			name: "kubernetes version does not match",
@@ -1777,6 +1928,7 @@ func TestUpToDate(t *testing.T) {
 			expectEligibleForInPlaceUpdate: true,
 			expectLogMessages:              []string{"Machine version \"v1.30.0\" is not equal to KCP version \"v1.30.2\""},
 			expectConditionMessages:        []string{"Version v1.30.0, v1.30.2 required"},
+			expectConfigurationNotUpToDate: true,
 		},
 		{
 			name: "kubernetes version does not match + delete annotation",
@@ -1799,6 +1951,7 @@ func TestUpToDate(t *testing.T) {
 			expectEligibleForInPlaceUpdate: false, // Not eligible for in-place update because of delete annotation.
 			expectLogMessages:              []string{"Machine version \"v1.30.0\" is not equal to KCP version \"v1.30.2\""},
 			expectConditionMessages:        []string{"Version v1.30.0, v1.30.2 required"},
+			expectConfigurationNotUpToDate: true,
 		},
 		{
 			name: "kubernetes version does not match + remediate annotation",
@@ -1821,6 +1974,7 @@ func TestUpToDate(t *testing.T) {
 			expectEligibleForInPlaceUpdate: false, // Not eligible for in-place update because of remediate annotation.
 			expectLogMessages:              []string{"Machine version \"v1.30.0\" is not equal to KCP version \"v1.30.2\""},
 			expectConditionMessages:        []string{"Version v1.30.0, v1.30.2 required"},
+			expectConfigurationNotUpToDate: true,
 		},
 		{
 			name: "KubeadmConfig is not up-to-date",
@@ -1849,7 +2003,8 @@ func TestUpToDate(t *testing.T) {
     JoinConfiguration: {NodeRegistration: {ImagePullPolicy: "IfNotPresent"}},
     ... // 11 identical fields
   }`},
-			expectConditionMessages: []string{"KubeadmConfig is not up-to-date"},
+			expectConditionMessages:        []string{"KubeadmConfig is not up-to-date"},
+			expectConfigurationNotUpToDate: true,
 		},
 		{
 			name: "InfraMachine is not up-to-date",
@@ -1870,7 +2025,8 @@ func TestUpToDate(t *testing.T) {
 			expectLogMessages: []string{"Infrastructure template on KCP rotated from " +
 				"TestInfrastructureMachineTemplate.infrastructure.cluster.x-k8s.io infra-machine-template1 to " +
 				"TestInfrastructureMachineTemplate.infrastructure.cluster.x-k8s.io infra-machine-template2"},
-			expectConditionMessages: []string{"TestInfrastructureMachine is not up-to-date"},
+			expectConditionMessages:        []string{"TestInfrastructureMachine is not up-to-date"},
+			expectConfigurationNotUpToDate: true,
 		},
 	}
 
@@ -1883,11 +2039,12 @@ func TestUpToDate(t *testing.T) {
 			fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(builder.TestInfrastructureMachineTemplateCRD, infraMachineTemplate1, infraMachineTemplate2).Build()
 			c := dynamiccache.NewFakeDynamicCache(fakeClient, setup.DynamicCacheOptions())
 
-			upToDate, res, err := UpToDate(t.Context(), c, &clusterv1.Cluster{}, tt.machine, tt.kcp, &reconciliationTime, tt.infraConfigs, tt.machineConfigs)
+			upToDate, res, err := UpToDate(t.Context(), c, &clusterv1.Cluster{}, tt.machine, tt.kcp, &reconcileStartTime, tt.infraConfigs, tt.machineConfigs)
 			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(upToDate).To(Equal(tt.expectUptoDate))
 			g.Expect(res).ToNot(BeNil())
 			g.Expect(res.EligibleForInPlaceUpdate).To(Equal(tt.expectEligibleForInPlaceUpdate))
+			g.Expect(res.ConfigurationNotUpToDate).To(Equal(tt.expectConfigurationNotUpToDate))
 			g.Expect(res.DesiredMachine).ToNot(BeNil())
 			g.Expect(res.DesiredMachine.Spec.Version).To(Equal(tt.kcp.Spec.Version))
 			g.Expect(res.CurrentInfraMachine).ToNot(BeNil())

@@ -19,12 +19,14 @@ package machinedeployment
 import (
 	"context"
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 
 	pkgerrors "github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -58,9 +60,42 @@ type rolloutPlanner struct {
 	scaleIntents map[string]int32
 	notes        map[string][]string
 
+	// pendingMSs contains the oldMSs for which the CanUpdateMachineSet answer asked to be called again later.
+	pendingMSs sets.Set[string]
+	// blockedMSs contains the oldMSs for which the extension does not allow any operation that can roll out the changes.
+	blockedMSs sets.Set[string]
+
+	inPlaceUpdateCandidates                         sets.Set[string]
+	inPlaceUpdateCandidatesNotAffectingAvailability sets.Set[string]
+	replaceCandidates                               sets.Set[string]
+
+	// pendingRetryAfter is the latest time at which a CanUpdateMachineSet result of a pending oldMS expires;
+	// it is zero if no oldMS is pending.
+	pendingRetryAfter time.Time
+	// blockedRetryAfter is the earliest time at which a CanUpdateMachineSet result of a blocked oldMS expires;
+	// it is zero if no oldMS is blocked.
+	blockedRetryAfter time.Time
+
+	// canUpdateMachineSetResults are the messages of the CanUpdateMachineSet hook that have to be surfaced in the RollingOut condition.
+	canUpdateMachineSetResults canUpdateMachineSetResults
+
+	overrideNowFunc                       func() time.Time
 	overrideComputeDesiredMS              func(ctx context.Context, deployment *clusterv1.MachineDeployment, currentMS *clusterv1.MachineSet) (*clusterv1.MachineSet, error)
-	overrideCanUpdateMachineSetInPlace    func(ctx context.Context, oldMS, newMS *clusterv1.MachineSet) (canUpdateMachineSetInPlaceResult, error)
-	overrideCanExtensionsUpdateMachineSet func(ctx context.Context, oldMS, newMS *clusterv1.MachineSet, templateObjects *templateObjects, extensionHandlers []string) (canUpdateMachineSetInPlaceResult, []string, error)
+	overrideCanUpdateMachineSetInPlace    func(ctx context.Context, oldMS, newMS *clusterv1.MachineSet) (canUpdateMachineSetResult, error)
+	overrideCanExtensionsUpdateMachineSet func(ctx context.Context, oldMS, newMS *clusterv1.MachineSet, templateObjects *templateObjects, extensionHandlers []string) (canUpdateMachineSetResult, error)
+}
+
+// canUpdateMachineSetResults are the messages of the CanUpdateMachineSet hook for all the oldMSs, surfaced in the RollingOut condition.
+type canUpdateMachineSetResults struct {
+	// internalErrorMessage is the message for the oldMS for which discovering, validating or calling the extensions failed.
+	// Note: This is a single message because the planner returns as soon as an error occurs for one oldMS.
+	internalErrorMessage string
+
+	// waitingForDecisionMessages are the messages for the oldMSs for which the decision is still in progress.
+	waitingForDecisionMessages []string
+
+	// rolloutBlockedMessages are the messages for the oldMSs for which no operation that can roll out the changes is allowed.
+	rolloutBlockedMessages []string
 }
 
 func newRolloutPlanner(c client.Client, runtimeClient runtimeclient.Client, canUpdateMachineSetCache cache.Cache[CanUpdateMachineSetCacheEntry]) *rolloutPlanner {
@@ -73,6 +108,14 @@ func newRolloutPlanner(c client.Client, runtimeClient runtimeclient.Client, canU
 	}
 }
 
+// now returns the current time. It can be overridden for unit tests via overrideNowFunc.
+func (p *rolloutPlanner) now() time.Time {
+	if p.overrideNowFunc != nil {
+		return p.overrideNowFunc()
+	}
+	return time.Now()
+}
+
 // init rollout planner internal state by taking care of:
 //   - Identifying newMS and oldMSs
 //   - Create the newMS if it not exists
@@ -81,7 +124,7 @@ func newRolloutPlanner(c client.Client, runtimeClient runtimeclient.Client, canU
 //
 // Note: rollout planner might change desired state later on in the planning phase, e.g. add/remove annotations influencing
 // how to perform scale up/down operations.
-func (p *rolloutPlanner) init(ctx context.Context, md *clusterv1.MachineDeployment, msList []*clusterv1.MachineSet, machines []*clusterv1.Machine, createNewMSIfNotExist bool, mdTemplateExists bool) error {
+func (p *rolloutPlanner) init(ctx context.Context, reconcileStartTime metav1.Time, md *clusterv1.MachineDeployment, msList []*clusterv1.MachineSet, machines []*clusterv1.Machine, createNewMSIfNotExist bool, mdTemplateExists bool) error {
 	if md == nil {
 		return pkgerrors.New("machineDeployment is nil, this is unexpected")
 	}
@@ -109,7 +152,7 @@ func (p *rolloutPlanner) init(ctx context.Context, md *clusterv1.MachineDeployme
 	// Try to find a MachineSet which matches the MachineDeployments intent, the newMS; consider all the other MachineSets as oldMs.
 	// NOTE: Fields propagated in-place from the MD are not considered by the comparison, they are not relevant for the rollout decision.
 	// NOTE: Expiration of MD rolloutAfter is relevant for the rollout decision, and thus it is considered in FindNewAndOldMachineSets.
-	currentNewMS, currentOldMSs, upToDateResults, createReason := mdutil.FindNewAndOldMachineSets(md, msList, metav1.Now())
+	currentNewMS, currentOldMSs, upToDateResults, createReason := mdutil.FindNewAndOldMachineSets(md, msList, reconcileStartTime)
 	p.upToDateResults = upToDateResults
 
 	// Compute desired state for the old MS, with mandatory labels, fields in-place propagated from the MachineDeployment etc.
@@ -336,12 +379,18 @@ func computeDesiredMS(ctx context.Context, deployment *clusterv1.MachineDeployme
 	return desiredMS, nil
 }
 
+// replicasAfterScaleIntent returns the replicas of the MachineSet after applying the scale intent set in the current reconcile, if any.
+func (p *rolloutPlanner) replicasAfterScaleIntent(ms *clusterv1.MachineSet) int32 {
+	if v, ok := p.scaleIntents[ms.Name]; ok {
+		return v
+	}
+	return ptr.Deref(ms.Spec.Replicas, 0)
+}
+
 func (p *rolloutPlanner) addNotef(ms *clusterv1.MachineSet, format string, a ...any) {
 	msg := fmt.Sprintf(format, a...)
-	for _, note := range p.notes[ms.Name] {
-		if note == msg {
-			return
-		}
+	if slices.Contains(p.notes[ms.Name], msg) {
+		return
 	}
 	p.notes[ms.Name] = append(p.notes[ms.Name], msg)
 }

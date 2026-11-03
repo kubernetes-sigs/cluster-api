@@ -47,19 +47,10 @@ var CoreFinalizersAssertionWithLegacyClusters = map[string]func(types.Namespaced
 }
 
 // CoreFinalizersAssertionWithClassyClusters maps Cluster API core types to their expected finalizers for classy Clusters.
-var CoreFinalizersAssertionWithClassyClusters = func() map[string]func(types.NamespacedName) []string {
-	r := map[string]func(types.NamespacedName) []string{}
-	for k, v := range CoreFinalizersAssertionWithLegacyClusters {
-		r[k] = v
-	}
-	r[machineSetKind] = func(_ types.NamespacedName) []string {
-		return []string{clusterv1.MachineSetTopologyFinalizer, clusterv1.MachineSetFinalizer}
-	}
-	r[machineDeploymentKind] = func(_ types.NamespacedName) []string {
-		return []string{clusterv1.MachineDeploymentTopologyFinalizer, clusterv1.MachineDeploymentFinalizer}
-	}
-	return r
-}()
+// Note: The topology MachineDeployment and MachineSet controllers have been merged into the MachineDeployment and MachineSet
+// controllers. Because of that classy Clusters don't have additional finalizers on MachineDeployments and MachineSets anymore,
+// so the expected finalizers are the same as for legacy Clusters.
+var CoreFinalizersAssertionWithClassyClusters = CoreFinalizersAssertionWithLegacyClusters
 
 // ExpFinalizersAssertion maps experimental resource types to their expected finalizers.
 var ExpFinalizersAssertion = map[string]func(types.NamespacedName) []string{

@@ -112,7 +112,7 @@ func (h *ExtensionHandlers) GeneratePatches(ctx context.Context, req *runtimehoo
 				return pkgerrors.Wrap(err, "error patching DevClusterTemplate")
 			}
 		case *controlplanev1beta1.KubeadmControlPlaneTemplate, *controlplanev1.KubeadmControlPlaneTemplate:
-			err := patchKubeadmControlPlaneTemplate(ctx, obj, variables)
+			err := patchKubeadmControlPlaneTemplate(ctx, obj, variables, backend)
 			if err != nil {
 				log.Error(err, "Error patching KubeadmControlPlaneTemplate")
 				return pkgerrors.Wrapf(err, "error patching KubeadmControlPlaneTemplate")
@@ -188,8 +188,23 @@ func patchDevClusterTemplate(_ context.Context, obj runtime.Object, templateVari
 // patchKubeadmControlPlaneTemplate patches the ControlPlaneTemplate.
 // It sets the RolloutStrategy.RollingUpdate.MaxSurge if the kubeadmControlPlaneMaxSurge is provided.
 // NOTE: RolloutStrategy.RollingUpdate.MaxSurge patch is not required for any special reason, it is used for testing the patch machinery itself.
-func patchKubeadmControlPlaneTemplate(ctx context.Context, obj runtime.Object, templateVariables map[string]apiextensionsv1.JSON) error {
+func patchKubeadmControlPlaneTemplate(ctx context.Context, obj runtime.Object, templateVariables map[string]apiextensionsv1.JSON, backend string) error {
 	log := ctrl.LoggerFrom(ctx)
+
+	if backend == "inMemory" {
+		// skipPhases are set to verify that in-place updates are done even if InitConfiguration and JoinConfiguration
+		// have different phases ("addon/coredns", "addon/kube-proxy" are only supported with kubeadm init)
+		// Note: This is only done for the inMemory backend because there it won't break anything because kubeadm is not running.
+		switch obj := obj.(type) {
+		case *controlplanev1beta1.KubeadmControlPlaneTemplate:
+			if obj.Spec.Template.Spec.KubeadmConfigSpec.InitConfiguration == nil {
+				obj.Spec.Template.Spec.KubeadmConfigSpec.InitConfiguration = &bootstrapv1beta1.InitConfiguration{}
+			}
+			obj.Spec.Template.Spec.KubeadmConfigSpec.InitConfiguration.SkipPhases = []string{"addon/coredns", "addon/kube-proxy"}
+		case *controlplanev1.KubeadmControlPlaneTemplate:
+			obj.Spec.Template.Spec.KubeadmConfigSpec.InitConfiguration.SkipPhases = []string{"addon/coredns", "addon/kube-proxy"}
+		}
+	}
 
 	cpVersion, err := topologymutation.GetStringVariable(templateVariables, "builtin.controlPlane.version")
 	if err != nil {

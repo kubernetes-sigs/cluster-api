@@ -493,7 +493,7 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 			managementCluster:   fmc,
 		}
 
-		_, adoptableMachineFound, err := r.initControlPlaneScope(ctx, cluster, kcp)
+		_, adoptableMachineFound, err := r.initControlPlaneScope(ctx, metav1.Now(), cluster, kcp)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(adoptableMachineFound).To(BeTrue())
 
@@ -585,7 +585,7 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 			managementCluster:   fmc,
 		}
 
-		_, adoptableMachineFound, err := r.initControlPlaneScope(ctx, cluster, kcp)
+		_, adoptableMachineFound, err := r.initControlPlaneScope(ctx, metav1.Now(), cluster, kcp)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(adoptableMachineFound).To(BeTrue())
 
@@ -671,7 +671,7 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 			managementCluster:   fmc,
 		}
 
-		_, adoptableMachineFound, err := r.initControlPlaneScope(ctx, cluster, kcp)
+		_, adoptableMachineFound, err := r.initControlPlaneScope(ctx, metav1.Now(), cluster, kcp)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(adoptableMachineFound).To(BeFalse())
 
@@ -725,7 +725,7 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 			managementCluster:   fmc,
 		}
 
-		_, adoptableMachineFound, err := r.initControlPlaneScope(ctx, cluster, kcp)
+		_, adoptableMachineFound, err := r.initControlPlaneScope(ctx, metav1.Now(), cluster, kcp)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(adoptableMachineFound).To(BeTrue())
 
@@ -1099,7 +1099,7 @@ func TestReconcileCertificateExpiries(t *testing.T) {
 		managementCluster:   managementCluster,
 	}
 
-	controlPlane, err := pkg.NewControlPlane(ctx, managementCluster, r.DynamicCache, fakeClient, cluster, kcp, ownedMachines)
+	controlPlane, err := pkg.NewControlPlane(ctx, metav1.Now(), managementCluster, r.DynamicCache, fakeClient, cluster, kcp, ownedMachines)
 	g.Expect(err).ToNot(HaveOccurred())
 
 	err = r.reconcileCertificateExpiries(ctx, controlPlane)
@@ -2311,7 +2311,7 @@ func TestKubeadmControlPlaneReconciler_reconcileControlPlaneAndMachinesCondition
 		{
 			name: "Machines up to date",
 			controlPlane: func() *pkg.ControlPlane {
-				controlPlane, err := pkg.NewControlPlane(ctx, nil, dynamicCache, env.GetClient(), defaultCluster, defaultKCP.DeepCopy(), collections.FromMachines(
+				controlPlane, err := pkg.NewControlPlane(ctx, metav1.Now(), nil, dynamicCache, env.GetClient(), defaultCluster, defaultKCP.DeepCopy(), collections.FromMachines(
 					defaultMachine1.DeepCopy(),
 				))
 				if err != nil {
@@ -2393,9 +2393,100 @@ func TestKubeadmControlPlaneReconciler_reconcileControlPlaneAndMachinesCondition
 			},
 		},
 		{
+			name: "Machines up to date but dirty",
+			controlPlane: func() *pkg.ControlPlane {
+				controlPlane, err := pkg.NewControlPlane(ctx, metav1.Now(), nil, dynamicCache, env.GetClient(), defaultCluster, defaultKCP.DeepCopy(), collections.FromMachines(
+					func() *clusterv1.Machine {
+						m := defaultMachine1.DeepCopy()
+						m.Annotations = map[string]string{
+							clusterv1.UpdateDirtyAnnotation: "",
+						}
+						return m
+					}(),
+				))
+				if err != nil {
+					panic(err)
+				}
+				return controlPlane
+			}(),
+			managementCluster: &fakeManagementCluster{
+				Workload: &fakeWorkloadCluster{
+					Workload: &pkg.Workload{
+						Client: fake.NewClientBuilder().Build(),
+					},
+				},
+			},
+			lastProbeSuccessTime: now.Add(-3 * time.Minute),
+			expectKCPConditions: []metav1.Condition{
+				{
+					Type:   controlplanev1.KubeadmControlPlaneInitializedCondition,
+					Status: metav1.ConditionTrue,
+					Reason: controlplanev1.KubeadmControlPlaneInitializedReason,
+				},
+				{
+					Type:   controlplanev1.KubeadmControlPlaneEtcdClusterHealthyCondition,
+					Status: metav1.ConditionUnknown,
+					Reason: controlplanev1.KubeadmControlPlaneEtcdClusterHealthUnknownReason,
+					Message: "* Machine machine1-test:\n" +
+						"  * EtcdMemberHealthy: Waiting for a Node with spec.providerID foo to exist",
+				},
+				{
+					Type:   controlplanev1.KubeadmControlPlaneControlPlaneComponentsHealthyCondition,
+					Status: metav1.ConditionUnknown,
+					Reason: controlplanev1.KubeadmControlPlaneControlPlaneComponentsHealthUnknownReason,
+					Message: "* Machine machine1-test:\n" +
+						"  * Control plane components: Waiting for a Node with spec.providerID foo to exist",
+				},
+			},
+			expectMachineConditions: []metav1.Condition{
+				{
+					Type:    controlplanev1.KubeadmControlPlaneMachineNodeKubeadmLabelsAndTaintsSetCondition,
+					Status:  metav1.ConditionUnknown,
+					Reason:  controlplanev1.KubeadmControlPlaneMachineNodeKubeadmLabelsAndTaintsInspectionFailedReason,
+					Message: "Waiting for a Node with spec.providerID foo to exist",
+				},
+				{
+					Type:    controlplanev1.KubeadmControlPlaneMachineAPIServerPodHealthyCondition,
+					Status:  metav1.ConditionUnknown,
+					Reason:  controlplanev1.KubeadmControlPlaneMachinePodInspectionFailedReason,
+					Message: "Waiting for a Node with spec.providerID foo to exist",
+				},
+				{
+					Type:    controlplanev1.KubeadmControlPlaneMachineControllerManagerPodHealthyCondition,
+					Status:  metav1.ConditionUnknown,
+					Reason:  controlplanev1.KubeadmControlPlaneMachinePodInspectionFailedReason,
+					Message: "Waiting for a Node with spec.providerID foo to exist",
+				},
+				{
+					Type:    controlplanev1.KubeadmControlPlaneMachineSchedulerPodHealthyCondition,
+					Status:  metav1.ConditionUnknown,
+					Reason:  controlplanev1.KubeadmControlPlaneMachinePodInspectionFailedReason,
+					Message: "Waiting for a Node with spec.providerID foo to exist",
+				},
+				{
+					Type:    controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition,
+					Status:  metav1.ConditionUnknown,
+					Reason:  controlplanev1.KubeadmControlPlaneMachinePodInspectionFailedReason,
+					Message: "Waiting for a Node with spec.providerID foo to exist",
+				},
+				{
+					Type:    controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyCondition,
+					Status:  metav1.ConditionUnknown,
+					Reason:  controlplanev1.KubeadmControlPlaneMachineEtcdMemberInspectionFailedReason,
+					Message: "Waiting for a Node with spec.providerID foo to exist",
+				},
+				{
+					Type:    clusterv1.MachineUpToDateCondition,
+					Status:  metav1.ConditionTrue,
+					Reason:  clusterv1.MachineUpToDateReason,
+					Message: "In-place update completed, but the Machine might still differ from the desired state",
+				},
+			},
+		},
+		{
 			name: "Machines in place updating, machine not up-to-date date",
 			controlPlane: func() *pkg.ControlPlane {
-				controlPlane, err := pkg.NewControlPlane(ctx, nil, dynamicCache, env.GetClient(), defaultCluster, defaultKCP.DeepCopy(), collections.FromMachines(
+				controlPlane, err := pkg.NewControlPlane(ctx, metav1.Now(), nil, dynamicCache, env.GetClient(), defaultCluster, defaultKCP.DeepCopy(), collections.FromMachines(
 					func() *clusterv1.Machine {
 						m := defaultMachine1.DeepCopy()
 						m.Annotations = map[string]string{
@@ -2486,7 +2577,7 @@ func TestKubeadmControlPlaneReconciler_reconcileControlPlaneAndMachinesCondition
 		{
 			name: "Machines.spec.version out of sync with kubeletVersion, machine not up-to-date date",
 			controlPlane: func() *pkg.ControlPlane {
-				controlPlane, err := pkg.NewControlPlane(ctx, nil, dynamicCache, env.GetClient(), defaultCluster, defaultKCP.DeepCopy(), collections.FromMachines(
+				controlPlane, err := pkg.NewControlPlane(ctx, metav1.Now(), nil, dynamicCache, env.GetClient(), defaultCluster, defaultKCP.DeepCopy(), collections.FromMachines(
 					func() *clusterv1.Machine {
 						m := defaultMachine1.DeepCopy()
 						m.Status.NodeInfo = &corev1.NodeSystemInfo{KubeletVersion: "v1.30.0"}
@@ -2575,7 +2666,7 @@ func TestKubeadmControlPlaneReconciler_reconcileControlPlaneAndMachinesCondition
 		{
 			name: "Machines not up to date",
 			controlPlane: func() *pkg.ControlPlane {
-				controlPlane, err := pkg.NewControlPlane(ctx, nil, dynamicCache, env.GetClient(), defaultCluster, defaultKCP.DeepCopy(), collections.FromMachines(
+				controlPlane, err := pkg.NewControlPlane(ctx, metav1.Now(), nil, dynamicCache, env.GetClient(), defaultCluster, defaultKCP.DeepCopy(), collections.FromMachines(
 					defaultMachine1NotUpToDate.DeepCopy(),
 				))
 				if err != nil {
@@ -2743,7 +2834,7 @@ func TestKubeadmControlPlaneReconciler_reconcileControlPlaneAndMachinesCondition
 		{
 			name: "connection down, set conditions as they haven't been set before (probe did not succeed yet)",
 			controlPlane: func() *pkg.ControlPlane {
-				controlPlane, err := pkg.NewControlPlane(ctx, nil, dynamicCache, env.GetClient(), defaultCluster, defaultKCP.DeepCopy(), collections.FromMachines(
+				controlPlane, err := pkg.NewControlPlane(ctx, metav1.Now(), nil, dynamicCache, env.GetClient(), defaultCluster, defaultKCP.DeepCopy(), collections.FromMachines(
 					defaultMachine1.DeepCopy(),
 				))
 				if err != nil {
@@ -4763,6 +4854,44 @@ func TestKubeadmControlPlaneReconciler_reconcileDelete(t *testing.T) {
 		g.Expect(controlPlane.DeletingMessage).To(Equal("Deletion completed"))
 	})
 
+	t.Run("surfaces control plane Machines in deletion since more than 15m as a list", func(t *testing.T) {
+		g := NewWithT(t)
+
+		cluster, kcp, _ := createClusterWithControlPlane(metav1.NamespaceDefault)
+		controllerutil.AddFinalizer(kcp, controlplanev1.KubeadmControlPlaneFinalizer)
+		initObjs := []client.Object{cluster.DeepCopy(), kcp.DeepCopy()}
+
+		m, _ := createMachineNodePair("test-0", cluster, kcp, true)
+		m.Finalizers = []string{"cluster.x-k8s.io/block-deletion"}
+		m.DeletionTimestamp = &metav1.Time{Time: time.Now().Add(-1 * time.Hour)}
+		initObjs = append(initObjs, m)
+
+		fakeClient := newFakeClient(initObjs...)
+
+		r := &Reconciler{
+			Client:              fakeClient,
+			SecretCachingClient: fakeClient,
+			managementCluster: &fakeManagementCluster{
+				Management: &pkg.Management{Client: fakeClient},
+				Workload:   &fakeWorkloadCluster{},
+			},
+			controller: capicontrollerutil.NewFakeController(),
+			recorder:   record.NewFakeRecorder(32),
+		}
+
+		controlPlane := &pkg.ControlPlane{
+			KCP:      kcp,
+			Cluster:  cluster,
+			Machines: collections.FromMachines(m),
+		}
+
+		result, err := r.reconcileDelete(ctx, controlPlane)
+		g.Expect(result).To(Equal(ctrl.Result{RequeueAfter: deleteRequeueAfter}))
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(controlPlane.DeletingReason).To(Equal(controlplanev1.KubeadmControlPlaneDeletingWaitingForMachineDeletionReason))
+		g.Expect(controlPlane.DeletingMessage).To(Equal("Deleting 1 Machine:\n* Machine test-0 is in deletion since more than 15m"))
+	})
+
 	t.Run("does not remove any control plane Machines if other Machines exist", func(t *testing.T) {
 		g := NewWithT(t)
 
@@ -4813,7 +4942,8 @@ func TestKubeadmControlPlaneReconciler_reconcileDelete(t *testing.T) {
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(kcp.Finalizers).To(ContainElement(controlplanev1.KubeadmControlPlaneFinalizer))
 		g.Expect(controlPlane.DeletingReason).To(Equal(controlplanev1.KubeadmControlPlaneDeletingWaitingForWorkersDeletionReason))
-		g.Expect(controlPlane.DeletingMessage).To(Equal("KubeadmControlPlane deletion blocked because following objects still exist:\n* Machines: worker-0, worker-1, worker-2, worker-3, worker-4, ... (5 more)"))
+		g.Expect(controlPlane.DeletingMessage).To(Equal("Waiting for deletion of the following objects:\n" +
+			"* Machines: worker-0, worker-1, worker-2, worker-3, worker-4, ... (5 more)"))
 
 		controlPlaneMachines := clusterv1.MachineList{}
 		labels := map[string]string{
@@ -4874,7 +5004,8 @@ func TestKubeadmControlPlaneReconciler_reconcileDelete(t *testing.T) {
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(kcp.Finalizers).To(ContainElement(controlplanev1.KubeadmControlPlaneFinalizer))
 		g.Expect(controlPlane.DeletingReason).To(Equal(controlplanev1.KubeadmControlPlaneDeletingWaitingForWorkersDeletionReason))
-		g.Expect(controlPlane.DeletingMessage).To(Equal("KubeadmControlPlane deletion blocked because following objects still exist:\n* MachinePools: mp-0, mp-1, mp-2, mp-3, mp-4, ... (5 more)"))
+		g.Expect(controlPlane.DeletingMessage).To(Equal("Waiting for deletion of the following objects:\n" +
+			"* MachinePools: mp-0, mp-1, mp-2, mp-3, mp-4, ... (5 more)"))
 
 		controlPlaneMachines := clusterv1.MachineList{}
 		labels := map[string]string{

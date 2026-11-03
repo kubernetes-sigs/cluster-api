@@ -37,7 +37,7 @@ import (
 // NOTE: the hook should be called only at the beginning of an upgrade sequence (it should not be called when in the middle of a multistep upgrade sequence);
 // to detect if we are at the beginning of an upgrade, the code checks if the intent to call the AfterClusterUpgrade is not yet tracked.
 func (g *generator) callBeforeClusterUpgradeHook(ctx context.Context, s *scope.Scope, currentVersion *string, topologyVersion string) (bool, error) {
-	log := ctrl.LoggerFrom(ctx)
+	log := ctrl.LoggerFrom(ctx).WithValues(beforeUpgradeHookLogValues(runtimehooksv1.BeforeClusterUpgrade, *currentVersion, topologyVersion, s.UpgradeTracker)...)
 
 	if !hooks.IsPending(runtimehooksv1.AfterClusterUpgrade, s.Current.Cluster) {
 		var hookAnnotations []string
@@ -65,10 +65,7 @@ func (g *generator) callBeforeClusterUpgradeHook(ctx context.Context, s *scope.S
 				},
 			})
 
-			log.Info(fmt.Sprintf("Cluster upgrade from version %s to version %s is blocked by %s hook (via annotations)", *currentVersion, topologyVersion, runtimecatalog.HookName(runtimehooksv1.BeforeClusterUpgrade)), "hooks", strings.Join(hookAnnotations, ","),
-				"ControlPlaneUpgrades", toUpgradeStep(s.UpgradeTracker.ControlPlane.UpgradePlan),
-				"WorkersUpgrades", toUpgradeStep(s.UpgradeTracker.MachineDeployments.UpgradePlan, s.UpgradeTracker.MachinePools.UpgradePlan),
-			)
+			log.Info(fmt.Sprintf("Cluster upgrade from version %s to version %s is blocked by %s hook (via annotations), waiting for the annotations to be removed", *currentVersion, topologyVersion, runtimecatalog.HookName(runtimehooksv1.BeforeClusterUpgrade)), "hooks", strings.Join(hookAnnotations, ","))
 			return false, nil
 		}
 
@@ -106,17 +103,11 @@ func (g *generator) callBeforeClusterUpgradeHook(ctx context.Context, s *scope.S
 		if hookResponse.RetryAfterSeconds != 0 {
 			// Cannot pickup the new version right now. Need to try again later.
 			g.hookCache.Add(cache.NewHookEntry(s.Current.Cluster, runtimehooksv1.BeforeClusterUpgrade, time.Now().Add(time.Duration(hookResponse.RetryAfterSeconds)*time.Second), hookResponse.GetMessage()))
-			log.Info(fmt.Sprintf("Cluster upgrade from version %s to version %s is blocked by %s hook, retry after %ds", hookRequest.FromKubernetesVersion, hookRequest.ToKubernetesVersion, runtimecatalog.HookName(runtimehooksv1.BeforeClusterUpgrade), hookResponse.RetryAfterSeconds),
-				"ControlPlaneUpgrades", hookRequest.ControlPlaneUpgrades,
-				"WorkersUpgrades", hookRequest.WorkersUpgrades,
-			)
+			log.Info(fmt.Sprintf("Cluster upgrade from version %s to version %s is blocked by %s hook, retry after %ds", hookRequest.FromKubernetesVersion, hookRequest.ToKubernetesVersion, runtimecatalog.HookName(runtimehooksv1.BeforeClusterUpgrade), hookResponse.RetryAfterSeconds))
 			return false, nil
 		}
 
-		log.Info(fmt.Sprintf("Cluster upgrade from version %s to version %s unblocked by %s hook", hookRequest.FromKubernetesVersion, hookRequest.ToKubernetesVersion, runtimecatalog.HookName(runtimehooksv1.BeforeClusterUpgrade)),
-			"ControlPlaneUpgrades", hookRequest.ControlPlaneUpgrades,
-			"WorkersUpgrades", hookRequest.WorkersUpgrades,
-		)
+		log.Info(fmt.Sprintf("Cluster upgrade from version %s to version %s unblocked by %s hook", hookRequest.FromKubernetesVersion, hookRequest.ToKubernetesVersion, runtimecatalog.HookName(runtimehooksv1.BeforeClusterUpgrade)))
 	}
 	return true, nil
 }
@@ -126,7 +117,7 @@ func (g *generator) callBeforeClusterUpgradeHook(ctx context.Context, s *scope.S
 // NOTE: when an upgrade starts, the hook should be called after the BeforeClusterUpgrade hook.
 // NOTE: the hook doesn't need call intent tracking: it is always called before picking up a new control plane version.
 func (g *generator) callBeforeControlPlaneUpgradeHook(ctx context.Context, s *scope.Scope, currentVersion *string, nextVersion string) (bool, error) {
-	log := ctrl.LoggerFrom(ctx)
+	log := ctrl.LoggerFrom(ctx).WithValues(beforeUpgradeHookLogValues(runtimehooksv1.BeforeControlPlaneUpgrade, *currentVersion, nextVersion, s.UpgradeTracker)...)
 
 	// Return quickly if the hook is not defined.
 	extensionHandlers, err := g.RuntimeClient.GetAllExtensions(ctx, runtimehooksv1.BeforeControlPlaneUpgrade, s.Current.Cluster)
@@ -163,17 +154,11 @@ func (g *generator) callBeforeControlPlaneUpgradeHook(ctx context.Context, s *sc
 	if hookResponse.RetryAfterSeconds != 0 {
 		// Cannot pickup the new version right now. Need to try again later.
 		g.hookCache.Add(cache.NewHookEntry(s.Current.Cluster, runtimehooksv1.BeforeControlPlaneUpgrade, time.Now().Add(time.Duration(hookResponse.RetryAfterSeconds)*time.Second), hookResponse.GetMessage()))
-		log.Info(fmt.Sprintf("Control plane upgrade from version %s to version %s is blocked by %s hook, retry after %ds", hookRequest.FromKubernetesVersion, hookRequest.ToKubernetesVersion, runtimecatalog.HookName(runtimehooksv1.BeforeControlPlaneUpgrade), hookResponse.RetryAfterSeconds),
-			"ControlPlaneUpgrades", hookRequest.ControlPlaneUpgrades,
-			"WorkersUpgrades", hookRequest.WorkersUpgrades,
-		)
+		log.Info(fmt.Sprintf("Control plane upgrade from version %s to version %s is blocked by %s hook, retry after %ds", hookRequest.FromKubernetesVersion, hookRequest.ToKubernetesVersion, runtimecatalog.HookName(runtimehooksv1.BeforeControlPlaneUpgrade), hookResponse.RetryAfterSeconds))
 		return false, nil
 	}
 
-	log.Info(fmt.Sprintf("Control plane upgrade from version %s to version %s unblocked by %s hook", hookRequest.FromKubernetesVersion, hookRequest.ToKubernetesVersion, runtimecatalog.HookName(runtimehooksv1.BeforeControlPlaneUpgrade)),
-		"ControlPlaneUpgrades", hookRequest.ControlPlaneUpgrades,
-		"WorkersUpgrades", hookRequest.WorkersUpgrades,
-	)
+	log.Info(fmt.Sprintf("Control plane upgrade from version %s to version %s unblocked by %s hook", hookRequest.FromKubernetesVersion, hookRequest.ToKubernetesVersion, runtimecatalog.HookName(runtimehooksv1.BeforeControlPlaneUpgrade)))
 
 	return true, nil
 }
@@ -182,7 +167,7 @@ func (g *generator) callBeforeControlPlaneUpgradeHook(ctx context.Context, s *sc
 // no matter if this is an intermediate versions of an upgrade plan or the target version of an upgrade plan.
 // NOTE: computeControlPlaneVersion records intent to call this hook when picking up a new control plane version.
 func (g *generator) callAfterControlPlaneUpgradeHook(ctx context.Context, s *scope.Scope, currentVersion *string) (bool, error) {
-	log := ctrl.LoggerFrom(ctx)
+	log := ctrl.LoggerFrom(ctx).WithValues(afterUpgradeHookLogValues(runtimehooksv1.AfterControlPlaneUpgrade, *currentVersion, s.UpgradeTracker)...)
 
 	// Call the hook only if we are tracking the intent to do so. If it is not tracked it means we don't need to call the
 	// hook because we didn't go through an upgrade or we already called the hook after the upgrade.
@@ -223,20 +208,14 @@ func (g *generator) callAfterControlPlaneUpgradeHook(ctx context.Context, s *sco
 
 		if hookResponse.RetryAfterSeconds != 0 {
 			g.hookCache.Add(cache.NewHookEntry(s.Current.Cluster, runtimehooksv1.AfterControlPlaneUpgrade, time.Now().Add(time.Duration(hookResponse.RetryAfterSeconds)*time.Second), hookResponse.GetMessage()))
-			log.Info(fmt.Sprintf("Control plane upgrade to version %s completed but next steps are blocked by %s hook, retry after %ds", hookRequest.KubernetesVersion, runtimecatalog.HookName(runtimehooksv1.AfterControlPlaneUpgrade), hookResponse.RetryAfterSeconds),
-				"ControlPlaneUpgrades", hookRequest.ControlPlaneUpgrades,
-				"WorkersUpgrades", hookRequest.WorkersUpgrades,
-			)
+			log.Info(fmt.Sprintf("Control plane upgrade to version %s completed but next steps are blocked by %s hook, retry after %ds", hookRequest.KubernetesVersion, runtimecatalog.HookName(runtimehooksv1.AfterControlPlaneUpgrade), hookResponse.RetryAfterSeconds))
 			return false, nil
 		}
 		if err := hooks.MarkAsDone(ctx, g.Client, s.Current.Cluster, false, runtimehooksv1.AfterControlPlaneUpgrade); err != nil {
 			return false, err
 		}
 
-		log.Info(fmt.Sprintf("Control plane upgrade to version %s and %s hook completed, next steps unblocked", hookRequest.KubernetesVersion, runtimecatalog.HookName(runtimehooksv1.AfterControlPlaneUpgrade)),
-			"ControlPlaneUpgrades", hookRequest.ControlPlaneUpgrades,
-			"WorkersUpgrades", hookRequest.WorkersUpgrades,
-		)
+		log.Info(fmt.Sprintf("Control plane upgrade to version %s and %s hook completed, next steps unblocked", hookRequest.KubernetesVersion, runtimecatalog.HookName(runtimehooksv1.AfterControlPlaneUpgrade)))
 	}
 	return true, nil
 }
@@ -246,7 +225,7 @@ func (g *generator) callAfterControlPlaneUpgradeHook(ctx context.Context, s *sco
 // NOTE: computeControlPlaneVersion records intent to call this hook when picking up a new control plane version
 // that exists also in the workers upgrade plan.
 func (g *generator) callBeforeWorkersUpgradeHook(ctx context.Context, s *scope.Scope, currentVersion *string, nextVersion string) (bool, error) {
-	log := ctrl.LoggerFrom(ctx)
+	log := ctrl.LoggerFrom(ctx).WithValues(beforeUpgradeHookLogValues(runtimehooksv1.BeforeWorkersUpgrade, *currentVersion, nextVersion, s.UpgradeTracker)...)
 
 	// Call the hook only if we are tracking the intent to do so. If it is not tracked it means we don't need to call the
 	// hook because we didn't go through an upgrade or we already called the hook after the upgrade.
@@ -288,20 +267,14 @@ func (g *generator) callBeforeWorkersUpgradeHook(ctx context.Context, s *scope.S
 		if hookResponse.RetryAfterSeconds != 0 {
 			// Cannot pickup the new version right now. Need to try again later.
 			g.hookCache.Add(cache.NewHookEntry(s.Current.Cluster, runtimehooksv1.BeforeWorkersUpgrade, time.Now().Add(time.Duration(hookResponse.RetryAfterSeconds)*time.Second), hookResponse.GetMessage()))
-			log.Info(fmt.Sprintf("Workers upgrade from version %s to version %s is blocked by %s hook, retry after %ds", hookRequest.FromKubernetesVersion, hookRequest.ToKubernetesVersion, runtimecatalog.HookName(runtimehooksv1.BeforeWorkersUpgrade), hookResponse.RetryAfterSeconds),
-				"ControlPlaneUpgrades", hookRequest.ControlPlaneUpgrades,
-				"WorkersUpgrades", hookRequest.WorkersUpgrades,
-			)
+			log.Info(fmt.Sprintf("Workers upgrade from version %s to version %s is blocked by %s hook, retry after %ds", hookRequest.FromKubernetesVersion, hookRequest.ToKubernetesVersion, runtimecatalog.HookName(runtimehooksv1.BeforeWorkersUpgrade), hookResponse.RetryAfterSeconds))
 			return false, nil
 		}
 		if err := hooks.MarkAsDone(ctx, g.Client, s.Current.Cluster, false, runtimehooksv1.BeforeWorkersUpgrade); err != nil {
 			return false, err
 		}
 
-		log.Info(fmt.Sprintf("Workers upgrade from version %s to version %s unblocked by %s hook", hookRequest.FromKubernetesVersion, hookRequest.ToKubernetesVersion, runtimecatalog.HookName(runtimehooksv1.BeforeWorkersUpgrade)),
-			"ControlPlaneUpgrades", hookRequest.ControlPlaneUpgrades,
-			"WorkersUpgrades", hookRequest.WorkersUpgrades,
-		)
+		log.Info(fmt.Sprintf("Workers upgrade from version %s to version %s unblocked by %s hook", hookRequest.FromKubernetesVersion, hookRequest.ToKubernetesVersion, runtimecatalog.HookName(runtimehooksv1.BeforeWorkersUpgrade)))
 	}
 
 	return true, nil
@@ -312,7 +285,7 @@ func (g *generator) callBeforeWorkersUpgradeHook(ctx context.Context, s *scope.S
 // NOTE: computeControlPlaneVersion records intent to call this hook when picking up a new control plane version
 // that exists also in the workers upgrade plan.
 func (g *generator) callAfterWorkersUpgradeHook(ctx context.Context, s *scope.Scope, currentVersion *string) (bool, error) {
-	log := ctrl.LoggerFrom(ctx)
+	log := ctrl.LoggerFrom(ctx).WithValues(afterUpgradeHookLogValues(runtimehooksv1.AfterWorkersUpgrade, *currentVersion, s.UpgradeTracker)...)
 
 	// Call the hook only if we are tracking the intent to do so. If it is not tracked it means we don't need to call the
 	// hook because we didn't go through an upgrade or we already called the hook after the upgrade.
@@ -353,20 +326,14 @@ func (g *generator) callAfterWorkersUpgradeHook(ctx context.Context, s *scope.Sc
 
 		if hookResponse.RetryAfterSeconds != 0 {
 			g.hookCache.Add(cache.NewHookEntry(s.Current.Cluster, runtimehooksv1.AfterWorkersUpgrade, time.Now().Add(time.Duration(hookResponse.RetryAfterSeconds)*time.Second), hookResponse.GetMessage()))
-			log.Info(fmt.Sprintf("Workers upgrade to version %s completed but next steps are blocked by %s hook, retry after %ds", hookRequest.KubernetesVersion, runtimecatalog.HookName(runtimehooksv1.AfterWorkersUpgrade), hookResponse.RetryAfterSeconds),
-				"ControlPlaneUpgrades", hookRequest.ControlPlaneUpgrades,
-				"WorkersUpgrades", hookRequest.WorkersUpgrades,
-			)
+			log.Info(fmt.Sprintf("Workers upgrade to version %s completed but next steps are blocked by %s hook, retry after %ds", hookRequest.KubernetesVersion, runtimecatalog.HookName(runtimehooksv1.AfterWorkersUpgrade), hookResponse.RetryAfterSeconds))
 			return false, nil
 		}
 		if err := hooks.MarkAsDone(ctx, g.Client, s.Current.Cluster, false, runtimehooksv1.AfterWorkersUpgrade); err != nil {
 			return false, err
 		}
 
-		log.Info(fmt.Sprintf("Workers upgrade to version %s and %s hook completed, next steps unblocked", hookRequest.KubernetesVersion, runtimecatalog.HookName(runtimehooksv1.AfterWorkersUpgrade)),
-			"ControlPlaneUpgrades", hookRequest.ControlPlaneUpgrades,
-			"WorkersUpgrades", hookRequest.WorkersUpgrades,
-		)
+		log.Info(fmt.Sprintf("Workers upgrade to version %s and %s hook completed, next steps unblocked", hookRequest.KubernetesVersion, runtimecatalog.HookName(runtimehooksv1.AfterWorkersUpgrade)))
 	}
 	return true, nil
 }
@@ -385,4 +352,32 @@ func toUpgradeStep(plans ...[]string) []runtimehooksv1.UpgradeStepInfo {
 		}
 	}
 	return steps
+}
+
+func hookLogValues(hook runtimecatalog.Hook) []any {
+	return []any{"hook", runtimecatalog.HookName(hook)}
+}
+
+func beforeUpgradeHookLogValues(hook runtimecatalog.Hook, fromVersion, toVersion string, upgradeTracker *scope.UpgradeTracker) []any {
+	return append(append(hookLogValues(hook), "fromVersion", fromVersion, "toVersion", toVersion), upgradePlansLogValues(upgradeTracker)...)
+}
+
+func afterUpgradeHookLogValues(hook runtimecatalog.Hook, version string, upgradeTracker *scope.UpgradeTracker) []any {
+	return append(append(hookLogValues(hook), "version", version), upgradePlansLogValues(upgradeTracker)...)
+}
+
+func upgradePlansLogValues(upgradeTracker *scope.UpgradeTracker) []any {
+	var values []any
+	if plan := upgradeTracker.ControlPlane.UpgradePlan; len(plan) > 0 {
+		values = append(values, "controlPlaneUpgrades", plan)
+	}
+	// Note: This must pick the same plan as toUpgradeStep does for the hook requests (MachineDeployments first, then MachinePools).
+	workersPlan := upgradeTracker.MachineDeployments.UpgradePlan
+	if len(workersPlan) == 0 {
+		workersPlan = upgradeTracker.MachinePools.UpgradePlan
+	}
+	if len(workersPlan) > 0 {
+		values = append(values, "workersUpgrades", workersPlan)
+	}
+	return values
 }

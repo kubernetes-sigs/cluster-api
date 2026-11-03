@@ -447,7 +447,7 @@ func (r *Reconciler) setupDynamicWatches(ctx context.Context, s *scope.Scope) er
 func (r *Reconciler) callBeforeClusterCreateHook(ctx context.Context, s *scope.Scope) (reconcile.Result, error) {
 	// If the cluster objects (InfraCluster, ControlPlane, etc) are not yet created we are in the creation phase.
 	// Call the BeforeClusterCreate hook before proceeding.
-	log := ctrl.LoggerFrom(ctx)
+	log := ctrl.LoggerFrom(ctx).WithValues(hookLogValues(runtimehooksv1.BeforeClusterCreate)...)
 
 	if !s.Current.Cluster.Spec.InfrastructureRef.IsDefined() && !s.Current.Cluster.Spec.ControlPlaneRef.IsDefined() {
 		// Return quickly if the hook is not defined.
@@ -558,7 +558,8 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope.Scope) (ctrl.
 
 	// Call the BeforeClusterDelete hook if the 'ok-to-delete' annotation is not set
 	// and add the annotation to the cluster after receiving a successful non-blocking response.
-	log := ctrl.LoggerFrom(ctx)
+	log := ctrl.LoggerFrom(ctx).WithValues(hookLogValues(runtimehooksv1.BeforeClusterDelete)...)
+
 	if feature.Gates.Enabled(feature.RuntimeSDK) {
 		if !hooks.IsOkToDelete(cluster) {
 			// Return quickly if the hook is not defined.

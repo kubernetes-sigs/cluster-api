@@ -33,40 +33,6 @@ import (
 	"sigs.k8s.io/cluster-api/util/conditions"
 )
 
-// ClusterCreateInfraProvisioned returns a predicate that returns true for a create event when the Cluster infrastructure is provisioned.
-// It also returns true if the resource provided is not a Cluster to allow for use with controller-runtime NewControllerManagedBy.
-//
-// Deprecated: This predicate is deprecated and will be removed in a future version. On creation of a cluster the status will always be empty.
-// Because of that the predicate would never return true for InfrastructureReady.
-func ClusterCreateInfraProvisioned(scheme *runtime.Scheme, logger logr.Logger) predicate.Funcs {
-	return predicate.Funcs{
-		CreateFunc: func(e event.CreateEvent) bool {
-			log := logger.WithValues("predicate", "ClusterCreateInfraProvisioned", "eventType", "create")
-			if gvk, err := apiutil.GVKForObject(e.Object, scheme); err == nil {
-				log = log.WithValues(gvk.Kind, klog.KObj(e.Object))
-			}
-
-			c, ok := e.Object.(*clusterv1.Cluster)
-			if !ok {
-				log.V(4).Info("Expected Cluster", "type", fmt.Sprintf("%T", e.Object))
-				return false
-			}
-
-			// Only need to trigger a reconcile if the Cluster infrastructure is provisioned.
-			if ptr.Deref(c.Status.Initialization.InfrastructureProvisioned, false) {
-				log.V(6).Info("Cluster infrastructure is ready, allowing further processing")
-				return true
-			}
-
-			log.V(4).Info("Cluster infrastructure is not ready, blocking further processing")
-			return false
-		},
-		UpdateFunc:  func(event.UpdateEvent) bool { return false },
-		DeleteFunc:  func(event.DeleteEvent) bool { return false },
-		GenericFunc: func(event.GenericEvent) bool { return false },
-	}
-}
-
 // ClusterCreateNotPaused returns a predicate that returns true for a create event when a cluster has Spec.Paused set as false
 // it also returns true if the resource provided is not a Cluster to allow for use with controller-runtime NewControllerManagedBy.
 func ClusterCreateNotPaused(scheme *runtime.Scheme, logger logr.Logger) predicate.Funcs {
@@ -274,34 +240,6 @@ func ClusterPausedTransitionsOrInfrastructureProvisioned(scheme *runtime.Scheme,
 	log := logger.WithValues("predicate", "ClusterPausedTransitionsOrInfrastructureProvisioned")
 
 	return Any(scheme, log, ClusterPausedTransitions(scheme, log), ClusterUpdateInfraProvisioned(scheme, log))
-}
-
-// ClusterUnpausedAndInfrastructureProvisioned returns a Predicate that returns true on Cluster creation events where
-// both Cluster.Spec.Paused is false and Cluster.Status.Initialization.InfrastructureProvisioned is true and Update events when
-// either Cluster.Spec.Paused transitions to false or Cluster.Status.Initialization.InfrastructureProvisioned transitions to true.
-// This implements a common requirement for some cluster-api and provider controllers (such as Machine Infrastructure
-// controllers) to resume reconciliation when the Cluster is unpaused and when the infrastructure becomes ready.
-// Example use:
-//
-//	err := controller.Watch(
-//	    source.Kind(cache, &clusterv1.Cluster{}),
-//	    handler.EnqueueRequestsFromMapFunc(clusterToMachines)
-//	    predicates.ClusterUnpausedAndInfrastructureProvisioned(mgr.GetScheme(), r.Log),
-//	)
-//
-// Deprecated: This predicate is deprecated and will be removed in a future version,
-// use ClusterPausedTransitionsOrInfrastructureProvisioned instead.
-func ClusterUnpausedAndInfrastructureProvisioned(scheme *runtime.Scheme, logger logr.Logger) predicate.Funcs {
-	log := logger.WithValues("predicate", "ClusterUnpausedAndInfrastructureProvisioned")
-
-	// Only continue processing create events if both not paused and infrastructure is ready
-	createPredicates := All(scheme, log, ClusterCreateNotPaused(scheme, log), ClusterCreateInfraProvisioned(scheme, log))
-
-	// Process update events if either Cluster is unpaused or infrastructure becomes ready
-	updatePredicates := Any(scheme, log, ClusterUpdateUnpaused(scheme, log), ClusterUpdateInfraProvisioned(scheme, log))
-
-	// Use any to ensure we process either create or update events we care about
-	return Any(scheme, log, createPredicates, updatePredicates)
 }
 
 // ClusterHasTopology returns a Predicate that returns true when cluster.Spec.Topology

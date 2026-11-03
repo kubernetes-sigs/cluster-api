@@ -300,9 +300,7 @@ func TestReconcileNode(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			if tc.featureGateMachineTaintsEnabled {
-				utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.MachineTaintPropagation, true)
-			}
+			utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.MachineTaintPropagation, tc.featureGateMachineTaintsEnabled)
 
 			c := fake.NewClientBuilder().WithObjects(tc.machine).WithIndex(&corev1.Node{}, "spec.providerID", index.NodeByProviderID).Build()
 			if tc.nodeGetErr {
@@ -770,6 +768,7 @@ func TestPatchNode(t *testing.T) {
 			expectedAnnotations: map[string]string{
 				clusterv1.AnnotationsFromMachineAnnotation: "",
 				clusterv1.LabelsFromMachineAnnotation:      "foo",
+				clusterv1.TaintsFromMachineAnnotation:      "",
 			},
 			expectedTaints: []corev1.Taint{
 				{Key: "node.kubernetes.io/not-ready", Effect: "NoSchedule"}, // Added by the API server
@@ -792,6 +791,7 @@ func TestPatchNode(t *testing.T) {
 			expectedAnnotations: map[string]string{
 				clusterv1.AnnotationsFromMachineAnnotation: "",
 				clusterv1.LabelsFromMachineAnnotation:      "",
+				clusterv1.TaintsFromMachineAnnotation:      "",
 			},
 			expectedLabels: map[string]string{
 				"not-managed-by-capi": "foo",
@@ -823,6 +823,7 @@ func TestPatchNode(t *testing.T) {
 			expectedAnnotations: map[string]string{
 				clusterv1.AnnotationsFromMachineAnnotation: "",
 				clusterv1.LabelsFromMachineAnnotation:      "label-from-machine",
+				clusterv1.TaintsFromMachineAnnotation:      "",
 			},
 			expectedTaints: []corev1.Taint{
 				{Key: "node.kubernetes.io/not-ready", Effect: "NoSchedule"}, // Added by the API server
@@ -849,6 +850,7 @@ func TestPatchNode(t *testing.T) {
 				"managed-by-capi":                          "bar",
 				clusterv1.AnnotationsFromMachineAnnotation: "managed-by-capi",
 				clusterv1.LabelsFromMachineAnnotation:      "",
+				clusterv1.TaintsFromMachineAnnotation:      "",
 			},
 			expectedTaints: []corev1.Taint{
 				{Key: "node.kubernetes.io/not-ready", Effect: "NoSchedule"}, // Added by the API server
@@ -876,6 +878,7 @@ func TestPatchNode(t *testing.T) {
 			expectedAnnotations: map[string]string{
 				clusterv1.AnnotationsFromMachineAnnotation: "",
 				clusterv1.LabelsFromMachineAnnotation:      clusterv1.NodeRoleLabelPrefix,
+				clusterv1.TaintsFromMachineAnnotation:      "",
 			},
 			expectedTaints: []corev1.Taint{
 				{Key: "node.kubernetes.io/not-ready", Effect: "NoSchedule"}, // Added by the API server
@@ -906,6 +909,7 @@ func TestPatchNode(t *testing.T) {
 			expectedAnnotations: map[string]string{
 				clusterv1.AnnotationsFromMachineAnnotation: "",
 				clusterv1.LabelsFromMachineAnnotation:      clusterv1.NodeRoleLabelPrefix,
+				clusterv1.TaintsFromMachineAnnotation:      "",
 			},
 			expectedTaints: []corev1.Taint{
 				{Key: "node.kubernetes.io/not-ready", Effect: "NoSchedule"}, // Added by the API server
@@ -934,6 +938,7 @@ func TestPatchNode(t *testing.T) {
 			expectedAnnotations: map[string]string{
 				clusterv1.AnnotationsFromMachineAnnotation: "",
 				clusterv1.LabelsFromMachineAnnotation:      "",
+				clusterv1.TaintsFromMachineAnnotation:      "",
 			},
 			expectedTaints: []corev1.Taint{
 				{Key: "node.kubernetes.io/not-ready", Effect: "NoSchedule"}, // Added by the API server
@@ -955,6 +960,7 @@ func TestPatchNode(t *testing.T) {
 			expectedAnnotations: map[string]string{
 				clusterv1.AnnotationsFromMachineAnnotation: "",
 				clusterv1.LabelsFromMachineAnnotation:      "",
+				clusterv1.TaintsFromMachineAnnotation:      "",
 			},
 			expectedTaints: []corev1.Taint{
 				{Key: "node.kubernetes.io/not-ready", Effect: "NoSchedule"}, // Added by the API server
@@ -986,6 +992,7 @@ func TestPatchNode(t *testing.T) {
 				"not-managed-by-capi":                      "foo",
 				clusterv1.AnnotationsFromMachineAnnotation: "",
 				clusterv1.LabelsFromMachineAnnotation:      "",
+				clusterv1.TaintsFromMachineAnnotation:      "",
 			},
 			expectedTaints: []corev1.Taint{
 				{Key: "node.kubernetes.io/not-ready", Effect: "NoSchedule"}, // Added by the API server
@@ -1014,6 +1021,7 @@ func TestPatchNode(t *testing.T) {
 			expectedAnnotations: map[string]string{
 				clusterv1.AnnotationsFromMachineAnnotation: "",
 				clusterv1.LabelsFromMachineAnnotation:      "",
+				clusterv1.TaintsFromMachineAnnotation:      "",
 			},
 			expectedTaints: []corev1.Taint{
 				{
@@ -1046,6 +1054,7 @@ func TestPatchNode(t *testing.T) {
 				"annotation-from-machine":                  "foo",
 				clusterv1.AnnotationsFromMachineAnnotation: "annotation-from-machine",
 				clusterv1.LabelsFromMachineAnnotation:      "label-from-machine",
+				clusterv1.TaintsFromMachineAnnotation:      "",
 			},
 			expectedTaints: []corev1.Taint{
 				{Key: "node.kubernetes.io/not-ready", Effect: "NoSchedule"}, // Added by the API server
@@ -1080,6 +1089,7 @@ func TestPatchNode(t *testing.T) {
 			expectedAnnotations: map[string]string{
 				clusterv1.AnnotationsFromMachineAnnotation: "",
 				clusterv1.LabelsFromMachineAnnotation:      "",
+				clusterv1.TaintsFromMachineAnnotation:      "",
 			},
 			expectedTaints: []corev1.Taint{
 				{Key: "node.kubernetes.io/not-ready", Effect: "NoSchedule"}, // Added by the API server
@@ -1148,6 +1158,7 @@ func TestPatchNode(t *testing.T) {
 			expectedAnnotations: map[string]string{
 				clusterv1.AnnotationsFromMachineAnnotation: "",
 				clusterv1.LabelsFromMachineAnnotation:      "",
+				clusterv1.TaintsFromMachineAnnotation:      "",
 			},
 			expectedTaints: []corev1.Taint{
 				{Key: "node.kubernetes.io/not-ready", Effect: "NoSchedule"}, // Added by the API server
@@ -1273,6 +1284,7 @@ func TestMultiplePatchNode(t *testing.T) {
 				clusterv1.MachineAnnotation:                "baz",
 				clusterv1.AnnotationsFromMachineAnnotation: "",
 				clusterv1.LabelsFromMachineAnnotation:      "",
+				clusterv1.TaintsFromMachineAnnotation:      "",
 			},
 			secondExpectedAnnotations: map[string]string{
 				clusterv1.ClusterNameAnnotation:            "foo",
@@ -1280,6 +1292,7 @@ func TestMultiplePatchNode(t *testing.T) {
 				clusterv1.MachineAnnotation:                "baz",
 				clusterv1.AnnotationsFromMachineAnnotation: "",
 				clusterv1.LabelsFromMachineAnnotation:      "",
+				clusterv1.TaintsFromMachineAnnotation:      "",
 			},
 		},
 		{
@@ -1303,6 +1316,7 @@ func TestMultiplePatchNode(t *testing.T) {
 				clusterv1.AnnotationsFromMachineAnnotation: "node.cluster.x-k8s.io/keep-this",
 				clusterv1.LabelsFromMachineAnnotation:      "",
 				"node.cluster.x-k8s.io/keep-this":          "foo",
+				clusterv1.TaintsFromMachineAnnotation:      "",
 			},
 			secondExpectedAnnotations: map[string]string{
 				clusterv1.ClusterNameAnnotation:            "foo",
@@ -1311,6 +1325,7 @@ func TestMultiplePatchNode(t *testing.T) {
 				clusterv1.AnnotationsFromMachineAnnotation: "node.cluster.x-k8s.io/keep-this",
 				clusterv1.LabelsFromMachineAnnotation:      "",
 				"node.cluster.x-k8s.io/keep-this":          "foo",
+				clusterv1.TaintsFromMachineAnnotation:      "",
 			},
 		},
 	}

@@ -19,7 +19,9 @@ package kubeadmcontrolplane
 import (
 	"context"
 	"fmt"
+	"slices"
 	"strings"
+	"time"
 
 	pkgerrors "github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -32,7 +34,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
+	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	runtimecatalog "sigs.k8s.io/cluster-api/api/runtime/catalog"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/pkg"
 	"sigs.k8s.io/cluster-api/feature"
@@ -40,19 +44,61 @@ import (
 	"sigs.k8s.io/cluster-api/internal/util/inplace"
 	"sigs.k8s.io/cluster-api/internal/util/patch"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
+	"sigs.k8s.io/cluster-api/util/cache"
 )
 
-type canUpdateMachineResult struct {
-	canUpdateMachine    bool
-	affectsAvailability bool
+// CanUpdateMachineCacheEntry is an entry for the CanUpdateMachine hook cache.
+type CanUpdateMachineCacheEntry struct {
+	// Machine is the machine for which we cache the CanUpdateMachine result.
+	Machine client.ObjectKey
+
+	// KCPGeneration is the generation for which we cache the CanUpdateMachine result.
+	KCPGeneration int64
+
+	// canUpdateMachineResult is the cached CanUpdateMachine result.
+	canUpdateMachineResult
 }
 
-func (r *Reconciler) canUpdateMachine(ctx context.Context, machine *clusterv1.Machine, machineUpToDateResult pkg.UpToDateResult) (canUpdateMachineResult, error) {
+// Key returns the cache key of a CanUpdateMachineCacheEntry.
+func (r CanUpdateMachineCacheEntry) Key() string {
+	return r.Machine.String()
+}
+
+// canUpdateMachineCacheDuration is the duration for which CanUpdateMachine results are cached
+// (if the extension did not return retryAfterSeconds).
+const canUpdateMachineCacheDuration = 5 * time.Minute
+
+type canUpdateMachineResult struct {
+	// retryAfter is the time at which the result expires and we should reconcile again (and call CanUpdateMachine extensions again).
+	// Note: This is either the retry requested by an extension via retryAfterSeconds (see retryAfterFromExtension)
+	// or the time at which the cached result expires.
+	retryAfter time.Time
+
+	// retryAfterFromExtension is true if an extension returned retryAfterSeconds, i.e. the decision is still in progress.
+	// Note: This is needed to differentiate between retryAfterSeconds>0 and other cases.
+	retryAfterFromExtension bool
+
+	canUpdateMachine    bool
+	affectsAvailability bool
+
+	// allowedOperations are the operations that are allowed by all extensions.
+	// Note: The zero value (nil) means that the extensions have no opinion, i.e. all operations are allowed.
+	// An empty list means that no operation is allowed.
+	allowedOperations *[]runtimehooksv1.MachineUpdateOperation
+
+	// messages are the messages from the CanUpdateMachine responses.
+	messages []string
+
+	// reasons are the reasons why the Machine cannot be updated in-place.
+	reasons []string
+}
+
+func (r *Reconciler) canUpdateMachine(ctx context.Context, controlPlane *pkg.ControlPlane, machine *clusterv1.Machine, machineUpToDateResult pkg.UpToDateResult) (canUpdateMachineResult, error) {
 	if r.overrideCanUpdateMachineFunc != nil {
 		return r.overrideCanUpdateMachineFunc(ctx, machine, machineUpToDateResult)
 	}
 
-	log := ctrl.LoggerFrom(ctx).WithValues("Machine", klog.KObj(machine))
+	log := ctrl.LoggerFrom(ctx).WithValues(append(hookLogValues(runtimehooksv1.CanUpdateMachine), "Machine", klog.KObj(machine))...)
 
 	// Machine cannot be updated in-place if the feature gate is not enabled.
 	if !feature.Gates.Enabled(feature.InPlaceUpdates) {
@@ -71,6 +117,7 @@ func (r *Reconciler) canUpdateMachine(ctx context.Context, machine *clusterv1.Ma
 
 	extensionHandlers, err := r.RuntimeClient.GetAllExtensions(ctx, runtimehooksv1.CanUpdateMachine, machine)
 	if err != nil {
+		controlPlane.CanUpdateMachineResults.InternalErrorMessage = fmt.Sprintf("Blocked by CanUpdateMachine hook for Machine %s: %s", machine.Name, err.Error())
 		return canUpdateMachineResult{canUpdateMachine: false}, err
 	}
 	// Machine cannot be updated in-place if no CanUpdateMachine extensions are registered.
@@ -78,72 +125,195 @@ func (r *Reconciler) canUpdateMachine(ctx context.Context, machine *clusterv1.Ma
 		return canUpdateMachineResult{canUpdateMachine: false}, nil
 	}
 	if len(extensionHandlers) > 1 {
-		return canUpdateMachineResult{canUpdateMachine: false}, pkgerrors.Errorf("found multiple CanUpdateMachine hooks (%s): only one hook is supported", strings.Join(extensionHandlers, ","))
-	}
-
-	res, reasons, err := r.canExtensionsUpdateMachine(ctx, machine, machineUpToDateResult, extensionHandlers)
-	if err != nil {
+		err := pkgerrors.Errorf("found multiple CanUpdateMachine hooks (%s): only one hook is supported", strings.Join(extensionHandlers, ","))
+		controlPlane.CanUpdateMachineResults.InternalErrorMessage = fmt.Sprintf("Blocked by CanUpdateMachine hook for Machine %s: %s", machine.Name, err.Error())
 		return canUpdateMachineResult{canUpdateMachine: false}, err
 	}
-	if !res.canUpdateMachine {
-		log.Info(fmt.Sprintf("Machine %s cannot be updated in-place by extensions", klog.KObj(machine)), "reason", strings.Join(reasons, ","))
-		return canUpdateMachineResult{canUpdateMachine: false}, nil
-	}
-	if res.affectsAvailability {
-		log.Info(fmt.Sprintf("Machine %s can be updated in-place by extensions (affects availability)", klog.KObj(machine)))
+
+	var res canUpdateMachineResult
+	logSuffix := ""
+	if entry := tryToGetResultsFromCache(r.now(), r.canUpdateMachineCache, machine, controlPlane.KCP); entry != nil {
+		// Get result from cache.
+		res = entry.canUpdateMachineResult
+
+		// Refresh the cache entry, so only tryToGetResultsFromCache decides when a cache entry should not be used anymore.
+		r.canUpdateMachineCache.Add(*entry)
+
+		// Note: Cached results are only logged on log level 5.
+		log = log.V(5)
+		logSuffix = " (cached)"
 	} else {
-		log.Info(fmt.Sprintf("Machine %s can be updated in-place by extensions (does not affect availability)", klog.KObj(machine)))
+		// Get result from extensions.
+		var err error
+		res, err = r.canExtensionsUpdateMachine(ctx, machine, machineUpToDateResult, extensionHandlers)
+		if err != nil {
+			controlPlane.CanUpdateMachineResults.InternalErrorMessage = fmt.Sprintf("Blocked by CanUpdateMachine hook for Machine %s: %s", machine.Name, err.Error())
+			return canUpdateMachineResult{canUpdateMachine: false}, err
+		}
+
+		r.canUpdateMachineCache.Add(CanUpdateMachineCacheEntry{
+			Machine:                client.ObjectKeyFromObject(machine),
+			KCPGeneration:          controlPlane.KCP.Generation,
+			canUpdateMachineResult: res,
+		})
+	}
+
+	if len(res.reasons) > 0 {
+		log = log.WithValues("reason", strings.Join(res.reasons, ","))
+	}
+	if len(res.messages) > 0 {
+		log = log.WithValues("messages", strings.Join(res.messages, ","))
+	}
+	switch {
+	case res.retryAfterFromExtension:
+		msg := fmt.Sprintf("Blocked by CanUpdateMachine hook for Machine %s", machine.Name)
+		if len(res.messages) > 0 {
+			msg = fmt.Sprintf("%s: %s", msg, strings.Join(res.messages, ", "))
+		}
+		controlPlane.CanUpdateMachineResults.WaitingForDecisionMessage = msg
+		log.Info(fmt.Sprintf("Machine %s cannot be rolled out yet: extensions returned retryAfterSeconds, requeuing%s", machine.Name, logSuffix))
+	case !res.canUpdateMachine:
+		log.Info(fmt.Sprintf("Machine %s cannot be updated in-place by extensions%s", machine.Name, logSuffix))
+	case res.affectsAvailability:
+		log.Info(fmt.Sprintf("Machine %s can be updated in-place by extensions (affects availability)%s", machine.Name, logSuffix))
+	default:
+		log.Info(fmt.Sprintf("Machine %s can be updated in-place by extensions (does not affect availability)%s", machine.Name, logSuffix))
 	}
 	return res, nil
+}
+
+func tryToGetResultsFromCache(now time.Time, cache cache.Cache[CanUpdateMachineCacheEntry], machine *clusterv1.Machine, kcp *controlplanev1.KubeadmControlPlane) *CanUpdateMachineCacheEntry {
+	entry, ok := cache.Has(CanUpdateMachineCacheEntry{
+		Machine: client.ObjectKeyFromObject(machine),
+	}.Key())
+	// If cache entry does not exist, don't use the cache.
+	if !ok {
+		return nil
+	}
+
+	// If KCP generation changed, don't use the cache.
+	// I.e. as soon as KCP generation is changed we will call CanUpdateMachine again.
+	if kcp.Generation != entry.KCPGeneration {
+		return nil
+	}
+
+	// If retryAfter is in the past, don't use the cache.
+	if !entry.retryAfter.After(now) {
+		return nil
+	}
+
+	// If retryAfter is in the future, use the cache.
+	return &entry
 }
 
 // canExtensionsUpdateMachine calls CanUpdateMachine extensions to decide if a Machine can be updated in-place.
 // Note: This is following the same general structure that is used in the Apply func in
 // internal/controllers/topology/cluster/patches/engine.go.
-func (r *Reconciler) canExtensionsUpdateMachine(ctx context.Context, machine *clusterv1.Machine, machineUpToDateResult pkg.UpToDateResult, extensionHandlers []string) (canUpdateMachineResult, []string, error) {
+func (r *Reconciler) canExtensionsUpdateMachine(ctx context.Context, machine *clusterv1.Machine, machineUpToDateResult pkg.UpToDateResult, extensionHandlers []string) (canUpdateMachineResult, error) {
 	if r.overrideCanExtensionsUpdateMachine != nil {
 		return r.overrideCanExtensionsUpdateMachine(ctx, machine, machineUpToDateResult, extensionHandlers)
 	}
 
-	log := ctrl.LoggerFrom(ctx)
-
 	// Create the CanUpdateMachine request.
 	cannotUpdateMachineReason, req, err := createRequest(ctx, r.Client, machine, machineUpToDateResult)
 	if err != nil {
-		return canUpdateMachineResult{canUpdateMachine: false}, nil, pkgerrors.Wrapf(err, "failed to generate CanUpdateMachine request")
+		return canUpdateMachineResult{canUpdateMachine: false}, pkgerrors.Wrapf(err, "failed to generate CanUpdateMachine request")
 	}
 	if cannotUpdateMachineReason != "" {
-		return canUpdateMachineResult{canUpdateMachine: false}, []string{cannotUpdateMachineReason}, nil
+		return canUpdateMachineResult{
+			retryAfter:       r.now().Add(canUpdateMachineCacheDuration),
+			canUpdateMachine: false,
+			reasons:          []string{cannotUpdateMachineReason},
+		}, nil
 	}
 
-	var reasons []string
+	// Note: We always call all extensions (instead of stopping as soon as the current and desired objects are matching),
+	// because every extension can have an opinion about the allowed operations and every extension
+	// is able to block (independent of what it is able to update in-place).
+	var messages []string
 	var affectsAvailability bool
+	var allowedOperations *[]runtimehooksv1.MachineUpdateOperation
 	for _, extensionHandler := range extensionHandlers {
 		// Call CanUpdateMachine extension.
 		resp := &runtimehooksv1.CanUpdateMachineResponse{}
 		if err := r.RuntimeClient.CallExtension(ctx, runtimehooksv1.CanUpdateMachine, machine, extensionHandler, req, resp); err != nil {
-			return canUpdateMachineResult{canUpdateMachine: false}, nil, err
+			return canUpdateMachineResult{canUpdateMachine: false}, err
 		}
+
+		if resp.Message != "" {
+			messages = append(messages, resp.Message)
+		}
+
+		// If the extension asks to be called again later, stop here and requeue.
+		// Note: In this case the allowedOperations of the extension are not considered, the decision is still in progress.
+		if resp.RetryAfterSeconds > 0 {
+			return canUpdateMachineResult{
+				retryAfter:              r.now().Add(time.Duration(resp.RetryAfterSeconds) * time.Second),
+				retryAfterFromExtension: true,
+				messages:                messages,
+			}, nil
+		}
+
+		// An operation is only allowed if it is allowed by all extensions.
+		allowedOperations = intersectAllowedOperations(allowedOperations, resp.AllowedOperations)
+
+		// If no operation is allowed, the rollout is blocked: stop here, no other extension can change that.
+		if allowedOperations != nil && len(*allowedOperations) == 0 {
+			return canUpdateMachineResult{
+				retryAfter:        r.now().Add(canUpdateMachineCacheDuration),
+				canUpdateMachine:  false,
+				allowedOperations: allowedOperations,
+				messages:          messages,
+				reasons:           []string{"no operation is allowed by extensions"},
+			}, nil
+		}
+
 		affectsAvailability = affectsAvailability || ptr.Deref(resp.AffectsAvailability, true)
 
 		// Apply patches from the CanUpdateMachine response to the request.
 		if err := applyPatchesToRequest(ctx, req, resp); err != nil {
-			return canUpdateMachineResult{canUpdateMachine: false}, nil, pkgerrors.Wrapf(err, "failed to apply patches from extension %s to the CanUpdateMachine request", extensionHandler)
+			return canUpdateMachineResult{canUpdateMachine: false}, pkgerrors.Wrapf(err, "failed to apply patches from extension %s to the CanUpdateMachine request", extensionHandler)
 		}
-
-		// Check if current and desired objects are now matching.
-		var matches bool
-		matches, reasons, err = matchesMachine(req)
-		if err != nil {
-			return canUpdateMachineResult{canUpdateMachine: false}, nil, pkgerrors.Wrapf(err, "failed to compare current and desired objects after calling extension %s", extensionHandler)
-		}
-		if matches {
-			return canUpdateMachineResult{canUpdateMachine: true, affectsAvailability: affectsAvailability}, nil, nil
-		}
-		log.V(5).Info(fmt.Sprintf("Machine cannot be updated in-place yet after calling extension %s: %s", extensionHandler, strings.Join(reasons, ",")), "Machine", klog.KObj(&req.Current.Machine))
 	}
 
-	return canUpdateMachineResult{canUpdateMachine: false}, reasons, nil
+	// Check if current and desired objects are now matching.
+	matches, reasons, err := matchesMachine(req)
+	if err != nil {
+		return canUpdateMachineResult{canUpdateMachine: false}, pkgerrors.Wrapf(err, "failed to compare current and desired objects after calling extensions %s", strings.Join(extensionHandlers, ","))
+	}
+
+	return canUpdateMachineResult{
+		retryAfter:          r.now().Add(canUpdateMachineCacheDuration),
+		canUpdateMachine:    matches,
+		affectsAvailability: matches && affectsAvailability,
+		allowedOperations:   allowedOperations,
+		messages:            messages,
+		reasons:             reasons,
+	}, nil
+}
+
+// intersectAllowedOperations returns the operations that are allowed by both a and b.
+// Note: nil means no opinion, i.e. all operations are allowed. An empty list means that no operation is allowed.
+// The result is nil if both a and b are nil. Otherwise the result is a pointer to a list that only contains
+// known operations without duplicates. Unknown operations are ignored.
+func intersectAllowedOperations(a, b *[]runtimehooksv1.MachineUpdateOperation) *[]runtimehooksv1.MachineUpdateOperation {
+	if a == nil && b == nil {
+		return nil
+	}
+
+	result := []runtimehooksv1.MachineUpdateOperation{}
+	for _, operation := range runtimehooksv1.AllMachineUpdateOperations {
+		if isOperationAllowed(a, operation) && isOperationAllowed(b, operation) {
+			result = append(result, operation)
+		}
+	}
+	return &result
+}
+
+// isOperationAllowed returns true if the operation is allowed according to allowedOperations.
+// Note: If allowedOperations is not set the extensions have no opinion, i.e. all operations are allowed.
+func isOperationAllowed(allowedOperations *[]runtimehooksv1.MachineUpdateOperation, operation runtimehooksv1.MachineUpdateOperation) bool {
+	return allowedOperations == nil || slices.Contains(*allowedOperations, operation)
 }
 
 func createRequest(ctx context.Context, c client.Client, currentMachine *clusterv1.Machine, machineUpToDateResult pkg.UpToDateResult) (string, *runtimehooksv1.CanUpdateMachineRequest, error) {
@@ -371,4 +541,8 @@ func matchesUnstructuredSpec(patched, desired runtime.RawExtension) (equal bool,
 			},
 		},
 	)
+}
+
+func hookLogValues(hook runtimecatalog.Hook) []any {
+	return []any{"hook", runtimecatalog.HookName(hook)}
 }

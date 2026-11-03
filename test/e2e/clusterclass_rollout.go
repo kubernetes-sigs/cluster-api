@@ -38,7 +38,7 @@ import (
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/external"
-	"sigs.k8s.io/cluster-api/core/reconcilers/topology/machineset"
+	"sigs.k8s.io/cluster-api/core/reconcilers/machinedeployment/mdutil"
 	"sigs.k8s.io/cluster-api/internal/contract"
 	"sigs.k8s.io/cluster-api/test/e2e/internal/log"
 	"sigs.k8s.io/cluster-api/test/framework"
@@ -1464,7 +1464,7 @@ func getClusterObjects(ctx context.Context, g Gomega, clusterProxy framework.Clu
 		g.Expect(err).ToNot(HaveOccurred())
 		res.InfrastructureMachineTemplateByMachineDeployment[md.Name] = infrastructureMachineTemplate
 
-		machineSets, err := machineset.GetMachineSetsForDeployment(ctx, mgmtClient, client.ObjectKeyFromObject(&md))
+		machineSets, err := mdutil.GetMachineSetsForDeployment(ctx, mgmtClient, client.ObjectKeyFromObject(&md))
 		g.Expect(err).ToNot(HaveOccurred())
 		res.MachineSetsByMachineDeployment[md.Name] = machineSets
 

@@ -22,7 +22,9 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
+	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
@@ -32,6 +34,7 @@ import (
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
@@ -121,6 +124,9 @@ func TestMachineDeploymentReconciler(t *testing.T) {
 				Labels: map[string]string{
 					clusterv1.ClusterNameLabel: testCluster.Name,
 				},
+				// Set the legacy finalizer of the topology/machinedeployment controller (which has been merged
+				// into this controller) to verify it is removed during normal reconciliation.
+				Finalizers: []string{clusterv1.MachineDeploymentTopologyFinalizer}, //nolint:staticcheck // Intentionally used to test the cleanup of the legacy finalizer.
 			},
 			Spec: clusterv1.MachineDeploymentSpec{
 				ClusterName: testCluster.Name,
@@ -199,6 +205,13 @@ func TestMachineDeploymentReconciler(t *testing.T) {
 			t.Log("Deleting the MachineDeployment")
 			g.Expect(env.Delete(ctx, deployment)).To(Succeed())
 		}()
+
+		t.Log("Verifying the legacy topology finalizer is removed and the MachineDeployment finalizer is set")
+		g.Eventually(func(g Gomega) {
+			g.Expect(env.Get(ctx, client.ObjectKeyFromObject(deployment), deployment)).To(Succeed())
+			g.Expect(deployment.Finalizers).To(ContainElement(clusterv1.MachineDeploymentFinalizer))
+			g.Expect(deployment.Finalizers).ToNot(ContainElement(clusterv1.MachineDeploymentTopologyFinalizer)) //nolint:staticcheck // Intentionally used to test the cleanup of the legacy finalizer.
+		}, timeout).Should(Succeed())
 
 		t.Log("Verifying the MachineDeployment has a cluster label and ownerRef")
 		g.Eventually(func() bool {
@@ -967,4 +980,184 @@ func TestReconciler_reconcileDelete(t *testing.T) {
 			g.Expect(machineSetList.Items).To(ConsistOf(tt.wantMachineSets))
 		})
 	}
+}
+
+func TestReconciler_reconcileDelete_TopologyOwned(t *testing.T) {
+	deletionTimeStamp := metav1.Now()
+
+	mdBT := builder.BootstrapTemplate(metav1.NamespaceDefault, "mdBT").Build()
+	mdIMT := builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "mdIMT").Build()
+	md := builder.MachineDeployment(metav1.NamespaceDefault, "md").
+		WithBootstrapTemplate(mdBT).
+		WithInfrastructureTemplate(mdIMT).
+		WithLabels(map[string]string{
+			clusterv1.ClusterTopologyOwnedLabel: "",
+		}).
+		Build()
+	// Note: The selector is required to get the MachineSets of the MachineDeployment.
+	md.Spec.Selector = metav1.LabelSelector{MatchLabels: map[string]string{"some": "labelselector"}}
+	mhc := builder.MachineHealthCheck(metav1.NamespaceDefault, "md").Build()
+	md.SetDeletionTimestamp(&deletionTimeStamp)
+	md.SetFinalizers([]string{clusterv1.MachineDeploymentFinalizer})
+
+	t.Run("Should delete templates of a MachineDeployment and remove its finalizers", func(t *testing.T) {
+		g := NewWithT(t)
+
+		// Copying the MD so changes made by reconcileDelete do not affect other tests.
+		md := md.DeepCopy()
+		md.SetFinalizers([]string{clusterv1.MachineDeploymentFinalizer, clusterv1.MachineDeploymentTopologyFinalizer}) //nolint:staticcheck // Intentionally used to test the cleanup of the legacy finalizer.
+
+		fakeClient := fake.NewClientBuilder().
+			WithScheme(fakeScheme).
+			WithObjects(md, mdBT, mdIMT, builder.GenericBootstrapConfigTemplateCRD, builder.GenericInfrastructureMachineTemplateCRD).
+			Build()
+
+		r := &Reconciler{
+			Client:     fakeClient,
+			APIReader:  fakeClient,
+			controller: capicontrollerutil.NewFakeController(),
+		}
+		err := r.reconcileDelete(ctx, &scope{machineDeployment: md})
+		g.Expect(err).ToNot(HaveOccurred())
+
+		g.Expect(md.Finalizers).To(BeEmpty())
+		g.Expect(templateExists(fakeClient, mdBT)).To(BeFalse())
+		g.Expect(templateExists(fakeClient, mdIMT)).To(BeFalse())
+	})
+
+	t.Run("Should delete infra template of a MachineDeployment without a bootstrap template", func(t *testing.T) {
+		g := NewWithT(t)
+
+		mdWithoutBootstrapTemplateIMT := builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "mdWithoutBootstrapTemplateIMT").Build()
+		mdWithoutBootstrapTemplate := builder.MachineDeployment(metav1.NamespaceDefault, "mdWithoutBootstrapTemplate").
+			WithInfrastructureTemplate(mdWithoutBootstrapTemplateIMT).
+			WithLabels(map[string]string{
+				clusterv1.ClusterTopologyOwnedLabel: "",
+			}).
+			Build()
+		mdWithoutBootstrapTemplate.Spec.Selector = metav1.LabelSelector{MatchLabels: map[string]string{"some": "labelselector"}}
+		mdWithoutBootstrapTemplate.SetDeletionTimestamp(&deletionTimeStamp)
+		mdWithoutBootstrapTemplate.SetFinalizers([]string{clusterv1.MachineDeploymentFinalizer})
+
+		fakeClient := fake.NewClientBuilder().
+			WithScheme(fakeScheme).
+			WithObjects(mdWithoutBootstrapTemplate, mdWithoutBootstrapTemplateIMT, builder.GenericBootstrapConfigTemplateCRD, builder.GenericInfrastructureMachineTemplateCRD).
+			Build()
+
+		r := &Reconciler{
+			Client:     fakeClient,
+			APIReader:  fakeClient,
+			controller: capicontrollerutil.NewFakeController(),
+		}
+		err := r.reconcileDelete(ctx, &scope{machineDeployment: mdWithoutBootstrapTemplate})
+		g.Expect(err).ToNot(HaveOccurred())
+
+		g.Expect(controllerutil.ContainsFinalizer(mdWithoutBootstrapTemplate, clusterv1.MachineDeploymentFinalizer)).To(BeFalse())
+		g.Expect(templateExists(fakeClient, mdWithoutBootstrapTemplateIMT)).To(BeFalse())
+	})
+
+	t.Run("Should delete a MachineHealthCheck when its linked MachineDeployment is deleted", func(t *testing.T) {
+		g := NewWithT(t)
+
+		// Copying the MD so changes made by reconcileDelete do not affect other tests.
+		md := md.DeepCopy()
+
+		fakeClient := fake.NewClientBuilder().
+			WithScheme(fakeScheme).
+			WithObjects(md, mhc, builder.GenericBootstrapConfigTemplateCRD, builder.GenericInfrastructureMachineTemplateCRD).
+			Build()
+
+		r := &Reconciler{
+			Client:     fakeClient,
+			APIReader:  fakeClient,
+			controller: capicontrollerutil.NewFakeController(),
+		}
+		err := r.reconcileDelete(ctx, &scope{machineDeployment: md})
+		g.Expect(err).ToNot(HaveOccurred())
+
+		g.Expect(controllerutil.ContainsFinalizer(md, clusterv1.MachineDeploymentFinalizer)).To(BeFalse())
+
+		gotMHC := clusterv1.MachineHealthCheck{}
+		err = fakeClient.Get(ctx, client.ObjectKeyFromObject(mhc), &gotMHC)
+		g.Expect(apierrors.IsNotFound(err)).To(BeTrue())
+	})
+
+	t.Run("Should not delete templates and keep finalizers of a MachineDeployment while MachineSets exist", func(t *testing.T) {
+		g := NewWithT(t)
+
+		// Copying the MD so changes made by reconcileDelete do not affect other tests.
+		md := md.DeepCopy()
+		md.SetFinalizers([]string{clusterv1.MachineDeploymentFinalizer, clusterv1.MachineDeploymentTopologyFinalizer}) //nolint:staticcheck // Intentionally used to test the cleanup of the legacy finalizer.
+
+		ms := builder.MachineSet(md.Namespace, "ms").
+			WithBootstrapTemplate(mdBT).
+			WithInfrastructureTemplate(mdIMT).
+			WithLabels(md.Spec.Selector.MatchLabels).
+			WithOwnerReferences([]metav1.OwnerReference{*metav1.NewControllerRef(md, clusterv1.GroupVersion.WithKind("MachineDeployment"))}).
+			Build()
+
+		fakeClient := fake.NewClientBuilder().
+			WithScheme(fakeScheme).
+			WithObjects(md, ms, mhc, mdBT, mdIMT).
+			Build()
+
+		r := &Reconciler{
+			Client:     fakeClient,
+			APIReader:  fakeClient,
+			controller: capicontrollerutil.NewFakeController(),
+		}
+		err := r.reconcileDelete(ctx, &scope{machineDeployment: md})
+		g.Expect(err).ToNot(HaveOccurred())
+
+		g.Expect(templateExists(fakeClient, mdBT)).To(BeTrue())
+		g.Expect(templateExists(fakeClient, mdIMT)).To(BeTrue())
+		// Note: The MachineHealthCheck is deleted as soon as the MachineDeployment is deleting.
+		g.Expect(objectExists(fakeClient, mhc)).To(BeFalse())
+	})
+
+	t.Run("Should not delete templates and MachineHealthCheck of a MachineDeployment which is not topology-owned", func(t *testing.T) {
+		g := NewWithT(t)
+
+		// Copying the MD so changes made by reconcileDelete do not affect other tests.
+		md := md.DeepCopy()
+		delete(md.Labels, clusterv1.ClusterTopologyOwnedLabel)
+
+		fakeClient := fake.NewClientBuilder().
+			WithScheme(fakeScheme).
+			WithObjects(md, mhc, mdBT, mdIMT).
+			Build()
+
+		r := &Reconciler{
+			Client:     fakeClient,
+			APIReader:  fakeClient,
+			controller: capicontrollerutil.NewFakeController(),
+		}
+		err := r.reconcileDelete(ctx, &scope{machineDeployment: md})
+		g.Expect(err).ToNot(HaveOccurred())
+
+		g.Expect(controllerutil.ContainsFinalizer(md, clusterv1.MachineDeploymentFinalizer)).To(BeFalse())
+		g.Expect(templateExists(fakeClient, mdBT)).To(BeTrue())
+		g.Expect(templateExists(fakeClient, mdIMT)).To(BeTrue())
+		g.Expect(objectExists(fakeClient, mhc)).To(BeTrue())
+	})
+}
+
+func templateExists(c client.Reader, template *unstructured.Unstructured) bool {
+	obj := &unstructured.Unstructured{}
+	obj.SetKind(template.GetKind())
+	obj.SetAPIVersion(template.GetAPIVersion())
+
+	err := c.Get(ctx, client.ObjectKeyFromObject(template), obj)
+	if err != nil && !apierrors.IsNotFound(err) {
+		panic(pkgerrors.Wrapf(err, "failed to get %s/%s", template.GetKind(), template.GetName()))
+	}
+	return err == nil
+}
+
+func objectExists(c client.Reader, o client.Object) bool {
+	err := c.Get(ctx, client.ObjectKeyFromObject(o), o.DeepCopyObject().(client.Object))
+	if err != nil && !apierrors.IsNotFound(err) {
+		panic(pkgerrors.Wrapf(err, "failed to get %s", client.ObjectKeyFromObject(o)))
+	}
+	return err == nil
 }

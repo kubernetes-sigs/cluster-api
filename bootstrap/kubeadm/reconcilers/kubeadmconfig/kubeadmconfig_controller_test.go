@@ -660,34 +660,46 @@ func TestReconcileIfJoinCertificatesAvailableConditionInNodesAndControlPlaneIsRe
 	cluster.Spec.ControlPlaneEndpoint = clusterv1.APIEndpoint{Host: "100.105.150.1", Port: 6443}
 
 	useCases := []struct {
-		name          string
-		machine       *clusterv1.Machine
-		configName    string
-		configBuilder func(string, string) *bootstrapv1.KubeadmConfig
+		name           string
+		machine        *clusterv1.Machine
+		configName     string
+		configBuilder  func(string, string) *bootstrapv1.KubeadmConfig
+		secretsBuilder func(*testing.T, *clusterv1.Cluster, *bootstrapv1.KubeadmConfig) []client.Object
 	}{
 		{
-			name:          "Join a worker node with a fully compiled kubeadm config object",
-			machine:       newWorkerMachineForCluster(cluster),
-			configName:    "worker-join-cfg",
-			configBuilder: newWorkerJoinKubeadmConfig,
+			name:           "Join a worker node with a fully compiled kubeadm config object",
+			machine:        newWorkerMachineForCluster(cluster),
+			configName:     "worker-join-cfg",
+			configBuilder:  newWorkerJoinKubeadmConfig,
+			secretsBuilder: createSecrets,
 		},
 		{
-			name:          "Join a worker node  with an empty kubeadm config object (defaults apply)",
-			machine:       newWorkerMachineForCluster(cluster),
-			configName:    "worker-join-cfg",
-			configBuilder: newKubeadmConfig,
+			name:           "Join a worker node with only a cluster CA certificate Secret",
+			machine:        newWorkerMachineForCluster(cluster),
+			configName:     "worker-join-cfg",
+			configBuilder:  newWorkerJoinKubeadmConfig,
+			secretsBuilder: createCertificateOnlyClusterCASecret,
 		},
 		{
-			name:          "Join a control plane node with a fully compiled kubeadm config object",
-			machine:       newControlPlaneMachine(cluster, "control-plane-join-machine"),
-			configName:    "control-plane-join-cfg",
-			configBuilder: newControlPlaneJoinKubeadmConfig,
+			name:           "Join a worker node  with an empty kubeadm config object (defaults apply)",
+			machine:        newWorkerMachineForCluster(cluster),
+			configName:     "worker-join-cfg",
+			configBuilder:  newKubeadmConfig,
+			secretsBuilder: createSecrets,
 		},
 		{
-			name:          "Join a control plane node with an empty kubeadm config object (defaults apply)",
-			machine:       newControlPlaneMachine(cluster, "control-plane-join-machine"),
-			configName:    "control-plane-join-cfg",
-			configBuilder: newKubeadmConfig,
+			name:           "Join a control plane node with a fully compiled kubeadm config object",
+			machine:        newControlPlaneMachine(cluster, "control-plane-join-machine"),
+			configName:     "control-plane-join-cfg",
+			configBuilder:  newControlPlaneJoinKubeadmConfig,
+			secretsBuilder: createSecrets,
+		},
+		{
+			name:           "Join a control plane node with an empty kubeadm config object (defaults apply)",
+			machine:        newControlPlaneMachine(cluster, "control-plane-join-machine"),
+			configName:     "control-plane-join-cfg",
+			configBuilder:  newKubeadmConfig,
+			secretsBuilder: createSecrets,
 		},
 	}
 
@@ -703,7 +715,7 @@ func TestReconcileIfJoinCertificatesAvailableConditionInNodesAndControlPlaneIsRe
 				rt.machine,
 				config,
 			}
-			objects = append(objects, createSecrets(t, cluster, config)...)
+			objects = append(objects, rt.secretsBuilder(t, cluster, config)...)
 			myclient := fake.NewClientBuilder().WithObjects(objects...).WithStatusSubresource(&bootstrapv1.KubeadmConfig{}).Build()
 			k := &Reconciler{
 				Client:              myclient,
@@ -2786,6 +2798,18 @@ func createSecrets(t *testing.T, cluster *clusterv1.Cluster, config *bootstrapv1
 		out = append(out, certificate.AsSecret(util.ObjectKey(cluster), *metav1.NewControllerRef(config, bootstrapv1.GroupVersion.WithKind("KubeadmConfig"))))
 	}
 	return out
+}
+
+func createCertificateOnlyClusterCASecret(t *testing.T, cluster *clusterv1.Cluster, config *bootstrapv1.KubeadmConfig) []client.Object {
+	t.Helper()
+
+	certificates := secret.NewCertificatesForInitialControlPlane(&config.Spec.ClusterConfiguration)
+	if err := certificates.Generate(); err != nil {
+		t.Fatal(err)
+	}
+	s := certificates.GetByPurpose(secret.ClusterCA).AsSecret(util.ObjectKey(cluster), *metav1.NewControllerRef(config, bootstrapv1.GroupVersion.WithKind("KubeadmConfig")))
+	delete(s.Data, secret.TLSKeyDataName)
+	return []client.Object{s}
 }
 
 type myInitLocker struct {

@@ -19,6 +19,7 @@ package pkg
 import (
 	"context"
 	"fmt"
+	"slices"
 
 	pkgerrors "github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -39,6 +40,7 @@ import (
 type UpToDateResult struct {
 	LogMessages              []string
 	ConditionMessages        []string
+	ConfigurationNotUpToDate bool
 	EligibleForInPlaceUpdate bool
 	DesiredMachine           *clusterv1.Machine
 	CurrentInfraMachine      *unstructured.Unstructured
@@ -55,7 +57,7 @@ func UpToDate(
 	cluster *clusterv1.Cluster,
 	machine *clusterv1.Machine,
 	kcp *controlplanev1.KubeadmControlPlane,
-	reconciliationTime *metav1.Time,
+	reconcileStartTime *metav1.Time,
 	infraMachines map[string]*unstructured.Unstructured,
 	kubeadmConfigs map[string]*bootstrapv1.KubeadmConfig,
 ) (bool, *UpToDateResult, error) {
@@ -76,7 +78,7 @@ func UpToDate(
 	}
 
 	// Machines whose certificates are about to expire.
-	if collections.ShouldRolloutBefore(reconciliationTime, kcp.Spec.Rollout.Before)(machine) {
+	if collections.ShouldRolloutBefore(reconcileStartTime, kcp.Spec.Rollout.Before)(machine) {
 		res.LogMessages = append(res.LogMessages, "certificates will expire soon, rolloutBefore expired")
 		res.ConditionMessages = append(res.ConditionMessages, "Certificates will expire soon")
 		res.EligibleForInPlaceUpdate = false
@@ -84,7 +86,7 @@ func UpToDate(
 
 	// Machines that are scheduled for rollout (KCP.Spec.RolloutAfter set,
 	// the RolloutAfter deadline is expired, and the machine was created before the deadline).
-	if collections.ShouldRolloutAfter(reconciliationTime, kcp.Spec.Rollout.After)(machine) {
+	if collections.ShouldRolloutAfter(reconcileStartTime, kcp.Spec.Rollout.After)(machine) {
 		res.LogMessages = append(res.LogMessages, "rolloutAfter expired")
 		res.ConditionMessages = append(res.ConditionMessages, "KubeadmControlPlane spec.rolloutAfter expired")
 		res.EligibleForInPlaceUpdate = false
@@ -97,6 +99,7 @@ func UpToDate(
 		return false, nil, pkgerrors.Wrapf(err, "failed to determine if Machine %s is up-to-date", machine.Name)
 	}
 	if !matches {
+		res.ConfigurationNotUpToDate = true
 		res.LogMessages = append(res.LogMessages, specLogMessages...)
 		res.ConditionMessages = append(res.ConditionMessages, specConditionMessages...)
 	}
@@ -310,7 +313,7 @@ func PrepareKubeadmConfigsForDiff(desiredKubeadmConfig, currentKubeadmConfig *bo
 		// Convert InitConfiguration to JoinConfiguration
 		currentKubeadmConfig.Spec.JoinConfiguration.Timeouts = currentKubeadmConfig.Spec.InitConfiguration.Timeouts
 		currentKubeadmConfig.Spec.JoinConfiguration.Patches = currentKubeadmConfig.Spec.InitConfiguration.Patches
-		currentKubeadmConfig.Spec.JoinConfiguration.SkipPhases = currentKubeadmConfig.Spec.InitConfiguration.SkipPhases
+		currentKubeadmConfig.Spec.JoinConfiguration.SkipPhases = removeKubeadmInitOnlyPhases(currentKubeadmConfig.Spec.InitConfiguration.SkipPhases)
 		currentKubeadmConfig.Spec.JoinConfiguration.NodeRegistration = currentKubeadmConfig.Spec.InitConfiguration.NodeRegistration
 		currentKubeadmConfig.Spec.JoinConfiguration.ControlPlane = &bootstrapv1.JoinControlPlane{
 			LocalAPIEndpoint: currentKubeadmConfig.Spec.InitConfiguration.LocalAPIEndpoint,
@@ -372,6 +375,14 @@ func PrepareKubeadmConfigsForDiff(desiredKubeadmConfig, currentKubeadmConfig *bo
 	dropOmittableFields(&currentKubeadmConfig.Spec)
 
 	return desiredKubeadmConfig, currentKubeadmConfig
+}
+
+// removeKubeadmInitOnlyPhases removes phases that are only supported by kubeadm init
+// and accordingly cannot be set in a JoinConfiguration.
+func removeKubeadmInitOnlyPhases(phases []string) []string {
+	return slices.DeleteFunc(phases, func(p string) bool {
+		return p == "addon/coredns" || p == "addon/kube-proxy"
+	})
 }
 
 // dropOmittableFields makes the comparison tolerant to omittable fields being set in the go struct. It applies to:

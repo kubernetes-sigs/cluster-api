@@ -119,7 +119,7 @@ logs, e.g.
 - If an API field name is used in log messages, the entire path MUST be used and field names MUST capitalized like in the 
   API (not as in the golang type). For example `Waiting for spec.providerID to be set`
 - If a log message is about a controlled or a referenced object, e.g. Machine controller performing an action on MachineSet,
-  the message MUST contain the Kind of the controlled/referenced object and its namespace/name, for example `Created MachineSet default/foo-bar`
+  the message MUST contain the Kind of the controlled/referenced object and its name, for example `Created MachineSet foo-bar`
   - The controlled/referenced object MUST also be added as a key value pair (see guidelines above)
 
 ## Log Levels
@@ -134,6 +134,9 @@ for log levels; as a small integration on the above guidelines we would like to 
 - Logs at higher levels of verbosity (>=4) are meant to document “how it happened”, providing insight on thorny parts of
   the code; a person reading those logs usually has deep knowledge of the codebase.
 - Don’t use verbosity higher than 5.
+
+Log lines that are repeated on every reconcile while a controller is waiting for something (e.g. waiting for the infrastructure
+of a Machine to be provisioned) should not be logged at every reconcile; use the log rate limiter (`internal/util/log`) instead.
 
 We are using log level 2 as a default verbosity for all core Cluster API
 controllers as recommended by the Kubernetes guidelines.

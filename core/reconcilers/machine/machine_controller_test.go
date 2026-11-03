@@ -1862,10 +1862,12 @@ func TestDrainNode(t *testing.T) {
 			testMachine.Status.NodeRef = clusterv1.MachineNodeReference{
 				Name: tt.nodeName,
 			}
-			if !tt.nodeDrainStartTime.IsZero() {
-				testMachine.Status.Deletion = &clusterv1.MachineDeletionStatus{
-					NodeDrainStartTime: tt.nodeDrainStartTime,
-				}
+			// Note: reconcileDelete always sets NodeDrainStartTime before calling drainNode.
+			testMachine.Status.Deletion = &clusterv1.MachineDeletionStatus{
+				NodeDrainStartTime: tt.nodeDrainStartTime,
+			}
+			if tt.nodeDrainStartTime.IsZero() {
+				testMachine.Status.Deletion.NodeDrainStartTime = metav1.Now()
 			}
 
 			s := &scope{
@@ -2340,7 +2342,7 @@ func TestShouldWaitForNodeVolumes(t *testing.T) {
 			},
 			expected:               ctrl.Result{RequeueAfter: waitForVolumeDetachRetryInterval},
 			expectedDeletingReason: clusterv1.MachineDeletingWaitingForVolumeDetachReason,
-			expectedDeletingMessage: `Waiting for Node volumes to be detached (started at 2024-10-09T16:13:59Z)
+			expectedDeletingMessage: `Waiting for Node volumes to be detached (started at 2024-10-09T16:13:59Z):
 * PersistentVolumeClaims: default/test-pvc`,
 			expectDeferNextReconcile: waitForVolumeDetachRetryInterval,
 		},
@@ -2365,7 +2367,7 @@ func TestShouldWaitForNodeVolumes(t *testing.T) {
 			},
 			expected:               ctrl.Result{RequeueAfter: waitForVolumeDetachRetryInterval},
 			expectedDeletingReason: clusterv1.MachineDeletingWaitingForVolumeDetachReason,
-			expectedDeletingMessage: `Waiting for Node volumes to be detached (started at 2024-10-09T16:13:59Z)
+			expectedDeletingMessage: `Waiting for Node volumes to be detached (started at 2024-10-09T16:13:59Z):
 * PersistentVolumes without a .spec.claimRef to a PersistentVolumeClaim: test-pv`,
 			expectDeferNextReconcile: waitForVolumeDetachRetryInterval,
 		},
@@ -2388,7 +2390,7 @@ func TestShouldWaitForNodeVolumes(t *testing.T) {
 			remoteObjects:          []client.Object{},
 			expected:               ctrl.Result{RequeueAfter: waitForVolumeDetachRetryInterval},
 			expectedDeletingReason: clusterv1.MachineDeletingWaitingForVolumeDetachReason,
-			expectedDeletingMessage: `Waiting for Node volumes to be detached (started at 2024-10-09T16:13:59Z)
+			expectedDeletingMessage: `Waiting for Node volumes to be detached (started at 2024-10-09T16:13:59Z):
 * Node with .status.volumesAttached entries not matching a PersistentVolume: kubernetes.io/csi/dummy^foo`,
 			expectDeferNextReconcile: waitForVolumeDetachRetryInterval,
 		},
@@ -2466,7 +2468,7 @@ func TestShouldWaitForNodeVolumes(t *testing.T) {
 			},
 			expected:               ctrl.Result{RequeueAfter: waitForVolumeDetachRetryInterval},
 			expectedDeletingReason: clusterv1.MachineDeletingWaitingForVolumeDetachReason,
-			expectedDeletingMessage: `Waiting for Node volumes to be detached (started at 2024-10-09T16:13:59Z)
+			expectedDeletingMessage: `Waiting for Node volumes to be detached (started at 2024-10-09T16:13:59Z):
 * PersistentVolumeClaims: default/test-pvc`,
 			expectDeferNextReconcile: waitForVolumeDetachRetryInterval,
 		},
@@ -2490,7 +2492,7 @@ func TestShouldWaitForNodeVolumes(t *testing.T) {
 			},
 			expected:               ctrl.Result{RequeueAfter: waitForVolumeDetachRetryInterval},
 			expectedDeletingReason: clusterv1.MachineDeletingWaitingForVolumeDetachReason,
-			expectedDeletingMessage: `Waiting for Node volumes to be detached (started at 2024-10-09T16:13:59Z)
+			expectedDeletingMessage: `Waiting for Node volumes to be detached (started at 2024-10-09T16:13:59Z):
 * VolumeAttachment with .spec.source.persistentVolumeName not matching a PersistentVolume: test-pv`,
 			expectDeferNextReconcile: waitForVolumeDetachRetryInterval,
 		},
@@ -2592,7 +2594,7 @@ func TestShouldWaitForNodeVolumes(t *testing.T) {
 			},
 			expected:               ctrl.Result{RequeueAfter: waitForVolumeDetachRetryInterval},
 			expectedDeletingReason: clusterv1.MachineDeletingWaitingForVolumeDetachReason,
-			expectedDeletingMessage: `Waiting for Node volumes to be detached (started at 2024-10-09T16:13:59Z)
+			expectedDeletingMessage: `Waiting for Node volumes to be detached (started at 2024-10-09T16:13:59Z):
 * PersistentVolumeClaims: default/test-pvc`,
 			expectDeferNextReconcile: waitForVolumeDetachRetryInterval,
 		},

@@ -1595,6 +1595,41 @@ func TestSetUpToDateCondition(t *testing.T) {
 			},
 		},
 		{
+			name: "up-to-date, but dirty after in-place update",
+			machineDeployment: &clusterv1.MachineDeployment{
+				Spec: clusterv1.MachineDeploymentSpec{
+					Template: clusterv1.MachineTemplateSpec{
+						Spec: clusterv1.MachineSpec{
+							Version: "v1.31.0",
+						},
+					},
+				},
+			},
+			machineSet: &clusterv1.MachineSet{
+				Spec: clusterv1.MachineSetSpec{
+					Template: clusterv1.MachineTemplateSpec{
+						Spec: clusterv1.MachineSpec{
+							Version: "v1.31.0",
+						},
+					},
+				},
+			},
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{clusterv1.UpdateDirtyAnnotation: ""},
+				},
+				Spec: clusterv1.MachineSpec{
+					Version: "v1.31.0",
+				},
+			},
+			expectCondition: &metav1.Condition{
+				Type:    clusterv1.MachineUpToDateCondition,
+				Status:  metav1.ConditionTrue,
+				Reason:  clusterv1.MachineUpToDateReason,
+				Message: "In-place update completed, but the Machine might still differ from the desired state",
+			},
+		},
+		{
 			name: "updating",
 			machineDeployment: &clusterv1.MachineDeployment{
 				Spec: clusterv1.MachineDeploymentSpec{
@@ -1667,6 +1702,23 @@ func TestSetUpToDateCondition(t *testing.T) {
 				Status:  metav1.ConditionFalse,
 				Reason:  clusterv1.MachineUpToDateUpdatingReason,
 				Message: "* Node.status.nodeInfo.kubeletVersion v1.30.0, v1.31.0 required",
+			},
+		},
+		{
+			name:              "up-to-date, spec.version not set",
+			machineDeployment: &clusterv1.MachineDeployment{},
+			machineSet:        &clusterv1.MachineSet{},
+			machine: &clusterv1.Machine{
+				Status: clusterv1.MachineStatus{
+					NodeInfo: &corev1.NodeSystemInfo{
+						KubeletVersion: "v1.31.0",
+					},
+				},
+			},
+			expectCondition: &metav1.Condition{
+				Type:   clusterv1.MachineUpToDateCondition,
+				Status: metav1.ConditionTrue,
+				Reason: clusterv1.MachineUpToDateReason,
 			},
 		},
 		{

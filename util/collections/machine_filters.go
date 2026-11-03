@@ -215,22 +215,22 @@ func IsReady() Func {
 }
 
 // ShouldRolloutAfter returns a filter to find all machines where
-// CreationTimestamp < rolloutAfter < reconciliationTIme.
-func ShouldRolloutAfter(reconciliationTime *metav1.Time, rolloutAfter metav1.Time) Func {
+// CreationTimestamp < rolloutAfter < reconcileStartTime.
+func ShouldRolloutAfter(reconcileStartTime *metav1.Time, rolloutAfter metav1.Time) Func {
 	return func(machine *clusterv1.Machine) bool {
 		if machine == nil {
 			return false
 		}
-		if reconciliationTime == nil || rolloutAfter.IsZero() {
+		if reconcileStartTime == nil || rolloutAfter.IsZero() {
 			return false
 		}
-		return machine.CreationTimestamp.Before(&rolloutAfter) && rolloutAfter.Before(reconciliationTime)
+		return machine.CreationTimestamp.Before(&rolloutAfter) && rolloutAfter.Before(reconcileStartTime)
 	}
 }
 
 // ShouldRolloutBefore returns a filter to find all machine whose
 // certificates will expire within the specified days.
-func ShouldRolloutBefore(reconciliationTime *metav1.Time, rolloutBefore controlplanev1.KubeadmControlPlaneRolloutBeforeSpec) Func {
+func ShouldRolloutBefore(reconcileStartTime *metav1.Time, rolloutBefore controlplanev1.KubeadmControlPlaneRolloutBeforeSpec) Func {
 	return func(machine *clusterv1.Machine) bool {
 		// If certificatesExpiryDays is unset it will be 0, 0 is otherwise not a valid value (minimum is 7).
 		if rolloutBefore.CertificatesExpiryDays == 0 {
@@ -240,7 +240,7 @@ func ShouldRolloutBefore(reconciliationTime *metav1.Time, rolloutBefore controlp
 			return false
 		}
 		certsExpiryTime := machine.Status.CertificatesExpiryDate.Time
-		return reconciliationTime.Add(time.Duration(rolloutBefore.CertificatesExpiryDays) * 24 * time.Hour).After(certsExpiryTime)
+		return reconcileStartTime.Add(time.Duration(rolloutBefore.CertificatesExpiryDays) * 24 * time.Hour).After(certsExpiryTime)
 	}
 }
 

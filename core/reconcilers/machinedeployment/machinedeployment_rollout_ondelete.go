@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"sort"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -31,9 +32,9 @@ import (
 )
 
 // rolloutOnDelete reconcile machine sets controlled by a MachineDeployment that is using the OnDelete strategy.
-func (r *Reconciler) rolloutOnDelete(ctx context.Context, md *clusterv1.MachineDeployment, msList []*clusterv1.MachineSet, machines collections.Machines, templateExists bool) error {
+func (r *Reconciler) rolloutOnDelete(ctx context.Context, reconcileStartTime metav1.Time, md *clusterv1.MachineDeployment, msList []*clusterv1.MachineSet, machines collections.Machines, templateExists bool) error {
 	planner := newRolloutPlanner(r.Client, r.RuntimeClient, r.canUpdateMachineSetCache)
-	if err := planner.init(ctx, md, msList, machines.UnsortedList(), true, templateExists); err != nil {
+	if err := planner.init(ctx, reconcileStartTime, md, msList, machines.UnsortedList(), true, templateExists); err != nil {
 		return err
 	}
 
@@ -88,10 +89,7 @@ func (p *rolloutPlanner) reconcileOldMachineSetsOnDelete(ctx context.Context) {
 	}
 
 	// Determine if there are more Machines than MD.spec.replicas, e.g. due to a scale down in MD.
-	newMSReplicas := ptr.Deref(p.newMS.Spec.Replicas, 0)
-	if v, ok := p.scaleIntents[p.newMS.Name]; ok {
-		newMSReplicas = v
-	}
+	newMSReplicas := p.replicasAfterScaleIntent(p.newMS)
 	totReplicas := oldMachinesCount + newMSReplicas
 	totalScaleDownCount := max(totReplicas-ptr.Deref(p.md.Spec.Replicas, 0), 0)
 
@@ -116,7 +114,7 @@ func (p *rolloutPlanner) reconcileOldMachineSetsOnDelete(ctx context.Context) {
 		if scaleDownCount > 0 {
 			newScaleIntent := max(ptr.Deref(oldMS.Spec.Replicas, 0)-scaleDownCount, 0)
 			p.addNotef(oldMS, "scale down to align to existing Machines")
-			log.V(5).Info(fmt.Sprintf("Setting scale down intent for MachineSet %s to %d replicas (-%d)", klog.KObj(oldMS), newScaleIntent, scaleDownCount), "MachineSet", klog.KObj(oldMS))
+			log.V(5).Info(fmt.Sprintf("Setting scale down intent for MachineSet %s to %d replicas (-%d)", oldMS.Name, newScaleIntent, scaleDownCount), "MachineSet", klog.KObj(oldMS))
 			p.scaleIntents[oldMS.Name] = newScaleIntent
 
 			totalScaleDownCount -= scaleDownCount
@@ -131,11 +129,7 @@ func (p *rolloutPlanner) reconcileOldMachineSetsOnDelete(ctx context.Context) {
 		}
 
 		// No op if this MS has been already scaled down to zero.
-		scaleIntent := ptr.Deref(oldMS.Spec.Replicas, 0)
-		if v, ok := p.scaleIntents[oldMS.Name]; ok {
-			scaleIntent = v
-		}
-
+		scaleIntent := p.replicasAfterScaleIntent(oldMS)
 		if scaleIntent <= 0 {
 			continue
 		}
@@ -144,7 +138,7 @@ func (p *rolloutPlanner) reconcileOldMachineSetsOnDelete(ctx context.Context) {
 		if scaleDownCount > 0 {
 			newScaleIntent := max(ptr.Deref(oldMS.Spec.Replicas, 0)-scaleDownCount, 0)
 			p.addNotef(oldMS, "scale down to align MachineSet spec.replicas to MachineDeployment spec.replicas")
-			log.V(5).Info(fmt.Sprintf("Setting scale down intent for MachineSet %s to %d replicas (-%d)", klog.KObj(oldMS), newScaleIntent, scaleDownCount), "MachineSet", klog.KObj(oldMS))
+			log.V(5).Info(fmt.Sprintf("Setting scale down intent for MachineSet %s to %d replicas (-%d)", oldMS.Name, newScaleIntent, scaleDownCount), "MachineSet", klog.KObj(oldMS))
 			p.scaleIntents[oldMS.Name] = newScaleIntent
 
 			totalScaleDownCount -= scaleDownCount

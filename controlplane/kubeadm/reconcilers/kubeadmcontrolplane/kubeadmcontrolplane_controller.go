@@ -53,6 +53,7 @@ import (
 	runtimeclient "sigs.k8s.io/cluster-api/exp/runtime/client"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/util/inplace"
+	logutil "sigs.k8s.io/cluster-api/internal/util/log"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
 	"sigs.k8s.io/cluster-api/pkg/dynamiccache"
 	"sigs.k8s.io/cluster-api/util"
@@ -78,6 +79,9 @@ const (
 	// etcdMemberStartupGracePeriod is the maximum time KCP waits for an etcd
 	// member to get its name after the kubelet registers a new Node.
 	etcdMemberStartupGracePeriod = 20 * time.Second
+
+	// logRateLimitInterval is the interval at which log lines repeated on every reconcile while waiting for something are logged.
+	logRateLimitInterval = time.Minute
 )
 
 var (
@@ -106,6 +110,8 @@ type Reconciler struct {
 	recorder                        record.EventRecorder
 	ClusterCache                    clustercache.ClusterCache
 	DynamicCache                    dynamiccache.DynamicCache
+	canUpdateMachineCache           cache.Cache[CanUpdateMachineCacheEntry]
+	logRateLimiter                  *logutil.Limiter
 
 	EtcdDialTimeout time.Duration
 	EtcdCallTimeout time.Duration
@@ -124,11 +130,20 @@ type Reconciler struct {
 	overrideScaleDownControlPlaneFunc  func(ctx context.Context, controlPlane *pkg.ControlPlane, machineToDelete *clusterv1.Machine) (ctrl.Result, error)
 	overridePreflightChecksFunc        func(ctx context.Context, controlPlane *pkg.ControlPlane, excludeFor ...*clusterv1.Machine) preflightChecksResult
 	overrideCanUpdateMachineFunc       func(ctx context.Context, machine *clusterv1.Machine, machineUpToDateResult pkg.UpToDateResult) (canUpdateMachineResult, error)
-	overrideCanExtensionsUpdateMachine func(ctx context.Context, machine *clusterv1.Machine, machineUpToDateResult pkg.UpToDateResult, extensionHandlers []string) (canUpdateMachineResult, []string, error)
+	overrideCanExtensionsUpdateMachine func(ctx context.Context, machine *clusterv1.Machine, machineUpToDateResult pkg.UpToDateResult, extensionHandlers []string) (canUpdateMachineResult, error)
 	overrideTriggerInPlaceUpdate       func(ctx context.Context, controlPlane *pkg.ControlPlane, machine *clusterv1.Machine, machineUpToDateResult pkg.UpToDateResult, affectsAvailability bool) error
+	overrideNowFunc                    func() time.Time
 	// Note: This field is only used for unit tests that use fake client because the fake client does not properly set resourceVersion
 	//       on BootstrapConfig/InfraMachine after ssa.Patch and then ssa.RemoveManagedFieldsForLabelsAndAnnotations would fail.
 	disableRemoveManagedFieldsForLabelsAndAnnotations bool
+}
+
+// now returns the current time. It can be overridden for unit tests via overrideNowFunc.
+func (r *Reconciler) now() time.Time {
+	if r.overrideNowFunc != nil {
+		return r.overrideNowFunc()
+	}
+	return time.Now()
 }
 
 // SetupWithManager sets up the reconciler with the Manager.
@@ -176,6 +191,8 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 	if err != nil {
 		return pkgerrors.Wrap(err, "failed setting up with a controller manager")
 	}
+	r.logRateLimiter = logutil.New(ctx)
+	r.canUpdateMachineCache = cache.New[CanUpdateMachineCacheEntry](ctx, 30*time.Minute)
 	r.controller = c
 	r.recorder = mgr.GetEventRecorderFor("kubeadmcontrolplane-controller")
 	r.ssaCache = ssa.NewCache("kubeadmcontrolplane")
@@ -197,6 +214,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 
 // Reconcile reconciles the passed in object.
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (res ctrl.Result, reterr error) {
+	reconcileStartTime := metav1.Now()
 	log := ctrl.LoggerFrom(ctx)
 
 	// Fetch the KubeadmControlPlane instance.
@@ -241,7 +259,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (res ctrl.
 
 	// Initialize the control plane scope; this includes also checking for orphan machines and
 	// adopt them if necessary.
-	controlPlane, adoptableMachineFound, err := r.initControlPlaneScope(ctx, cluster, kcp)
+	controlPlane, adoptableMachineFound, err := r.initControlPlaneScope(ctx, reconcileStartTime, cluster, kcp)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -313,12 +331,12 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (res ctrl.
 // adopt them if necessary.
 // The func also returns a boolean indicating if adoptableMachine have been found and processed, but this doesn't imply those machines
 // have been actually adopted).
-func (r *Reconciler) initControlPlaneScope(ctx context.Context, cluster *clusterv1.Cluster, kcp *controlplanev1.KubeadmControlPlane) (*pkg.ControlPlane, bool, error) {
+func (r *Reconciler) initControlPlaneScope(ctx context.Context, reconcileStartTime metav1.Time, cluster *clusterv1.Cluster, kcp *controlplanev1.KubeadmControlPlane) (*pkg.ControlPlane, bool, error) {
 	log := ctrl.LoggerFrom(ctx)
 
 	// Return early if the cluster is not yet in a state where control plane machines exists
 	if !ptr.Deref(cluster.Status.Initialization.InfrastructureProvisioned, false) || !cluster.Spec.ControlPlaneEndpoint.IsValid() {
-		controlPlane, err := pkg.NewControlPlane(ctx, r.managementCluster, r.DynamicCache, r.Client, cluster, kcp, collections.Machines{})
+		controlPlane, err := pkg.NewControlPlane(ctx, reconcileStartTime, r.managementCluster, r.DynamicCache, r.Client, cluster, kcp, collections.Machines{})
 		if err != nil {
 			log.Error(err, "Failed to initialize control plane scope")
 			return nil, false, err
@@ -346,7 +364,7 @@ func (r *Reconciler) initControlPlaneScope(ctx context.Context, cluster *cluster
 		return nil, false, err
 	}
 
-	controlPlane, err := pkg.NewControlPlane(ctx, r.managementCluster, r.DynamicCache, r.Client, cluster, kcp, ownedMachines)
+	controlPlane, err := pkg.NewControlPlane(ctx, reconcileStartTime, r.managementCluster, r.DynamicCache, r.Client, cluster, kcp, ownedMachines)
 	if err != nil {
 		log.Error(err, "Failed to initialize control plane scope")
 		return nil, false, err
@@ -527,9 +545,19 @@ func (r *Reconciler) reconcile(ctx context.Context, controlPlane *pkg.ControlPla
 	// Note: If a Machine becomes unhealthy during in-place update reconcileUnhealthyMachines above remediates it.
 	// Note: We have to wait here even if there are no more Machines that need rollout (in-place update in
 	// progress is not counted as needs rollout).
-	if machines := controlPlane.MachinesToCompleteInPlaceUpdate(); machines.Len() > 0 {
-		for _, machine := range machines {
-			log.Info(fmt.Sprintf("Waiting for in-place update of Machine %s to complete", klog.KObj(machine)), "Machine", klog.KObj(machine))
+	machinesToCompleteInPlaceUpdate := controlPlane.MachinesToCompleteInPlaceUpdate()
+
+	for _, machine := range controlPlane.Machines {
+		// Note: Forget is called for all the Machines without an in-place update in progress, so a following in-place update of the
+		// same Machine is logged again at Info instead of being considered a repetition of the previous one.
+		if !machinesToCompleteInPlaceUpdate.Has(machine) {
+			r.logRateLimiter.Forget(waitingForInPlaceUpdateKey(controlPlane.KCP, machine))
+		}
+	}
+
+	if machinesToCompleteInPlaceUpdate.Len() > 0 {
+		for _, machine := range machinesToCompleteInPlaceUpdate {
+			r.logRateLimiter.InfoAtMostEvery(log, logRateLimitInterval, waitingForInPlaceUpdateKey(controlPlane.KCP, machine), fmt.Sprintf("Waiting for in-place update of Machine %s to complete", machine.Name), "Machine", klog.KObj(machine))
 		}
 		return ctrl.Result{}, nil // Note: Changes to Machines trigger another reconcile.
 	}
@@ -541,16 +569,18 @@ func (r *Reconciler) reconcile(ctx context.Context, controlPlane *pkg.ControlPla
 		var allMessages []string
 		machinesNeedingRolloutNames := make([]string, 0, machinesNeedingRollout.Len())
 		for _, m := range machinesNeedingRollout {
-			machinesNeedingRolloutNames = append(machinesNeedingRolloutNames, klog.KObj(m).String())
-			allMessages = append(allMessages, fmt.Sprintf("Machine %s needs rollout: %s", klog.KObj(m), strings.Join(machinesUpToDateResults[m.Name].LogMessages, ", ")))
+			machinesNeedingRolloutNames = append(machinesNeedingRolloutNames, m.Name)
+			allMessages = append(allMessages, fmt.Sprintf("Machine %s needs rollout: %s", m.Name, strings.Join(machinesUpToDateResults[m.Name].LogMessages, ", ")))
 		}
 		slices.Sort(machinesNeedingRolloutNames)
 		slices.Sort(allMessages)
 
-		log.Info(fmt.Sprintf("Machines need rollout: %s", strings.Join(machinesNeedingRolloutNames, ",")), "reason", strings.Join(allMessages, ", "))
+		// Note: The names of the Machines are values of the key, so a change of the list (e.g. after a Machine is rolled out) is logged immediately.
+		r.logRateLimiter.InfoAtMostEvery(log, logRateLimitInterval, machinesNeedRolloutKey(controlPlane.KCP, machinesNeedingRolloutNames), fmt.Sprintf("Machines need rollout: %s", strings.Join(machinesNeedingRolloutNames, ",")), "reason", strings.Join(allMessages, ", "))
 		v1beta1conditions.MarkFalse(controlPlane.KCP, controlplanev1.MachinesSpecUpToDateV1Beta1Condition, controlplanev1.RollingUpdateInProgressV1Beta1Reason, clusterv1.ConditionSeverityWarning, "Rolling %d replicas with outdated spec (%d replicas up to date)", len(machinesNeedingRollout), len(controlPlane.Machines)-len(machinesNeedingRollout))
 		return r.updateControlPlane(ctx, controlPlane, machinesNeedingRollout, machinesUpToDateResults)
 	default:
+		r.logRateLimiter.Forget(machinesNeedRolloutKey(controlPlane.KCP, nil))
 		// make sure last upgrade operation is marked as completed.
 		// NOTE: we are checking the condition already exists in order to avoid to set this condition at the first
 		// reconciliation/before a rolling upgrade actually starts.
@@ -567,17 +597,17 @@ func (r *Reconciler) reconcile(ctx context.Context, controlPlane *pkg.ControlPla
 	// We are creating the first replica
 	case numMachines < desiredReplicas && numMachines == 0:
 		// Create new Machine w/ init
-		log.V(4).Info("Initializing control plane", "desiredReplicas", desiredReplicas, "replicas", numMachines)
+		log.V(4).Info(fmt.Sprintf("KubeadmControlPlane %s is initializing by creating 1 Machine", controlPlane.KCP.Name), "desiredReplicas", desiredReplicas, "replicas", numMachines)
 		v1beta1conditions.MarkFalse(controlPlane.KCP, controlplanev1.AvailableV1Beta1Condition, controlplanev1.WaitingForKubeadmInitV1Beta1Reason, clusterv1.ConditionSeverityInfo, "")
 		return r.initializeControlPlane(ctx, controlPlane)
 	// We are scaling up
 	case numMachines < desiredReplicas && numMachines > 0:
 		// Create a new Machine w/ join
-		log.V(4).Info("Scaling up control plane", "desiredReplicas", desiredReplicas, "replicas", numMachines)
+		log.V(4).Info(fmt.Sprintf("KubeadmControlPlane %s is scaling up to %d replicas by creating 1 Machine", controlPlane.KCP.Name, desiredReplicas), "desiredReplicas", desiredReplicas, "replicas", numMachines)
 		return r.scaleUpControlPlane(ctx, controlPlane, true)
 	// We are scaling down
 	case numMachines > desiredReplicas:
-		log.V(4).Info("Scaling down control plane", "desiredReplicas", desiredReplicas, "replicas", numMachines)
+		log.V(4).Info(fmt.Sprintf("KubeadmControlPlane %s is scaling down to %d replicas by deleting 1 Machine", controlPlane.KCP.Name, desiredReplicas), "desiredReplicas", desiredReplicas, "replicas", numMachines)
 		// The last parameter (i.e. machines needing to be rolled out) should always be empty here.
 		// Pick the Machine that we should scale down.
 		machineToDelete, err := selectMachineForInPlaceUpdateOrScaleDown(ctx, controlPlane, collections.Machines{})
@@ -612,6 +642,14 @@ func (r *Reconciler) reconcile(ctx context.Context, controlPlane *pkg.ControlPla
 		return ctrl.Result{}, err
 	}
 	return ctrl.Result{}, nil
+}
+
+func waitingForInPlaceUpdateKey(kcp *controlplanev1.KubeadmControlPlane, m *clusterv1.Machine) logutil.Key {
+	return logutil.NewKey("WaitingForInPlaceUpdate", logutil.WithObjects(kcp, m))
+}
+
+func machinesNeedRolloutKey(kcp *controlplanev1.KubeadmControlPlane, machinesNeedingRolloutNames []string) logutil.Key {
+	return logutil.NewKey("MachinesNeedRollout", logutil.WithObjects(kcp), logutil.WithValues(machinesNeedingRolloutNames...))
 }
 
 // reconcileClusterCertificates ensures that all the cluster certificates exists and
@@ -700,10 +738,12 @@ func (r *Reconciler) reconcileClusterCertificates(ctx context.Context, controlPl
 // Please see https://github.com/kubernetes-sigs/cluster-api/issues/2064.
 func (r *Reconciler) reconcileDelete(ctx context.Context, controlPlane *pkg.ControlPlane) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
-	log.Info("Reconcile KubeadmControlPlane deletion")
+	r.logRateLimiter.InfoAtMostEvery(log, logRateLimitInterval, reconcileDeletionKey(controlPlane.KCP), "Reconcile KubeadmControlPlane deletion")
 
 	// If no control plane machines remain, remove the finalizer
 	if len(controlPlane.Machines) == 0 {
+		r.logRateLimiter.Forget(reconcileDeletionKey(controlPlane.KCP))
+		r.logRateLimiter.Forget(waitingForMachinesDeletionKey(controlPlane.KCP))
 		controlPlane.DeletingReason = controlplanev1.KubeadmControlPlaneDeletingDeletionCompletedReason
 		controlPlane.DeletingMessage = "Deletion completed"
 
@@ -752,7 +792,7 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, controlPlane *pkg.Cont
 		for i := range names {
 			names[i] = "* " + names[i]
 		}
-		controlPlane.DeletingMessage = fmt.Sprintf("KubeadmControlPlane deletion blocked because following objects still exist:\n%s", strings.Join(names, "\n"))
+		controlPlane.DeletingMessage = fmt.Sprintf("Waiting for deletion of the following objects:\n%s", strings.Join(names, "\n"))
 		return ctrl.Result{RequeueAfter: deleteRequeueAfter}, nil
 	}
 
@@ -786,7 +826,7 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, controlPlane *pkg.Cont
 		// Note: We intentionally log after Delete because we want this log line to show up only after DeletionTimestamp has been set.
 		// Also, setting DeletionTimestamp doesn't mean the Machine is actually deleted (deletion takes some time).
 		log.WithValues(controlPlane.StatusToLogKeyAndValues(nil, machineToDelete)...).
-			Info("Deleting Machine (KubeadmControlPlane deleted)")
+			Info(fmt.Sprintf("Deleting Machine %s (KubeadmControlPlane deleted)", machineToDelete.Name), "reason", "KubeadmControlPlaneDeleted")
 	}
 	if len(errs) > 0 {
 		err := kerrors.NewAggregate(errs)
@@ -798,7 +838,7 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, controlPlane *pkg.Cont
 		return ctrl.Result{}, err
 	}
 
-	log.Info("Waiting for control plane Machines to not exist anymore")
+	r.logRateLimiter.InfoAtMostEvery(log, logRateLimitInterval, waitingForMachinesDeletionKey(controlPlane.KCP), "Waiting for control plane Machines to not exist anymore")
 
 	v1beta1conditions.MarkFalse(controlPlane.KCP, controlplanev1.ResizedV1Beta1Condition, clusterv1.DeletingV1Beta1Reason, clusterv1.ConditionSeverityInfo, "")
 
@@ -811,12 +851,20 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, controlPlane *pkg.Cont
 		}
 		staleMessage := aggregateStaleMachines(machines)
 		if staleMessage != "" {
-			message += fmt.Sprintf(" and %s", staleMessage)
+			message += fmt.Sprintf(":\n* %s", staleMessage)
 		}
 	}
 	controlPlane.DeletingReason = controlplanev1.KubeadmControlPlaneDeletingWaitingForMachineDeletionReason
 	controlPlane.DeletingMessage = message
 	return ctrl.Result{RequeueAfter: deleteRequeueAfter}, nil
+}
+
+func reconcileDeletionKey(kcp *controlplanev1.KubeadmControlPlane) logutil.Key {
+	return logutil.NewKey("ReconcileDeletion", logutil.WithObjects(kcp))
+}
+
+func waitingForMachinesDeletionKey(kcp *controlplanev1.KubeadmControlPlane) logutil.Key {
+	return logutil.NewKey("WaitingForMachinesDeletion", logutil.WithObjects(kcp))
 }
 
 // objectsPendingDeleteNames return the names of worker Machines and MachinePools pending delete.
@@ -1153,6 +1201,18 @@ func reconcileMachineUpToDateCondition(_ context.Context, controlPlane *pkg.Cont
 			continue
 		}
 
+		// If the last in-place update completed with updateStatus CompletedButDirty the Machine is still considered up-to-date
+		// (so the rollout can continue with the next Machine), but we surface that the Machine is dirty in the message.
+		if msg, dirty := inplace.DirtyUpToDateMessage(machine); dirty {
+			conditions.Set(machine, metav1.Condition{
+				Type:    clusterv1.MachineUpToDateCondition,
+				Status:  metav1.ConditionTrue,
+				Reason:  clusterv1.MachineUpToDateReason,
+				Message: msg,
+			})
+			continue
+		}
+
 		conditions.Set(machine, metav1.Condition{
 			Type:   clusterv1.MachineUpToDateCondition,
 			Status: metav1.ConditionTrue,
@@ -1280,6 +1340,8 @@ func (r *Reconciler) reconcileEtcdMembers(ctx context.Context, controlPlane *pkg
 	// Potential inconsistencies between the list of members and the list of Machine/Node are
 	// surfaced using the EtcdClusterHealthyCondition; if this condition is true, meaning no inconsistencies exists, return early.
 	if conditions.IsTrue(controlPlane.KCP, controlplanev1.KubeadmControlPlaneEtcdClusterHealthyCondition) {
+		r.logRateLimiter.Forget(waitingForProvisioningMachinesEtcdMembersKey(controlPlane.KCP))
+		r.logRateLimiter.Forget(waitingForNewlyRegisteredNodesEtcdMembersKey(controlPlane.KCP))
 		return ctrl.Result{}, nil
 	}
 
@@ -1320,6 +1382,8 @@ func (r *Reconciler) reconcileEtcdMembers(ctx context.Context, controlPlane *pkg
 
 	// If there are no unexpected members, return.
 	if len(unexpectedMembers) == 0 {
+		r.logRateLimiter.Forget(waitingForProvisioningMachinesEtcdMembersKey(controlPlane.KCP))
+		r.logRateLimiter.Forget(waitingForNewlyRegisteredNodesEtcdMembersKey(controlPlane.KCP))
 		return ctrl.Result{}, nil
 	}
 
@@ -1338,14 +1402,16 @@ func (r *Reconciler) reconcileEtcdMembers(ctx context.Context, controlPlane *pkg
 	// If there are unexpected members, but there is a machine not yet reporting the node name,
 	// there is chance that the unexpected member is the one hosted on the provisioning machine, so wait.
 	if len(provisioningMachines) > 0 {
-		log.Info(fmt.Sprintf("Etcd members %s without corresponding Machines, potential match with provisioning machines %s", strings.Join(unexpectedMembersMsg, ", "), strings.Join(provisioningMachines.UnsortedList(), ", ")))
+		r.logRateLimiter.InfoAtMostEvery(log, logRateLimitInterval, waitingForProvisioningMachinesEtcdMembersKey(controlPlane.KCP), fmt.Sprintf("Etcd members %s without corresponding Machines, potential match with provisioning machines %s", strings.Join(unexpectedMembersMsg, ", "), strings.Join(provisioningMachines.UnsortedList(), ", ")),
+			"unexpectedEtcdMembers", unexpectedMembersMsg, "provisioningMachines", sets.List(provisioningMachines))
 		return ctrl.Result{}, nil
 	}
 	// An unnamed member is normally a learner added by kubeadm before the local
 	// etcd static Pod starts. Keep it while a Node was recently registered (grace period) so
 	// we prevent that a NodeRef-before-etcd-name race leads the code below to remove the etcd member too aggressively.
 	if hasUnnamedUnexpectedMember && len(machinesWithNewlyRegisteredNodes) > 0 {
-		log.Info(fmt.Sprintf("Etcd members %s without corresponding Machines, potential match with machines with newly provisioned nodes %s", strings.Join(unexpectedMembersMsg, ", "), strings.Join(machinesWithNewlyRegisteredNodes.UnsortedList(), ", ")))
+		r.logRateLimiter.InfoAtMostEvery(log, logRateLimitInterval, waitingForNewlyRegisteredNodesEtcdMembersKey(controlPlane.KCP), fmt.Sprintf("Etcd members %s without corresponding Machines, potential match with machines with newly provisioned nodes %s", strings.Join(unexpectedMembersMsg, ", "), strings.Join(machinesWithNewlyRegisteredNodes.UnsortedList(), ", ")),
+			"unexpectedEtcdMembers", unexpectedMembersMsg, "machinesWithNewlyRegisteredNodes", sets.List(machinesWithNewlyRegisteredNodes))
 		return ctrl.Result{}, nil
 	}
 
@@ -1391,6 +1457,14 @@ func (r *Reconciler) reconcileEtcdMembers(ctx context.Context, controlPlane *pkg
 
 	// Force a new reconcile after removing an etcd member.
 	return ctrl.Result{RequeueAfter: 1 * time.Second}, nil // RequeueAfter should be at least 1s, because controller rate limiter is using 1s.
+}
+
+func waitingForProvisioningMachinesEtcdMembersKey(kcp *controlplanev1.KubeadmControlPlane) logutil.Key {
+	return logutil.NewKey("WaitingForProvisioningMachinesEtcdMembers", logutil.WithObjects(kcp))
+}
+
+func waitingForNewlyRegisteredNodesEtcdMembersKey(kcp *controlplanev1.KubeadmControlPlane) logutil.Key {
+	return logutil.NewKey("WaitingForNewlyRegisteredNodesEtcdMembers", logutil.WithObjects(kcp))
 }
 
 func (r *Reconciler) reconcilePreTerminateHook(ctx context.Context, controlPlane *pkg.ControlPlane) (ctrl.Result, error) {
@@ -1441,7 +1515,7 @@ func (r *Reconciler) reconcilePreTerminateHook(ctx context.Context, controlPlane
 			return ctrl.Result{}, err
 		}
 
-		log.Info("Waiting for Machines to be deleted", "machines", strings.Join(controlPlane.Machines.Filter(collections.HasDeletionTimestamp).Names(), ", "))
+		log.Info("Waiting for Machines to be deleted", "Machines", klog.KObjSlice(controlPlane.Machines.Filter(collections.HasDeletionTimestamp).UnsortedList()))
 		return ctrl.Result{RequeueAfter: deleteRequeueAfter}, nil
 	}
 
@@ -1462,7 +1536,7 @@ func (r *Reconciler) reconcilePreTerminateHook(ctx context.Context, controlPlane
 
 	// Check target Kubernetes control plane components.
 	if !r.targetKubernetesControlPlaneComponentsHealthy(ctx, controlPlane, addKubernetesControlPlane, kubernetesControlPlaneToBeDeleted) {
-		log.Info(fmt.Sprintf("Cannot delete control plane Machine %s when there are no control plane Machines with all Kubernetes control plane components in healthy state. Please check Kubernetes control plane component status", klog.KObj(deletingMachine)))
+		log.Info(fmt.Sprintf("Cannot delete control plane Machine %s when there are no control plane Machines with all Kubernetes control plane components in healthy state. Please check Kubernetes control plane component status", deletingMachine.Name))
 		return ctrl.Result{RequeueAfter: deleteRequeueAfter}, nil
 	}
 
@@ -1472,7 +1546,7 @@ func (r *Reconciler) reconcilePreTerminateHook(ctx context.Context, controlPlane
 			return ctrl.Result{}, err
 		}
 
-		log.Info("Waiting for Machines to be deleted", "machines", strings.Join(controlPlane.Machines.Filter(collections.HasDeletionTimestamp).Names(), ", "))
+		log.Info("Waiting for Machines to be deleted", "Machines", klog.KObjSlice(controlPlane.Machines.Filter(collections.HasDeletionTimestamp).UnsortedList()))
 		return ctrl.Result{RequeueAfter: deleteRequeueAfter}, nil
 	}
 
@@ -1508,12 +1582,12 @@ func (r *Reconciler) reconcilePreTerminateHook(ctx context.Context, controlPlane
 			return ctrl.Result{}, err
 		}
 
-		log.Info("Waiting for Machines to be deleted", "machines", strings.Join(controlPlane.Machines.Filter(collections.HasDeletionTimestamp).Names(), ", "))
+		log.Info("Waiting for Machines to be deleted", "Machines", klog.KObjSlice(controlPlane.Machines.Filter(collections.HasDeletionTimestamp).UnsortedList()))
 		return ctrl.Result{RequeueAfter: deleteRequeueAfter}, nil
 	}
 
 	if !r.targetEtcdClusterHealthy(ctx, controlPlane, addEtcdMember, etcdMemberNameToBeDeleted) {
-		log.Info(fmt.Sprintf("Cannot delete control plane Machine %s, the operation can lead to etcd quorum loss. Please check the etcd status", klog.KObj(deletingMachine)))
+		log.Info(fmt.Sprintf("Cannot delete control plane Machine %s, the operation can lead to etcd quorum loss. Please check the etcd status", deletingMachine.Name))
 		return ctrl.Result{RequeueAfter: deleteRequeueAfter}, nil
 	}
 
@@ -1549,7 +1623,7 @@ func (r *Reconciler) reconcilePreTerminateHook(ctx context.Context, controlPlane
 		return ctrl.Result{}, err
 	}
 
-	log.Info("Waiting for Machines to be deleted", "machines", strings.Join(controlPlane.Machines.Filter(collections.HasDeletionTimestamp).Names(), ", "))
+	log.Info("Waiting for Machines to be deleted", "Machines", klog.KObjSlice(controlPlane.Machines.Filter(collections.HasDeletionTimestamp).UnsortedList()))
 	return ctrl.Result{RequeueAfter: deleteRequeueAfter}, nil
 }
 
@@ -1752,7 +1826,7 @@ func (r *Reconciler) reconcileCertificateExpiries(ctx context.Context, controlPl
 		}
 		expiry := certificateExpiry.Format(time.RFC3339)
 
-		log.V(2).Info(fmt.Sprintf("Setting certificate expiry date on KubeadmConfig %s", klog.KObj(kubeadmConfig)), "expiryDate", expiry)
+		log.V(2).Info(fmt.Sprintf("Setting certificate expiry date on KubeadmConfig %s", kubeadmConfig.Name), "KubeadmConfig", klog.KObj(kubeadmConfig), "expiryDate", expiry)
 		original := kubeadmConfig.DeepCopy()
 		if annotations == nil {
 			annotations = map[string]string{}
@@ -1769,6 +1843,8 @@ func (r *Reconciler) reconcileCertificateExpiries(ctx context.Context, controlPl
 }
 
 func (r *Reconciler) adoptMachines(ctx context.Context, kcp *controlplanev1.KubeadmControlPlane, machines collections.Machines, cluster *clusterv1.Cluster) error {
+	log := ctrl.LoggerFrom(ctx)
+
 	// We do an uncached full quorum read against the KCP to avoid re-adopting Machines the garbage collector just intentionally orphaned
 	// See https://github.com/kubernetes/kubernetes/issues/42639
 	uncached := controlplanev1.KubeadmControlPlane{}
@@ -1836,6 +1912,8 @@ func (r *Reconciler) adoptMachines(ctx context.Context, kcp *controlplanev1.Kube
 		if err := r.Client.Patch(ctx, m, client.MergeFrom(original)); err != nil {
 			return err
 		}
+
+		log.Info(fmt.Sprintf("Machine %s adopted", m.Name), "Machine", klog.KObj(m), "reason", "Adoption")
 	}
 	return nil
 }

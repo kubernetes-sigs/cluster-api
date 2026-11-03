@@ -51,13 +51,40 @@ func (r *Reconciler) initializeControlPlane(ctx context.Context, controlPlane *p
 		return ctrl.Result{}, err
 	}
 
-	log.WithValues(controlPlane.StatusToLogKeyAndValues(newMachine, nil)...).
-		Info(fmt.Sprintf("Machine %s created (init)", klog.KObj(newMachine)),
+	log.WithValues(controlPlane.StatusToLogKeyAndValues(newMachine, nil)...).WithValues(machineCreationReasonKeysAndValues("Initialization", newMachine)...).
+		Info(fmt.Sprintf("Machine %s created (init)", newMachine.Name),
 			"Machine", klog.KObj(newMachine),
 			newMachine.Spec.InfrastructureRef.Kind, klog.KRef(newMachine.Namespace, newMachine.Spec.InfrastructureRef.Name),
 			newMachine.Spec.Bootstrap.ConfigRef.Kind, klog.KRef(newMachine.Namespace, newMachine.Spec.Bootstrap.ConfigRef.Name), "desiredReplicas", ptr.Deref(controlPlane.KCP.Spec.Replicas, 0), "replicas", len(controlPlane.Machines))
 
 	return ctrl.Result{}, nil // No need to requeue here. Machine creation above triggers reconciliation.
+}
+
+// machineCreationReasonKeysAndValues returns the log keys explaining why a Machine has been created.
+// Note: Machines created as a replacement of a remediated Machine carry the RemediationForAnnotation, copied from the
+// RemediationInProgressAnnotation on KCP when the Machine is computed; this works both for init and scale up.
+func machineCreationReasonKeysAndValues(defaultReason string, newMachine *clusterv1.Machine) []any {
+	value, ok := newMachine.Annotations[controlplanev1.RemediationForAnnotation]
+	if !ok {
+		return []any{"reason", defaultReason}
+	}
+	keysAndValues := []any{"reason", "Remediation"}
+	// Note: The annotation is written by KCP itself; if it cannot be read the reason is still correct, only the link to the remediated Machine is lost.
+	if remediationData, err := RemediationDataFromAnnotation(value); err == nil {
+		keysAndValues = append(keysAndValues, "remediatedMachine", klog.KRef(newMachine.Namespace, remediationData.Machine))
+	}
+	return keysAndValues
+}
+
+// scaleReason returns the reason for a Machine creation or deletion done by a scale operation.
+// Note: When there are Machines needing rollout, scale up and scale down are performed to complete the rollout
+// (the rollout takes precedence over a change of the number of replicas), so the rollout is the reason why the Machine
+// is created or deleted.
+func scaleReason(controlPlane *pkg.ControlPlane, defaultReason string) string {
+	if machinesNeedingRollout, _ := controlPlane.MachinesNeedingRollout(); len(machinesNeedingRollout) > 0 {
+		return "Rollout"
+	}
+	return defaultReason
 }
 
 func (r *Reconciler) scaleUpControlPlane(ctx context.Context, controlPlane *pkg.ControlPlane, runPreflightChecks bool) (ctrl.Result, error) {
@@ -103,8 +130,8 @@ func (r *Reconciler) scaleUpControlPlane(ctx context.Context, controlPlane *pkg.
 		return ctrl.Result{}, err
 	}
 
-	log.WithValues(controlPlane.StatusToLogKeyAndValues(newMachine, nil)...).
-		Info(fmt.Sprintf("Machine %s created (scale up)", klog.KObj(newMachine)),
+	log.WithValues(controlPlane.StatusToLogKeyAndValues(newMachine, nil)...).WithValues(machineCreationReasonKeysAndValues(scaleReason(controlPlane, "ScaleUp"), newMachine)...).
+		Info(fmt.Sprintf("Machine %s created (scale up)", newMachine.Name),
 			"Machine", klog.KObj(newMachine),
 			newMachine.Spec.InfrastructureRef.Kind, klog.KRef(newMachine.Namespace, newMachine.Spec.InfrastructureRef.Name),
 			newMachine.Spec.Bootstrap.ConfigRef.Kind, klog.KRef(newMachine.Namespace, newMachine.Spec.Bootstrap.ConfigRef.Name), "desiredReplicas", ptr.Deref(controlPlane.KCP.Spec.Replicas, 0), "replicas", len(controlPlane.Machines))
@@ -178,7 +205,7 @@ func (r *Reconciler) scaleDownControlPlane(
 	// Note: We intentionally log after Delete because we want this log line to show up only after DeletionTimestamp has been set.
 	// Also, setting DeletionTimestamp doesn't mean the Machine is actually deleted (deletion takes some time).
 	log.WithValues(controlPlane.StatusToLogKeyAndValues(nil, machineToDelete)...).
-		Info(fmt.Sprintf("Machine %s deleting (scale down)", klog.KObj(machineToDelete)), "Machine", klog.KObj(machineToDelete), "desiredReplicas", ptr.Deref(controlPlane.KCP.Spec.Replicas, 0), "replicas", len(controlPlane.Machines))
+		Info(fmt.Sprintf("Deleting Machine %s (scale down)", machineToDelete.Name), "Machine", klog.KObj(machineToDelete), "reason", scaleReason(controlPlane, "ScaleDown"), "desiredReplicas", ptr.Deref(controlPlane.KCP.Spec.Replicas, 0), "replicas", len(controlPlane.Machines))
 
 	return ctrl.Result{}, nil // No need to requeue here. Machine deletion above triggers reconciliation.
 }

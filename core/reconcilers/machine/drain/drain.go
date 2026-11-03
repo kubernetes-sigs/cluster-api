@@ -304,7 +304,7 @@ func (d *Helper) EvictPods(ctx context.Context, podDeleteList *PodDeleteList) Ev
 		}
 	}
 
-	log.Info("Drain not completed yet, there are still Pods on the Node that have to be drained",
+	log.V(4).Info("Drain not completed yet, there are still Pods on the Node that have to be drained",
 		"podsToTriggerEvictionNow", podDeleteListToString(podsToTriggerEvictionNow, 5),
 		"podsToTriggerEvictionLater", podDeleteListToString(podsToTriggerEvictionLater, 5),
 		"podsWithDeletionTimestamp", podDeleteListToString(podsWithDeletionTimestamp, 5),

@@ -159,7 +159,7 @@ func (r *Reconciler) updateStatus(ctx context.Context, controlPlane *pkg.Control
 	}
 	setReplicas(ctx, controlPlane.KCP, controlPlane.Machines)
 	setInitializedCondition(ctx, controlPlane.KCP)
-	setRollingOutCondition(ctx, controlPlane.KCP, controlPlane.Machines)
+	setRollingOutCondition(ctx, controlPlane.Cluster, controlPlane.KCP, controlPlane.Machines, controlPlane.PreflightCheckResults, controlPlane.CanUpdateMachineResults)
 	setScalingUpCondition(ctx, controlPlane.Cluster, controlPlane.KCP, controlPlane.Machines, controlPlane.InfraMachineTemplateIsNotFound, controlPlane.PreflightCheckResults)
 	setScalingDownCondition(ctx, controlPlane.Cluster, controlPlane.KCP, controlPlane.Machines, controlPlane.PreflightCheckResults)
 	setMachinesReadyCondition(ctx, controlPlane.KCP, controlPlane.Machines)
@@ -246,7 +246,8 @@ func setInitializedCondition(_ context.Context, kcp *controlplanev1.KubeadmContr
 	})
 }
 
-func setRollingOutCondition(_ context.Context, kcp *controlplanev1.KubeadmControlPlane, machines collections.Machines) {
+func setRollingOutCondition(_ context.Context, cluster *clusterv1.Cluster, kcp *controlplanev1.KubeadmControlPlane, machines collections.Machines,
+	preflightChecks pkg.PreflightCheckResults, canUpdateMachineResults pkg.CanUpdateMachineResults) {
 	// Count machines rolling out and collect reasons why a rollout is happening.
 	// Note: The code below collects all the reasons for which at least a machine is rolling out; under normal circumstances
 	// all the machines are rolling out for the same reasons, however, in case of changes to KCP
@@ -278,6 +279,17 @@ func setRollingOutCondition(_ context.Context, kcp *controlplanev1.KubeadmContro
 
 	// Rolling out.
 	message := fmt.Sprintf("Rolling out %d not up-to-date replicas", rollingOutReplicas)
+
+	additionalMessages := getPreflightMessages(cluster, preflightChecks)
+	switch {
+	case canUpdateMachineResults.InternalErrorMessage != "":
+		additionalMessages = append(additionalMessages, fmt.Sprintf("* %s", canUpdateMachineResults.InternalErrorMessage))
+	case canUpdateMachineResults.WaitingForDecisionMessage != "":
+		additionalMessages = append(additionalMessages, fmt.Sprintf("* %s", canUpdateMachineResults.WaitingForDecisionMessage))
+	case canUpdateMachineResults.RolloutBlockedMessage != "":
+		additionalMessages = append(additionalMessages, fmt.Sprintf("* %s", canUpdateMachineResults.RolloutBlockedMessage))
+	}
+
 	if rolloutReasons.Len() > 0 {
 		// Surface rollout reasons ensuring that if there is a version change, it goes first.
 		reasons := rolloutReasons.UnsortedList()
@@ -290,12 +302,29 @@ func setRollingOutCondition(_ context.Context, kcp *controlplanev1.KubeadmContro
 			}
 			return reasons[i] < reasons[j]
 		})
-		message += fmt.Sprintf("\n%s", strings.Join(reasons, "\n"))
+		additionalMessages = append(additionalMessages, reasons...)
 	}
+
+	if len(additionalMessages) > 0 {
+		message += fmt.Sprintf(":\n%s", strings.Join(additionalMessages, "\n"))
+	}
+
+	var reason string
+	switch {
+	case canUpdateMachineResults.InternalErrorMessage != "":
+		reason = controlplanev1.KubeadmControlPlaneRollingOutInternalErrorReason
+	case canUpdateMachineResults.WaitingForDecisionMessage != "":
+		reason = controlplanev1.KubeadmControlPlaneRollingOutWaitingForRolloutDecisionReason
+	case canUpdateMachineResults.RolloutBlockedMessage != "":
+		reason = controlplanev1.KubeadmControlPlaneRollingOutRolloutBlockedReason
+	default:
+		reason = controlplanev1.KubeadmControlPlaneRollingOutReason
+	}
+
 	conditions.Set(kcp, metav1.Condition{
 		Type:    controlplanev1.KubeadmControlPlaneRollingOutCondition,
 		Status:  metav1.ConditionTrue,
-		Reason:  controlplanev1.KubeadmControlPlaneRollingOutReason,
+		Reason:  reason,
 		Message: message,
 	})
 }
@@ -337,11 +366,11 @@ func setScalingUpCondition(_ context.Context, cluster *clusterv1.Cluster, kcp *c
 
 	additionalMessages := getPreflightMessages(cluster, preflightChecks)
 	if missingReferencesMessage != "" {
-		additionalMessages = append(additionalMessages, fmt.Sprintf("* %s", missingReferencesMessage))
+		additionalMessages = append(additionalMessages, fmt.Sprintf("* Blocked because %s", missingReferencesMessage))
 	}
 
 	if len(additionalMessages) > 0 {
-		message += fmt.Sprintf(" is blocked because:\n%s", strings.Join(additionalMessages, "\n"))
+		message += fmt.Sprintf(":\n%s", strings.Join(additionalMessages, "\n"))
 	}
 
 	conditions.Set(kcp, metav1.Condition{
@@ -382,11 +411,11 @@ func setScalingDownCondition(_ context.Context, cluster *clusterv1.Cluster, kcp 
 
 	additionalMessages := getPreflightMessages(cluster, preflightChecks)
 	if staleMessage := aggregateStaleMachines(machines); staleMessage != "" {
-		additionalMessages = append(additionalMessages, fmt.Sprintf("* %s", staleMessage))
+		additionalMessages = append(additionalMessages, fmt.Sprintf("* Blocked because %s", staleMessage))
 	}
 
 	if len(additionalMessages) > 0 {
-		message += fmt.Sprintf(" is blocked because:\n%s", strings.Join(additionalMessages, "\n"))
+		message += fmt.Sprintf(":\n%s", strings.Join(additionalMessages, "\n"))
 	}
 
 	conditions.Set(kcp, metav1.Condition{
@@ -878,23 +907,23 @@ func getPreflightMessages(cluster *clusterv1.Cluster, preflightChecks pkg.Prefli
 		if version, ok := cluster.GetAnnotations()[clusterv1.ClusterTopologyUpgradeStepAnnotation]; ok && version != "" {
 			v = version
 		}
-		additionalMessages = append(additionalMessages, fmt.Sprintf("* waiting for a version upgrade to %s to be propagated", v))
+		additionalMessages = append(additionalMessages, fmt.Sprintf("* Waiting for a version upgrade to %s to be propagated", v))
 	}
 
 	if preflightChecks.HasDeletingMachine {
-		additionalMessages = append(additionalMessages, "* waiting for a control plane Machine to complete deletion")
+		additionalMessages = append(additionalMessages, "* Waiting for a control plane Machine to complete deletion")
 	}
 
 	if preflightChecks.CertificateMissing {
-		additionalMessages = append(additionalMessages, "* cluster certificates are missing or unknown")
+		additionalMessages = append(additionalMessages, "* Blocked because cluster certificates are missing or unknown")
 	}
 
 	if preflightChecks.ControlPlaneComponentsNotHealthy {
-		additionalMessages = append(additionalMessages, "* waiting for control plane components to become healthy")
+		additionalMessages = append(additionalMessages, "* Waiting for control plane components to become healthy")
 	}
 
 	if preflightChecks.EtcdClusterNotHealthy {
-		additionalMessages = append(additionalMessages, "* waiting for etcd cluster to become healthy")
+		additionalMessages = append(additionalMessages, "* Waiting for etcd cluster to become healthy")
 	}
 	return additionalMessages
 }

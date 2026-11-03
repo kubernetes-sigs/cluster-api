@@ -190,7 +190,7 @@ func Test_patchKubeadmControlPlaneTemplate(t *testing.T) {
 		t.Run(tt.name, func(*testing.T) {
 			g := NewWithT(t)
 
-			err := patchKubeadmControlPlaneTemplate(context.Background(), tt.template, tt.variables)
+			err := patchKubeadmControlPlaneTemplate(context.Background(), tt.template, tt.variables, "docker")
 			if tt.expectedErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {

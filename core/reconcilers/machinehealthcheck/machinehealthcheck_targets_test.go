@@ -807,7 +807,7 @@ func TestHealthCheckTargets(t *testing.T) {
 				timeout.Duration = *tc.timeoutForMachineToHaveNode
 			}
 
-			healthy, unhealthy, nextCheckTimes, err := reconciler.healthCheckTargets(tc.targets, ctrl.LoggerFrom(ctx), now, timeout)
+			healthy, unhealthy, nextCheckTimes, err := reconciler.healthCheckTargets(tc.targets, ctrl.LoggerFrom(ctx), metav1.NewTime(now), timeout)
 			gs.Expect(err).ToNot(HaveOccurred())
 
 			// Remove the last transition time of the given conditions. Used for comparison with expected conditions.

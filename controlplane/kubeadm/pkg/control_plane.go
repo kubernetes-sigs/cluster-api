@@ -73,14 +73,19 @@ type ControlPlane struct {
 	// MachinesNotUpToDate should always be used instead to check if a Machine is up-to-date.
 	machinesUpToDateResults map[string]UpToDateResult
 
-	// reconciliationTime is the time of the current reconciliation, and should be used for all "now" calculations
-	reconciliationTime metav1.Time
+	// reconcileStartTime is the start time of the current reconciliation. It should be used for all calculations
+	// that make decision based on when the reconcile happened. There are some cases where using time.Now() is more
+	// appropriate, e.g. when computing cache durations and RequeueAfter after calling the CanUpdateMachine hook.
+	reconcileStartTime metav1.Time
 
 	// InfraMachineTemplateIsNotFound is true if getting the infra machine template object failed with an NotFound err
 	InfraMachineTemplateIsNotFound bool
 
-	// PreflightChecks contains description about pre flight check results blocking machines creation or deletion.
+	// PreflightCheckResults contains description about pre flight check results blocking machines creation or deletion.
 	PreflightCheckResults PreflightCheckResults
+
+	// CanUpdateMachineResults contains descriptions about CanUpdateMachine results blocking rollout progress.
+	CanUpdateMachineResults CanUpdateMachineResults
 
 	// TODO: we should see if we can combine these with the Machine objects so we don't have all these separate lookups
 	// See discussion on https://github.com/kubernetes-sigs/cluster-api/pull/3405
@@ -119,8 +124,21 @@ type PreflightCheckResults struct {
 	TopologyVersionMismatch bool
 }
 
+// CanUpdateMachineResults contains description about CanUpdateMachine results blocking rollout progress.
+type CanUpdateMachineResults struct {
+	// InternalErrorMessage surfaces an error that occurred when discovering, validating or calling CanUpdateMachine extensions.
+	InternalErrorMessage string
+
+	// WaitingForDecisionMessage surfaces that the rollout is waiting for a decision from the CanUpdateMachine hooks.
+	WaitingForDecisionMessage string
+
+	// RolloutBlockedMessage surfaces that the rollout is blocked because the CanUpdateMachine hooks
+	// do not allow any operation that can be used to roll out the changes.
+	RolloutBlockedMessage string
+}
+
 // NewControlPlane returns an instantiated ControlPlane.
-func NewControlPlane(ctx context.Context, managementCluster ManagementCluster, dynamicCache dynamiccache.DynamicCache, client client.Client, cluster *clusterv1.Cluster, kcp *controlplanev1.KubeadmControlPlane, ownedMachines collections.Machines) (*ControlPlane, error) {
+func NewControlPlane(ctx context.Context, reconcileStartTime metav1.Time, managementCluster ManagementCluster, dynamicCache dynamiccache.DynamicCache, client client.Client, cluster *clusterv1.Cluster, kcp *controlplanev1.KubeadmControlPlane, ownedMachines collections.Machines) (*ControlPlane, error) {
 	infraMachines, err := getInfraMachines(ctx, dynamicCache, ownedMachines)
 	if err != nil {
 		return nil, err
@@ -139,11 +157,10 @@ func NewControlPlane(ctx context.Context, managementCluster ManagementCluster, d
 	}
 
 	// Select machines that should be rolled out because of an outdated configuration or because rolloutAfter/Before expired.
-	reconciliationTime := metav1.Now()
 	machinesNotUptoDate := make(collections.Machines, len(ownedMachines))
 	machinesUpToDateResults := map[string]UpToDateResult{}
 	for _, m := range ownedMachines {
-		upToDate, upToDateResult, err := UpToDate(ctx, dynamicCache, cluster, m, kcp, &reconciliationTime, infraMachines, kubeadmConfigs)
+		upToDate, upToDateResult, err := UpToDate(ctx, dynamicCache, cluster, m, kcp, &reconcileStartTime, infraMachines, kubeadmConfigs)
 		if err != nil {
 			return nil, err
 		}
@@ -164,7 +181,7 @@ func NewControlPlane(ctx context.Context, managementCluster ManagementCluster, d
 		machinesUpToDateResults: machinesUpToDateResults,
 		KubeadmConfigs:          kubeadmConfigs,
 		InfraResources:          infraMachines,
-		reconciliationTime:      reconciliationTime,
+		reconcileStartTime:      reconcileStartTime,
 		managementCluster:       managementCluster,
 	}, nil
 }
@@ -283,6 +300,12 @@ func (c *ControlPlane) MachinesNeedingRollout() (collections.Machines, map[strin
 // plane's configuration.
 func (c *ControlPlane) NotUpToDateMachines() (collections.Machines, map[string]UpToDateResult) {
 	return c.MachinesNotUpToDate, c.machinesUpToDateResults
+}
+
+// MachineConfigurationNotUpToDate returns true if the given machine does not match the KCP configuration.
+// Note: Machines that are not up-to-date only because rollout.before or rollout.after expired are not considered outdated.
+func (c *ControlPlane) MachineConfigurationNotUpToDate(machineName string) bool {
+	return c.machinesUpToDateResults[machineName].ConfigurationNotUpToDate
 }
 
 // UpToDateMachines returns the machines that are up to date with the control

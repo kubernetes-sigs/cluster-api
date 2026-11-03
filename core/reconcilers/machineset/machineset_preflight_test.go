@@ -203,7 +203,7 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 				controlPlane: controlPlaneProvisioning,
 				machineSet:   &clusterv1.MachineSet{},
 				wantMessages: []string{
-					"GenericControlPlane ns1/cp1 is provisioning (\"ControlPlaneIsStable\" preflight check failed)",
+					"GenericControlPlane cp1 is provisioning (\"ControlPlaneIsStable\" preflight check failed)",
 				},
 				wantErr: false,
 			},
@@ -220,7 +220,7 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 				controlPlane: controlPlaneUpgrading,
 				machineSet:   &clusterv1.MachineSet{},
 				wantMessages: []string{
-					"GenericControlPlane ns1/cp1 is upgrading (\"ControlPlaneIsStable\" preflight check failed)",
+					"GenericControlPlane cp1 is upgrading (\"ControlPlaneIsStable\" preflight check failed)",
 				},
 				wantErr: false,
 			},
@@ -240,7 +240,7 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 				controlPlane: controlPlaneStable,
 				machineSet:   &clusterv1.MachineSet{},
 				wantMessages: []string{
-					"GenericControlPlane ns1/cp1 has a pending version upgrade to v1.27.2 (\"ControlPlaneIsStable\" preflight check failed)",
+					"GenericControlPlane cp1 has a pending version upgrade to v1.27.2 (\"ControlPlaneIsStable\" preflight check failed)",
 				},
 				wantErr: false,
 			},
@@ -263,7 +263,7 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 				controlPlane: controlPlaneStable,
 				machineSet:   &clusterv1.MachineSet{},
 				wantMessages: []string{
-					"GenericControlPlane ns1/cp1 has a pending version upgrade to v1.27.0 (\"ControlPlaneIsStable\" preflight check failed)",
+					"GenericControlPlane cp1 has a pending version upgrade to v1.27.0 (\"ControlPlaneIsStable\" preflight check failed)",
 				},
 				wantErr: false,
 			},

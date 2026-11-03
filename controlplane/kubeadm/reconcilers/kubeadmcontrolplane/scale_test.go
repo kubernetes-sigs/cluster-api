@@ -248,7 +248,7 @@ func TestKubeadmControlPlaneReconciler_scaleUpControlPlane(t *testing.T) {
 			recorder:            record.NewFakeRecorder(32),
 		}
 
-		controlPlane, adoptableMachineFound, err := r.initControlPlaneScope(ctx, cluster, kcp)
+		controlPlane, adoptableMachineFound, err := r.initControlPlaneScope(ctx, metav1.Now(), cluster, kcp)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(adoptableMachineFound).To(BeFalse())
 

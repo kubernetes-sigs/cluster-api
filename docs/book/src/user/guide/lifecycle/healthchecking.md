@@ -139,6 +139,9 @@ remediation, this is considered a retry of the same sequence.
 If a machine becomes unhealthy again after `minHealthyPeriodSeconds` has passed since the previous remediation, 
 this is no longer considered a retry because the new issue is assumed unrelated from the previous one and a new sequence starts.
 
+The number of retries is also reset if the machine to be remediated does not match the KubeadmControlPlane configuration anymore
+(e.g. version, infrastructure machine template or KubeadmConfig changed), because the replacement machine will be created with a different configuration.
+
 If `maxRetry` is not set (default), remediation will be retried infinitely.
 
 > [!TIP]

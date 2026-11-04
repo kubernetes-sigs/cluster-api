@@ -29,6 +29,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/utils/ptr"
@@ -2555,5 +2556,116 @@ func reconcileNormalFuncsForTest(mpr *Reconciler) []machinePoolReconcileFunc {
 		mpr.getMachinesForMachinePool,
 		mpr.reconcileNodeRefs,
 		mpr.setMachinesUptoDate,
+	}
+}
+
+func TestComputeDesiredMachine(t *testing.T) {
+	deletionSpec := clusterv1.MachineDeletionSpec{
+		NodeDrainTimeoutSeconds:        ptr.To[int32](120),
+		NodeDeletionTimeoutSeconds:     ptr.To[int32](300),
+		NodeVolumeDetachTimeoutSeconds: ptr.To[int32](60),
+	}
+
+	infraGVK := schema.GroupVersionKind{
+		Group:   "infrastructure.cluster.x-k8s.io",
+		Version: "v1beta1",
+		Kind:    "GenericInfrastructureMachine",
+	}
+
+	infraMachineName := "test-infra-machine"
+
+	tests := []struct {
+		name             string
+		templateDeletion clusterv1.MachineDeletionSpec
+		existingMachine  *clusterv1.Machine
+		wantName         string
+		wantUID          types.UID
+	}{
+		{
+			name:             "create a new Machine",
+			templateDeletion: deletionSpec,
+			wantName:         infraMachineName,
+		},
+		{
+			name:             "update an existing Machine and sync deletion settings from the MachinePool template",
+			templateDeletion: deletionSpec,
+			existingMachine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "existing-machine",
+					UID:  "existing-machine-uid",
+				},
+				Spec: clusterv1.MachineSpec{
+					Deletion: clusterv1.MachineDeletionSpec{
+						NodeDrainTimeoutSeconds: ptr.To[int32](1),
+					},
+				},
+			},
+			wantName: "existing-machine",
+			wantUID:  "existing-machine-uid",
+		},
+		{
+			name:     "leave deletion settings empty when they are not set in the MachinePool template",
+			wantName: infraMachineName,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			mp := &clusterv1.MachinePool{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-mp",
+					Namespace: metav1.NamespaceDefault,
+				},
+				Spec: clusterv1.MachinePoolSpec{
+					ClusterName: "test-cluster",
+					Template: clusterv1.MachineTemplateSpec{
+						ObjectMeta: clusterv1.ObjectMeta{
+							Labels: map[string]string{
+								"custom-label": "custom-value",
+							},
+							Annotations: map[string]string{
+								"custom-annotation": "custom-value",
+							},
+						},
+						Spec: clusterv1.MachineSpec{
+							Deletion: tt.templateDeletion,
+						},
+					},
+				},
+			}
+
+			expectedSpec := clusterv1.MachineSpec{
+				ClusterName: mp.Spec.ClusterName,
+				Bootstrap: clusterv1.Bootstrap{
+					DataSecretName: ptr.To(""),
+				},
+				InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+					APIGroup: infraGVK.Group,
+					Kind:     infraGVK.Kind,
+					Name:     infraMachineName,
+				},
+				Deletion: tt.templateDeletion,
+			}
+
+			r := &Reconciler{}
+			desiredMachine := r.computeDesiredMachine(mp, infraGVK, infraMachineName, tt.existingMachine, nil)
+
+			g.Expect(desiredMachine).ToNot(BeNil())
+			g.Expect(desiredMachine.Name).To(Equal(tt.wantName))
+			g.Expect(desiredMachine.Namespace).To(Equal(mp.Namespace))
+			g.Expect(desiredMachine.UID).To(Equal(tt.wantUID))
+			g.Expect(desiredMachine.OwnerReferences).To(ConsistOf(*metav1.NewControllerRef(mp, machinePoolKind)))
+			g.Expect(desiredMachine.Labels).To(Equal(map[string]string{
+				"custom-label":                 "custom-value",
+				clusterv1.MachinePoolNameLabel: format.MustFormatValue(mp.Name),
+				clusterv1.ClusterNameLabel:     mp.Spec.ClusterName,
+			}))
+			g.Expect(desiredMachine.Annotations).To(Equal(map[string]string{
+				"custom-annotation": "custom-value",
+			}))
+			g.Expect(desiredMachine.Spec).To(BeComparableTo(expectedSpec))
+		})
 	}
 }

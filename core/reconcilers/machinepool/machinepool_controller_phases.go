@@ -600,6 +600,8 @@ func (r *Reconciler) computeDesiredMachine(mp *clusterv1.MachinePool, infraMachi
 			},
 			InfrastructureRef: infraRef,
 			Version:           kubernetesVersion,
+			// The MachinePool template is the source of truth for deletion timeouts, so propagate them to the Machine.
+			Deletion: *mp.Spec.Template.Spec.Deletion.DeepCopy(),
 		},
 	}
 

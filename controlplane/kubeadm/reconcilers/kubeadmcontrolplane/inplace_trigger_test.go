@@ -159,6 +159,7 @@ func Test_triggerInPlaceUpdate(t *testing.T) {
 		name                                        string
 		currentMachine                              *clusterv1.Machine
 		createMachineWithUpdateInProgressAnnotation bool
+		createMachineWithRemediationForAnnotation   bool
 		currentInfraMachine                         *unstructured.Unstructured
 		currentKubeadmConfig                        *bootstrapv1.KubeadmConfig
 		createKubeadmConfigLikeWithCAPI1_11         bool
@@ -200,6 +201,17 @@ func Test_triggerInPlaceUpdate(t *testing.T) {
 			desiredKubeadmConfig: desiredKubeadmConfig,
 		},
 		{
+			name:           "Trigger in-place update should stop remediation sequence",
+			currentMachine: currentMachine,
+			createMachineWithRemediationForAnnotation: true,
+			currentInfraMachine:                       currentInfraMachine,
+			currentKubeadmConfig:                      currentKubeadmConfig,
+			desiredMachine:                            desiredMachine,
+			desiredInfraMachine:                       desiredInfraMachine,
+			desiredKubeadmConfig:                      desiredKubeadmConfig,
+		},
+
+		{
 			name:           "Trigger in-place update (Machine already has UpdateInProgressAnnotation)",
 			currentMachine: currentMachine,
 			createMachineWithUpdateInProgressAnnotation: true,
@@ -236,6 +248,11 @@ func Test_triggerInPlaceUpdate(t *testing.T) {
 				orig := currentMachineForPatch.DeepCopy()
 				currentMachineForPatch.Annotations[clusterv1.UpdateInProgressAnnotation] = "{\"affectsAvailability\":true}"
 				g.Expect(env.Client.Patch(ctx, currentMachineForPatch, client.MergeFrom(orig), client.FieldOwner("manager"))).To(Succeed())
+			}
+			if tt.createMachineWithRemediationForAnnotation {
+				orig := currentMachineForPatch.DeepCopy()
+				currentMachineForPatch.Annotations[controlplanev1.RemediationForAnnotation] = "..."
+				g.Expect(env.Client.Patch(ctx, currentMachineForPatch, client.MergeFrom(orig))).To(Succeed())
 			}
 
 			// Create InfraMachine (same as in createInfraMachine)

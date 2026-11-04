@@ -84,12 +84,6 @@ func canUpdateMachineSpec(current, desired *clusterv1.MachineSpec) bool {
 		current.FailureDomain = desired.FailureDomain
 		affectsAvailability = true
 	}
-	// TBD if we should keep this, but for now using it to test KCP machinery as this
-	// is the only field on Machine that KCP will try to roll out in-place.
-	if current.Version != desired.Version {
-		current.Version = desired.Version
-		affectsAvailability = true
-	}
 	return affectsAvailability
 }
 

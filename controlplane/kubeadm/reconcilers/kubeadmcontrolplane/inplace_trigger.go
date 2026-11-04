@@ -29,6 +29,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
+	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/pkg"
@@ -63,6 +64,10 @@ func (r *Reconciler) triggerInPlaceUpdate(ctx context.Context, controlPlane *pkg
 			return pkgerrors.Wrapf(err, "failed to trigger in-place update for Machine %s by setting the %s annotation: failed to Marshal data", klog.KObj(machine), clusterv1.UpdateInProgressAnnotation)
 		}
 		machine.Annotations[clusterv1.UpdateInProgressAnnotation] = string(dataBytes)
+
+		// The machine is going to get a new spec, so if a remediation sequence was in progress, we should start a new one.
+		delete(machine.Annotations, controlplanev1.RemediationForAnnotation)
+
 		if err := r.Client.Patch(ctx, machine, client.MergeFrom(orig)); err != nil {
 			return pkgerrors.Wrapf(err, "failed to trigger in-place update for Machine %s by setting the %s annotation", klog.KObj(machine), clusterv1.UpdateInProgressAnnotation)
 		}

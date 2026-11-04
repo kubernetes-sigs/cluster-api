@@ -53,10 +53,6 @@ import (
 )
 
 func TestClusterTopologyDefaultNamespaces(t *testing.T) {
-	// NOTE: ClusterTopology feature flag is disabled by default, thus preventing to set Cluster.Topologies.
-	// Enabling the feature flag temporarily for this test.
-	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)
-
 	g := NewWithT(t)
 
 	c := builder.Cluster("fooboo", "cluster1").
@@ -94,8 +90,6 @@ func TestClusterTopologyDefaultNamespaces(t *testing.T) {
 
 // TestClusterDefaultAndValidateVariables cases where cluster.spec.topology.class is altered.
 func TestClusterDefaultAndValidateVariables(t *testing.T) {
-	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)
-
 	tests := []struct {
 		name           string
 		clusterClass   *clusterv1.ClusterClass
@@ -1338,10 +1332,6 @@ func TestClusterDefaultAndValidateVariables(t *testing.T) {
 }
 
 func TestClusterDefaultTopologyVersion(t *testing.T) {
-	// NOTE: ClusterTopology feature flag is disabled by default, thus preventing to set Cluster.Topologies.
-	// Enabling the feature flag temporarily for this test.
-	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)
-
 	g := NewWithT(t)
 
 	c := builder.Cluster("fooboo", "cluster1").
@@ -1373,10 +1363,6 @@ func TestClusterDefaultTopologyVersion(t *testing.T) {
 }
 
 func TestClusterFailOnMissingClassField(t *testing.T) {
-	// NOTE: ClusterTopology feature flag is disabled by default, thus preventing to set Cluster.Topologies.
-	// Enabling the feature flag temporarily for this test.
-	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)
-
 	g := NewWithT(t)
 
 	c := builder.Cluster("fooboo", "cluster1").
@@ -1390,7 +1376,8 @@ func TestClusterFailOnMissingClassField(t *testing.T) {
 }
 
 func TestClusterValidation(t *testing.T) {
-	// NOTE: ClusterTopology feature flag is disabled by default, thus preventing to set Cluster.Topologies.
+	// NOTE: ClusterTopology feature flag is enabled by default, thus we have to disable it explicitly to test the disabled behavior.
+	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, false)
 
 	tests := []struct {
 		name         string
@@ -1676,9 +1663,6 @@ func TestClusterValidation(t *testing.T) {
 }
 
 func TestClusterTopologyValidation(t *testing.T) {
-	// NOTE: ClusterTopology feature flag is disabled by default, thus preventing to set Cluster.Topologies.
-	// Enabling the feature flag temporarily for this test.
-	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)
 	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopologyWorkerVersionPinning, true)
 
 	tests := []struct {
@@ -2379,8 +2363,6 @@ func TestClusterTopologyValidation(t *testing.T) {
 
 // TestClusterTopologyValidationWithClient tests the additional cases introduced in new validation in the webhook package.
 func TestClusterTopologyValidationWithClient(t *testing.T) {
-	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)
-
 	tests := []struct {
 		name            string
 		cluster         *clusterv1.Cluster
@@ -2868,7 +2850,6 @@ func TestClusterTopologyValidationWithClient(t *testing.T) {
 
 // TestClusterTopologyValidationForTopologyClassChange cases where cluster.spec.topology.class is altered.
 func TestClusterTopologyValidationForTopologyClassChange(t *testing.T) {
-	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)
 	g := NewWithT(t)
 
 	cluster := builder.Cluster(metav1.NamespaceDefault, "cluster1").
@@ -3434,7 +3415,6 @@ func TestClusterTopologyValidationForTopologyClassChange(t *testing.T) {
 
 // TestMovingBetweenManagedAndUnmanaged cluster tests cases where a clusterClass is added or removed during a cluster update.
 func TestMovingBetweenManagedAndUnmanaged(t *testing.T) {
-	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)
 	ref := &clusterv1.ClusterClassTemplateReference{
 		APIVersion: "group.test.io/foo",
 		Kind:       "barTemplate",
@@ -3561,7 +3541,6 @@ func TestMovingBetweenManagedAndUnmanaged(t *testing.T) {
 
 // TestClusterClassPollingErrors tests when a Cluster can be reconciled given different reconcile states of the ClusterClass.
 func TestClusterClassPollingErrors(t *testing.T) {
-	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)
 	g := NewWithT(t)
 	ref := &clusterv1.ClusterClassTemplateReference{
 		APIVersion: "group.test.io/foo",

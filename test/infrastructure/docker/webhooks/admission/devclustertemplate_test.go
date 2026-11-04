@@ -33,8 +33,6 @@ import (
 var ctx = ctrl.SetupSignalHandler()
 
 func TestDevClusterTemplateValidationFeatureGateEnabled(t *testing.T) {
-	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)
-
 	t.Run("create decclustertemplate should pass if gate enabled and valid dockerclustertemplate", func(t *testing.T) {
 		g := NewWithT(t)
 		dct := &infrav1.DevClusterTemplate{
@@ -56,7 +54,8 @@ func TestDevClusterTemplateValidationFeatureGateEnabled(t *testing.T) {
 }
 
 func TestDevClusterTemplateValidationFeatureGateDisabled(t *testing.T) {
-	// NOTE: ClusterTopology feature flag is disabled by default, thus preventing to create DevClusterTemplate.
+	// NOTE: ClusterTopology feature flag is enabled by default, thus we have to disable it explicitly to test the disabled behavior.
+	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, false)
 	t.Run("create devclustertemplate should not pass if gate disabled and valid devclustertemplate", func(t *testing.T) {
 		g := NewWithT(t)
 		dct := &infrav1.DevClusterTemplate{
@@ -78,8 +77,6 @@ func TestDevClusterTemplateValidationFeatureGateDisabled(t *testing.T) {
 }
 
 func TestDevClusterTemplateValidationMetadata(t *testing.T) {
-	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)
-
 	tests := []struct {
 		name        string
 		labels      map[string]string

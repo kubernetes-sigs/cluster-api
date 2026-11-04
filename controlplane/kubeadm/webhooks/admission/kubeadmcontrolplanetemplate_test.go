@@ -33,8 +33,6 @@ import (
 )
 
 func TestKubeadmControlPlaneTemplateValidationFeatureGateEnabled(t *testing.T) {
-	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)
-
 	t.Run("create kubeadmcontrolplanetemplate should pass if gate enabled and valid kubeadmcontrolplanetemplate", func(t *testing.T) {
 		testnamespace := "test"
 		g := NewWithT(t)
@@ -65,7 +63,8 @@ func TestKubeadmControlPlaneTemplateValidationFeatureGateEnabled(t *testing.T) {
 }
 
 func TestKubeadmControlPlaneTemplateValidationFeatureGateDisabled(t *testing.T) {
-	// NOTE: ClusterTopology feature flag is disabled by default, thus preventing to create KubeadmControlPlaneTemplate.
+	// NOTE: ClusterTopology feature flag is enabled by default, thus we have to disable it explicitly to test the disabled behavior.
+	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, false)
 	t.Run("create kubeadmcontrolplanetemplate should not pass if gate disabled and valid kubeadmcontrolplanetemplate", func(t *testing.T) {
 		testnamespace := "test"
 		g := NewWithT(t)

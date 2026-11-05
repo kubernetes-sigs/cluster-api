@@ -4,3 +4,6 @@ resources:
 - service_account.yaml
 - leader_election_role.yaml
 - leader_election_role_binding.yaml
+- viewer_role.yaml
+- editor_role.yaml
+- sensitive_viewer_role.yaml

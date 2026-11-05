@@ -1,0 +1,21 @@
+# Aggregates read-only access to the KubeadmConfigTemplates into the builtin "view", "edit" and
+# "admin" ClusterRoles. "edit" and "admin" do not inherit the rules aggregated into "view",
+# hence the additional labels. KubeadmConfigs are deliberately not included: the controller
+# writes the generated bootstrap token into them.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: viewer-role
+  labels:
+    rbac.authorization.k8s.io/aggregate-to-view: "true"
+    rbac.authorization.k8s.io/aggregate-to-edit: "true"
+    rbac.authorization.k8s.io/aggregate-to-admin: "true"
+rules:
+- apiGroups:
+  - bootstrap.cluster.x-k8s.io
+  resources:
+  - kubeadmconfigtemplates
+  verbs:
+  - get
+  - list
+  - watch

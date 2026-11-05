@@ -5,3 +5,5 @@ resources:
 - leader_election_role.yaml
 - leader_election_role_binding.yaml
 - aggregated_role.yaml
+- viewer_role.yaml
+- editor_role.yaml

@@ -119,6 +119,23 @@ func NewAPIServerHandler(manager inmemoryruntime.Manager, log logr.Logger, resol
 	ws.Route(ws.PATCH("/apis/{group}/{version}/namespaces/{namespace}/{resource}/{name}").Consumes(string(types.MergePatchType), string(types.StrategicMergePatchType)).To(apiServer.apiV1Patch))
 	ws.Route(ws.DELETE("/apis/{group}/{version}/namespaces/{namespace}/{resource}/{name}").Consumes(runtime.ContentTypeProtobuf, runtime.ContentTypeJSON).To(apiServer.apiV1Delete))
 
+	// Status subresource endpoints
+	ws.Route(ws.GET("/api/v1/{resource}/{name}/status").To(apiServer.apiV1Get))
+	ws.Route(ws.PUT("/api/v1/{resource}/{name}/status").Consumes(runtime.ContentTypeProtobuf, runtime.ContentTypeJSON).To(apiServer.apiV1Update))
+	ws.Route(ws.PATCH("/api/v1/{resource}/{name}/status").Consumes(string(types.MergePatchType), string(types.StrategicMergePatchType)).To(apiServer.apiV1Patch))
+
+	ws.Route(ws.GET("/apis/{group}/{version}/{resource}/{name}/status").To(apiServer.apiV1Get))
+	ws.Route(ws.PUT("/apis/{group}/{version}/{resource}/{name}/status").Consumes(runtime.ContentTypeProtobuf, runtime.ContentTypeJSON).To(apiServer.apiV1Update))
+	ws.Route(ws.PATCH("/apis/{group}/{version}/{resource}/{name}/status").Consumes(string(types.MergePatchType), string(types.StrategicMergePatchType)).To(apiServer.apiV1Patch))
+
+	ws.Route(ws.GET("/api/v1/namespaces/{namespace}/{resource}/{name}/status").To(apiServer.apiV1Get))
+	ws.Route(ws.PUT("/api/v1/namespaces/{namespace}/{resource}/{name}/status").Consumes(runtime.ContentTypeProtobuf, runtime.ContentTypeJSON).To(apiServer.apiV1Update))
+	ws.Route(ws.PATCH("/api/v1/namespaces/{namespace}/{resource}/{name}/status").Consumes(string(types.MergePatchType), string(types.StrategicMergePatchType)).To(apiServer.apiV1Patch))
+
+	ws.Route(ws.GET("/apis/{group}/{version}/namespaces/{namespace}/{resource}/{name}/status").To(apiServer.apiV1Get))
+	ws.Route(ws.PUT("/apis/{group}/{version}/namespaces/{namespace}/{resource}/{name}/status").Consumes(runtime.ContentTypeProtobuf, runtime.ContentTypeJSON).To(apiServer.apiV1Update))
+	ws.Route(ws.PATCH("/apis/{group}/{version}/namespaces/{namespace}/{resource}/{name}/status").Consumes(string(types.MergePatchType), string(types.StrategicMergePatchType)).To(apiServer.apiV1Patch))
+
 	// Port forward endpoints
 	ws.Route(ws.GET("/api/v1/namespaces/{namespace}/pods/{name}/portforward").To(apiServer.apiV1PortForward))
 	ws.Route(ws.POST("/api/v1/namespaces/{namespace}/pods/{name}/portforward").Consumes("*/*").To(apiServer.apiV1PortForward))

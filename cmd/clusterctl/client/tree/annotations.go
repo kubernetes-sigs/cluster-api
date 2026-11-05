@@ -48,6 +48,9 @@ const (
 	// GroupItemsAnnotation contains the list of names for the objects included in a group object.
 	GroupItemsAnnotation = "tree.cluster.x-k8s.io.io/group-items"
 
+	// GroupItemsVersionAnnotation contains the Kubernetes version shared by all objects in a group.
+	GroupItemsVersionAnnotation = "tree.cluster.x-k8s.io.io/group-items-version"
+
 	// GroupItemsAvailableCounter contains the number of available objects in the group, e.g. available Machines.
 	GroupItemsAvailableCounter = "tree.cluster.x-k8s.io.io/group-items-available-count"
 
@@ -127,6 +130,22 @@ func GetGroupItems(obj client.Object) string {
 		return val
 	}
 	return ""
+}
+
+// GetGroupItemsVersion returns the Kubernetes version shared by all objects in a group, if defined.
+func GetGroupItemsVersion(obj client.Object) string {
+	if val, ok := getAnnotation(obj, GroupItemsVersionAnnotation); ok {
+		return val
+	}
+	return ""
+}
+
+// GetGroupItemObjects returns the objects included in a group object.
+func GetGroupItemObjects(obj client.Object) []client.Object {
+	if node, ok := obj.(*NodeObject); ok {
+		return node.Items
+	}
+	return nil
 }
 
 // GetGroupItemsAvailableCounter returns the number of available objects in the group, e.g. available Machines.

@@ -2415,6 +2415,18 @@ func TestDeletingCondition(t *testing.T) {
 					"* Worker Machines: w1, w2, w3, w4, w5, ... (3 more)",
 			},
 		},
+		{
+			name:            "deletionTimestamp set (message enriched with the child Deleting condition message)",
+			cluster:         fakeCluster("c", deleted(true)),
+			deletingReason:  clusterv1.ClusterDeletingWaitingForControlPlaneDeletionReason,
+			deletingMessage: "Waiting for KubeadmControlPlane to be deleted: Deleting 3 Machines",
+			expectCondition: metav1.Condition{
+				Type:    clusterv1.ClusterDeletingCondition,
+				Status:  metav1.ConditionTrue,
+				Reason:  clusterv1.ClusterDeletingWaitingForControlPlaneDeletionReason,
+				Message: "Waiting for KubeadmControlPlane to be deleted: Deleting 3 Machines",
+			},
+		},
 	}
 
 	for _, tc := range testCases {

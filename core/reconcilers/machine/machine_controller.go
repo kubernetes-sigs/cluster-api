@@ -641,7 +641,7 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (ctrl.Result
 	if !infrastructureDeleted {
 		r.logRateLimiter.InfoAtMostEvery(log, logRateLimitInterval, waitingForInfrastructureDeletionKey(m), "Waiting for infrastructure to be deleted", m.Spec.InfrastructureRef.Kind, klog.KRef(m.Namespace, m.Spec.InfrastructureRef.Name))
 		s.deletingReason = clusterv1.MachineDeletingWaitingForInfrastructureDeletionReason
-		s.deletingMessage = fmt.Sprintf("Waiting for %s to be deleted", m.Spec.InfrastructureRef.Kind)
+		s.deletingMessage = conditions.WaitingForDeletionMessage(m.Spec.InfrastructureRef.Kind, s.infraMachine)
 		return ctrl.Result{}, nil
 	}
 	r.logRateLimiter.Forget(waitingForInfrastructureDeletionKey(m))
@@ -656,7 +656,7 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (ctrl.Result
 		if !bootstrapDeleted {
 			r.logRateLimiter.InfoAtMostEvery(log, logRateLimitInterval, waitingForBootstrapDeletionKey(m), "Waiting for bootstrap to be deleted", m.Spec.Bootstrap.ConfigRef.Kind, klog.KRef(m.Namespace, m.Spec.Bootstrap.ConfigRef.Name))
 			s.deletingReason = clusterv1.MachineDeletingWaitingForBootstrapDeletionReason
-			s.deletingMessage = fmt.Sprintf("Waiting for %s to be deleted", m.Spec.Bootstrap.ConfigRef.Kind)
+			s.deletingMessage = conditions.WaitingForDeletionMessage(m.Spec.Bootstrap.ConfigRef.Kind, s.bootstrapConfig)
 			return ctrl.Result{}, nil
 		}
 		r.logRateLimiter.Forget(waitingForBootstrapDeletionKey(m))

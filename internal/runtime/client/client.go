@@ -707,7 +707,7 @@ func httpCall(ctx context.Context, request, response runtime.Object, opts *httpC
 		)
 	}
 
-	if err := json.NewDecoder(resp.Body).Decode(responseLocal); err != nil {
+	if err := json.NewDecoder(http.MaxBytesReader(nil, resp.Body, maxExtensionResponseBodyBytes)).Decode(responseLocal); err != nil {
 		return errCallingExtensionHandler(
 			pkgerrors.Wrap(err, "http call failed: failed to decode response"),
 		)

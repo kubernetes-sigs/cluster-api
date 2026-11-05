@@ -146,7 +146,7 @@ Once release branch is created by GitHub Automation, the goal of this task would
 applier that applies milestones accordingly and to update GitHub actions to work with new release version.
 From this point forward changes which should land in the release have to be cherry-picked into the release branch.
 
-1. Update the [milestone applier config](https://github.com/kubernetes/test-infra/blob/0b17ef5ffd6c7aa7d8ca1372d837acfb85f7bec6/config/prow/plugins.yaml#L371) accordingly (e.g. `release-1.5: v1.5` and `main: v1.6`)
+1. Update the [milestone applier config](https://github.com/kubernetes/test-infra/blob/master/config/prow/plugins/kubernetes-sigs/cluster-api/cluster-api_pluginconfig.yaml) accordingly (e.g. `release-1.5: v1.5` and `main: v1.6`)
    <br>Prior art: [cluster-api: update milestone applier config for v1.5](https://github.com/kubernetes/test-infra/pull/30058)
 
 2. Update the GitHub Actions to work with the new release version.

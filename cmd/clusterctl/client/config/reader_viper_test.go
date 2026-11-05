@@ -96,6 +96,18 @@ func Test_viperReader_Init(t *testing.T) {
 			expectErr:  false,
 		},
 		{
+			name:       "reads in remote config when config directory does not exist",
+			configPath: ts.URL,
+			configDirs: []string{filepath.Join(t.TempDir(), "cluster-api")},
+			expectErr:  false,
+		},
+		{
+			name:       "returns error when remote config directory is a file",
+			configPath: ts.URL,
+			configDirs: []string{configFile},
+			expectErr:  true,
+		},
+		{
 			name:       "fail to read remote config",
 			configPath: tsFail.URL,
 			configDirs: []string{clusterctlHomeDir},

@@ -199,6 +199,9 @@ storage:
       {{ if ne .Permissions "" -}}
       mode: {{ .Permissions }}
       {{ end -}}
+      {{ if .Append -}}
+      append: {{ .Append }}
+      {{ end -}}
       contents:
         {{ if eq .Encoding "base64" -}}
         inline: !!binary |

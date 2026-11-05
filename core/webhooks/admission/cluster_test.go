@@ -5092,6 +5092,98 @@ func TestValidateAutoscalerAnnotationsForCluster(t *testing.T) {
 	}
 }
 
+func Test_validateMachineHealthChecks(t *testing.T) {
+	tests := []struct {
+		name         string
+		mutate       func(*clusterv1.Cluster)
+		wantWarnings admission.Warnings
+	}{
+		{
+			name: "Should warn when control plane healthCheck checks are set while healthCheck is disabled",
+			mutate: func(cluster *clusterv1.Cluster) {
+				cluster.Spec.Topology.ControlPlane.HealthCheck = clusterv1.ControlPlaneTopologyHealthCheck{
+					Enabled: ptr.To(false),
+					Checks: clusterv1.ControlPlaneTopologyHealthCheckChecks{
+						NodeStartupTimeoutSeconds: ptr.To[int32](30),
+					},
+				}
+			},
+			wantWarnings: admission.Warnings{"spec.topology.controlPlane.healthCheck: checks and remediation are ignored while enabled is false"},
+		},
+		{
+			name: "Should warn when MachineDeployment healthCheck checks are set while healthCheck is disabled",
+			mutate: func(cluster *clusterv1.Cluster) {
+				cluster.Spec.Topology.Workers.MachineDeployments[0].HealthCheck = clusterv1.MachineDeploymentTopologyHealthCheck{
+					Enabled: ptr.To(false),
+					Checks: clusterv1.MachineDeploymentTopologyHealthCheckChecks{
+						NodeStartupTimeoutSeconds: ptr.To[int32](30),
+					},
+				}
+			},
+			wantWarnings: admission.Warnings{"spec.topology.workers.machineDeployments[workers1].healthCheck: checks and remediation are ignored while enabled is false"},
+		},
+		{
+			name: "Should not warn when control plane healthCheck checks are set while healthCheck is enabled",
+			mutate: func(cluster *clusterv1.Cluster) {
+				cluster.Spec.Topology.ControlPlane.HealthCheck = clusterv1.ControlPlaneTopologyHealthCheck{
+					Enabled: ptr.To(true),
+					Checks: clusterv1.ControlPlaneTopologyHealthCheckChecks{
+						NodeStartupTimeoutSeconds: ptr.To[int32](30),
+					},
+				}
+			},
+		},
+		{
+			name: "Should not warn when MachineDeployment healthCheck checks are set while healthCheck is enabled",
+			mutate: func(cluster *clusterv1.Cluster) {
+				cluster.Spec.Topology.Workers.MachineDeployments[0].HealthCheck = clusterv1.MachineDeploymentTopologyHealthCheck{
+					Enabled: ptr.To(true),
+					Checks: clusterv1.MachineDeploymentTopologyHealthCheckChecks{
+						NodeStartupTimeoutSeconds: ptr.To[int32](30),
+					},
+				}
+			},
+		},
+		{
+			name: "Should not warn when healthCheck is disabled without checks or remediation",
+			mutate: func(cluster *clusterv1.Cluster) {
+				cluster.Spec.Topology.ControlPlane.HealthCheck = clusterv1.ControlPlaneTopologyHealthCheck{
+					Enabled: ptr.To(false),
+				}
+				cluster.Spec.Topology.Workers.MachineDeployments[0].HealthCheck = clusterv1.MachineDeploymentTopologyHealthCheck{
+					Enabled: ptr.To(false),
+				}
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			cluster := builder.Cluster("ns", "cluster1").
+				WithTopology(builder.ClusterTopology().
+					WithClass("class1").
+					WithVersion("v1.29.0").
+					WithMachineDeployment(builder.MachineDeploymentTopology("workers1").
+						WithClass("md-class-1").
+						Build()).
+					Build()).
+				Build()
+			clusterClass := builder.ClusterClass("ns", "class1").
+				WithControlPlaneInfrastructureMachineTemplate(builder.InfrastructureMachineTemplate("ns", "cp-machine-template").Build()).
+				WithWorkerMachineDeploymentClasses(*builder.MachineDeploymentClass("md-class-1").Build()).
+				Build()
+
+			tt.mutate(cluster)
+
+			warnings, errs := validateMachineHealthChecks(cache.New[cel.ProgramEntry](ctx, 1*time.Hour), cluster, clusterClass)
+			g.Expect(errs).To(BeEmpty())
+			g.Expect(warnings).To(Equal(tt.wantWarnings))
+		})
+	}
+}
+
 func refToUnstructured(ref *clusterv1.ClusterClassTemplateReference) *unstructured.Unstructured {
 	gvk := ref.GroupVersionKind()
 	output := &unstructured.Unstructured{}

@@ -244,9 +244,11 @@ func (r *Reconciler) reconcileBootstrap(ctx context.Context, s *scope) (ctrl.Res
 	if m.Spec.Template.Spec.Bootstrap.ConfigRef.IsDefined() {
 		bootstrapConfigGVK, obj, err := r.reconcileExternalBootstrap(ctx, m, m.Spec.Template.Spec.Bootstrap.ConfigRef)
 		if err != nil {
+			s.bootstrapConfigIsNotFound = apierrors.IsNotFound(pkgerrors.Cause(err))
 			return ctrl.Result{}, err
 		}
 		bootstrapConfig := obj.(contractapi.BootstrapConfig)
+		s.bootstrapConfig = bootstrapConfig
 
 		// Set failure reason and message, if any.
 		if failureReason := bootstrapConfig.GetFailureReason(); failureReason != "" {
@@ -325,6 +327,7 @@ func (r *Reconciler) reconcileInfrastructure(ctx context.Context, s *scope) (ctr
 	infraReconcileResult, err := r.reconcileExternal(ctx, mp, mp.Spec.Template.Spec.InfrastructureRef)
 	if err != nil {
 		if apierrors.IsNotFound(pkgerrors.Cause(err)) {
+			s.infraMachinePoolIsNotFound = true
 			log.Error(err, "infrastructure reference could not be found")
 			if ptr.Deref(mp.Status.Initialization.InfrastructureProvisioned, false) {
 				// Infra object went missing after the machine pool was up and running
@@ -346,10 +349,6 @@ func (r *Reconciler) reconcileInfrastructure(ctx context.Context, s *scope) (ctr
 	infraConfig := infraReconcileResult.Result
 	s.infraMachinePool = infraConfig
 
-	if !infraConfig.GetDeletionTimestamp().IsZero() {
-		return ctrl.Result{}, nil
-	}
-
 	// Determine contract version used by the InfraMachinePool.
 	contractVersion, err := contract.GetContractVersion(ctx, r.Client, infraConfig.GroupVersionKind().GroupKind())
 	if err != nil {
@@ -365,6 +364,12 @@ func (r *Reconciler) reconcileInfrastructure(ctx context.Context, s *scope) (ctr
 	} else {
 		provisioned = *provisionedPtr
 	}
+	s.infrastructureProvisioned = ptr.To(provisioned)
+
+	if !infraConfig.GetDeletionTimestamp().IsZero() {
+		return ctrl.Result{}, nil
+	}
+
 	if provisioned && !ptr.Deref(mp.Status.Initialization.InfrastructureProvisioned, false) {
 		log.Info("Infrastructure provider has completed provisioning", infraConfig.GetKind(), klog.KObj(infraConfig))
 	}

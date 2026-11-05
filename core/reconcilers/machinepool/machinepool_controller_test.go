@@ -48,6 +48,7 @@ import (
 	contractv1 "sigs.k8s.io/cluster-api/internal/contract/api/v1beta2"
 	"sigs.k8s.io/cluster-api/pkg/dynamiccache"
 	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/conditions"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 	"sigs.k8s.io/cluster-api/util/test/builder"
 )
@@ -919,6 +920,88 @@ func TestRemoveMachinePoolFinalizerAfterDeleteReconcile(t *testing.T) {
 	g.Expect(actual.ObjectMeta.Finalizers).To(Equal([]string{"test"}))
 }
 
+func TestMachinePoolReadinessAfterDeleteReconcile(t *testing.T) {
+	g := NewWithT(t)
+	scheme := runtime.NewScheme()
+	g.Expect(corev1.AddToScheme(scheme)).To(Succeed())
+	g.Expect(apiextensionsv1.AddToScheme(scheme)).To(Succeed())
+	g.Expect(clusterv1.AddToScheme(scheme)).To(Succeed())
+	scheme.AddKnownTypeWithName(builder.BootstrapGroupVersion.WithKind(builder.TestBootstrapConfigKind), &contractv1.BootstrapConfig{})
+	testCluster := &clusterv1.Cluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-cluster",
+			Namespace: metav1.NamespaceDefault,
+		},
+	}
+	mp := &clusterv1.MachinePool{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:              "machinepool-test",
+			Namespace:         metav1.NamespaceDefault,
+			DeletionTimestamp: ptr.To(metav1.Now()),
+			Finalizers:        []string{clusterv1.MachinePoolFinalizer, "test"},
+		},
+		Spec: clusterv1.MachinePoolSpec{
+			ClusterName: testCluster.Name,
+			Template: clusterv1.MachineTemplateSpec{
+				Spec: clusterv1.MachineSpec{
+					Bootstrap: clusterv1.Bootstrap{
+						ConfigRef: clusterv1.ContractVersionedObjectReference{
+							APIGroup: builder.BootstrapGroupVersion.Group,
+							Kind:     builder.TestBootstrapConfigKind,
+							Name:     "bootstrap-config1",
+						},
+					},
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+						APIGroup: builder.InfrastructureGroupVersion.Group,
+						Kind:     builder.TestInfrastructureMachinePoolKind,
+						Name:     "infra-config1",
+					},
+				},
+			},
+		},
+	}
+	conditions.Set(mp, metav1.Condition{
+		Type:   clusterv1.PausedCondition,
+		Status: metav1.ConditionFalse,
+		Reason: clusterv1.NotPausedReason,
+	})
+	conditions.Set(mp, metav1.Condition{
+		Type:   clusterv1.MachinePoolBootstrapConfigReadyCondition,
+		Status: metav1.ConditionTrue,
+		Reason: "PreviouslyReady",
+	})
+	conditions.Set(mp, metav1.Condition{
+		Type:   clusterv1.MachinePoolInfrastructureReadyCondition,
+		Status: metav1.ConditionFalse,
+		Reason: "PreviouslyNotReady",
+	})
+	bootstrapCondition := *conditions.Get(mp, clusterv1.MachinePoolBootstrapConfigReadyCondition)
+	infrastructureCondition := *conditions.Get(mp, clusterv1.MachinePoolInfrastructureReadyCondition)
+	fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(
+		testCluster,
+		mp,
+		builder.TestBootstrapConfigCRD,
+		builder.TestInfrastructureMachinePoolCRD,
+	).WithStatusSubresource(&clusterv1.MachinePool{}).Build()
+	r := &Reconciler{
+		Client:       fakeClient,
+		DynamicCache: dynamiccache.NewFakeDynamicCache(fakeClient, setup.DynamicCacheOptions()),
+	}
+
+	key := client.ObjectKey{
+		Namespace: mp.Namespace,
+		Name:      mp.Name,
+	}
+	_, err := r.Reconcile(ctx, reconcile.Request{NamespacedName: key})
+	g.Expect(err).ToNot(HaveOccurred())
+
+	actual := &clusterv1.MachinePool{}
+	g.Expect(fakeClient.Get(ctx, key, actual)).To(Succeed())
+	g.Expect(actual.Finalizers).To(Equal([]string{"test"}))
+	g.Expect(conditions.Get(actual, clusterv1.MachinePoolBootstrapConfigReadyCondition)).To(Equal(&bootstrapCondition))
+	g.Expect(conditions.Get(actual, clusterv1.MachinePoolInfrastructureReadyCondition)).To(Equal(&infrastructureCondition))
+}
+
 func TestMachinePoolConditions(t *testing.T) {
 	g := NewWithT(t)
 	scheme := runtime.NewScheme()
@@ -1225,6 +1308,10 @@ func TestMachinePoolConditions(t *testing.T) {
 			g.Expect(r.Client.Get(ctx, machinePoolKey, m)).ToNot(HaveOccurred())
 
 			tt.conditionAssertFunc(t, m)
+			g.Expect(conditions.IsTrue(m, clusterv1.MachinePoolBootstrapConfigReadyCondition)).To(Equal(tt.dataSecretCreated))
+			g.Expect(conditions.IsTrue(m, clusterv1.MachinePoolInfrastructureReadyCondition)).To(Equal(tt.infrastructureReady))
+			g.Expect(conditions.Get(m, clusterv1.MachinePoolBootstrapConfigReadyCondition)).ToNot(BeNil())
+			g.Expect(conditions.Get(m, clusterv1.MachinePoolInfrastructureReadyCondition)).ToNot(BeNil())
 		})
 	}
 }

@@ -28,6 +28,7 @@ import (
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/webhooks/conversion"
 	"sigs.k8s.io/cluster-api/feature"
+	"sigs.k8s.io/cluster-api/util/container"
 )
 
 // SetupWebhookWithManager sets up the webhook with the Manager.
@@ -47,12 +48,12 @@ var _ admission.Validator[*bootstrapv1.KubeadmConfig] = &KubeadmConfig{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
 func (webhook *KubeadmConfig) ValidateCreate(_ context.Context, c *bootstrapv1.KubeadmConfig) (admission.Warnings, error) {
-	return nil, webhook.validate(&c.Spec, c.Name)
+	return nil, webhook.validate(c, nil)
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
-func (webhook *KubeadmConfig) ValidateUpdate(_ context.Context, _, newC *bootstrapv1.KubeadmConfig) (admission.Warnings, error) {
-	return nil, webhook.validate(&newC.Spec, newC.Name)
+func (webhook *KubeadmConfig) ValidateUpdate(_ context.Context, oldC, newC *bootstrapv1.KubeadmConfig) (admission.Warnings, error) {
+	return nil, webhook.validate(newC, oldC)
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type.
@@ -60,14 +61,20 @@ func (webhook *KubeadmConfig) ValidateDelete(_ context.Context, _ *bootstrapv1.K
 	return nil, nil
 }
 
-func (webhook *KubeadmConfig) validate(c *bootstrapv1.KubeadmConfigSpec, name string) error {
-	allErrs := Validate(c, false, field.NewPath("spec"))
+func (webhook *KubeadmConfig) validate(c, oldC *bootstrapv1.KubeadmConfig) error {
+	allErrs := Validate(&c.Spec, false, field.NewPath("spec"))
+
+	var oldSpec *bootstrapv1.KubeadmConfigSpec
+	if oldC != nil {
+		oldSpec = &oldC.Spec
+	}
+	allErrs = append(allErrs, ValidateImageRepositories(&c.Spec, oldSpec, field.NewPath("spec"))...)
 
 	if len(allErrs) == 0 {
 		return nil
 	}
 
-	return apierrors.NewInvalid(bootstrapv1.GroupVersion.WithKind("KubeadmConfig").GroupKind(), name, allErrs)
+	return apierrors.NewInvalid(bootstrapv1.GroupVersion.WithKind("KubeadmConfig").GroupKind(), c.Name, allErrs)
 }
 
 var (
@@ -132,6 +139,38 @@ func Validate(c *bootstrapv1.KubeadmConfigSpec, isKCP bool, pathPrefix *field.Pa
 					fmt.Sprintf("controlPlaneComponentHealthCheckSeconds must be set to the same value both in initConfiguration.timeouts (%s) and in joinConfiguration.timeouts (%s)", tInit, tJoin),
 				),
 			)
+		}
+	}
+
+	return allErrs
+}
+
+// ValidateImageRepositories ensures the imageRepository fields of the KubeadmConfigSpec are valid.
+// oldC is nil on create. On update only changed values are validated, so objects created before this
+// validation existed can still be updated.
+func ValidateImageRepositories(c, oldC *bootstrapv1.KubeadmConfigSpec, pathPrefix *field.Path) field.ErrorList {
+	var allErrs field.ErrorList
+
+	var oldCC bootstrapv1.ClusterConfiguration
+	if oldC != nil {
+		oldCC = oldC.ClusterConfiguration
+	}
+	newCC := c.ClusterConfiguration
+	ccPath := pathPrefix.Child("clusterConfiguration")
+
+	for _, f := range []struct {
+		path               *field.Path
+		newValue, oldValue string
+	}{
+		{ccPath.Child("imageRepository"), newCC.ImageRepository, oldCC.ImageRepository},
+		{ccPath.Child("dns", "imageRepository"), newCC.DNS.ImageRepository, oldCC.DNS.ImageRepository},
+		{ccPath.Child("etcd", "local", "imageRepository"), newCC.Etcd.Local.ImageRepository, oldCC.Etcd.Local.ImageRepository},
+	} {
+		if f.newValue == "" || f.newValue == f.oldValue {
+			continue
+		}
+		if err := container.ValidateImageRepository(f.newValue); err != nil {
+			allErrs = append(allErrs, field.Invalid(f.path, f.newValue, fmt.Sprintf("must be a valid image repository: %v", err)))
 		}
 	}
 

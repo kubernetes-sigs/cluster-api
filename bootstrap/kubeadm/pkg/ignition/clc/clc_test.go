@@ -599,6 +599,43 @@ func TestRender(t *testing.T) {
 		}
 	})
 
+	t.Run("renders append of files", func(t *testing.T) {
+		t.Parallel()
+
+		input := &cloudinit.BaseUserData{
+			WriteFiles: []bootstrapv1.File{
+				{Path: "/etc/appended", Content: "foo", Permissions: "0644", Append: ptr.To(true)},
+				{Path: "/etc/not-appended", Content: "foo", Permissions: "0644", Append: ptr.To(false)},
+				{Path: "/etc/unset", Content: "foo", Permissions: "0644"},
+			},
+		}
+
+		ignitionBytes, _, err := clc.Render(input, &bootstrapv1.ContainerLinuxConfig{}, "foo")
+		if err != nil {
+			t.Fatalf("rendering: %v", err)
+		}
+
+		ign, _, err := ignition.Parse(ignitionBytes)
+		if err != nil {
+			t.Fatalf("Parsing generated Ignition: %v", err)
+		}
+
+		want := map[string]bool{"/etc/appended": true, "/etc/not-appended": false, "/etc/unset": false}
+		for _, f := range ign.Storage.Files {
+			wantAppend, ok := want[f.Path]
+			if !ok {
+				continue
+			}
+			delete(want, f.Path)
+			if f.Append != wantAppend {
+				t.Errorf("%s: expected append %t, got %t", f.Path, wantAppend, f.Append)
+			}
+		}
+		if len(want) != 0 {
+			t.Errorf("files missing from generated Ignition: %v", want)
+		}
+	})
+
 	t.Run("treats warnings as errors in strict mode", func(t *testing.T) {
 		config := &bootstrapv1.ContainerLinuxConfig{
 			Strict:           ptr.To(true),

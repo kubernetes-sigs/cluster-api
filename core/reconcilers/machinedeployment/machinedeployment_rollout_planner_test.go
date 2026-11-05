@@ -104,9 +104,8 @@ func TestComputeDesiredNewMS(t *testing.T) {
 		// annotations that we are intentionally not setting in this func are not there
 		// Note: there is a dedicated test for ComputeRevisionAnnotations, so it is ok to have a minimal coverage here about revision management.
 		g.Expect(actualNewMS.Annotations).To(Equal(map[string]string{
-			clusterv1.RevisionAnnotation:                           "3",
-			"machinedeployment.clusters.x-k8s.io/revision-history": "1",
-			clusterv1.DisableMachineCreateAnnotation:               "false",
+			clusterv1.RevisionAnnotation:             "3",
+			clusterv1.DisableMachineCreateAnnotation: "false",
 		}))
 	})
 	t.Run("should preserve Revision annotations for newMS when already up to date", func(t *testing.T) {
@@ -116,8 +115,7 @@ func TestComputeDesiredNewMS(t *testing.T) {
 		currentMS := &clusterv1.MachineSet{
 			ObjectMeta: metav1.ObjectMeta{
 				Annotations: map[string]string{
-					clusterv1.RevisionAnnotation:                           "3",
-					"machinedeployment.clusters.x-k8s.io/revision-history": "1",
+					clusterv1.RevisionAnnotation: "3",
 				},
 			},
 		}
@@ -144,9 +142,8 @@ func TestComputeDesiredNewMS(t *testing.T) {
 		// annotations that we are intentionally not setting in this func are not there
 		// Note: there is a dedicated test for ComputeRevisionAnnotations, so it is ok to have a minimal coverage here about revision management.
 		g.Expect(actualNewMS.Annotations).To(Equal(map[string]string{
-			clusterv1.RevisionAnnotation:                           "3",
-			"machinedeployment.clusters.x-k8s.io/revision-history": "1",
-			clusterv1.DisableMachineCreateAnnotation:               "false",
+			clusterv1.RevisionAnnotation:             "3",
+			clusterv1.DisableMachineCreateAnnotation: "false",
 		}))
 	})
 }
@@ -155,14 +152,12 @@ func TestComputeDesiredOldMS(t *testing.T) {
 	t.Run("should carry over Revision annotations from oldMS", func(t *testing.T) {
 		g := NewWithT(t)
 		const revision = "4"
-		const revisionHistory = "1,3"
 
 		deployment := &clusterv1.MachineDeployment{}
 		currentMS := &clusterv1.MachineSet{
 			ObjectMeta: metav1.ObjectMeta{
 				Annotations: map[string]string{
-					clusterv1.RevisionAnnotation:                           revision,
-					"machinedeployment.clusters.x-k8s.io/revision-history": revisionHistory,
+					clusterv1.RevisionAnnotation: revision,
 				},
 			},
 		}
@@ -180,15 +175,13 @@ func TestComputeDesiredOldMS(t *testing.T) {
 
 		// annotations that we are intentionally not setting in this func are not there
 		g.Expect(actualOldMS.Annotations).To(Equal(map[string]string{
-			clusterv1.RevisionAnnotation:                           revision,
-			"machinedeployment.clusters.x-k8s.io/revision-history": revisionHistory,
-			clusterv1.DisableMachineCreateAnnotation:               "false",
+			clusterv1.RevisionAnnotation:             revision,
+			clusterv1.DisableMachineCreateAnnotation: "false",
 		}))
 	})
 	t.Run("should disable creation of machines on oldMS when rollout strategy is OnDelete", func(t *testing.T) {
 		g := NewWithT(t)
 		const revision = "4"
-		const revisionHistory = "1,3"
 
 		deployment := &clusterv1.MachineDeployment{
 			Spec: clusterv1.MachineDeploymentSpec{
@@ -198,8 +191,7 @@ func TestComputeDesiredOldMS(t *testing.T) {
 		currentMS := &clusterv1.MachineSet{
 			ObjectMeta: metav1.ObjectMeta{
 				Annotations: map[string]string{
-					clusterv1.RevisionAnnotation:                           revision,
-					"machinedeployment.clusters.x-k8s.io/revision-history": revisionHistory,
+					clusterv1.RevisionAnnotation: revision,
 				},
 			},
 		}
@@ -217,9 +209,8 @@ func TestComputeDesiredOldMS(t *testing.T) {
 
 		// annotations that we are intentionally not setting in this func are not there
 		g.Expect(actualOldMS.Annotations).To(Equal(map[string]string{
-			clusterv1.RevisionAnnotation:                           revision,
-			"machinedeployment.clusters.x-k8s.io/revision-history": revisionHistory,
-			clusterv1.DisableMachineCreateAnnotation:               "true",
+			clusterv1.RevisionAnnotation:             revision,
+			clusterv1.DisableMachineCreateAnnotation: "true",
 		}))
 	})
 }
@@ -467,7 +458,6 @@ func assertDesiredMS(g *WithT, md *clusterv1.MachineDeployment, actualMS *cluste
 
 	// annotations that we are intentionally not setting in this func are not there
 	g.Expect(actualMS.Annotations).ShouldNot(HaveKey(clusterv1.RevisionAnnotation))
-	g.Expect(actualMS.Annotations).ShouldNot(HaveKey("machinedeployment.clusters.x-k8s.io/revision-history"))
 	g.Expect(actualMS.Annotations).ShouldNot(HaveKey(clusterv1.DisableMachineCreateAnnotation))
 
 	for k, v := range expectedMS.Spec.Template.Annotations {

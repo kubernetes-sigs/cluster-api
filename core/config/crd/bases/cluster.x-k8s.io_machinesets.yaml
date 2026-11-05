@@ -78,6 +78,9 @@ spec:
                 maxLength: 63
                 minLength: 1
                 type: string
+                x-kubernetes-validations:
+                - message: field is immutable
+                  rule: oldSelf == self
               deletePolicy:
                 description: |-
                   deletePolicy defines the policy used to identify nodes to delete when downscaling.
@@ -146,6 +149,7 @@ spec:
                   selector is a label query over machines that should match the replica count.
                   Label keys and values that must match in order to be controlled by this MachineSet.
                   It must match the machine template's labels.
+                  This field is immutable.
                   More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#label-selectors
                 properties:
                   matchExpressions:
@@ -191,6 +195,9 @@ spec:
                     type: object
                 type: object
                 x-kubernetes-map-type: atomic
+                x-kubernetes-validations:
+                - message: field is immutable
+                  rule: oldSelf == self
               template:
                 description: |-
                   template is the object that describes the machine that will be created if
@@ -292,6 +299,9 @@ spec:
                         maxLength: 63
                         minLength: 1
                         type: string
+                        x-kubernetes-validations:
+                        - message: field is immutable
+                          rule: oldSelf == self
                       failureDomain:
                         description: |-
                           failureDomain is the failure domain the machine will be created in.
@@ -504,6 +514,9 @@ spec:
             - clusterName
             - selector
             type: object
+            x-kubernetes-validations:
+            - message: spec.clusterName must match spec.template.spec.clusterName
+              rule: self.clusterName == self.template.spec.clusterName
           status:
             description: status is the observed state of MachineSet.
             properties:
@@ -822,6 +835,9 @@ spec:
                 maxLength: 63
                 minLength: 1
                 type: string
+                x-kubernetes-validations:
+                - message: field is immutable
+                  rule: oldSelf == self
               deletion:
                 description: deletion contains configuration options for MachineSet
                   deletion.
@@ -891,6 +907,7 @@ spec:
                   selector is a label query over machines that should match the replica count.
                   Label keys and values that must match in order to be controlled by this MachineSet.
                   It must match the machine template's labels.
+                  This field is immutable.
                   More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#label-selectors
                 properties:
                   matchExpressions:
@@ -936,6 +953,9 @@ spec:
                     type: object
                 type: object
                 x-kubernetes-map-type: atomic
+                x-kubernetes-validations:
+                - message: field is immutable
+                  rule: oldSelf == self
               template:
                 description: |-
                   template is the object that describes the machine that will be created if
@@ -1029,6 +1049,9 @@ spec:
                         maxLength: 63
                         minLength: 1
                         type: string
+                        x-kubernetes-validations:
+                        - message: field is immutable
+                          rule: oldSelf == self
                       deletion:
                         description: deletion contains configuration options for Machine
                           deletion.
@@ -1254,6 +1277,9 @@ spec:
             - selector
             - template
             type: object
+            x-kubernetes-validations:
+            - message: spec.clusterName must match spec.template.spec.clusterName
+              rule: self.clusterName == self.template.spec.clusterName
           status:
             description: status is the observed state of MachineSet.
             minProperties: 1

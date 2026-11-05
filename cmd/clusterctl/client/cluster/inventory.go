@@ -53,6 +53,10 @@ type CheckCAPIContractOptions struct {
 	// AllowCAPINotInstalled instructs CheckCAPIContract to tolerate management clusters without Cluster API installed yet.
 	AllowCAPINotInstalled bool
 
+	// AllowCAPINotInstalledWithInventory instructs CheckCAPIContract to tolerate management clusters without the
+	// Cluster CRD as long as the clusterctl inventory still lists providers.
+	AllowCAPINotInstalledWithInventory bool
+
 	// AllowCAPIContracts instructs CheckCAPIContract to tolerate management clusters with Cluster API with the given contract.
 	AllowCAPIContracts []string
 
@@ -67,6 +71,17 @@ type AllowCAPINotInstalled struct{}
 // Apply applies this configuration to the given CheckCAPIContractOptions.
 func (t AllowCAPINotInstalled) Apply(in *CheckCAPIContractOptions) {
 	in.AllowCAPINotInstalled = true
+}
+
+// AllowCAPINotInstalledWithInventory instructs CheckCAPIContract to tolerate management clusters without the Cluster
+// CRD as long as the clusterctl inventory still lists providers.
+// NOTE: This allows clusterctl delete to finish a delete that removed the core provider's CRDs and then failed,
+// without letting it run against a cluster with no providers left to delete.
+type AllowCAPINotInstalledWithInventory struct{}
+
+// Apply applies this configuration to the given CheckCAPIContractOptions.
+func (t AllowCAPINotInstalledWithInventory) Apply(in *CheckCAPIContractOptions) {
+	in.AllowCAPINotInstalledWithInventory = true
 }
 
 // AllowCAPIAnyContract instructs CheckCAPIContract to tolerate management clusters with Cluster API with any contract.
@@ -410,6 +425,22 @@ func (p *inventoryClient) CheckCAPIContract(ctx context.Context, options ...Chec
 	if err := c.Get(ctx, client.ObjectKey{Name: fmt.Sprintf("clusters.%s", clusterv1.GroupVersion.Group)}, crd); err != nil {
 		if opt.AllowCAPINotInstalled && apierrors.IsNotFound(err) {
 			return nil
+		}
+		if opt.AllowCAPINotInstalledWithInventory && apierrors.IsNotFound(err) {
+			inventoryInstalled, inventoryErr := checkInventoryCRDs(ctx, p.proxy)
+			if inventoryErr != nil {
+				return pkgerrors.Wrap(inventoryErr, "failed to check Cluster API version")
+			}
+			if inventoryInstalled {
+				// The inventory CRD outlives clusterctl delete, so require at least one provider left in it.
+				providers := &clusterctlv1.ProviderList{}
+				if err := c.List(ctx, providers, client.Limit(1)); err != nil {
+					return pkgerrors.Wrap(err, "failed to list providers in the clusterctl inventory")
+				}
+				if len(providers.Items) > 0 {
+					return nil
+				}
+			}
 		}
 		return pkgerrors.Wrap(err, "failed to check Cluster API version")
 	}

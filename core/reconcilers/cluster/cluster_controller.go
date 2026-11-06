@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -46,7 +47,6 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/hooks"
-	logutil "sigs.k8s.io/cluster-api/internal/util/log"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/collections"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -54,6 +54,7 @@ import (
 	capicontrollerutil "sigs.k8s.io/cluster-api/util/controller"
 	"sigs.k8s.io/cluster-api/util/finalizers"
 	clog "sigs.k8s.io/cluster-api/util/log"
+	logutil "sigs.k8s.io/cluster-api/util/log"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/paused"
 	"sigs.k8s.io/cluster-api/util/predicates"
@@ -375,7 +376,8 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (reconcile.R
 	}
 
 	if len(children) > 0 {
-		log.Info("Cluster still has children - deleting them first", "count", len(children))
+		// Note: The count is part of the key, so a change of the number of children (e.g. after a child is deleted) is logged immediately.
+		r.logRateLimiter.InfoAtMostEvery(log, logRateLimitInterval, waitingForChildrenDeletionKey(cluster, len(children)), "Cluster still has children - deleting them first", "count", len(children))
 
 		var errs []error
 
@@ -406,6 +408,7 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (reconcile.R
 			return ctrl.Result{}, kerrors.NewAggregate(errs)
 		}
 	}
+	r.logRateLimiter.Forget(waitingForChildrenDeletionKey(cluster, 0))
 
 	if descendantCount := s.descendants.objectsPendingDeleteCount(cluster); descendantCount > 0 {
 		indirect := descendantCount - len(children)
@@ -516,6 +519,10 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (reconcile.R
 	controllerutil.RemoveFinalizer(cluster, clusterv1.ClusterFinalizer)
 	r.recorder.Eventf(cluster, corev1.EventTypeNormal, "Deleted", "Cluster %s has been deleted", cluster.Name)
 	return ctrl.Result{}, nil
+}
+
+func waitingForChildrenDeletionKey(c *clusterv1.Cluster, childrenCount int) logutil.Key {
+	return logutil.NewKey("WaitingForChildrenDeletion", logutil.WithObjects(c), logutil.WithValues(strconv.Itoa(childrenCount)))
 }
 
 func waitingForDescendantsDeletionKey(c *clusterv1.Cluster) logutil.Key {

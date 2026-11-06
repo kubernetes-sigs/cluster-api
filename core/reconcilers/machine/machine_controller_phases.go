@@ -37,11 +37,11 @@ import (
 	"sigs.k8s.io/cluster-api/core/setup"
 	"sigs.k8s.io/cluster-api/internal/contract"
 	contractapi "sigs.k8s.io/cluster-api/internal/contract/api"
-	logutil "sigs.k8s.io/cluster-api/internal/util/log"
 	"sigs.k8s.io/cluster-api/pkg/dynamiccache"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
+	logutil "sigs.k8s.io/cluster-api/util/log"
 )
 
 var externalReadyWait = 30 * time.Second

@@ -43,7 +43,6 @@ import (
 	"sigs.k8s.io/cluster-api/core/reconcilers/machinedeployment/mdutil"
 	runtimeclient "sigs.k8s.io/cluster-api/exp/runtime/client"
 	"sigs.k8s.io/cluster-api/feature"
-	logutil "sigs.k8s.io/cluster-api/internal/util/log"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/cache"
@@ -52,7 +51,7 @@ import (
 	capicontrollerutil "sigs.k8s.io/cluster-api/util/controller"
 	"sigs.k8s.io/cluster-api/util/finalizers"
 	utillabels "sigs.k8s.io/cluster-api/util/labels"
-	clog "sigs.k8s.io/cluster-api/util/log"
+	logutil "sigs.k8s.io/cluster-api/util/log"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/paused"
 	"sigs.k8s.io/cluster-api/util/predicates"
@@ -545,7 +544,7 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) error {
 		}
 	}
 
-	r.logRateLimiter.InfoAtMostEvery(log, logRateLimitInterval, waitingForMachineSetsDeletionKey(s.machineDeployment), "Waiting for MachineSets to be deleted", "MachineSets", clog.ObjNamesString(s.machineSets))
+	r.logRateLimiter.InfoAtMostEvery(log, logRateLimitInterval, waitingForMachineSetsDeletionKey(s.machineDeployment), "Waiting for MachineSets to be deleted", "MachineSets", logutil.ObjNamesString(s.machineSets))
 	return nil
 }
 

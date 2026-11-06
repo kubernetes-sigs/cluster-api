@@ -272,6 +272,8 @@ linters:
           alias: topologynames
         - pkg: sigs.k8s.io/cluster-api/util/controller
           alias: capicontrollerutil
+        - pkg: sigs.k8s.io/cluster-api/util/log
+          alias: logutil
         # CAPD
         - pkg: sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta1
           alias: infrav1beta1

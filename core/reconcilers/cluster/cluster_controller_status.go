@@ -39,7 +39,7 @@ import (
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/collections"
 	"sigs.k8s.io/cluster-api/util/conditions"
-	clog "sigs.k8s.io/cluster-api/util/log"
+	logutil "sigs.k8s.io/cluster-api/util/log"
 )
 
 func (r *Reconciler) updateStatus(ctx context.Context, s *scope) error {
@@ -1262,7 +1262,7 @@ func aggregateUnhealthyMachines(machines collections.Machines) string {
 	}
 
 	sort.Strings(machineNames)
-	message += " " + clog.ListToString(machineNames, func(s string) string { return s }, 3)
+	message += " " + logutil.ListToString(machineNames, func(s string) string { return s }, 3)
 
 	if len(machineNames) == 1 {
 		message += " is "

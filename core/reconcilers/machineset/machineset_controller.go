@@ -63,7 +63,6 @@ import (
 	"sigs.k8s.io/cluster-api/internal/hooks"
 	topologynames "sigs.k8s.io/cluster-api/internal/topology/names"
 	"sigs.k8s.io/cluster-api/internal/util/inplace"
-	logutil "sigs.k8s.io/cluster-api/internal/util/log"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
 	"sigs.k8s.io/cluster-api/pkg/dynamiccache"
 	"sigs.k8s.io/cluster-api/util"
@@ -75,7 +74,7 @@ import (
 	"sigs.k8s.io/cluster-api/util/finalizers"
 	utillabels "sigs.k8s.io/cluster-api/util/labels"
 	"sigs.k8s.io/cluster-api/util/labels/format"
-	clog "sigs.k8s.io/cluster-api/util/log"
+	logutil "sigs.k8s.io/cluster-api/util/log"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/paused"
 	"sigs.k8s.io/cluster-api/util/predicates"
@@ -209,7 +208,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (retres ct
 
 	// AddOwners adds the owners of MachineSet as k/v pairs to the logger.
 	// Specifically, it will add MachineDeployment.
-	ctx, _, err := clog.AddOwners(ctx, r.Client, machineSet)
+	ctx, _, err := logutil.AddOwners(ctx, r.Client, machineSet)
 	if err != nil {
 		return ctrl.Result{}, err
 	}

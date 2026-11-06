@@ -47,14 +47,13 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/hooks"
-	logutil "sigs.k8s.io/cluster-api/internal/util/log"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/collections"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 	capicontrollerutil "sigs.k8s.io/cluster-api/util/controller"
 	"sigs.k8s.io/cluster-api/util/finalizers"
-	clog "sigs.k8s.io/cluster-api/util/log"
+	logutil "sigs.k8s.io/cluster-api/util/log"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/paused"
 	"sigs.k8s.io/cluster-api/util/predicates"
@@ -377,7 +376,7 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (reconcile.R
 
 	if len(children) > 0 {
 		// Note: The count is part of the key, so a change of the number of children (e.g. after a child is deleted) is logged immediately.
-		r.logRateLimiter.InfoAtMostEvery(log, logRateLimitInterval, waitingForChildrenDeletionKey(cluster, len(children)), "Cluster still has children - deleting them first", "count", len(children))
+		r.logRateLimiter.InfoAtMostEvery(log, logRateLimitInterval, waitingForChildrenDeletionKey(cluster, len(children)), "Cluster still has children", "count", len(children))
 
 		var errs []error
 
@@ -408,13 +407,12 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (reconcile.R
 			return ctrl.Result{}, kerrors.NewAggregate(errs)
 		}
 	}
-	r.logRateLimiter.Forget(waitingForChildrenDeletionKey(cluster, 0))
 
 	if descendantCount := s.descendants.objectsPendingDeleteCount(cluster); descendantCount > 0 {
 		indirect := descendantCount - len(children)
 		names := s.descendants.objectsPendingDeleteNames(cluster)
 
-		r.logRateLimiter.InfoAtMostEvery(log, logRateLimitInterval, waitingForDescendantsDeletionKey(cluster), "Cluster still has descendants - need to requeue", "descendants", strings.Join(names, "; "), "indirect descendants count", indirect)
+		r.logRateLimiter.InfoAtMostEvery(log, logRateLimitInterval, waitingForDescendantsDeletionKey(cluster), "Cluster still has descendants", "descendants", strings.Join(names, "; "), "indirect descendants count", indirect)
 
 		s.deletingReason = clusterv1.ClusterDeletingWaitingForWorkersDeletionReason
 		for i := range names {
@@ -425,6 +423,7 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (reconcile.R
 		// Requeue so we can check the next time to see if there are still any descendants left.
 		return ctrl.Result{RequeueAfter: deleteRequeueAfter}, nil
 	}
+	r.logRateLimiter.Forget(waitingForChildrenDeletionKey(cluster, 0))
 	r.logRateLimiter.Forget(waitingForDescendantsDeletionKey(cluster))
 
 	if cluster.Spec.ControlPlaneRef.IsDefined() {
@@ -574,7 +573,7 @@ func (c *clusterDescendants) objectsPendingDeleteNames(cluster *clusterv1.Cluste
 		}
 		if len(controlPlaneMachineNames) > 0 {
 			sort.Strings(controlPlaneMachineNames)
-			descendants = append(descendants, "Control plane Machines: "+clog.StringListToString(controlPlaneMachineNames))
+			descendants = append(descendants, "Control plane Machines: "+logutil.StringListToString(controlPlaneMachineNames))
 		}
 	}
 	machineDeploymentNames := make([]string, len(c.machineDeployments.Items))
@@ -583,7 +582,7 @@ func (c *clusterDescendants) objectsPendingDeleteNames(cluster *clusterv1.Cluste
 	}
 	if len(machineDeploymentNames) > 0 {
 		sort.Strings(machineDeploymentNames)
-		descendants = append(descendants, "MachineDeployments: "+clog.StringListToString(machineDeploymentNames))
+		descendants = append(descendants, "MachineDeployments: "+logutil.StringListToString(machineDeploymentNames))
 	}
 	machineSetNames := make([]string, len(c.machineSets.Items))
 	for i, machineSet := range c.machineSets.Items {
@@ -591,7 +590,7 @@ func (c *clusterDescendants) objectsPendingDeleteNames(cluster *clusterv1.Cluste
 	}
 	if len(machineSetNames) > 0 {
 		sort.Strings(machineSetNames)
-		descendants = append(descendants, "MachineSets: "+clog.StringListToString(machineSetNames))
+		descendants = append(descendants, "MachineSets: "+logutil.StringListToString(machineSetNames))
 	}
 	if feature.Gates.Enabled(feature.MachinePool) {
 		machinePoolNames := make([]string, len(c.machinePools.Items))
@@ -600,7 +599,7 @@ func (c *clusterDescendants) objectsPendingDeleteNames(cluster *clusterv1.Cluste
 		}
 		if len(machinePoolNames) > 0 {
 			sort.Strings(machinePoolNames)
-			descendants = append(descendants, "MachinePools: "+clog.StringListToString(machinePoolNames))
+			descendants = append(descendants, "MachinePools: "+logutil.StringListToString(machinePoolNames))
 		}
 	}
 	workerMachineNames := make([]string, len(c.workerMachines))
@@ -609,7 +608,7 @@ func (c *clusterDescendants) objectsPendingDeleteNames(cluster *clusterv1.Cluste
 	}
 	if len(workerMachineNames) > 0 {
 		sort.Strings(workerMachineNames)
-		descendants = append(descendants, "Worker Machines: "+clog.StringListToString(workerMachineNames))
+		descendants = append(descendants, "Worker Machines: "+logutil.StringListToString(workerMachineNames))
 	}
 	return descendants
 }

@@ -35,7 +35,6 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/core/reconcilers/machinedeployment/mdutil"
 	"sigs.k8s.io/cluster-api/feature"
-	logutil "sigs.k8s.io/cluster-api/internal/util/log"
 	"sigs.k8s.io/cluster-api/internal/util/taints"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
@@ -43,6 +42,7 @@ import (
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 	"sigs.k8s.io/cluster-api/util/index"
 	"sigs.k8s.io/cluster-api/util/labels"
+	logutil "sigs.k8s.io/cluster-api/util/log"
 )
 
 var (

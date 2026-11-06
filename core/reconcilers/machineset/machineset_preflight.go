@@ -37,7 +37,7 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/contract"
-	logutil "sigs.k8s.io/cluster-api/internal/util/log"
+	logutil "sigs.k8s.io/cluster-api/util/log"
 )
 
 type preflightCheckErrorMessage *string

@@ -54,7 +54,6 @@ import (
 	runtimeclient "sigs.k8s.io/cluster-api/exp/runtime/client"
 	"sigs.k8s.io/cluster-api/feature"
 	contractapi "sigs.k8s.io/cluster-api/internal/contract/api"
-	logutil "sigs.k8s.io/cluster-api/internal/util/log"
 	"sigs.k8s.io/cluster-api/pkg/dynamiccache"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
@@ -65,7 +64,7 @@ import (
 	capicontrollerutil "sigs.k8s.io/cluster-api/util/controller"
 	"sigs.k8s.io/cluster-api/util/finalizers"
 	"sigs.k8s.io/cluster-api/util/index"
-	clog "sigs.k8s.io/cluster-api/util/log"
+	logutil "sigs.k8s.io/cluster-api/util/log"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/paused"
 	"sigs.k8s.io/cluster-api/util/predicates"
@@ -212,7 +211,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (retres ct
 
 	// AddOwners adds the owners of Machine as k/v pairs to the logger.
 	// Specifically, it will add KubeadmControlPlane, MachineSet and MachineDeployment.
-	ctx, _, err := clog.AddOwners(ctx, r.Client, m)
+	ctx, _, err := logutil.AddOwners(ctx, r.Client, m)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -1320,22 +1319,22 @@ func (a *attachedVolumeInformation) logKeys() []any {
 	logKeys := []any{}
 	if len(a.persistentVolumeClaims) > 0 {
 		slices.Sort(a.persistentVolumeClaims)
-		logKeys = append(logKeys, "PersistentVolumeClaims", clog.StringListToString(a.persistentVolumeClaims))
+		logKeys = append(logKeys, "PersistentVolumeClaims", logutil.StringListToString(a.persistentVolumeClaims))
 	}
 
 	if len(a.persistentVolumesWithoutPVCClaimRef) > 0 {
 		slices.Sort(a.persistentVolumesWithoutPVCClaimRef)
-		logKeys = append(logKeys, "PersistentVolumesWithoutPVCClaimRef", clog.StringListToString(a.persistentVolumesWithoutPVCClaimRef))
+		logKeys = append(logKeys, "PersistentVolumesWithoutPVCClaimRef", logutil.StringListToString(a.persistentVolumesWithoutPVCClaimRef))
 	}
 
 	if len(a.nodeStatusVolumeNamesWithoutPV) > 0 {
 		slices.Sort(a.nodeStatusVolumeNamesWithoutPV)
-		logKeys = append(logKeys, "NodeStatusVolumeNamesWithoutPV", clog.StringListToString(a.nodeStatusVolumeNamesWithoutPV))
+		logKeys = append(logKeys, "NodeStatusVolumeNamesWithoutPV", logutil.StringListToString(a.nodeStatusVolumeNamesWithoutPV))
 	}
 
 	if len(a.persistentVolumeNamesWithoutPV) > 0 {
 		slices.Sort(a.persistentVolumeNamesWithoutPV)
-		logKeys = append(logKeys, "PersistentVolumeNamesWithoutPV", clog.StringListToString(a.persistentVolumeNamesWithoutPV))
+		logKeys = append(logKeys, "PersistentVolumeNamesWithoutPV", logutil.StringListToString(a.persistentVolumeNamesWithoutPV))
 	}
 
 	return logKeys
@@ -1350,22 +1349,22 @@ func (a *attachedVolumeInformation) conditionMessage(machine *clusterv1.Machine)
 
 	if len(a.persistentVolumeClaims) > 0 {
 		slices.Sort(a.persistentVolumeClaims)
-		conditionMessage = fmt.Sprintf("%s\n* PersistentVolumeClaims: %s", conditionMessage, clog.StringListToString(a.persistentVolumeClaims))
+		conditionMessage = fmt.Sprintf("%s\n* PersistentVolumeClaims: %s", conditionMessage, logutil.StringListToString(a.persistentVolumeClaims))
 	}
 
 	if len(a.persistentVolumesWithoutPVCClaimRef) > 0 {
 		slices.Sort(a.persistentVolumesWithoutPVCClaimRef)
-		conditionMessage = fmt.Sprintf("%s\n* PersistentVolumes without a .spec.claimRef to a PersistentVolumeClaim: %s", conditionMessage, clog.StringListToString(a.persistentVolumesWithoutPVCClaimRef))
+		conditionMessage = fmt.Sprintf("%s\n* PersistentVolumes without a .spec.claimRef to a PersistentVolumeClaim: %s", conditionMessage, logutil.StringListToString(a.persistentVolumesWithoutPVCClaimRef))
 	}
 
 	if len(a.nodeStatusVolumeNamesWithoutPV) > 0 {
 		slices.Sort(a.nodeStatusVolumeNamesWithoutPV)
-		conditionMessage = fmt.Sprintf("%s\n* Node with .status.volumesAttached entries not matching a PersistentVolume: %s", conditionMessage, clog.StringListToString(a.nodeStatusVolumeNamesWithoutPV))
+		conditionMessage = fmt.Sprintf("%s\n* Node with .status.volumesAttached entries not matching a PersistentVolume: %s", conditionMessage, logutil.StringListToString(a.nodeStatusVolumeNamesWithoutPV))
 	}
 
 	if len(a.persistentVolumeNamesWithoutPV) > 0 {
 		slices.Sort(a.persistentVolumeNamesWithoutPV)
-		conditionMessage = fmt.Sprintf("%s\n* VolumeAttachment with .spec.source.persistentVolumeName not matching a PersistentVolume: %s", conditionMessage, clog.StringListToString(a.persistentVolumeNamesWithoutPV))
+		conditionMessage = fmt.Sprintf("%s\n* VolumeAttachment with .spec.source.persistentVolumeName not matching a PersistentVolume: %s", conditionMessage, logutil.StringListToString(a.persistentVolumeNamesWithoutPV))
 	}
 
 	return conditionMessage

@@ -39,9 +39,9 @@ import (
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/hooks"
 	"sigs.k8s.io/cluster-api/internal/util/inplace"
-	logutil "sigs.k8s.io/cluster-api/internal/util/log"
 	"sigs.k8s.io/cluster-api/util/cache"
 	"sigs.k8s.io/cluster-api/util/conditions"
+	logutil "sigs.k8s.io/cluster-api/util/log"
 )
 
 // reconcileInPlaceUpdate handles the in-place update workflow for a Machine.

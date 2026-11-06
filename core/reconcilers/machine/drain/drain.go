@@ -40,7 +40,7 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	coreadmission "sigs.k8s.io/cluster-api/core/webhooks/admission"
-	clog "sigs.k8s.io/cluster-api/util/log"
+	logutil "sigs.k8s.io/cluster-api/util/log"
 )
 
 // Helper contains the parameters to control the behaviour of the drain helper.
@@ -541,14 +541,14 @@ func (r EvictionResult) ConditionMessage(nodeDrainStartTime metav1.Time) string 
 
 // podDeleteListToString returns a comma-separated list of the first n entries of the PodDelete list.
 func podDeleteListToString(podList []PodDelete, n int) string {
-	return clog.ListToString(podList, func(pd PodDelete) string {
+	return logutil.ListToString(podList, func(pd PodDelete) string {
 		return klog.KObj(pd.Pod).String()
 	}, n)
 }
 
 // PodListToString returns a comma-separated list of the first n entries of the Pod list.
 func PodListToString(podList []*corev1.Pod, n int) string {
-	return clog.ListToString(podList, func(p *corev1.Pod) string {
+	return logutil.ListToString(podList, func(p *corev1.Pod) string {
 		return klog.KObj(p).String()
 	}, n)
 }

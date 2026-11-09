@@ -61,7 +61,20 @@ import (
 	"sigs.k8s.io/cluster-api/util/cache"
 )
 
-type errCallingExtensionHandler error
+// callingExtensionHandlerError is returned by httpCall when the call to the extension handler failed
+// (e.g. connection error, non-200 status code, undecodable response body).
+// Only this kind of error is subject to the FailurePolicy of the ExtensionHandler.
+type callingExtensionHandlerError struct {
+	err error
+}
+
+func (e callingExtensionHandlerError) Error() string {
+	return e.err.Error()
+}
+
+func (e callingExtensionHandlerError) Unwrap() error {
+	return e.err
+}
 
 const defaultDiscoveryTimeout = 10 * time.Second
 
@@ -481,7 +494,7 @@ func (c *client) CallExtension(ctx context.Context, hook runtimecatalog.Hook, fo
 		// If the error is errCallingExtensionHandler then apply failure policy to calculate
 		// the effective result of the operation.
 		ignore := registration.FailurePolicy == runtimev1.FailurePolicyIgnore
-		if _, ok := err.(errCallingExtensionHandler); ok && ignore {
+		if pkgerrors.As(err, &callingExtensionHandlerError{}) && ignore {
 			// Update the response to a default success response and return.
 			log.Error(err, fmt.Sprintf("Ignoring error calling extension handler because of FailurePolicy %q", registration.FailurePolicy))
 			response.SetStatus(runtimehooksv1.ResponseStatusSuccess)
@@ -681,9 +694,9 @@ func httpCall(ctx context.Context, request, response runtime.Object, opts *httpC
 	}()
 
 	if err != nil {
-		return errCallingExtensionHandler(
-			pkgerrors.Wrapf(err, "http call failed"),
-		)
+		return callingExtensionHandlerError{
+			err: pkgerrors.Wrapf(err, "http call failed"),
+		}
 	}
 	defer resp.Body.Close()
 
@@ -693,24 +706,24 @@ func httpCall(ctx context.Context, request, response runtime.Object, opts *httpC
 
 		respBody, err := io.ReadAll(maxBytesReader)
 		if err != nil {
-			return errCallingExtensionHandler(
-				pkgerrors.Errorf("http call failed: got response with status code %d != 200: failed to read response body", resp.StatusCode),
-			)
+			return callingExtensionHandlerError{
+				err: pkgerrors.Errorf("http call failed: got response with status code %d != 200: failed to read response body", resp.StatusCode),
+			}
 		}
 
 		respBodyStr := string(respBody)
 		if len(respBodyStr) > 512 {
 			respBodyStr = respBodyStr[:512] + "..."
 		}
-		return errCallingExtensionHandler(
-			pkgerrors.Errorf("http call failed: got response with status code %d != 200: response : %q", resp.StatusCode, respBodyStr),
-		)
+		return callingExtensionHandlerError{
+			err: pkgerrors.Errorf("http call failed: got response with status code %d != 200: response : %q", resp.StatusCode, respBodyStr),
+		}
 	}
 
 	if err := json.NewDecoder(resp.Body).Decode(responseLocal); err != nil {
-		return errCallingExtensionHandler(
-			pkgerrors.Wrap(err, "http call failed: failed to decode response"),
-		)
+		return callingExtensionHandlerError{
+			err: pkgerrors.Wrap(err, "http call failed: failed to decode response"),
+		}
 	}
 
 	if requireConversion {

@@ -119,11 +119,6 @@ extraConfigmapMounts:
   mountPath: /var/lib/grafana/dashboards/default/runtime-extensions.json
   subPath: runtime-extensions.json
   optional: false
-- name: grafana-dashboard-cluster-api-logs
-  configMap: grafana-dashboard-cluster-api-logs
-  mountPath: /var/lib/grafana/dashboards/default/cluster-api-logs.json
-  subPath: cluster-api-logs.json
-  optional: false
 
 # Disable grafana test framework
 testFramework:

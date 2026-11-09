@@ -19,6 +19,7 @@ package kubeadmconfig
 import (
 	"context"
 	"fmt"
+	"slices"
 	"strconv"
 	"time"
 
@@ -1016,9 +1017,14 @@ func (r *Reconciler) joinControlplane(ctx context.Context, scope *Scope) (ctrl.R
 // or the referenced object does not expose spec.version; authors of contentFormat "Template" files are
 // responsible for handling that case (e.g. with {{ if .controlPlane }}).
 func (r *Reconciler) resolveFiles(ctx context.Context, cfg *bootstrapv1.KubeadmConfig, cluster *clusterv1.Cluster) ([]bootstrapv1.File, error) {
-	cpVersion, err := r.getControlPlaneVersion(ctx, cluster)
-	if err != nil {
-		return nil, err
+	var cpVersion string
+	// Only templates need the control plane version, and CABPK's RBAC can read only KubeadmControlPlane objects.
+	if slices.ContainsFunc(cfg.Spec.Files, func(f bootstrapv1.File) bool { return f.ContentFormat == bootstrapv1.FileContentFormatTemplate }) {
+		var err error
+		cpVersion, err = r.getControlPlaneVersion(ctx, cluster)
+		if err != nil {
+			return nil, err
+		}
 	}
 	if cpVersion != "" {
 		// Normalize to a fully qualified, "v"-prefixed semver (e.g. "1.35" -> "v1.35.0") so the

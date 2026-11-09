@@ -39,7 +39,7 @@ import (
 	"sigs.k8s.io/cluster-api/util/collections"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
-	clog "sigs.k8s.io/cluster-api/util/log"
+	logutil "sigs.k8s.io/cluster-api/util/log"
 )
 
 // UpdateEtcdConditions is responsible for updating machine conditions reflecting the status of all the etcd members.
@@ -1164,7 +1164,7 @@ func aggregateConditionsFromMachinesToKCP(input aggregateConditionsFromMachinesT
 		}
 
 		sort.Strings(machines)
-		machinesMessage += " " + clog.ListToString(machines, func(s string) string { return s }, 3)
+		machinesMessage += " " + logutil.ListToString(machines, func(s string) string { return s }, 3)
 
 		messages = append(messages, fmt.Sprintf("* %s:\n%s", machinesMessage, message))
 	}

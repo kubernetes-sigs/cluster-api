@@ -14,8 +14,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package log provides utils to reduce the noise of log lines that are repeated on every reconcile while
-// a controller is waiting for something.
 package log
 
 import (

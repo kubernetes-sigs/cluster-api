@@ -53,7 +53,6 @@ import (
 	runtimeclient "sigs.k8s.io/cluster-api/exp/runtime/client"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/util/inplace"
-	logutil "sigs.k8s.io/cluster-api/internal/util/log"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
 	"sigs.k8s.io/cluster-api/pkg/dynamiccache"
 	"sigs.k8s.io/cluster-api/util"
@@ -63,7 +62,7 @@ import (
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 	capicontrollerutil "sigs.k8s.io/cluster-api/util/controller"
 	"sigs.k8s.io/cluster-api/util/finalizers"
-	clog "sigs.k8s.io/cluster-api/util/log"
+	logutil "sigs.k8s.io/cluster-api/util/log"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/paused"
 	"sigs.k8s.io/cluster-api/util/predicates"
@@ -896,7 +895,7 @@ func objectsPendingDeleteNames(allMachines collections.Machines, allMachinePools
 		}
 		if len(machinePoolNames) > 0 {
 			sort.Strings(machinePoolNames)
-			descendants = append(descendants, "MachinePools: "+clog.StringListToString(machinePoolNames))
+			descendants = append(descendants, "MachinePools: "+logutil.StringListToString(machinePoolNames))
 		}
 	}
 
@@ -906,7 +905,7 @@ func objectsPendingDeleteNames(allMachines collections.Machines, allMachinePools
 	}
 	if len(workerMachineNames) > 0 {
 		sort.Strings(workerMachineNames)
-		descendants = append(descendants, "Machines: "+clog.StringListToString(workerMachineNames))
+		descendants = append(descendants, "Machines: "+logutil.StringListToString(workerMachineNames))
 	}
 	return descendants
 }

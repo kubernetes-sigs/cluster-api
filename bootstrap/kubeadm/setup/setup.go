@@ -75,7 +75,7 @@ func ManagerCacheOptions(scheme *runtime.Scheme, controllerName, watchNamespace 
 				},
 			},
 			&clusterv1.MachineSet{}: {
-				// We are dropping data of MachineSets as we only use ownerRefs of MachineSets in clog.AddOwners.
+				// We are dropping data of MachineSets as we only use ownerRefs of MachineSets in logutil.AddOwners.
 				Transform: func(in any) (any, error) {
 					if m, ok := in.(*clusterv1.MachineSet); ok {
 						m.SetManagedFields(nil)

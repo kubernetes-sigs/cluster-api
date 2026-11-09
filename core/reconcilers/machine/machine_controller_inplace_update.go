@@ -41,6 +41,7 @@ import (
 	"sigs.k8s.io/cluster-api/internal/util/inplace"
 	"sigs.k8s.io/cluster-api/util/cache"
 	"sigs.k8s.io/cluster-api/util/conditions"
+	logutil "sigs.k8s.io/cluster-api/util/log"
 )
 
 // reconcileInPlaceUpdate handles the in-place update workflow for a Machine.
@@ -56,6 +57,8 @@ func (r *Reconciler) reconcileInPlaceUpdate(ctx context.Context, s *scope) (ctrl
 	hasUpdateMachinePending := hooks.IsPending(runtimehooksv1.UpdateMachine, s.machine)
 
 	if !inPlaceUpdateInProgress {
+		r.logRateLimiter.Forget(waitingForOwnerToMarkUpdateMachinePendingKey(s.machine))
+
 		// Clean up any orphaned pending hooks and annotations before exiting.
 		// This can happen if the in-place update annotation was removed from Machine
 		// but the UpdateMachine hook is still pending or annotations are still on InfraMachine/BootstrapConfig.
@@ -73,9 +76,10 @@ func (r *Reconciler) reconcileInPlaceUpdate(ctx context.Context, s *scope) (ctrl
 
 	// If hook is not pending, we're waiting for the owner controller to mark it as pending.
 	if !hasUpdateMachinePending {
-		log.Info("Machine marked for in-place update, waiting for owning controller to mark UpdateMachine hook as pending")
+		r.logRateLimiter.InfoAtMostEvery(log, logRateLimitInterval, waitingForOwnerToMarkUpdateMachinePendingKey(s.machine), "Machine marked for in-place update, waiting for owning controller to mark UpdateMachine hook as pending")
 		return ctrl.Result{}, nil
 	}
+	r.logRateLimiter.Forget(waitingForOwnerToMarkUpdateMachinePendingKey(s.machine))
 
 	if !ptr.Deref(s.machine.Status.Initialization.InfrastructureProvisioned, false) {
 		log.V(5).Info("Infrastructure not yet provisioned, skipping in-place update")
@@ -122,6 +126,10 @@ func (r *Reconciler) reconcileInPlaceUpdate(ctx context.Context, s *scope) (ctrl
 	}
 
 	return ctrl.Result{}, nil
+}
+
+func waitingForOwnerToMarkUpdateMachinePendingKey(m *clusterv1.Machine) logutil.Key {
+	return logutil.NewKey("WaitingForOwnerToMarkUpdateMachinePending", logutil.WithObjects(m))
 }
 
 // isInfraMachineReadyForUpdate checks if the InfraMachine has the in-place update annotation.

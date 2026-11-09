@@ -42,7 +42,7 @@ import (
 	"sigs.k8s.io/cluster-api/internal/util/taints"
 	"sigs.k8s.io/cluster-api/util/cache"
 	"sigs.k8s.io/cluster-api/util/index"
-	clog "sigs.k8s.io/cluster-api/util/log"
+	logutil "sigs.k8s.io/cluster-api/util/log"
 	"sigs.k8s.io/cluster-api/util/version"
 )
 
@@ -82,7 +82,7 @@ func (webhook *ClusterClass) ValidateDelete(ctx context.Context, clusterClass *c
 	}
 
 	if len(clusters) > 0 {
-		clustersList := clog.ListToString(clusters, func(cluster clusterv1.Cluster) string {
+		clustersList := logutil.ListToString(clusters, func(cluster clusterv1.Cluster) string {
 			return klog.KObj(&cluster).String()
 		}, 3)
 		return nil, apierrors.NewForbidden(clusterv1.GroupVersion.WithResource("ClusterClass").GroupResource(), clusterClass.Name,

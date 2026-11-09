@@ -288,7 +288,7 @@ func (b *baseServer) getResourceGroupAndMember(ctx context.Context) (resourceGro
 	}
 	// Calculate the etcd member name by trimming the "etcd-" prefix from ":authority" metadata.
 	etcdMember = strings.TrimPrefix(strings.Join(md.Get(":authority"), ","), "etcd-")
-	return resourceGroup, etcdMember, err
+	return resourceGroup, etcdMember, nil
 }
 
 func (b *baseServer) inspectEtcd(ctx context.Context, inmemoryClient inmemoryruntime.Client, etcdMember string) (*pb.MemberListResponse, *pb.StatusResponse, error) {

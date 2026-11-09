@@ -72,7 +72,8 @@ var (
 	setupLog       = ctrl.Log.WithName("setup")
 	controllerName = "cluster-api-test-extension-manager"
 
-	// enableLeaderElection and the following variables are flags.
+	// flags.
+
 	enableLeaderElection        bool
 	leaderElectionLeaseDuration time.Duration
 	leaderElectionRenewDeadline time.Duration

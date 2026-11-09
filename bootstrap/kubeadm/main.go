@@ -63,6 +63,7 @@ var (
 	controllerName = "cluster-api-kubeadm-bootstrap-manager"
 
 	// flags.
+
 	enableLeaderElection        bool
 	leaderElectionLeaseDuration time.Duration
 	leaderElectionRenewDeadline time.Duration
@@ -83,7 +84,9 @@ var (
 	healthAddr                  string
 	managerOptions              = flags.ManagerOptions{}
 	logOptions                  = logs.NewOptions()
+
 	// CABPK specific flags.
+
 	clusterCacheConcurrency  int
 	kubeadmConfigConcurrency int
 	skipCRDMigrationPhases   []string

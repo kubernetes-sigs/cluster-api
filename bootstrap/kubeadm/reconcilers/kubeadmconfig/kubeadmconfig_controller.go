@@ -18,6 +18,7 @@ package kubeadmconfig
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strconv"
 	"time"
@@ -1154,7 +1155,7 @@ func (r *Reconciler) resolveDiscoveryKubeConfig(cfg bootstrapv1.FileDiscovery) (
 	}, nil
 }
 
-// resolveSecretUserContent returns passwd fetched from a referenced secret object.
+// resolveSecretPasswordContent returns passwd fetched from a referenced secret object.
 func (r *Reconciler) resolveSecretPasswordContent(ctx context.Context, ns string, source bootstrapv1.User) ([]byte, error) {
 	secret := &corev1.Secret{}
 	key := types.NamespacedName{Namespace: ns, Name: source.PasswdFrom.Secret.Name}
@@ -1305,7 +1306,7 @@ func (r *Reconciler) reconcileDiscovery(ctx context.Context, cluster *clusterv1.
 	if len(config.Spec.JoinConfiguration.Discovery.BootstrapToken.CACertHashes) == 0 {
 		clusterCACertificate := certificates.GetByPurpose(secret.ClusterCA)
 		if clusterCACertificate == nil {
-			return ctrl.Result{}, fmt.Errorf("failed to generate Cluster CA certificate hashes: failed to get cluster CA")
+			return ctrl.Result{}, errors.New("failed to generate Cluster CA certificate hashes: failed to get cluster CA")
 		}
 		hashes, err := clusterCACertificate.Hashes()
 		if err != nil {
@@ -1382,7 +1383,7 @@ func (r *Reconciler) reconcileDiscoveryFile(ctx context.Context, cluster *cluste
 	if len(cfg.Cluster.CertificateAuthorityData) == 0 {
 		clusterCA := certificates.GetByPurpose(secret.ClusterCA)
 		if clusterCA == nil || clusterCA.KeyPair == nil {
-			err := fmt.Errorf("failed to retrieve Cluster CA")
+			err := errors.New("failed to retrieve Cluster CA")
 			log.Error(err, "Unable to set Cluster CA for Discovery.File.KubeConfig")
 			return ctrl.Result{}, err
 		}
@@ -1490,7 +1491,7 @@ func (r *Reconciler) storeBootstrapData(ctx context.Context, scope *Scope, data 
 	return nil
 }
 
-// Ensure the bootstrap secret has the KubeadmConfig as a controller OwnerReference.
+// ensureBootstrapSecretOwnersRef ensures the bootstrap secret has the KubeadmConfig as a controller OwnerReference.
 func (r *Reconciler) ensureBootstrapSecretOwnersRef(ctx context.Context, scope *Scope) error {
 	secret := &corev1.Secret{}
 	err := r.SecretCachingClient.Get(ctx, client.ObjectKey{Namespace: scope.Config.Namespace, Name: scope.Config.Name}, secret)

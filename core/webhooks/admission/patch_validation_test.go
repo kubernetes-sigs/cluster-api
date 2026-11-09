@@ -2363,10 +2363,10 @@ func Test_validateSelectors(t *testing.T) {
 			err := validateSelectors(tt.selector, tt.clusterClass, field.NewPath(""))
 
 			if tt.wantErr {
-				g.Expect(err.ToAggregate()).To(HaveOccurred())
+				g.Expect(err.ToAggregate()).ToNot(Succeed())
 				return
 			}
-			g.Expect(err.ToAggregate()).ToNot(HaveOccurred())
+			g.Expect(err.ToAggregate()).To(Succeed())
 		})
 	}
 }

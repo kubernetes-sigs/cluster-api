@@ -278,7 +278,7 @@ func Test_triggerInPlaceUpdate(t *testing.T) {
 				updatedObject.SetAnnotations(currentMachineForPatch.GetAnnotations())
 				g.Expect(ssa.Patch(ctx, env.Client, kcpManagerName, updatedObject)).To(Succeed())
 				// Now migrate the managedFields like CAPI >= v1.12 does.
-				g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(currentKubeadmConfigForPatch), currentKubeadmConfigForPatch)).Should(Succeed())
+				g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(currentKubeadmConfigForPatch), currentKubeadmConfigForPatch)).To(Succeed())
 				g.Expect(ssa.MigrateManagedFields(ctx, env.Client, currentKubeadmConfigForPatch, kcpManagerName, kcpMetadataManagerName)).To(Succeed())
 				// Note: At this point spec is not owned by anyone (orphaned). This requires the code path to remove initConfiguration for CAPI v1.11 objects.
 			} else {

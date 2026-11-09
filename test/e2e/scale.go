@@ -64,6 +64,7 @@ const (
 	scaleDeployClusterInSeparateNamespaces = "CAPI_SCALE_DEPLOY_CLUSTER_IN_SEPARATE_NAMESPACES"
 	scaleUseCrossNamespaceClusterClass     = "CAPI_SCALE_USE_CROSS_NAMESPACE_CLUSTER_CLASS"
 
+	// scaleClusterNamePlaceholder and scaleClusterNamespacePlaceholder are the placeholders for the name and namespace of the scale clusters.
 	// Note: Names must consist of lower case alphanumeric characters or '-'.
 	scaleClusterNamePlaceholder      = "scale-cluster-name-placeholder"
 	scaleClusterNamespacePlaceholder = "scale-cluster-namespace-placeholder"
@@ -1027,7 +1028,7 @@ func modifyMachineDeployments(baseClusterTemplateYAML []byte, count int64) []byt
 	Expect(scheme.AddConversionFunc((*clusterv1beta1.Cluster)(nil), (*clusterv1.Cluster)(nil), func(a, b interface{}, _ conversion.Scope) error {
 		return clusterv1beta1.Convert_v1beta1_Cluster_To_v1beta2_Cluster(a.(*clusterv1beta1.Cluster), b.(*clusterv1.Cluster), nil)
 	})).To(Succeed())
-	Expect(scheme.Convert(&objs[0], cluster, nil)).Should(Succeed())
+	Expect(scheme.Convert(&objs[0], cluster, nil)).To(Succeed())
 
 	// Verify the Cluster Topology.
 	Expect(cluster.Spec.Topology.IsDefined()).To(BeTrue(), "Should be a ClusterClass based Cluster")

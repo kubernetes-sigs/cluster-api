@@ -337,7 +337,7 @@ func (r *Reconciler) reconcileTopologyReconciledCondition(s *scope.Scope, cluste
 	return nil
 }
 
-// pendingVersion return a message with pending version in the upgrad plan.
+// pendingVersions returns a message with pending version in the upgrad plan.
 func pendingVersions(plan []string, version string) string {
 	// clone the plan to avoid side effects on the original object.
 	planWithoutVersion := []string{}

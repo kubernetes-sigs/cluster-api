@@ -13,6 +13,7 @@ linters:
     - asciicheck # non ascii symbols
     - bidichk # dangerous unicode sequences
     - bodyclose # unclosed http bodies
+    - canonicalheader # canonical HTTP header names
     - containedctx # context.Context nested in a struct
     - copyloopvar # copying loop variables
     - dogsled # too many blank identifiers in assignments
@@ -20,10 +21,15 @@ linters:
     - durationcheck # multiplying two durations
     - errcheck # unchecked errors
     - errchkjson # invalid types passed to json encoder
+    - errname # error types and sentinel errors naming
+    - fatcontext # nested contexts in loops and function literals
+    - exptostd # golang.org/x/exp functions that can be replaced by std functions
     - forbidigo # allows to block usage of funcs
     - ginkgolinter # ginkgo and gomega
+    - gocheckcompilerdirectives # invalid go compiler directives
     - gocritic # bugs, performance, style (we could add custom ones to this one)
     - godot # checks that comments end in a period
+    - godoclint # godoc comments conventions
     - godox # block FIXMEs
     - depguard # blocks dependencies
     - goprintffuncname # printft-like functions should be named with f at the end
@@ -32,27 +38,31 @@ linters:
     - importas # consistent import aliases
     - ineffassign # ineffectual assignments
     - intrange # suggest using integer range in for loops
+    - iotamixing # iota mixed with other values in const blocks
     - loggercheck # check for even key/value pairs in logger calls
+    - makezero # append to slices initialized with non-zero length
+    - mirror # suggests alternative bytes/strings functions to avoid allocations
     - misspell # spelling
     - nakedret # naked returns (named return parameters and an empty return)
     - nilerr # returning nil after checking err is not nil
+    - nilnesserr # returning a different nil error after checking err is not nil
     - noctx # http requests without context.Context
     - nolintlint # badly formatted nolint directives
     - nosprintfhostport # using sprintf to construct host:port in a URL
     - prealloc # suggest preallocating slices
     - predeclared # shadowing predeclared identifiers
+    - reassign # reassigning package level variables of other packages
     - revive # better version of golint
     - staticcheck # some of staticcheck's rules
     - thelper # test helpers not starting with t.Helper()
+    - tparallel # inappropriate usage of t.Parallel()
     - unconvert # unnecessary type conversions
     - unparam # unused function parameters
     - unused # unused constants, variables,functions, types
     - usestdlibvars # using variables/constants from the standard library
     - usetesting # report function to be replace by testing
+    - wastedassign # assignments that are never used
     - whitespace # unnecessary newlines
-  disable:
-    # TODO: It will be dropped when the Go version migration is done.
-    - usetesting
   settings:
     depguard:
       rules:
@@ -134,12 +144,33 @@ linters:
             - sigs.k8s.io/cluster-api/version$
             - sigs.k8s.io/controller-runtime
             - sigs.k8s.io/yaml
+        ginkgo:
+          files:
+            - $all
+            - "!**/cluster-api/test/e2e/**"
+            - "!**/cluster-api/test/framework/**"
+          deny:
+            - pkg: github.com/onsi/ginkgo
+              desc: Ginkgo is only used in test/e2e and test/framework, use go test and gomega instead
+        testify:
+          files:
+            - $all
+            # Note: This test has been copied from upstream and is intentionally kept close to the original.
+            - "!**/cluster-api/util/controller/consistency_test.go"
+          deny:
+            - pkg: github.com/stretchr/testify
+              desc: Use gomega instead
     forbidigo:
       forbid:
         - pattern: ctrl.NewControllerManagedBy
           msg: Use capicontrollerutil.NewControllerManagedBy instead
+        - pattern: ^context\.TODO$
+          msg: Pass a context.Context instead
     ginkgolinter:
       forbid-focus-container: true
+      force-expect-to: true
+      force-succeed: true
+      force-tonot: true
     gocritic:
       disabled-checks:
         - appendAssign
@@ -157,10 +188,23 @@ linters:
         - wrapperFunc
         - rangeValCopy
         - hugeParam
+        - importShadow
+        - paramTypeCombine
       enabled-tags:
         - diagnostic
         - experimental
+        - opinionated
         - performance
+        - style
+    godoclint:
+      default: none
+      enable:
+        - deprecated
+        - no-unused-link
+        - start-with-name
+      options:
+        start-with-name:
+          include-unexported: true
     godot:
       #   declarations - for top level declaration comments (default);
       #   toplevel     - for top level comments;
@@ -280,6 +324,8 @@ linters:
         - pkg: sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta2
           alias: infrav1
       no-unaliased: true
+    loggercheck:
+      no-printf-like: true
     nolintlint:
       require-specific: true
       allow-unused: false
@@ -315,6 +361,39 @@ linters:
         #
         - name: bool-literal-in-expr
         - name: constant-logical-expr
+        - name: atomic
+        - name: bare-return
+        - name: comment-spacings
+          arguments:
+            - nolint
+            - +kubebuilder
+            - +optional
+            - +required
+            - +listType
+            - +listMapKey
+            - +enum
+            - go:build
+        - name: datarace
+        - name: defer
+        - name: duplicated-imports
+        - name: forbidden-call-in-wg-go
+        - name: identical-branches
+        - name: identical-ifelseif-conditions
+        - name: identical-switch-conditions
+        - name: inefficient-map-lookup
+        - name: redundant-import-alias
+        - name: redundant-build-tag
+        - name: redundant-import-alias
+        - name: string-of-int
+        - name: time-date
+        - name: time-equal
+        - name: unconditional-recursion
+        - name: unexported-naming
+        - name: unnecessary-if
+        - name: use-errors-new
+        - name: useless-break
+        - name: useless-fallthrough
+        - name: waitgroup-by-value
   exclusions:
     generated: strict
     paths:
@@ -441,6 +520,12 @@ linters:
           - staticcheck
         path: .*(api|types)\/.*\/conversion.*\.go$
         text: 'ST1016: methods on the same type should have the same receiver name'
+      ## context.TODO is fine in tests and in test framework / test infrastructure funcs that are part of their public API
+      ## and don't take a context.Context.
+      - linters:
+          - forbidigo
+        path: _test\.go|test/(framework|infrastructure)/.*\.go
+        text: use of `context.TODO` forbidden
       ## We don't care about defer in for loops in test files.
       - linters:
           - gocritic

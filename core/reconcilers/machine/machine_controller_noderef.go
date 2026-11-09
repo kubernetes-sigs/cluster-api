@@ -252,7 +252,7 @@ func (r *Reconciler) getNode(ctx context.Context, c client.Reader, providerID st
 	return &nodeList.Items[0], nil
 }
 
-// PatchNode is required to workaround an issue on Node.Status.Address which is incorrectly annotated as patchStrategy=merge
+// patchNode is required to workaround an issue on Node.Status.Address which is incorrectly annotated as patchStrategy=merge
 // and this causes SSA patch to fail in case there are two addresses with the same key https://github.com/kubernetes-sigs/cluster-api/issues/8417
 func (r *Reconciler) patchNode(ctx context.Context, remoteClient client.Client, node *corev1.Node, newLabels, newAnnotations map[string]string, m *clusterv1.Machine, ms *clusterv1.MachineSet, md *clusterv1.MachineDeployment) error {
 	newNode := node.DeepCopy()

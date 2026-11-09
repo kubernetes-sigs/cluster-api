@@ -40,7 +40,7 @@ import (
 // Machines is a set of Machines.
 type Machines map[string]*clusterv1.Machine
 
-// MachinesByVersion sorts the list of Machine by spec.version, using their names as tie breaker.
+// machinesByVersion sorts the list of Machine by spec.version, using their names as tie breaker.
 // machines with no version are placed lower in the order.
 type machinesByVersion []*clusterv1.Machine
 
@@ -260,7 +260,7 @@ func (s Machines) Names() []string {
 	return names
 }
 
-// SortedByVersion returns the machines sorted by version.
+// sortedByVersion returns the machines sorted by version.
 func (s Machines) sortedByVersion() []*clusterv1.Machine {
 	res := make(machinesByVersion, 0, len(s))
 	for _, value := range s {

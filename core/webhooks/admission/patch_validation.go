@@ -140,7 +140,7 @@ func validatePatchDefinitions(patch clusterv1.ClusterClassPatch, clusterClass *c
 	return allErrs
 }
 
-// validateSelectors validates if enabledIf is a valid template if it is set.
+// validateEnabledIf validates if enabledIf is a valid template if it is set.
 func validateEnabledIf(enabledIf string, path *field.Path) field.ErrorList {
 	var allErrs field.ErrorList
 
@@ -460,7 +460,7 @@ func getVariableName(variable string) string {
 	})[0]
 }
 
-// This contains a list of all of the valid builtin variables.
+// builtinVariables contains a list of all of the valid builtin variables.
 // TODO(killianmuldoon): Match this list to controllers/topology/internal/extensions/patches/variables as those structs become available across the code base i.e. public or top-level internal.
 var builtinVariables = sets.Set[string]{}.Insert(
 	"builtin",

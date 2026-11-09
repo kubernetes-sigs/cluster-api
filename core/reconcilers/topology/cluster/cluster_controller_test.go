@@ -18,6 +18,7 @@ package cluster
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"maps"
 	"testing"
@@ -95,22 +96,22 @@ func TestClusterReconciler_reconcileNewlyCreatedCluster(t *testing.T) {
 		}
 
 		// Check if Cluster has relevant Infrastructure and ControlPlane and labels and annotations.
-		g.Expect(assertClusterReconcile(actualCluster)).Should(Succeed())
+		g.Expect(assertClusterReconcile(actualCluster)).To(Succeed())
 
 		// Check if InfrastructureCluster has been created and has the correct labels and annotations.
-		g.Expect(assertInfrastructureClusterReconcile(actualCluster)).Should(Succeed())
+		g.Expect(assertInfrastructureClusterReconcile(actualCluster)).To(Succeed())
 
 		// Check if ControlPlane has been created and has the correct version, replicas, labels and annotations.
-		g.Expect(assertControlPlaneReconcile(actualCluster)).Should(Succeed())
+		g.Expect(assertControlPlaneReconcile(actualCluster)).To(Succeed())
 
 		// Check if MachineDeployments are created and have the correct version, replicas, labels annotations and templates.
-		g.Expect(assertMachineDeploymentsReconcile(actualCluster)).Should(Succeed())
+		g.Expect(assertMachineDeploymentsReconcile(actualCluster)).To(Succeed())
 
 		// Check if MachinePools are created and have the correct version, replicas, labels annotations and templates.
-		g.Expect(assertMachinePoolsReconcile(actualCluster)).Should(Succeed())
+		g.Expect(assertMachinePoolsReconcile(actualCluster)).To(Succeed())
 
 		// Check if the Cluster has the relevant TopologyReconciledCondition.
-		g.Expect(assertClusterTopologyReconciledCondition(actualCluster)).Should(Succeed())
+		g.Expect(assertClusterTopologyReconciledCondition(actualCluster)).To(Succeed())
 
 		return nil
 	}, timeout).Should(Succeed())
@@ -194,22 +195,22 @@ func TestClusterReconciler_reconcileMultipleClustersFromOneClass(t *testing.T) {
 			}
 
 			// Check if Cluster has relevant Infrastructure and ControlPlane and labels and annotations.
-			g.Expect(assertClusterReconcile(actualCluster)).Should(Succeed())
+			g.Expect(assertClusterReconcile(actualCluster)).To(Succeed())
 
 			// Check if InfrastructureCluster has been created and has the correct labels and annotations.
-			g.Expect(assertInfrastructureClusterReconcile(actualCluster)).Should(Succeed())
+			g.Expect(assertInfrastructureClusterReconcile(actualCluster)).To(Succeed())
 
 			// Check if ControlPlane has been created and has the correct version, replicas, labels and annotations.
-			g.Expect(assertControlPlaneReconcile(actualCluster)).Should(Succeed())
+			g.Expect(assertControlPlaneReconcile(actualCluster)).To(Succeed())
 
 			// Check if MachineDeployments are created and have the correct version, replicas, labels annotations and templates.
-			g.Expect(assertMachineDeploymentsReconcile(actualCluster)).Should(Succeed())
+			g.Expect(assertMachineDeploymentsReconcile(actualCluster)).To(Succeed())
 
 			// Check if MachinePools are created and have the correct version, replicas, labels annotations and templates.
-			g.Expect(assertMachinePoolsReconcile(actualCluster)).Should(Succeed())
+			g.Expect(assertMachinePoolsReconcile(actualCluster)).To(Succeed())
 
 			// Check if the Cluster has the relevant TopologyReconciledCondition.
-			g.Expect(assertClusterTopologyReconciledCondition(actualCluster)).Should(Succeed())
+			g.Expect(assertClusterTopologyReconciledCondition(actualCluster)).To(Succeed())
 		}
 		return nil
 	}, timeout).Should(Succeed())
@@ -242,22 +243,22 @@ func TestClusterReconciler_reconcileUpdateOnClusterTopology(t *testing.T) {
 		}
 
 		// Check if Cluster has relevant Infrastructure and ControlPlane and labels and annotations.
-		g.Expect(assertClusterReconcile(actualCluster)).Should(Succeed())
+		g.Expect(assertClusterReconcile(actualCluster)).To(Succeed())
 
 		// Check if InfrastructureCluster has been created and has the correct labels and annotations.
-		g.Expect(assertInfrastructureClusterReconcile(actualCluster)).Should(Succeed())
+		g.Expect(assertInfrastructureClusterReconcile(actualCluster)).To(Succeed())
 
 		// Check if ControlPlane has been created and has the correct version, replicas, labels and annotations.
-		g.Expect(assertControlPlaneReconcile(actualCluster)).Should(Succeed())
+		g.Expect(assertControlPlaneReconcile(actualCluster)).To(Succeed())
 
 		// Check if MachineDeployments are created and have the correct version, replicas, labels annotations and templates.
-		g.Expect(assertMachineDeploymentsReconcile(actualCluster)).Should(Succeed())
+		g.Expect(assertMachineDeploymentsReconcile(actualCluster)).To(Succeed())
 
 		// Check if MachinePools are created and have the correct version, replicas, labels annotations and templates.
-		g.Expect(assertMachinePoolsReconcile(actualCluster)).Should(Succeed())
+		g.Expect(assertMachinePoolsReconcile(actualCluster)).To(Succeed())
 
 		// Check if the Cluster has the relevant TopologyReconciledCondition.
-		g.Expect(assertClusterTopologyReconciledCondition(actualCluster)).Should(Succeed())
+		g.Expect(assertClusterTopologyReconciledCondition(actualCluster)).To(Succeed())
 		return nil
 	}, timeout).Should(Succeed())
 
@@ -268,7 +269,7 @@ func TestClusterReconciler_reconcileUpdateOnClusterTopology(t *testing.T) {
 	clusterWithTopologyChange := actualCluster.DeepCopy()
 	clusterWithTopologyChange.Spec.Topology.Workers.MachineDeployments[0].Replicas = &replicas
 	clusterWithTopologyChange.Spec.Topology.Workers.MachinePools[0].Replicas = &replicas
-	g.Expect(patchHelper.Patch(ctx, clusterWithTopologyChange)).Should(Succeed())
+	g.Expect(patchHelper.Patch(ctx, clusterWithTopologyChange)).To(Succeed())
 
 	// Check to ensure all objects are correctly reconciled with the new MachineDeployment and MachinePool replica count in Topology.
 	g.Eventually(func(g Gomega) error {
@@ -285,22 +286,22 @@ func TestClusterReconciler_reconcileUpdateOnClusterTopology(t *testing.T) {
 		g.Expect(updatedCluster.Spec.Topology.Workers.MachinePools[0].Replicas).To(Equal(&replicas))
 
 		// Check if Cluster has relevant Infrastructure and ControlPlane and labels and annotations.
-		g.Expect(assertClusterReconcile(updatedCluster)).Should(Succeed())
+		g.Expect(assertClusterReconcile(updatedCluster)).To(Succeed())
 
 		// Check if InfrastructureCluster has been created and has the correct labels and annotations.
-		g.Expect(assertInfrastructureClusterReconcile(updatedCluster)).Should(Succeed())
+		g.Expect(assertInfrastructureClusterReconcile(updatedCluster)).To(Succeed())
 
 		// Check if ControlPlane has been created and has the correct version, replicas, labels and annotations.
-		g.Expect(assertControlPlaneReconcile(updatedCluster)).Should(Succeed())
+		g.Expect(assertControlPlaneReconcile(updatedCluster)).To(Succeed())
 
 		// Check if MachineDeployments are created and have the correct version, replicas, labels annotations and templates.
-		g.Expect(assertMachineDeploymentsReconcile(updatedCluster)).Should(Succeed())
+		g.Expect(assertMachineDeploymentsReconcile(updatedCluster)).To(Succeed())
 
 		// Check if MachinePools are created and have the correct version, replicas, labels annotations and templates.
-		g.Expect(assertMachinePoolsReconcile(updatedCluster)).Should(Succeed())
+		g.Expect(assertMachinePoolsReconcile(updatedCluster)).To(Succeed())
 
 		// Check if the Cluster has the relevant TopologyReconciledCondition.
-		g.Expect(assertClusterTopologyReconciledCondition(actualCluster)).Should(Succeed())
+		g.Expect(assertClusterTopologyReconciledCondition(actualCluster)).To(Succeed())
 		return nil
 	}, timeout).Should(Succeed())
 }
@@ -334,22 +335,22 @@ func TestClusterReconciler_reconcileUpdatesOnClusterClass(t *testing.T) {
 			}
 
 			// Check if Cluster has relevant Infrastructure and ControlPlane and labels and annotations.
-			g.Expect(assertClusterReconcile(actualCluster)).Should(Succeed())
+			g.Expect(assertClusterReconcile(actualCluster)).To(Succeed())
 
 			// Check if InfrastructureCluster has been created and has the correct labels and annotations.
-			g.Expect(assertInfrastructureClusterReconcile(actualCluster)).Should(Succeed())
+			g.Expect(assertInfrastructureClusterReconcile(actualCluster)).To(Succeed())
 
 			// Check if ControlPlane has been created and has the correct version, replicas, labels and annotations.
-			g.Expect(assertControlPlaneReconcile(actualCluster)).Should(Succeed())
+			g.Expect(assertControlPlaneReconcile(actualCluster)).To(Succeed())
 
 			// Check if MachineDeployments are created and have the correct version, replicas, labels annotations and templates.
-			g.Expect(assertMachineDeploymentsReconcile(actualCluster)).Should(Succeed())
+			g.Expect(assertMachineDeploymentsReconcile(actualCluster)).To(Succeed())
 
 			// Check if MachinePools are created and have the correct version, replicas, labels annotations and templates.
-			g.Expect(assertMachinePoolsReconcile(actualCluster)).Should(Succeed())
+			g.Expect(assertMachinePoolsReconcile(actualCluster)).To(Succeed())
 
 			// Check if the Cluster has the relevant TopologyReconciledCondition.
-			g.Expect(assertClusterTopologyReconciledCondition(actualCluster)).Should(Succeed())
+			g.Expect(assertClusterTopologyReconciledCondition(actualCluster)).To(Succeed())
 		}
 		return nil
 	}, timeout).Should(Succeed())
@@ -383,22 +384,22 @@ func TestClusterReconciler_reconcileUpdatesOnClusterClass(t *testing.T) {
 				return err
 			}
 			// Check if Cluster has relevant Infrastructure and ControlPlane and labels and annotations.
-			g.Expect(assertClusterReconcile(actualCluster)).Should(Succeed())
+			g.Expect(assertClusterReconcile(actualCluster)).To(Succeed())
 
 			// Check if InfrastructureCluster has been created and has the correct labels and annotations.
-			g.Expect(assertInfrastructureClusterReconcile(actualCluster)).Should(Succeed())
+			g.Expect(assertInfrastructureClusterReconcile(actualCluster)).To(Succeed())
 
 			// Check if ControlPlane has been created and has the correct version, replicas, labels and annotations.
-			g.Expect(assertControlPlaneReconcile(actualCluster)).Should(Succeed())
+			g.Expect(assertControlPlaneReconcile(actualCluster)).To(Succeed())
 
 			// Check if MachineDeployments are created and have the correct version, replicas, labels annotations and templates.
-			g.Expect(assertMachineDeploymentsReconcile(actualCluster)).Should(Succeed())
+			g.Expect(assertMachineDeploymentsReconcile(actualCluster)).To(Succeed())
 
 			// Check if MachinePools are created and have the correct version, replicas, labels annotations and templates.
-			g.Expect(assertMachinePoolsReconcile(actualCluster)).Should(Succeed())
+			g.Expect(assertMachinePoolsReconcile(actualCluster)).To(Succeed())
 
 			// Check if the Cluster has the relevant TopologyReconciledCondition.
-			g.Expect(assertClusterTopologyReconciledCondition(actualCluster)).Should(Succeed())
+			g.Expect(assertClusterTopologyReconciledCondition(actualCluster)).To(Succeed())
 		}
 		return nil
 	}, timeout).Should(Succeed())
@@ -432,19 +433,19 @@ func TestClusterReconciler_reconcileClusterClassRebase(t *testing.T) {
 		}
 
 		// Check if Cluster has relevant Infrastructure and ControlPlane and labels and annotations.
-		g.Expect(assertClusterReconcile(actualCluster)).Should(Succeed())
+		g.Expect(assertClusterReconcile(actualCluster)).To(Succeed())
 
 		// Check if InfrastructureCluster has been created and has the correct labels and annotations.
-		g.Expect(assertInfrastructureClusterReconcile(actualCluster)).Should(Succeed())
+		g.Expect(assertInfrastructureClusterReconcile(actualCluster)).To(Succeed())
 
 		// Check if ControlPlane has been created and has the correct version, replicas, labels and annotations.
-		g.Expect(assertControlPlaneReconcile(actualCluster)).Should(Succeed())
+		g.Expect(assertControlPlaneReconcile(actualCluster)).To(Succeed())
 
 		// Check if MachineDeployments are created and have the correct version, replicas, labels annotations and templates.
-		g.Expect(assertMachineDeploymentsReconcile(actualCluster)).Should(Succeed())
+		g.Expect(assertMachineDeploymentsReconcile(actualCluster)).To(Succeed())
 
 		// Check if MachinePools are created and have the correct version, replicas, labels annotations and templates.
-		g.Expect(assertMachinePoolsReconcile(actualCluster)).Should(Succeed())
+		g.Expect(assertMachinePoolsReconcile(actualCluster)).To(Succeed())
 
 		return nil
 	}, timeout).Should(Succeed())
@@ -454,7 +455,7 @@ func TestClusterReconciler_reconcileClusterClassRebase(t *testing.T) {
 	// Change the ClusterClass pointed to in the Cluster's Topology. This is a ClusterClass rebase operation.
 	clusterWithRebase := actualCluster.DeepCopy()
 	clusterWithRebase.Spec.Topology.ClassRef.Name = clusterClassName2
-	g.Expect(patchHelper.Patch(ctx, clusterWithRebase)).Should(Succeed())
+	g.Expect(patchHelper.Patch(ctx, clusterWithRebase)).To(Succeed())
 
 	// Check to ensure all objects are correctly reconciled with the new ClusterClass.
 	g.Eventually(func(g Gomega) error {
@@ -466,19 +467,19 @@ func TestClusterReconciler_reconcileClusterClassRebase(t *testing.T) {
 		// Check to ensure the spec.topology.class has been successfully updated in the API server and cache.
 		g.Expect(updatedCluster.GetClassKey().Name).To(Equal(clusterClassName2))
 		// Check if Cluster has relevant Infrastructure and ControlPlane and labels and annotations.
-		g.Expect(assertClusterReconcile(updatedCluster)).Should(Succeed())
+		g.Expect(assertClusterReconcile(updatedCluster)).To(Succeed())
 
 		// Check if InfrastructureCluster has been created and has the correct labels and annotations.
-		g.Expect(assertInfrastructureClusterReconcile(updatedCluster)).Should(Succeed())
+		g.Expect(assertInfrastructureClusterReconcile(updatedCluster)).To(Succeed())
 
 		// Check if ControlPlane has been created and has the correct version, replicas, labels and annotations.
-		g.Expect(assertControlPlaneReconcile(updatedCluster)).Should(Succeed())
+		g.Expect(assertControlPlaneReconcile(updatedCluster)).To(Succeed())
 
 		// Check if MachineDeployments are created and have the correct version, replicas, labels annotations and templates.
-		g.Expect(assertMachineDeploymentsReconcile(updatedCluster)).Should(Succeed())
+		g.Expect(assertMachineDeploymentsReconcile(updatedCluster)).To(Succeed())
 
 		// Check if MachinePools are created and have the correct version, replicas, labels annotations and templates.
-		g.Expect(assertMachinePoolsReconcile(actualCluster)).Should(Succeed())
+		g.Expect(assertMachinePoolsReconcile(actualCluster)).To(Succeed())
 
 		return nil
 	}, timeout).Should(Succeed())
@@ -728,19 +729,19 @@ func TestClusterReconciler_deleteClusterClass(t *testing.T) {
 			}
 
 			// Check if Cluster has relevant Infrastructure and ControlPlane and labels and annotations.
-			g.Expect(assertClusterReconcile(actualCluster)).Should(Succeed())
+			g.Expect(assertClusterReconcile(actualCluster)).To(Succeed())
 
 			// Check if InfrastructureCluster has been created and has the correct labels and annotations.
-			g.Expect(assertInfrastructureClusterReconcile(actualCluster)).Should(Succeed())
+			g.Expect(assertInfrastructureClusterReconcile(actualCluster)).To(Succeed())
 
 			// Check if ControlPlane has been created and has the correct version, replicas, labels and annotations.
-			g.Expect(assertControlPlaneReconcile(actualCluster)).Should(Succeed())
+			g.Expect(assertControlPlaneReconcile(actualCluster)).To(Succeed())
 
 			// Check if MachineDeployments are created and have the correct version, replicas, labels annotations and templates.
-			g.Expect(assertMachineDeploymentsReconcile(actualCluster)).Should(Succeed())
+			g.Expect(assertMachineDeploymentsReconcile(actualCluster)).To(Succeed())
 
 			// Check if MachinePools are created and have the correct version, replicas, labels annotations and templates.
-			g.Expect(assertMachinePoolsReconcile(actualCluster)).Should(Succeed())
+			g.Expect(assertMachinePoolsReconcile(actualCluster)).To(Succeed())
 		}
 		return nil
 	}, timeout).Should(Succeed())
@@ -1095,7 +1096,7 @@ func setupTestEnvForIntegrationTests(ns *corev1.Namespace) (func() error, error)
 
 func assertClusterTopologyReconciledCondition(cluster *clusterv1.Cluster) error {
 	if !conditions.Has(cluster, clusterv1.ClusterTopologyReconciledCondition) {
-		return fmt.Errorf("cluster should have the TopologyReconciled condition set")
+		return errors.New("cluster should have the TopologyReconciled condition set")
 	}
 	return nil
 }
@@ -1420,7 +1421,7 @@ func assertTemplateClonedFromNameAnnotation(got client.Object) error {
 // referenceExistsWithCorrectKindAndAPIGroup asserts that the passed ContractVersionedObjectReference is not nil and that it has the correct kind and apiGroup.
 func referenceExistsWithCorrectKindAndAPIGroup(reference clusterv1.ContractVersionedObjectReference, kind string, apiGroup string) error {
 	if !reference.IsDefined() {
-		return fmt.Errorf("object reference passed was nil")
+		return errors.New("object reference passed was nil")
 	}
 	if reference.Kind != kind {
 		return fmt.Errorf("object reference kind %v does not match expected %v", reference.Kind, kind)

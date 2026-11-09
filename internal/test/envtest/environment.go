@@ -30,7 +30,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/onsi/ginkgo/v2"
 	pkgerrors "github.com/pkg/errors"
 	admissionv1 "k8s.io/api/admissionregistration/v1"
 	appsv1 "k8s.io/api/apps/v1"
@@ -119,8 +118,6 @@ func init() {
 	log.SetLogger(logger)
 	// Additionally force all controllers to use the Ginkgo logger.
 	ctrl.SetLogger(logger)
-	// Add logger for ginkgo.
-	klog.SetOutput(ginkgo.GinkgoWriter)
 
 	// Calculate the global scheme used by fakeclients.
 	registerSchemes(scheme.Scheme)

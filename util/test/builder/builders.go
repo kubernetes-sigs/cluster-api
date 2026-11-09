@@ -17,7 +17,7 @@ limitations under the License.
 package builder
 
 import (
-	"fmt"
+	"errors"
 	"strings"
 
 	corev1 "k8s.io/api/core/v1"
@@ -2158,10 +2158,10 @@ func setSpecFields(obj *unstructured.Unstructured, fields map[string]interface{}
 	for k, v := range fields {
 		fieldParts := strings.Split(k, ".")
 		if len(fieldParts) == 0 {
-			panic(fmt.Errorf("fieldParts invalid"))
+			panic(errors.New("fieldParts invalid"))
 		}
 		if fieldParts[0] != "spec" {
-			panic(fmt.Errorf("can not set fields outside spec"))
+			panic(errors.New("can not set fields outside spec"))
 		}
 		if err := unstructured.SetNestedField(obj.UnstructuredContent(), v, strings.Split(k, ".")...); err != nil {
 			panic(err)
@@ -2174,10 +2174,10 @@ func setStatusFields(obj *unstructured.Unstructured, fields map[string]interface
 	for k, v := range fields {
 		fieldParts := strings.Split(k, ".")
 		if len(fieldParts) == 0 {
-			panic(fmt.Errorf("fieldParts invalid"))
+			panic(errors.New("fieldParts invalid"))
 		}
 		if fieldParts[0] != "status" {
-			panic(fmt.Errorf("can not set fields outside status"))
+			panic(errors.New("can not set fields outside status"))
 		}
 		if err := unstructured.SetNestedField(obj.UnstructuredContent(), v, strings.Split(k, ".")...); err != nil {
 			panic(err)

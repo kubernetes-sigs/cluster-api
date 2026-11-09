@@ -983,7 +983,7 @@ metadata:
 		g.Eventually(func(g Gomega) {
 			clusterResourceSetBindingKey := client.ObjectKey{Namespace: testCluster.Namespace, Name: testCluster.Name}
 			binding := &addonsv1.ClusterResourceSetBinding{}
-			g.Expect(env.Get(ctx, clusterResourceSetBindingKey, binding)).Should(Succeed())
+			g.Expect(env.Get(ctx, clusterResourceSetBindingKey, binding)).To(Succeed())
 			g.Expect(binding.Spec.Bindings).To(HaveLen(10))
 			for _, b := range binding.Spec.Bindings {
 				g.Expect(b.Resources).To(HaveLen(2))

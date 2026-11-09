@@ -390,7 +390,7 @@ func TestClusterReconciler(t *testing.T) {
 			return true
 		}, timeout).Should(BeTrue())
 
-		g.Expect(cluster.Finalizers).Should(BeEmpty())
+		g.Expect(cluster.Finalizers).To(BeEmpty())
 
 		// Check finalizers are re-applied
 		g.Eventually(func() []string {

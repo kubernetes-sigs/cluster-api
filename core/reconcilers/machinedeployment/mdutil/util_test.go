@@ -1174,7 +1174,6 @@ func TestComputeRevisionAnnotations(t *testing.T) {
 		ms           *clusterv1.MachineSet
 		want         map[string]string
 		wantRevision string
-		wantErr      bool
 	}{
 		{
 			name:   "Calculating annotations for a new newMS - oldMSs do not exist",
@@ -1184,7 +1183,6 @@ func TestComputeRevisionAnnotations(t *testing.T) {
 				clusterv1.RevisionAnnotation: "1",
 			},
 			wantRevision: "1",
-			wantErr:      false,
 		},
 		{
 			name:   "Calculating annotations for a new newMS - old MSs exist",
@@ -1194,7 +1192,6 @@ func TestComputeRevisionAnnotations(t *testing.T) {
 				clusterv1.RevisionAnnotation: "2",
 			},
 			wantRevision: "2",
-			wantErr:      false,
 		},
 		{
 			name:   "Calculating annotations for a existing newMS - oldMSs do not exist",
@@ -1204,7 +1201,6 @@ func TestComputeRevisionAnnotations(t *testing.T) {
 				clusterv1.RevisionAnnotation: "1",
 			},
 			wantRevision: "1",
-			wantErr:      false,
 		},
 		{
 			name: "Calculating annotations for a existing newMS - old MSs exist - update required",
@@ -1218,7 +1214,6 @@ func TestComputeRevisionAnnotations(t *testing.T) {
 				revisionHistoryAnnotation:    "1",
 			},
 			wantRevision: "3",
-			wantErr:      false,
 		},
 		{
 			name: "Calculating annotations for a existing newMS - old MSs exist - no update required",
@@ -1231,7 +1226,6 @@ func TestComputeRevisionAnnotations(t *testing.T) {
 				clusterv1.RevisionAnnotation: "4",
 			},
 			wantRevision: "4",
-			wantErr:      false,
 		},
 		{
 			name: "Calculating annotations for a existing newMS with revision history - old MSs exist - update required",
@@ -1245,7 +1239,6 @@ func TestComputeRevisionAnnotations(t *testing.T) {
 				revisionHistoryAnnotation:    "1,2",
 			},
 			wantRevision: "5",
-			wantErr:      false,
 		},
 	}
 
@@ -1253,13 +1246,9 @@ func TestComputeRevisionAnnotations(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 			got, gotRevision, err := ComputeRevisionAnnotations(ctx, tt.ms, tt.oldMSs)
-			if tt.wantErr {
-				g.Expect(err).ShouldNot(HaveOccurred())
-			} else {
-				g.Expect(err).ToNot(HaveOccurred())
-				g.Expect(got).Should(Equal(tt.want))
-				g.Expect(gotRevision).Should(Equal(tt.wantRevision))
-			}
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(got).To(Equal(tt.want))
+			g.Expect(gotRevision).To(Equal(tt.wantRevision))
 		})
 	}
 }

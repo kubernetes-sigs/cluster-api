@@ -62,12 +62,11 @@ func ComputeUpgradePlan(ctx context.Context, s *scope.Scope, getUpgradePlan GetU
 		return pkgerrors.Wrapf(err, "failed to parse Cluster version %s", desiredVersion)
 	}
 
-	controlPlaneVersion := ""
 	v, err := contract.ControlPlane().Version().Get(s.Current.ControlPlane.Object)
 	if err != nil {
 		return pkgerrors.Wrap(err, "failed to get the version from control plane spec")
 	}
-	controlPlaneVersion = *v
+	controlPlaneVersion := *v
 	controlPlaneSemVer, err := semver.ParseTolerant(*v)
 	if err != nil {
 		return pkgerrors.Wrapf(err, "failed to parse ControlPlane version %s", *v)

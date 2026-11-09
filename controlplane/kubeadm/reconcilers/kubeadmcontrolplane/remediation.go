@@ -442,7 +442,7 @@ func (r *Reconciler) addRemediationInProgressAnnotation(ctx context.Context, kcp
 	return nil
 }
 
-// Gets the machine to be remediated, which is the "most broken" among the unhealthy machines, determined as the machine
+// getMachineToBeRemediated gets the machine to be remediated, which is the "most broken" among the unhealthy machines, determined as the machine
 // having the highest priority issue that other machines have not.
 // The following issues are considered (from highest to lowest priority):
 // - machine with RemediateMachineAnnotation annotation

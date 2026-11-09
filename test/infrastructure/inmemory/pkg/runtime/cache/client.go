@@ -246,7 +246,7 @@ func (c *cache) store(resourceGroup string, obj client.Object, replaceExisting b
 	if trackedObj, ok := tracker.objects[objGVK][objKey]; ok {
 		if replaceExisting {
 			if trackedObj.GetResourceVersion() != obj.GetResourceVersion() {
-				return apierrors.NewConflict(unsafeGuessGroupVersionResource(objGVK).GroupResource(), objKey.String(), fmt.Errorf("object has been modified"))
+				return apierrors.NewConflict(unsafeGuessGroupVersionResource(objGVK).GroupResource(), objKey.String(), errors.New("object has been modified"))
 			}
 
 			c.beforeUpdate(resourceGroup, trackedObj, obj, &tracker.lastResourceVersion)

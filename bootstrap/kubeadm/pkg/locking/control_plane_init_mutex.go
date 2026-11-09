@@ -58,7 +58,7 @@ func (c *ControlPlaneInitMutex) Lock(ctx context.Context, cluster *clusterv1.Clu
 	}, sema.ConfigMap)
 	switch {
 	case apierrors.IsNotFound(err):
-		break
+		// The lock doesn't exist yet, it will be created below.
 	case err != nil:
 		log.Error(err, "Failed to acquire init lock")
 		return false

@@ -20,6 +20,7 @@ import (
 	"cmp"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math"
 	"sort"
@@ -1008,7 +1009,7 @@ func (r *Reconciler) listMSOwnedObjectsFromContractVersionedRef(ctx context.Cont
 	err = meta.EachListItem(objList, func(obj runtime.Object) error {
 		clientObj, ok := obj.(client.Object)
 		if !ok {
-			return fmt.Errorf("unexpected object in list")
+			return errors.New("unexpected object in list")
 		}
 
 		// Note: Only consider objects that are still owned by the current MachineSet.
@@ -2179,7 +2180,7 @@ func (r *Reconciler) computeDesiredInfraMachine(ctx context.Context, ms *cluster
 	return infraMachine, nil
 }
 
-// Returns the machines to be remediated in the following order
+// sortMachinesToRemediate sorts the machines to be remediated in the following order:
 //   - Machines with RemediateMachineAnnotation annotation if any,
 //   - Machines failing to come up first because
 //     there is a chance that they are not hosting any workloads (minimize disruption).

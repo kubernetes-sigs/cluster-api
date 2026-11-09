@@ -768,7 +768,7 @@ func TestClusterCacheConcurrency(t *testing.T) {
 	// Validate that no errors occurred.
 	// Note: This test is also run with the race detector to detect race conditions.
 	if len(errs) > 0 {
-		g.Expect(kerrors.NewAggregate(errs)).ToNot(HaveOccurred())
+		g.Expect(kerrors.NewAggregate(errs)).To(Succeed())
 	}
 
 	// The expectation is that the ClusterCache Reconciler never returns errors to avoid exponential backoff.

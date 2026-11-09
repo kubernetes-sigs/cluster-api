@@ -116,7 +116,7 @@ func (r *Reconciler) reconcileState(ctx context.Context, s *scope.Scope) error {
 	return r.reconcileMachinePools(ctx, s)
 }
 
-// Reconcile the Cluster shim, a temporary object used a mean to collect objects/templates
+// reconcileClusterShim reconciles the Cluster shim, a temporary object used a mean to collect objects/templates
 // that might be orphaned in case of errors during the remaining part of the reconcile process.
 func (r *Reconciler) reconcileClusterShim(ctx context.Context, s *scope.Scope) error {
 	shim := clustershim.New(s.Current.Cluster)

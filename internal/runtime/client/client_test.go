@@ -107,7 +107,7 @@ func TestClient_httpCall(t *testing.T) {
 
 				// get same gvh for hook by using the FakeHook and catalog
 				gvh, err := c.GroupVersionHook(fakev1alpha1.FakeHook)
-				g.Expect(err).To(Succeed())
+				g.Expect(err).ToNot(HaveOccurred())
 
 				return &httpCallOptions{
 					catalog:         c,
@@ -135,9 +135,9 @@ func TestClient_httpCall(t *testing.T) {
 
 				// get same gvh for hook by using the FakeHook and catalog
 				registrationGVH, err := c.GroupVersionHook(fakev1alpha1.FakeHook)
-				g.Expect(err).To(Succeed())
+				g.Expect(err).ToNot(HaveOccurred())
 				hookGVH, err := c.GroupVersionHook(fakev1alpha2.FakeHook)
-				g.Expect(err).To(Succeed())
+				g.Expect(err).ToNot(HaveOccurred())
 
 				return &httpCallOptions{
 					catalog:         c,
@@ -158,7 +158,7 @@ func TestClient_httpCall(t *testing.T) {
 
 				// get same gvh for hook by using the FakeHook and catalog
 				gvh, err := c.GroupVersionHook(fakev1alpha2.FakeHook)
-				g.Expect(err).To(Succeed())
+				g.Expect(err).ToNot(HaveOccurred())
 
 				return &httpCallOptions{
 					catalog:         c,
@@ -180,9 +180,9 @@ func TestClient_httpCall(t *testing.T) {
 
 				// get same gvh for hook by using the FakeHook and catalog
 				registrationGVH, err := c.GroupVersionHook(fakev1alpha1.FakeHook)
-				g.Expect(err).To(Succeed())
+				g.Expect(err).ToNot(HaveOccurred())
 				hookGVH, err := c.GroupVersionHook(fakev1alpha2.FakeHook)
-				g.Expect(err).To(Succeed())
+				g.Expect(err).ToNot(HaveOccurred())
 
 				return &httpCallOptions{
 					catalog:         c,
@@ -207,7 +207,7 @@ func TestClient_httpCall(t *testing.T) {
 
 				// get same gvh for hook by using the FakeHook and catalog
 				gvh, err := c.GroupVersionHook(fakev1alpha1.FakeHook)
-				g.Expect(err).To(Succeed())
+				g.Expect(err).ToNot(HaveOccurred())
 
 				return &httpCallOptions{
 					catalog:         c,

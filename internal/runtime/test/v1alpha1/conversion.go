@@ -17,9 +17,9 @@ limitations under the License.
 package v1alpha1
 
 import (
-	conversion "k8s.io/apimachinery/pkg/conversion"
+	"k8s.io/apimachinery/pkg/conversion"
 
-	v1alpha2 "sigs.k8s.io/cluster-api/internal/runtime/test/v1alpha2"
+	"sigs.k8s.io/cluster-api/internal/runtime/test/v1alpha2"
 )
 
 func Convert_v1alpha1_FakeResponse_To_v1alpha2_FakeResponse(in *FakeResponse, out *v1alpha2.FakeResponse, s conversion.Scope) error {

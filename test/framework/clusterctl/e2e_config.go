@@ -740,13 +740,13 @@ func (c *E2EConfig) AddonProviders() []string {
 }
 
 func (c *E2EConfig) getProviders(t clusterctlv1.ProviderType) []string {
-	InfraProviders := []string{}
+	infraProviders := []string{}
 	for _, provider := range c.Providers {
 		if provider.Type == string(t) {
-			InfraProviders = append(InfraProviders, provider.Name)
+			infraProviders = append(infraProviders, provider.Name)
 		}
 	}
-	return InfraProviders
+	return infraProviders
 }
 
 func (c *E2EConfig) HasDockerProvider() bool {

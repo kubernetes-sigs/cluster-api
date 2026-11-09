@@ -404,7 +404,7 @@ func KCPInfraAdoptionSpec(ctx context.Context, inputGetter func() KCPInfraAdopti
 			newCluster.Spec.Topology.ControlPlane.Metadata.Annotations = nil
 		}
 		err := newManagementClusterProxy.GetClient().Patch(ctx, newCluster, ctrlclient.MergeFrom(clusterBeforePatch))
-		Expect(err).To(Succeed(), "failed to patch Cluster")
+		Expect(err).ToNot(HaveOccurred(), "failed to patch Cluster")
 
 		log.Logf("Wait for KubeadmControlPlane -> Machine reconcile")
 		Eventually(func(_ Gomega) error {

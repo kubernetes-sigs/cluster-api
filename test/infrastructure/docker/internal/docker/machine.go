@@ -338,6 +338,7 @@ func (m *Machine) PreloadLoadImage(ctx context.Context, image string) error {
 	return nil
 }
 
+// waitUntilLogRegExp matches the log line that is printed once the Multi-User target is reached.
 // Note: See https://github.com/kubernetes-sigs/kind/pull/2421 for more context.
 var waitUntilLogRegExp = regexp.MustCompile("Reached target .*Multi-User System.*")
 

@@ -1,5 +1,4 @@
 //go:build tools
-// +build tools
 
 /*
 Copyright 2019 The Kubernetes Authors.
@@ -214,7 +213,7 @@ func formatMerge(line, prNumber string) string {
 	return fmt.Sprintf("%s (#%s)", line, prNumber)
 }
 
-// Parse the time from string to time.Time format.
+// parseTime parses the time from string to time.Time format.
 func parseTime(date string) (time.Time, error) {
 	datetime, err := time.Parse(timeLayout, date)
 	if err != nil {
@@ -265,7 +264,7 @@ func getMergedPullRequests(client *github.Client, owner string, repo string, bra
 	return allPullRequests, nil
 }
 
-// Checks if the branch exists.
+// isValidBranch checks if the branch exists.
 func isValidBranch(branchName string, owner string, repo string, client *github.Client) (bool, error) {
 	branches, _, err := client.Repositories.ListBranches(context.Background(), owner, repo, nil)
 	if err != nil {
@@ -280,7 +279,7 @@ func isValidBranch(branchName string, owner string, repo string, client *github.
 	return false, nil
 }
 
-// If the token is empty, we create a GitHub client without authentication
+// createGitHubClient creates a GitHub client. If the token is empty, we create a GitHub client without authentication.
 // Using a token enables more api requests until we run into rate limitation
 // This is not necessary, but a nice to have when extending this script and going beyond
 // normal usage.

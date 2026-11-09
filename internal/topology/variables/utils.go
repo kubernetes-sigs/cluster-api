@@ -49,7 +49,7 @@ func newValuesIndex(fldPath *field.Path, values []clusterv1.ClusterVariable) (ma
 	return valuesMap, nil
 }
 
-// newDefinitionIndex returns a map of ClusterClassStatusVariable per name.
+// newDefinitionsIndex returns a map of ClusterClassStatusVariable per name.
 // This function validates that:
 // - variables have definitions
 // - variables don't have conflicting definitions.

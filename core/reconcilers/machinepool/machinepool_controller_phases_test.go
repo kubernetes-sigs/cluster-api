@@ -2541,8 +2541,8 @@ func TestMachinePoolReconciler_getNodeRefMap(t *testing.T) {
 			g.Expect(result).To(HaveLen(len(tt.expected)), "Expected NodeRef count to be %v, got %v", len(result), len(tt.expected))
 			for providerID, node := range result {
 				g.Expect(node).ToNot(BeNil())
-				g.Expect(node.Spec).Should(Equal(tt.expected[providerID].Spec))
-				g.Expect(node.GetObjectMeta().GetName()).Should(Equal(tt.expected[providerID].GetObjectMeta().GetName()))
+				g.Expect(node.Spec).To(Equal(tt.expected[providerID].Spec))
+				g.Expect(node.GetObjectMeta().GetName()).To(Equal(tt.expected[providerID].GetObjectMeta().GetName()))
 			}
 		})
 	}

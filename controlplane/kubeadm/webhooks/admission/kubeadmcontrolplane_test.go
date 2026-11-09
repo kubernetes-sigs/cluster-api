@@ -1184,7 +1184,7 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 			if tt.expectErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {
-				g.Expect(err).To(Succeed())
+				g.Expect(err).ToNot(HaveOccurred())
 			}
 			g.Expect(warnings).To(BeEmpty())
 		})
@@ -1328,7 +1328,7 @@ func TestKubeadmControlPlaneValidateUpdateAfterDefaulting(t *testing.T) {
 			if tt.expectErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {
-				g.Expect(err).To(Succeed())
+				g.Expect(err).ToNot(HaveOccurred())
 				g.Expect(tt.kcp.Spec.Version).To(Equal("v1.19.0"))
 				g.Expect(tt.kcp.Spec.Rollout.Strategy.Type).To(Equal(controlplanev1.RollingUpdateStrategyType))
 				g.Expect(tt.kcp.Spec.Rollout.Strategy.RollingUpdate.MaxSurge.IntVal).To(Equal(int32(1)))

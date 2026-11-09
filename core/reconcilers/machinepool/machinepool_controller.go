@@ -304,7 +304,7 @@ func (r *Reconciler) reconcileDeleteNodes(ctx context.Context, cluster *clusterv
 	return r.deleteRetiredNodes(ctx, clusterClient, machinePool.Status.NodeRefs, machinePool.Spec.ProviderIDList)
 }
 
-// isMachinePoolDeleteTimeoutPassed check the machinePool node delete time out.
+// isMachinePoolNodeDeleteTimeoutPassed checks the machinePool node delete time out.
 func (r *Reconciler) isMachinePoolNodeDeleteTimeoutPassed(machinePool *clusterv1.MachinePool) bool {
 	if !machinePool.DeletionTimestamp.IsZero() && machinePool.Spec.Template.Spec.Deletion.NodeDeletionTimeoutSeconds != nil {
 		if *machinePool.Spec.Template.Spec.Deletion.NodeDeletionTimeoutSeconds != 0 {

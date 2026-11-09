@@ -380,7 +380,7 @@ func TestClusterClassWebhook_Delete(t *testing.T) {
 
 	// Attempt to delete ClusterClass "class1" which is in use.
 	// Expect no error here as the webhook should allow the deletion of an existing ClusterClass.
-	g.Expect(env.Delete(ctx, clusterClass1)).To(Not(Succeed()))
+	g.Expect(env.Delete(ctx, clusterClass1)).ToNot(Succeed())
 
 	// Attempt to delete ClusterClass "class2" which is not in use.
 	// Expect no error here as the webhook should allow the deletion of an existing ClusterClass.
@@ -522,7 +522,7 @@ func TestClusterClassWebhook_Delete_MultipleExistingClusters(t *testing.T) {
 
 	// Attempt to delete ClusterClass "class3" which is in use.
 	// Expect an error here as the webhook should not allow the deletion of an existing ClusterClass.
-	g.Expect(env.Delete(ctx, class)).To(Not(Succeed()))
+	g.Expect(env.Delete(ctx, class)).ToNot(Succeed())
 }
 
 // TestClusterClassWebhook_TemplateRefOrTemplate tests the CEL rule, present on every ClusterClass struct that

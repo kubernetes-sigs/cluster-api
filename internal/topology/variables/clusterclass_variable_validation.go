@@ -18,6 +18,7 @@ package variables
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math"
 	"regexp"
@@ -458,7 +459,7 @@ func validateSchema(ctx context.Context, schema *apiextensions.JSONSchemaProps, 
 			if err != nil {
 				allErrs.CELErrors = append(allErrs.CELErrors, field.InternalError(fldPath.Child("x-kubernetes-validations"), fmt.Errorf("internal error: failed to construct type information for x-kubernetes-validations rules: %s", err)))
 			} else if typeInfo == nil {
-				allErrs.CELErrors = append(allErrs.CELErrors, field.InternalError(fldPath.Child("x-kubernetes-validations"), fmt.Errorf("internal error: failed to retrieve type information for x-kubernetes-validations")))
+				allErrs.CELErrors = append(allErrs.CELErrors, field.InternalError(fldPath.Child("x-kubernetes-validations"), errors.New("internal error: failed to retrieve type information for x-kubernetes-validations")))
 			} else {
 				// Note: k/k CRD validation also uses celconfig.PerCallLimit when creating the validator.
 				// The current PerCallLimit gives roughly 0.1 second for each expression validation call.

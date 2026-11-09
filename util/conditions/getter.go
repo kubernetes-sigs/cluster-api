@@ -244,7 +244,7 @@ func validateAndFixConvertedCondition(c *metav1.Condition) error {
 	}
 	switch c.Status {
 	case metav1.ConditionFalse, metav1.ConditionTrue, metav1.ConditionUnknown:
-		break
+		// Valid status.
 	default:
 		return pkgerrors.Errorf("status for the %s condition must be one of %s, %s, %s", c.Type, metav1.ConditionTrue, metav1.ConditionFalse, metav1.ConditionUnknown)
 	}

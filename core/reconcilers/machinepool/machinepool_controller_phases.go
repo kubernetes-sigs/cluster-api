@@ -18,6 +18,7 @@ package machinepool
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"reflect"
 	"time"
@@ -485,7 +486,7 @@ func (r *Reconciler) reconcileMachines(ctx context.Context, s *scope, infraMachi
 	err = meta.EachListItem(objList, func(obj runtime.Object) error {
 		infraMachineObj, ok := obj.(contractapi.InfraMachine)
 		if !ok {
-			return fmt.Errorf("unexpected object in list")
+			return errors.New("unexpected object in list")
 		}
 		infraMachineList = append(infraMachineList, infraMachineObj)
 		return nil

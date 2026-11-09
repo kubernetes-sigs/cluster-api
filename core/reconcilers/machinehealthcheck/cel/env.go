@@ -37,7 +37,7 @@ import (
 var (
 	envOnce sync.Once
 	env     *celgo.Env
-	envErr  error
+	errEnv  error
 )
 
 const (
@@ -209,12 +209,12 @@ func getEnv() (*celgo.Env, error) {
 			},
 		)
 		if err != nil {
-			envErr = fmt.Errorf("failed to build CEL environment: %w", err)
+			errEnv = fmt.Errorf("failed to build CEL environment: %w", err)
 			return
 		}
-		env, envErr = envSet.Env(environment.StoredExpressions)
+		env, errEnv = envSet.Env(environment.StoredExpressions)
 	})
-	return env, envErr
+	return env, errEnv
 }
 
 // conditionLiteralsValidator is a CEL AST validator that checks, at compile time, the string

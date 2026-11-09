@@ -39,7 +39,7 @@ var (
 func TestNewEtcdClientGenerator(t *testing.T) {
 	g := NewWithT(t)
 	subject = NewEtcdClientGenerator(&rest.Config{}, &tls.Config{MinVersion: tls.VersionTLS12}, 0, 0, etcdClientLogger)
-	g.Expect(subject.createClient).To(Not(BeNil()))
+	g.Expect(subject.createClient).ToNot(BeNil())
 }
 
 func TestFirstAvailableNode(t *testing.T) {
@@ -97,9 +97,9 @@ func TestFirstAvailableNode(t *testing.T) {
 
 			if tt.expectedErr != "" {
 				g.Expect(err).To(HaveOccurred())
-				g.Expect(err.Error()).Should(BeComparableTo(tt.expectedErr))
+				g.Expect(err.Error()).To(BeComparableTo(tt.expectedErr))
 			} else {
-				g.Expect(*client).Should(BeComparableTo(tt.expectedClient))
+				g.Expect(*client).To(BeComparableTo(tt.expectedClient))
 			}
 		})
 	}

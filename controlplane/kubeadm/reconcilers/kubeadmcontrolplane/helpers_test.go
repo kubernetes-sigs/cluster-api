@@ -202,7 +202,7 @@ func TestReconcileKubeconfigSecretDoesNotAdoptsUserSecrets(t *testing.T) {
 	}
 
 	result, err := r.reconcileKubeconfig(ctx, controlPlane)
-	g.Expect(err).To(Succeed())
+	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(result).To(BeZero())
 
 	kubeconfigSecret := &corev1.Secret{}
@@ -374,7 +374,7 @@ func TestCloneConfigsAndGenerateMachineAndSyncMachines(t *testing.T) {
 	}
 
 	_, err := r.cloneConfigsAndGenerateMachine(ctx, cluster, kcp, true, "")
-	g.Expect(err).To(Succeed())
+	g.Expect(err).ToNot(HaveOccurred())
 
 	machineList := &clusterv1.MachineList{}
 	g.Expect(env.GetAPIReader().List(ctx, machineList, client.InNamespace(cluster.Namespace))).To(Succeed())
@@ -672,7 +672,7 @@ func TestCloneConfigsAndGenerateMachineFailInfraMachineCreation(t *testing.T) {
 	kcp.Spec.MachineTemplate.Spec.InfrastructureRef.Name = "something_invalid"
 	_, err := r.cloneConfigsAndGenerateMachine(ctx, cluster, kcp, true, "")
 	g.Expect(err).To(HaveOccurred())
-	g.Expect(&kcp.GetV1Beta1Conditions()[0]).Should(v1beta1conditions.HaveSameStateOf(&clusterv1.Condition{
+	g.Expect(&kcp.GetV1Beta1Conditions()[0]).To(v1beta1conditions.HaveSameStateOf(&clusterv1.Condition{
 		Type:     controlplanev1.MachinesCreatedV1Beta1Condition,
 		Status:   corev1.ConditionFalse,
 		Severity: clusterv1.ConditionSeverityError,
@@ -759,7 +759,7 @@ func TestCloneConfigsAndGenerateMachineFailKubeadmConfigCreation(t *testing.T) {
 	kcp.Spec.Version = "something_invalid"
 	_, err := r.cloneConfigsAndGenerateMachine(ctx, cluster, kcp, true, "")
 	g.Expect(err).To(HaveOccurred())
-	g.Expect(&kcp.GetV1Beta1Conditions()[0]).Should(v1beta1conditions.HaveSameStateOf(&clusterv1.Condition{
+	g.Expect(&kcp.GetV1Beta1Conditions()[0]).To(v1beta1conditions.HaveSameStateOf(&clusterv1.Condition{
 		Type:     controlplanev1.MachinesCreatedV1Beta1Condition,
 		Status:   corev1.ConditionFalse,
 		Severity: clusterv1.ConditionSeverityError,
@@ -857,7 +857,7 @@ func TestCloneConfigsAndGenerateMachineFailMachineCreation(t *testing.T) {
 
 	_, err := r.cloneConfigsAndGenerateMachine(ctx, cluster, kcp, true, "")
 	g.Expect(err).To(HaveOccurred())
-	g.Expect(&kcp.GetV1Beta1Conditions()[0]).Should(v1beta1conditions.HaveSameStateOf(&clusterv1.Condition{
+	g.Expect(&kcp.GetV1Beta1Conditions()[0]).To(v1beta1conditions.HaveSameStateOf(&clusterv1.Condition{
 		Type:     controlplanev1.MachinesCreatedV1Beta1Condition,
 		Status:   corev1.ConditionFalse,
 		Severity: clusterv1.ConditionSeverityError,

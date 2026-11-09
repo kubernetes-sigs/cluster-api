@@ -165,15 +165,15 @@ func TestClusterClassReconciler_reconcile(t *testing.T) {
 		actualClusterClass := &clusterv1.ClusterClass{}
 		g.Expect(env.Get(ctx, client.ObjectKey{Name: clusterClassName, Namespace: ns.Name}, actualClusterClass)).To(Succeed())
 
-		g.Expect(assertInfrastructureClusterTemplate(ctx, actualClusterClass, ns)).Should(Succeed())
+		g.Expect(assertInfrastructureClusterTemplate(ctx, actualClusterClass, ns)).To(Succeed())
 
-		g.Expect(assertControlPlaneTemplate(ctx, actualClusterClass, ns)).Should(Succeed())
+		g.Expect(assertControlPlaneTemplate(ctx, actualClusterClass, ns)).To(Succeed())
 
-		g.Expect(assertMachineDeploymentClasses(ctx, actualClusterClass, ns)).Should(Succeed())
+		g.Expect(assertMachineDeploymentClasses(ctx, actualClusterClass, ns)).To(Succeed())
 
-		g.Expect(assertMachinePoolClasses(ctx, actualClusterClass, ns)).Should(Succeed())
+		g.Expect(assertMachinePoolClasses(ctx, actualClusterClass, ns)).To(Succeed())
 
-		g.Expect(assertStatusVariables(actualClusterClass)).Should(Succeed())
+		g.Expect(assertStatusVariables(actualClusterClass)).To(Succeed())
 		return nil
 	}, timeout).Should(Succeed())
 }

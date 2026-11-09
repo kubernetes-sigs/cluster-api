@@ -18,6 +18,7 @@ package machine
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"testing"
 	"time"
@@ -141,13 +142,13 @@ func TestWatches(t *testing.T) {
 
 	// Patch infra machine ready
 	patchHelper, err := patch.NewHelper(infraMachine, env)
-	g.Expect(err).ShouldNot(HaveOccurred())
+	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(unstructured.SetNestedField(infraMachine.Object, true, "status", "initialization", "provisioned")).To(Succeed())
 	g.Expect(patchHelper.Patch(ctx, infraMachine, patch.WithStatusObservedGeneration{})).To(Succeed())
 
 	// Patch bootstrap ready
 	patchHelper, err = patch.NewHelper(defaultBootstrap, env)
-	g.Expect(err).ShouldNot(HaveOccurred())
+	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(unstructured.SetNestedField(defaultBootstrap.Object, true, "status", "initialization", "dataSecretCreated")).To(Succeed())
 	g.Expect(unstructured.SetNestedField(defaultBootstrap.Object, "secretData", "status", "dataSecretName")).To(Succeed())
 	g.Expect(patchHelper.Patch(ctx, defaultBootstrap, patch.WithStatusObservedGeneration{})).To(Succeed())
@@ -285,13 +286,13 @@ func TestWatchesDelete(t *testing.T) {
 
 	// Patch infra machine ready
 	patchHelper, err := patch.NewHelper(infraMachine, env)
-	g.Expect(err).ShouldNot(HaveOccurred())
+	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(unstructured.SetNestedField(infraMachine.Object, true, "status", "initialization", "provisioned")).To(Succeed())
 	g.Expect(patchHelper.Patch(ctx, infraMachine, patch.WithStatusObservedGeneration{})).To(Succeed())
 
 	// Patch bootstrap ready
 	patchHelper, err = patch.NewHelper(defaultBootstrap, env)
-	g.Expect(err).ShouldNot(HaveOccurred())
+	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(unstructured.SetNestedField(defaultBootstrap.Object, true, "status", "initialization", "dataSecretCreated")).To(Succeed())
 	g.Expect(unstructured.SetNestedField(defaultBootstrap.Object, "secretData", "status", "dataSecretName")).To(Succeed())
 	g.Expect(patchHelper.Patch(ctx, defaultBootstrap, patch.WithStatusObservedGeneration{})).To(Succeed())
@@ -496,7 +497,7 @@ func TestMachine_Reconcile(t *testing.T) {
 
 	// Set bootstrap ready.
 	bootstrapPatch := client.MergeFrom(defaultBootstrap.DeepCopy())
-	g.Expect(unstructured.SetNestedField(defaultBootstrap.Object, true, "status", "initialization", "dataSecretCreated")).ToNot(HaveOccurred())
+	g.Expect(unstructured.SetNestedField(defaultBootstrap.Object, true, "status", "initialization", "dataSecretCreated")).To(Succeed())
 	g.Expect(env.Status().Patch(ctx, defaultBootstrap, bootstrapPatch)).To(Succeed())
 
 	// Set infrastructure ready.
@@ -516,7 +517,7 @@ func TestMachine_Reconcile(t *testing.T) {
 		return readyCondition.Status == metav1.ConditionTrue
 	}, timeout).Should(BeTrue())
 
-	g.Expect(env.Delete(ctx, machine)).ToNot(HaveOccurred())
+	g.Expect(env.Delete(ctx, machine)).To(Succeed())
 	// Wait for Machine to be deleted.
 	g.Eventually(func() bool {
 		if err := env.Get(ctx, key, machine); err != nil {
@@ -1342,7 +1343,7 @@ func TestMachineV1Beta1Conditions(t *testing.T) {
 			}
 
 			m = &clusterv1.Machine{}
-			g.Expect(r.Client.Get(ctx, client.ObjectKeyFromObject(&machine), m)).ToNot(HaveOccurred())
+			g.Expect(r.Client.Get(ctx, client.ObjectKeyFromObject(&machine), m)).To(Succeed())
 
 			assertConditions(t, m, tt.conditionsToAssert...)
 			assertV1Beta1Conditions(t, m, tt.v1beta1ConditionsToAssert...)
@@ -3241,19 +3242,19 @@ func TestNodeToMachine(t *testing.T) {
 
 	// Patch infra expectedMachine ready
 	patchHelper, err := patch.NewHelper(infraMachine, env)
-	g.Expect(err).ShouldNot(HaveOccurred())
+	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(unstructured.SetNestedField(infraMachine.Object, true, "status", "initialization", "provisioned")).To(Succeed())
 	g.Expect(patchHelper.Patch(ctx, infraMachine, patch.WithStatusObservedGeneration{})).To(Succeed())
 
 	// Patch infra randomMachine ready
 	patchHelper, err = patch.NewHelper(infraMachine2, env)
-	g.Expect(err).ShouldNot(HaveOccurred())
+	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(unstructured.SetNestedField(infraMachine2.Object, true, "status", "initialization", "provisioned")).To(Succeed())
 	g.Expect(patchHelper.Patch(ctx, infraMachine2, patch.WithStatusObservedGeneration{})).To(Succeed())
 
 	// Patch bootstrap ready
 	patchHelper, err = patch.NewHelper(defaultBootstrap, env)
-	g.Expect(err).ShouldNot(HaveOccurred())
+	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(unstructured.SetNestedField(defaultBootstrap.Object, true, "status", "initialization", "dataSecretCreated")).To(Succeed())
 	g.Expect(unstructured.SetNestedField(defaultBootstrap.Object, "secretData", "status", "dataSecretName")).To(Succeed())
 	g.Expect(patchHelper.Patch(ctx, defaultBootstrap, patch.WithStatusObservedGeneration{})).To(Succeed())
@@ -3408,7 +3409,7 @@ type fakeClientWithNodeDeletionErr struct {
 func (fc fakeClientWithNodeDeletionErr) Delete(ctx context.Context, obj client.Object, opts ...client.DeleteOption) error {
 	gvk, err := apiutil.GVKForObject(obj, fakeScheme)
 	if err == nil && gvk.Kind == "Node" {
-		return fmt.Errorf("fake error")
+		return errors.New("fake error")
 	}
 	return fc.Client.Delete(ctx, obj, opts...)
 }

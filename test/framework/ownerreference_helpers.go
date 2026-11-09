@@ -445,7 +445,7 @@ func changeOwnerReferencesAPIVersion(ctx context.Context, proxy ClusterProxy, na
 		newOwners := make([]metav1.OwnerReference, 0, len(obj.GetOwnerReferences()))
 		for _, owner := range obj.GetOwnerReferences() {
 			gv, err := schema.ParseGroupVersion(owner.APIVersion)
-			Expect(err).To(Succeed())
+			Expect(err).ToNot(HaveOccurred())
 			gv.Version = "v1alpha1"
 			owner.APIVersion = gv.String()
 			newOwners = append(newOwners, owner)

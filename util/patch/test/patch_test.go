@@ -1184,7 +1184,7 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 
 			t.Log("Creating the object")
 			err := env.Create(ctx, obj)
-			g.Expect(err).To(Succeed())
+			g.Expect(err).ToNot(HaveOccurred())
 			defer func() {
 				g.Expect(env.Delete(ctx, obj)).To(Succeed())
 			}()
@@ -1226,7 +1226,7 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 
 			t.Log("Creating the object")
 			err := env.Create(ctx, obj)
-			g.Expect(err).To(Succeed())
+			g.Expect(err).ToNot(HaveOccurred())
 			defer func() {
 				g.Expect(env.Delete(ctx, obj)).To(Succeed())
 			}()
@@ -1589,7 +1589,7 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 
 			t.Log("Creating the object")
 			err := env.Create(ctx, obj)
-			g.Expect(err).To(Succeed())
+			g.Expect(err).ToNot(HaveOccurred())
 			defer func() {
 				g.Expect(env.Delete(ctx, obj)).To(Succeed())
 			}()
@@ -1662,7 +1662,7 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 
 			t.Log("Creating the object")
 			err := env.Create(ctx, obj)
-			g.Expect(err).To(Succeed())
+			g.Expect(err).ToNot(HaveOccurred())
 			defer func() {
 				g.Expect(env.Delete(ctx, obj)).To(Succeed())
 			}()
@@ -2162,7 +2162,7 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 
 			t.Log("Creating the object")
 			err := env.Create(ctx, obj)
-			g.Expect(err).To(Succeed())
+			g.Expect(err).ToNot(HaveOccurred())
 			defer func() {
 				g.Expect(env.Delete(ctx, obj)).To(Succeed())
 			}()
@@ -2238,7 +2238,7 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 
 			t.Log("Creating the object")
 			err := env.Create(ctx, obj)
-			g.Expect(err).To(Succeed())
+			g.Expect(err).ToNot(HaveOccurred())
 			defer func() {
 				g.Expect(env.Delete(ctx, obj)).To(Succeed())
 			}()
@@ -2744,7 +2744,7 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 
 			t.Log("Creating the object")
 			err := env.Create(ctx, obj)
-			g.Expect(err).To(Succeed())
+			g.Expect(err).ToNot(HaveOccurred())
 			defer func() {
 				g.Expect(env.Delete(ctx, obj)).To(Succeed())
 			}()
@@ -2809,7 +2809,7 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 
 			t.Log("Creating the object")
 			err := env.Create(ctx, obj)
-			g.Expect(err).To(Succeed())
+			g.Expect(err).ToNot(HaveOccurred())
 			defer func() {
 				g.Expect(env.Delete(ctx, obj)).To(Succeed())
 			}()

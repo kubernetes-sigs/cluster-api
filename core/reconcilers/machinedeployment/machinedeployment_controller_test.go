@@ -404,35 +404,35 @@ func TestMachineDeploymentReconciler(t *testing.T) {
 		}
 		g.Expect(updateMachineDeployment(ctx, env, deployment, modifyFunc)).To(Succeed())
 		g.Eventually(func(g Gomega) {
-			g.Expect(env.List(ctx, machineSets, msListOpts...)).Should(Succeed())
+			g.Expect(env.List(ctx, machineSets, msListOpts...)).To(Succeed())
 			// Verify we still only have 2 MachineSets.
 			g.Expect(machineSets.Items).To(HaveLen(2))
 			// Verify the NodeDrainTimeoutSeconds value is updated
-			g.Expect(machineSets.Items[0].Spec.Template.Spec.Deletion.NodeDrainTimeoutSeconds).Should(And(
+			g.Expect(machineSets.Items[0].Spec.Template.Spec.Deletion.NodeDrainTimeoutSeconds).To(And(
 				Not(BeNil()),
 				HaveValue(Equal(duration10s)),
 			), "NodeDrainTimout value does not match expected")
 			// Verify the NodeDeletionTimeoutSeconds value is updated
-			g.Expect(machineSets.Items[0].Spec.Template.Spec.Deletion.NodeDeletionTimeoutSeconds).Should(And(
+			g.Expect(machineSets.Items[0].Spec.Template.Spec.Deletion.NodeDeletionTimeoutSeconds).To(And(
 				Not(BeNil()),
 				HaveValue(Equal(duration10s)),
 			), "NodeDeletionTimeoutSeconds value does not match expected")
 			// Verify the NodeVolumeDetachTimeoutSeconds value is updated
-			g.Expect(machineSets.Items[0].Spec.Template.Spec.Deletion.NodeVolumeDetachTimeoutSeconds).Should(And(
+			g.Expect(machineSets.Items[0].Spec.Template.Spec.Deletion.NodeVolumeDetachTimeoutSeconds).To(And(
 				Not(BeNil()),
 				HaveValue(Equal(duration10s)),
 			), "NodeVolumeDetachTimeoutSeconds value does not match expected")
 
 			// Verify that the old machine set have the new values.
-			g.Expect(machineSets.Items[1].Spec.Template.Spec.Deletion.NodeDrainTimeoutSeconds).Should(And(
+			g.Expect(machineSets.Items[1].Spec.Template.Spec.Deletion.NodeDrainTimeoutSeconds).To(And(
 				Not(BeNil()),
 				HaveValue(Equal(duration10s)),
 			), "NodeDrainTimout value does not match expected")
-			g.Expect(machineSets.Items[1].Spec.Template.Spec.Deletion.NodeDeletionTimeoutSeconds).Should(And(
+			g.Expect(machineSets.Items[1].Spec.Template.Spec.Deletion.NodeDeletionTimeoutSeconds).To(And(
 				Not(BeNil()),
 				HaveValue(Equal(duration10s)),
 			), "NodeDeletionTimeoutSeconds value does not match expected")
-			g.Expect(machineSets.Items[1].Spec.Template.Spec.Deletion.NodeVolumeDetachTimeoutSeconds).Should(And(
+			g.Expect(machineSets.Items[1].Spec.Template.Spec.Deletion.NodeVolumeDetachTimeoutSeconds).To(And(
 				Not(BeNil()),
 				HaveValue(Equal(duration10s)),
 			), "NodeVolumeDetachTimeoutSeconds value does not match expected")
@@ -446,14 +446,14 @@ func TestMachineDeploymentReconciler(t *testing.T) {
 		}
 		g.Expect(updateMachineDeployment(ctx, env, deployment, modifyFunc)).To(Succeed())
 		g.Eventually(func(g Gomega) {
-			g.Expect(env.List(ctx, machineSets, msListOpts...)).Should(Succeed())
+			g.Expect(env.List(ctx, machineSets, msListOpts...)).To(Succeed())
 			// Verify we still only have 2 MachineSets.
 			g.Expect(machineSets.Items).To(HaveLen(2))
 			// Verify the deletion.order value is updated
-			g.Expect(machineSets.Items[0].Spec.Deletion.Order).Should(Equal(clusterv1.NewestMachineSetDeletionOrder))
+			g.Expect(machineSets.Items[0].Spec.Deletion.Order).To(Equal(clusterv1.NewestMachineSetDeletionOrder))
 
 			// Verify that the old machine set have the new values.
-			g.Expect(machineSets.Items[1].Spec.Deletion.Order).Should(Equal(clusterv1.NewestMachineSetDeletionOrder))
+			g.Expect(machineSets.Items[1].Spec.Deletion.Order).To(Equal(clusterv1.NewestMachineSetDeletionOrder))
 		}).Should(Succeed())
 
 		// Update the taints of the MachineDeployment,
@@ -470,14 +470,14 @@ func TestMachineDeploymentReconciler(t *testing.T) {
 		}
 		g.Expect(updateMachineDeployment(ctx, env, deployment, modifyFunc)).To(Succeed())
 		g.Eventually(func(g Gomega) {
-			g.Expect(env.List(ctx, machineSets, msListOpts...)).Should(Succeed())
+			g.Expect(env.List(ctx, machineSets, msListOpts...)).To(Succeed())
 			// Verify we still only have 2 MachineSets.
 			g.Expect(machineSets.Items).To(HaveLen(2))
 			// Verify the taints value is updated
-			g.Expect(machineSets.Items[0].Spec.Template.Spec.Taints).Should(ContainElement(additionalTaint))
+			g.Expect(machineSets.Items[0].Spec.Template.Spec.Taints).To(ContainElement(additionalTaint))
 
 			// Verify that the old machine set has the new taints.
-			g.Expect(machineSets.Items[1].Spec.Template.Spec.Taints).Should(ContainElement(additionalTaint))
+			g.Expect(machineSets.Items[1].Spec.Template.Spec.Taints).To(ContainElement(additionalTaint))
 		}).Should(Succeed())
 
 		// Verify that all the MachineSets have the expected OwnerRef.
@@ -537,7 +537,7 @@ func TestMachineDeploymentReconciler(t *testing.T) {
 
 		t.Log("Verifying new MachineSet has desired number of replicas")
 		g.Eventually(func() bool {
-			g.Expect(env.List(ctx, machineSets, msListOpts...)).Should(Succeed())
+			g.Expect(env.List(ctx, machineSets, msListOpts...)).To(Succeed())
 			newms := machineSets.Items[0]
 			// Set the all non-deleted machines as ready with a NodeRef, so the MachineSet controller can proceed
 			// to properly set AvailableReplicas.
@@ -970,7 +970,7 @@ func TestReconciler_reconcileDelete(t *testing.T) {
 			g.Expect(tt.machineDeployment).To(BeComparableTo(tt.want))
 
 			machineSetList := &clusterv1.MachineSetList{}
-			g.Expect(c.List(ctx, machineSetList, client.InNamespace("default"))).ToNot(HaveOccurred())
+			g.Expect(c.List(ctx, machineSetList, client.InNamespace("default"))).To(Succeed())
 
 			// Remove ResourceVersion so we can actually compare.
 			for i := range machineSetList.Items {

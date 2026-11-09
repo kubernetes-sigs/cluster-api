@@ -328,15 +328,15 @@ func Test_providerComponents_DeleteCoreProviderWebhookNamespace(t *testing.T) {
 
 		// assert length before deleting
 		_ = proxyClient.List(context.Background(), &nsList)
-		g.Expect(nsList.Items).Should(HaveLen(1))
+		g.Expect(nsList.Items).To(HaveLen(1))
 
 		c := newComponentsClient(proxy)
 		err := c.DeleteWebhookNamespace(context.Background())
-		g.Expect(err).To(Not(HaveOccurred()))
+		g.Expect(err).ToNot(HaveOccurred())
 
 		// assert length after deleting
 		_ = proxyClient.List(context.Background(), &nsList)
-		g.Expect(nsList.Items).Should(BeEmpty())
+		g.Expect(nsList.Items).To(BeEmpty())
 	})
 }
 
@@ -446,7 +446,7 @@ func Test_providerComponents_Create(t *testing.T) {
 			for _, obj := range tt.args.objectsToCreate {
 				uns := &unstructured.Unstructured{}
 				if err := scheme.Scheme.Convert(obj, uns, nil); err != nil {
-					g.Expect(fmt.Errorf("%v %v could not be converted to unstructured", err.Error(), obj)).ToNot(HaveOccurred())
+					g.Expect(fmt.Errorf("%v %v could not be converted to unstructured", err.Error(), obj)).To(Succeed())
 				}
 				unstructuredObjectsToCreate = append(unstructuredObjectsToCreate, *uns)
 			}
@@ -481,14 +481,14 @@ func Test_providerComponents_Create(t *testing.T) {
 				if item.GetObjectKind().GroupVersionKind().Kind == "Pod" {
 					p1, okp1 := item.(*corev1.Pod)
 					if !(okp1) {
-						g.Expect(fmt.Errorf("%v %v could retrieve pod", err.Error(), obj)).ToNot(HaveOccurred())
+						g.Expect(fmt.Errorf("%v %v could retrieve pod", err.Error(), obj)).To(Succeed())
 					}
 					p2 := &corev1.Pod{}
 					if err := scheme.Scheme.Convert(obj, p2, nil); err != nil {
-						g.Expect(fmt.Errorf("%v %v could not be converted to unstructured", err.Error(), obj)).ToNot(HaveOccurred())
+						g.Expect(fmt.Errorf("%v %v could not be converted to unstructured", err.Error(), obj)).To(Succeed())
 					}
 					if len(p1.Spec.Containers) == 0 || len(p2.Spec.Containers) == 0 {
-						g.Expect(fmt.Errorf("%v %v could not be converted to unstructured", err.Error(), obj)).ToNot(HaveOccurred())
+						g.Expect(fmt.Errorf("%v %v could not be converted to unstructured", err.Error(), obj)).To(Succeed())
 					}
 					g.Expect(p1.Spec.Containers[0].Image).To(Equal(p2.Spec.Containers[0].Image), cmp.Diff(obj.GetNamespace(), item.GetNamespace()))
 				}

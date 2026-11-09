@@ -18,7 +18,7 @@ limitations under the License.
 package hash
 
 import (
-	"fmt"
+	"errors"
 	"hash/fnv"
 
 	"github.com/davecgh/go-spew/spew"
@@ -38,7 +38,7 @@ func Compute(obj interface{}) (uint32, error) {
 	}
 
 	if _, err := printer.Fprintf(hasher, "%#v", obj); err != nil {
-		return 0, fmt.Errorf("failed to calculate hash")
+		return 0, errors.New("failed to calculate hash")
 	}
 
 	return hasher.Sum32(), nil

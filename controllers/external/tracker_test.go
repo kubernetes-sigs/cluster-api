@@ -70,11 +70,11 @@ func TestRetryWatch(t *testing.T) {
 
 	err := tracker.Watch(logger, &clusterv1.Cluster{}, nil)
 	g.Expect(err).To(HaveOccurred())
-	g.Expect(ctrl.count).Should(Equal(1))
+	g.Expect(ctrl.count).To(Equal(1))
 	// Calling Watch on same Object kind that failed earlier should be retryable.
 	err = tracker.Watch(logger, &clusterv1.Cluster{}, nil)
 	g.Expect(err).To(HaveOccurred())
-	g.Expect(ctrl.count).Should(Equal(2))
+	g.Expect(ctrl.count).To(Equal(2))
 }
 
 func TestWatchMultipleTimes(t *testing.T) {
@@ -85,9 +85,9 @@ func TestWatchMultipleTimes(t *testing.T) {
 	obj := &clusterv1.Cluster{}
 	err := tracker.Watch(logger, obj, nil)
 	g.Expect(err).ToNot(HaveOccurred())
-	g.Expect(ctrl.count).Should(Equal(1))
+	g.Expect(ctrl.count).To(Equal(1))
 	// Calling Watch on same Object kind should not register watch again.
 	err = tracker.Watch(logger, obj, nil)
 	g.Expect(err).ToNot(HaveOccurred())
-	g.Expect(ctrl.count).Should(Equal(1))
+	g.Expect(ctrl.count).To(Equal(1))
 }

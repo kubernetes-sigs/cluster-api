@@ -5,6 +5,9 @@
         "pattern": "https://azure.microsoft.com/en-us/products/kubernetes-service"
     },{
         "pattern": "https://kubernetes.slack.com"
+    },{
+        "comment": "linuxfoundation.org/trademark-usage intermittently returns 404 to CI runners (bot-blocking); the page is live from normal clients. main hits the same flake. See #14366.",
+        "pattern": "^https://www.linuxfoundation.org/trademark-usage"
     }],
     "httpHeaders": [{
         "comment": "Workaround as suggested here: https://github.com/tcort/markdown-link-check/issues/201",

@@ -20,6 +20,6 @@
     "retryOn429": true,
     "retryCount": 5,
     "fallbackRetryDelay": "30s",
-    "comment_aliveStatusCodes": "500/502/503/504 added because github.com pull/ and compare links intermittently fail with these 5xx codes from CI runners, not because the link is actually dead; see #14366.",
-    "aliveStatusCodes": [200, 206, 500, 502, 503, 504]
+    "comment_aliveStatusCodes": "429/500/502/503/504 added because github.com links intermittently return these from CI runners (rate-limiting on 429, transient 5xx otherwise), not because the link is actually dead; see #14366. retryOn429 handles most 429s but can be exhausted during a large scan.",
+    "aliveStatusCodes": [200, 206, 429, 500, 502, 503, 504]
 }

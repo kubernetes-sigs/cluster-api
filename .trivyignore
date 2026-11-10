@@ -21,3 +21,10 @@ CVE-2026-97032
 # Also see .govuln_exclude.
 CVE-2026-78659
 CVE-2026-78660
+
+# These golang.org/x/net vulnerabilities (GO-2026-6860 and GO-2026-6866 in
+# govulncheck) are fixed in 0.62.0, but that requires go 1.26.0. They affect
+# the HTML parser in golang.org/x/net/html, which CAPI does not use.
+# Also see .govuln_exclude.
+CVE-2026-78661
+CVE-2026-97045

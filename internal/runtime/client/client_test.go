@@ -602,6 +602,11 @@ func TestClient_CallExtension(t *testing.T) {
 			},
 		},
 	}
+	// Note: The catalog used in this test doesn't know this version of the hook, so httpCall fails
+	// (when creating the request for the registered version) before the extension is called.
+	validExtensionHandlerWithIgnorePolicyAndUnknownHookVersion := validExtensionHandlerWithIgnorePolicy.DeepCopy()
+	validExtensionHandlerWithIgnorePolicyAndUnknownHookVersion.Status.Handlers[0].RequestHook.APIVersion = "test.runtime.cluster.x-k8s.io/v1alpha99"
+
 	type args struct {
 		hook     runtimecatalog.Hook
 		name     string
@@ -751,6 +756,23 @@ func TestClient_CallExtension(t *testing.T) {
 			},
 			wantErr:            false,
 			wantResponseCached: false, // Note: We only want to cache entirely successful responses.
+		},
+		{
+			// Note: FailurePolicyIgnore must only be applied to errors caused by calling the ExtensionHandler,
+			// not to errors that occur before the call is made.
+			name:                       "should fail when httpCall fails before calling the ExtensionHandler and FailurePolicyIgnore",
+			registeredExtensionConfigs: []runtimev1.ExtensionConfig{*validExtensionHandlerWithIgnorePolicyAndUnknownHookVersion},
+			testServer: testServerConfig{
+				start: false,
+			},
+			args: args{
+				hook:     fakev1alpha1.FakeHook,
+				name:     "valid-extension",
+				request:  &fakev1alpha1.FakeRequest{},
+				response: &fakev1alpha1.FakeResponse{},
+			},
+			wantErr:            true,
+			wantResponseCached: false,
 		},
 		{
 			name:                       "should fail with unreachable extension and FailurePolicyFail",

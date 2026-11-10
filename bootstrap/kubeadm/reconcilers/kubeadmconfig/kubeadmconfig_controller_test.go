@@ -2165,11 +2165,19 @@ func TestKubeadmConfigReconciler_ResolveFiles(t *testing.T) {
 			"key": []byte("foo"),
 		},
 	}
+	clusterWithMissingControlPlane := builder.Cluster(metav1.NamespaceDefault, "c").Build()
+	clusterWithMissingControlPlane.Spec.ControlPlaneRef = clusterv1.ContractVersionedObjectReference{
+		APIGroup: builder.ControlPlaneGroupVersion.Group,
+		Kind:     builder.TestControlPlaneKind,
+		Name:     "missing",
+	}
 
 	cases := map[string]struct {
 		cfg     *bootstrapv1.KubeadmConfig
+		cluster *clusterv1.Cluster
 		objects []client.Object
 		expect  []bootstrapv1.File
+		err     string
 	}{
 		"content should pass through": {
 			cfg: &bootstrapv1.KubeadmConfig{
@@ -2261,16 +2269,57 @@ func TestKubeadmConfigReconciler_ResolveFiles(t *testing.T) {
 			},
 			objects: []client.Object{testSecret},
 		},
+		"plain files should not read the control plane": {
+			cfg: &bootstrapv1.KubeadmConfig{
+				Spec: bootstrapv1.KubeadmConfigSpec{
+					Files: []bootstrapv1.File{
+						{
+							Content: "foo",
+							Path:    "/path",
+						},
+					},
+				},
+			},
+			cluster: clusterWithMissingControlPlane,
+			expect: []bootstrapv1.File{
+				{
+					Content: "foo",
+					Path:    "/path",
+				},
+			},
+			objects: []client.Object{builder.TestControlPlaneCRD.DeepCopy()},
+		},
+		"template files should fail when the control plane cannot be read": {
+			cfg: &bootstrapv1.KubeadmConfig{
+				Spec: bootstrapv1.KubeadmConfigSpec{
+					Files: []bootstrapv1.File{
+						{
+							Content:       "{{ .controlPlane.version }}",
+							ContentFormat: bootstrapv1.FileContentFormatTemplate,
+							Path:          "/path",
+						},
+					},
+				},
+			},
+			cluster: clusterWithMissingControlPlane,
+			objects: []client.Object{builder.TestControlPlaneCRD.DeepCopy()},
+			err:     "failed to read control plane version",
+		},
 	}
 
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			myclient := fake.NewClientBuilder().WithObjects(tc.objects...).Build()
+			scheme := runtime.NewScheme()
+			g.Expect(corev1.AddToScheme(scheme)).To(Succeed())
+			g.Expect(apiextensionsv1.AddToScheme(scheme)).To(Succeed())
+			g.Expect(clusterv1.AddToScheme(scheme)).To(Succeed())
+			myclient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(tc.objects...).Build()
 			k := &Reconciler{
 				Client:              myclient,
 				SecretCachingClient: myclient,
+				APIReader:           myclient,
 				KubeadmInitLock:     &myInitLocker{},
 			}
 
@@ -2285,7 +2334,11 @@ func TestKubeadmConfigReconciler_ResolveFiles(t *testing.T) {
 				}
 			}
 
-			files, err := k.resolveFiles(ctx, tc.cfg, nil)
+			files, err := k.resolveFiles(ctx, tc.cfg, tc.cluster)
+			if tc.err != "" {
+				g.Expect(err).To(MatchError(ContainSubstring(tc.err)))
+				return
+			}
 			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(files).To(BeComparableTo(tc.expect))
 			for _, file := range tc.cfg.Spec.Files {
@@ -2296,39 +2349,6 @@ func TestKubeadmConfigReconciler_ResolveFiles(t *testing.T) {
 			}
 		})
 	}
-}
-
-func TestKubeadmConfigReconciler_ResolveFiles_ReadsControlPlaneOnlyForTemplates(t *testing.T) {
-	g := NewWithT(t)
-	scheme := runtime.NewScheme()
-	g.Expect(apiextensionsv1.AddToScheme(scheme)).To(Succeed())
-	g.Expect(clusterv1.AddToScheme(scheme)).To(Succeed())
-
-	crd := builder.TestControlPlaneCRD.DeepCopy()
-	cluster := builder.Cluster(metav1.NamespaceDefault, "c").Build()
-	cluster.Spec.ControlPlaneRef = clusterv1.ContractVersionedObjectReference{
-		APIGroup: builder.ControlPlaneGroupVersion.Group,
-		Kind:     builder.TestControlPlaneKind,
-		Name:     "missing",
-	}
-	r := &Reconciler{APIReader: fake.NewClientBuilder().WithScheme(scheme).WithObjects(crd, cluster).Build()}
-
-	t.Run("resolves plain files without reading the control plane", func(t *testing.T) {
-		ctx := t.Context()
-		g := NewWithT(t)
-		files := []bootstrapv1.File{{Path: "/plain", Content: "plain"}}
-		got, err := r.resolveFiles(ctx, &bootstrapv1.KubeadmConfig{Spec: bootstrapv1.KubeadmConfigSpec{Files: files}}, cluster)
-		g.Expect(err).NotTo(HaveOccurred())
-		g.Expect(got).To(BeComparableTo(files))
-	})
-
-	t.Run("returns error for template files when control plane cannot be read", func(t *testing.T) {
-		ctx := t.Context()
-		g := NewWithT(t)
-		files := []bootstrapv1.File{{Path: "/version", Content: "{{ .controlPlane.version }}", ContentFormat: bootstrapv1.FileContentFormatTemplate}}
-		_, err := r.resolveFiles(ctx, &bootstrapv1.KubeadmConfig{Spec: bootstrapv1.KubeadmConfigSpec{Files: files}}, cluster)
-		g.Expect(err).To(MatchError(ContainSubstring("failed to read control plane version")))
-	})
 }
 
 func TestKubeadmConfigReconciler_ResolveDiscoveryFileKubeConfig(t *testing.T) {

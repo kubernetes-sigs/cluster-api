@@ -1017,26 +1017,6 @@ func (r *Reconciler) joinControlplane(ctx context.Context, scope *Scope) (ctrl.R
 // or the referenced object does not expose spec.version; authors of contentFormat "Template" files are
 // responsible for handling that case (e.g. with {{ if .controlPlane }}).
 func (r *Reconciler) resolveFiles(ctx context.Context, cfg *bootstrapv1.KubeadmConfig, cluster *clusterv1.Cluster) ([]bootstrapv1.File, error) {
-	var cpVersion string
-	// Only templates need the control plane version, and CABPK's RBAC can read only KubeadmControlPlane objects.
-	if slices.ContainsFunc(cfg.Spec.Files, func(f bootstrapv1.File) bool { return f.ContentFormat == bootstrapv1.FileContentFormatTemplate }) {
-		var err error
-		cpVersion, err = r.getControlPlaneVersion(ctx, cluster)
-		if err != nil {
-			return nil, err
-		}
-	}
-	if cpVersion != "" {
-		// Normalize to a fully qualified, "v"-prefixed semver (e.g. "1.35" -> "v1.35.0") so the
-		// .controlPlane.version template variable is consistent with the version field on the Cluster object
-		// and with CAPI builtin variables. This also validates that the control plane version is valid semver.
-		parsed, perr := semver.ParseTolerant(cpVersion)
-		if perr != nil {
-			return nil, pkgerrors.Wrapf(perr, "failed to parse control plane version %q for template data", cpVersion)
-		}
-		cpVersion = "v" + parsed.String()
-	}
-
 	collected := make([]bootstrapv1.File, 0, len(cfg.Spec.Files))
 	for i := range cfg.Spec.Files {
 		in := cfg.Spec.Files[i]
@@ -1049,6 +1029,26 @@ func (r *Reconciler) resolveFiles(ctx context.Context, cfg *bootstrapv1.KubeadmC
 			in.Content = string(data)
 		}
 		collected = append(collected, in)
+	}
+
+	// Only templates need the control plane version, and CABPK's RBAC can read only KubeadmControlPlane objects.
+	if !slices.ContainsFunc(collected, func(f bootstrapv1.File) bool { return f.ContentFormat == bootstrapv1.FileContentFormatTemplate }) {
+		return collected, nil
+	}
+
+	cpVersion, err := r.getControlPlaneVersion(ctx, cluster)
+	if err != nil {
+		return nil, err
+	}
+	if cpVersion != "" {
+		// Normalize to a fully qualified, "v"-prefixed semver (e.g. "1.35" -> "v1.35.0") so the
+		// .controlPlane.version template variable is consistent with the version field on the Cluster object
+		// and with CAPI builtin variables. This also validates that the control plane version is valid semver.
+		parsed, perr := semver.ParseTolerant(cpVersion)
+		if perr != nil {
+			return nil, pkgerrors.Wrapf(perr, "failed to parse control plane version %q for template data", cpVersion)
+		}
+		cpVersion = "v" + parsed.String()
 	}
 
 	rendered, err := renderTemplates(collected, templateData(cpVersion))

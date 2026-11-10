@@ -51,7 +51,6 @@ source of inspiration and ideas for others.
 - [Google Cloud Platform (GCP)](https://cluster-api-gcp.sigs.k8s.io/)
 - [Harvester](https://github.com/rancher-sandbox/cluster-api-provider-harvester)
 - [Hetzner](https://github.com/syself/cluster-api-provider-hetzner)
-- [Hivelocity](https://github.com/hivelocity/cluster-api-provider-hivelocity)
 - [Huawei Cloud](https://github.com/HuaweiCloudDeveloper/cluster-api-provider-huawei)
 - [IBM Cloud](https://github.com/kubernetes-sigs/cluster-api-provider-ibmcloud)
 - [IONOS Cloud](https://github.com/ionos-cloud/cluster-api-provider-ionoscloud)

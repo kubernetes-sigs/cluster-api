@@ -411,7 +411,7 @@ The authenticator will be responsible for updating the kubelet client certificat
 
 ##### Client CSR flow
 
-![client auth](images/kubelet-authentication/client-authenticator-flow.png)
+![client auth](../images/kubelet-authentication/client-authenticator-flow.png)
 
 ##### Serving CSR handling
 

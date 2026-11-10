@@ -16,6 +16,7 @@ linters:
     - canonicalheader # canonical HTTP header names
     - containedctx # context.Context nested in a struct
     - copyloopvar # copying loop variables
+    - depguard # blocks dependencies
     - dogsled # too many blank identifiers in assignments
     - dupword # duplicate words
     - durationcheck # multiplying two durations
@@ -31,7 +32,6 @@ linters:
     - godot # checks that comments end in a period
     - godoclint # godoc comments conventions
     - godox # block FIXMEs
-    - depguard # blocks dependencies
     - goprintffuncname # printft-like functions should be named with f at the end
     - gosec # potential security problems
     - govet # basically 'go vet'
@@ -381,7 +381,6 @@ linters:
         - name: identical-ifelseif-conditions
         - name: identical-switch-conditions
         - name: inefficient-map-lookup
-        - name: redundant-import-alias
         - name: redundant-build-tag
         - name: redundant-import-alias
         - name: string-of-int

@@ -2249,11 +2249,19 @@ func TestKubeadmConfigReconciler_ResolveFiles(t *testing.T) {
 			"key": []byte("foo"),
 		},
 	}
+	clusterWithMissingControlPlane := builder.Cluster(metav1.NamespaceDefault, "c").Build()
+	clusterWithMissingControlPlane.Spec.ControlPlaneRef = clusterv1.ContractVersionedObjectReference{
+		APIGroup: builder.ControlPlaneGroupVersion.Group,
+		Kind:     builder.TestControlPlaneKind,
+		Name:     "missing",
+	}
 
 	cases := map[string]struct {
 		cfg     *bootstrapv1.KubeadmConfig
+		cluster *clusterv1.Cluster
 		objects []client.Object
 		expect  []bootstrapv1.File
+		wantErr string
 	}{
 		"content should pass through": {
 			cfg: &bootstrapv1.KubeadmConfig{
@@ -2345,16 +2353,57 @@ func TestKubeadmConfigReconciler_ResolveFiles(t *testing.T) {
 			},
 			objects: []client.Object{testSecret},
 		},
+		"plain files should not read the control plane": {
+			cfg: &bootstrapv1.KubeadmConfig{
+				Spec: bootstrapv1.KubeadmConfigSpec{
+					Files: []bootstrapv1.File{
+						{
+							Content: "foo",
+							Path:    "/path",
+						},
+					},
+				},
+			},
+			cluster: clusterWithMissingControlPlane,
+			expect: []bootstrapv1.File{
+				{
+					Content: "foo",
+					Path:    "/path",
+				},
+			},
+			objects: []client.Object{builder.TestControlPlaneCRD.DeepCopy()},
+		},
+		"template files should fail when the control plane cannot be read": {
+			cfg: &bootstrapv1.KubeadmConfig{
+				Spec: bootstrapv1.KubeadmConfigSpec{
+					Files: []bootstrapv1.File{
+						{
+							Content:       "{{ .controlPlane.version }}",
+							ContentFormat: bootstrapv1.FileContentFormatTemplate,
+							Path:          "/path",
+						},
+					},
+				},
+			},
+			cluster: clusterWithMissingControlPlane,
+			objects: []client.Object{builder.TestControlPlaneCRD.DeepCopy()},
+			wantErr: "failed to read control plane version",
+		},
 	}
 
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			myclient := fake.NewClientBuilder().WithObjects(tc.objects...).Build()
+			scheme := runtime.NewScheme()
+			g.Expect(corev1.AddToScheme(scheme)).To(Succeed())
+			g.Expect(apiextensionsv1.AddToScheme(scheme)).To(Succeed())
+			g.Expect(clusterv1.AddToScheme(scheme)).To(Succeed())
+			myclient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(tc.objects...).Build()
 			k := &Reconciler{
 				Client:              myclient,
 				SecretCachingClient: myclient,
+				APIReader:           myclient,
 				KubeadmInitLock:     &myInitLocker{},
 			}
 
@@ -2369,7 +2418,11 @@ func TestKubeadmConfigReconciler_ResolveFiles(t *testing.T) {
 				}
 			}
 
-			files, err := k.resolveFiles(ctx, tc.cfg, nil)
+			files, err := k.resolveFiles(ctx, tc.cfg, tc.cluster)
+			if tc.wantErr != "" {
+				g.Expect(err).To(MatchError(ContainSubstring(tc.wantErr)))
+				return
+			}
 			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(files).To(BeComparableTo(tc.expect))
 			for _, file := range tc.cfg.Spec.Files {

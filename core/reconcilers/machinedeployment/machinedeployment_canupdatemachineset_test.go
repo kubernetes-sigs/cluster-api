@@ -72,7 +72,9 @@ func Test_canUpdateMachineSetInPlace(t *testing.T) {
 		panic("unable to compute GVH")
 	}
 	// Note: An empty catalog makes the fake runtime client return an error from GetAllExtensions.
-	runtimeClientWithoutHooks := fakeruntimeclient.NewRuntimeClientBuilder().WithCatalog(runtimecatalog.New()).Build()
+	emptyCatalog := runtimecatalog.New()
+	runtimeClientWithoutHooks := fakeruntimeclient.NewRuntimeClientBuilder().WithCatalog(emptyCatalog).Build()
+	_, notRegisteredErr := emptyCatalog.GroupVersionHook(runtimehooksv1.CanUpdateMachineSet)
 
 	tests := []struct {
 		name                               string
@@ -138,9 +140,9 @@ func Test_canUpdateMachineSetInPlace(t *testing.T) {
 			oldMSInfrastructureMachineTemplate: oldMSInfrastructureMachineTemplate,
 			newMSInfrastructureMachineTemplate: newMSInfrastructureMachineTemplate,
 			runtimeClient:                      runtimeClientWithoutHooks,
-			wantCanUpdateMachineSetResult:      canUpdateMachineSetResult{internalErrorMessage: "failed to get extension handlers for hook \"CanUpdateMachineSet\": failed to compute GroupVersionHook: hook CanUpdateMachineSet is not registered in catalog \"sigs.k8s.io/cluster-api/api/runtime/catalog/catalog.go:96\""},
+			wantCanUpdateMachineSetResult:      canUpdateMachineSetResult{internalErrorMessage: fmt.Sprintf("failed to get extension handlers for hook \"CanUpdateMachineSet\": failed to compute GroupVersionHook: %v", notRegisteredErr)},
 			wantError:                          true,
-			wantErrorMessage:                   "failed to get extension handlers for hook \"CanUpdateMachineSet\": failed to compute GroupVersionHook: hook CanUpdateMachineSet is not registered in catalog \"sigs.k8s.io/cluster-api/api/runtime/catalog/catalog.go:96\"",
+			wantErrorMessage:                   fmt.Sprintf("failed to get extension handlers for hook \"CanUpdateMachineSet\": failed to compute GroupVersionHook: %v", notRegisteredErr),
 		},
 		{
 			name:                               "Return false if no CanUpdateMachineSet extensions registered",

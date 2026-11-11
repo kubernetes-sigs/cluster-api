@@ -93,7 +93,9 @@ func New() *Catalog {
 		typeToGVH:           map[reflect.Type]GroupVersionHook{},
 		gvhToHookDescriptor: map[GroupVersionHook]HookDescriptor{},
 		// Note: We have to ignore the current file so that GetNameFromCallsite retrieves the name of the caller of New (the parent).
-		catalogName: naming.GetNameFromCallsite("sigs.k8s.io/cluster-api/exp/runtime/catalog/catalog.go"),
+		// The module path is intentionally not part of the ignored file, because when the api module is consumed as a
+		// dependency, the file is in the Go module cache, e.g. "sigs.k8s.io/cluster-api/api@v1.15.0/runtime/catalog/catalog.go".
+		catalogName: naming.GetNameFromCallsite("/runtime/catalog/catalog.go"),
 	}
 }
 

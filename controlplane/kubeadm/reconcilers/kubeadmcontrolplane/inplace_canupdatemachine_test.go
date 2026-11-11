@@ -78,7 +78,9 @@ func Test_canUpdateMachine(t *testing.T) {
 		panic("unable to compute GVH")
 	}
 	// Note: An empty catalog makes the fake runtime client return an error from GetAllExtensions.
-	runtimeClientWithoutHooks := fakeruntimeclient.NewRuntimeClientBuilder().WithCatalog(runtimecatalog.New()).Build()
+	emptyCatalog := runtimecatalog.New()
+	runtimeClientWithoutHooks := fakeruntimeclient.NewRuntimeClientBuilder().WithCatalog(emptyCatalog).Build()
+	_, notRegisteredErr := emptyCatalog.GroupVersionHook(runtimehooksv1.CanUpdateMachine)
 
 	tests := []struct {
 		name                            string
@@ -116,10 +118,10 @@ func Test_canUpdateMachine(t *testing.T) {
 			machineUpToDateResult:           nonEmptyMachineUpToDateResult,
 			runtimeClient:                   runtimeClientWithoutHooks,
 			wantCanUpdateMachineResults: pkg.CanUpdateMachineResults{
-				InternalErrorMessage: "Blocked by CanUpdateMachine hook for Machine machine-to-in-place-update: failed to get extension handlers for hook \"CanUpdateMachine\": failed to compute GroupVersionHook: hook CanUpdateMachine is not registered in catalog \"sigs.k8s.io/cluster-api/api/runtime/catalog/catalog.go:96\"",
+				InternalErrorMessage: fmt.Sprintf("Blocked by CanUpdateMachine hook for Machine machine-to-in-place-update: failed to get extension handlers for hook \"CanUpdateMachine\": failed to compute GroupVersionHook: %v", notRegisteredErr),
 			},
 			wantError:        true,
-			wantErrorMessage: "failed to get extension handlers for hook \"CanUpdateMachine\": failed to compute GroupVersionHook: hook CanUpdateMachine is not registered in catalog \"sigs.k8s.io/cluster-api/api/runtime/catalog/catalog.go:96\"",
+			wantErrorMessage: fmt.Sprintf("failed to get extension handlers for hook \"CanUpdateMachine\": failed to compute GroupVersionHook: %v", notRegisteredErr),
 		},
 		{
 			name:                            "Return false if no CanUpdateMachine extensions registered",

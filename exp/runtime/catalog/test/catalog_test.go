@@ -79,6 +79,14 @@ func TestCatalog(t *testing.T) {
 	verify(v1alpha2.FakeHook, v1alpha2.GroupVersion)
 }
 
+func TestCatalogName(t *testing.T) {
+	g := NewWithT(t)
+
+	// The catalog name must point to the caller of New, not to the catalog package itself.
+	_, err := runtimecatalog.New().GroupVersionHook(v1alpha1.FakeHook)
+	g.Expect(err).To(MatchError(MatchRegexp(`^hook FakeHook is not registered in catalog ".*/catalog_test\.go:\d+"$`)))
+}
+
 func TestValidateRequest(t *testing.T) {
 	v1alpha1Hook, err := c.GroupVersionHook(v1alpha1.FakeHook)
 	if err != nil {

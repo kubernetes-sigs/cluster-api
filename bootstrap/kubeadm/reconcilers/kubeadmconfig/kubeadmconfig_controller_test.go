@@ -2261,7 +2261,7 @@ func TestKubeadmConfigReconciler_ResolveFiles(t *testing.T) {
 		cluster *clusterv1.Cluster
 		objects []client.Object
 		expect  []bootstrapv1.File
-		err     string
+		wantErr string
 	}{
 		"content should pass through": {
 			cfg: &bootstrapv1.KubeadmConfig{
@@ -2387,7 +2387,7 @@ func TestKubeadmConfigReconciler_ResolveFiles(t *testing.T) {
 			},
 			cluster: clusterWithMissingControlPlane,
 			objects: []client.Object{builder.TestControlPlaneCRD.DeepCopy()},
-			err:     "failed to read control plane version",
+			wantErr: "failed to read control plane version",
 		},
 	}
 
@@ -2419,8 +2419,8 @@ func TestKubeadmConfigReconciler_ResolveFiles(t *testing.T) {
 			}
 
 			files, err := k.resolveFiles(ctx, tc.cfg, tc.cluster)
-			if tc.err != "" {
-				g.Expect(err).To(MatchError(ContainSubstring(tc.err)))
+			if tc.wantErr != "" {
+				g.Expect(err).To(MatchError(ContainSubstring(tc.wantErr)))
 				return
 			}
 			g.Expect(err).ToNot(HaveOccurred())

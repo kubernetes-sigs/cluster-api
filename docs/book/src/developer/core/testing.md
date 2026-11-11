@@ -372,7 +372,7 @@ analyzing them via Grafana.
     * Local folder: `./_artifacts`
 4. Now the logs are available:
     * via [Grafana](http://localhost:3000/explore)
-    * via [Loki logcli](https://grafana.com/docs/loki/latest/getting-started/logcli/)
+    * via [Loki logcli](https://grafana.com/docs/loki/latest/query/logcli/getting-started/)
       ```bash
       logcli query '{app="capi-controller-manager"}' --timezone=UTC --from="2022-02-22T10:00:00Z"
       ```
@@ -628,6 +628,5 @@ In Cluster API Unit and integration test MUST use [go test].
 [controller-runtime]: https://github.com/kubernetes-sigs/controller-runtime
 [envtest]: https://github.com/kubernetes-sigs/controller-runtime/tree/main/pkg/envtest
 [fakeclient]: https://github.com/kubernetes-sigs/controller-runtime/tree/main/pkg/client/fake
-[test/helpers]: https://github.com/kubernetes-sigs/cluster-api/tree/main/test/helpers
 
 [vscode-go]: https://marketplace.visualstudio.com/items?itemName=golang.Go

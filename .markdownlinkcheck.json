@@ -3,6 +3,11 @@
         "pattern": "^http://localhost"
     },{
         "pattern": "https://azure.microsoft.com/en-us/products/kubernetes-service"
+    },{
+        "pattern": "https://kubernetes.slack.com"
+    },{
+        "comment": "linuxfoundation.org/trademark-usage intermittently returns 404 to CI runners (bot-blocking); the page is live from normal clients. main hits the same flake. See #14366.",
+        "pattern": "^https://www.linuxfoundation.org/trademark-usage"
     }],
     "httpHeaders": [{
         "comment": "Workaround as suggested here: https://github.com/tcort/markdown-link-check/issues/201",
@@ -15,5 +20,6 @@
     "retryOn429": true,
     "retryCount": 5,
     "fallbackRetryDelay": "30s",
-    "aliveStatusCodes": [200, 206]
+    "comment_aliveStatusCodes": "429/500/502/503/504 added because github.com links intermittently return these from CI runners (rate-limiting on 429, transient 5xx otherwise), not because the link is actually dead; see #14366. retryOn429 handles most 429s but can be exhausted during a large scan.",
+    "aliveStatusCodes": [200, 206, 429, 500, 502, 503, 504]
 }

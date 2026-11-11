@@ -273,7 +273,7 @@ Additional documentation about experimental features can be found in [Experiment
 Depending on the infrastructure provider you are planning to use, some additional prerequisites should be satisfied
 before getting started with Cluster API. See below for the expected settings for common providers.
 
-{{#tabs name:"tab-installation-infrastructure" tabs:"Akamai (Linode),AWS,Azure,cloudscale,CloudStack,DigitalOcean,Docker,GCP,Harvester,Hetzner,Hivelocity,Huawei,IBM Cloud,IONOS Cloud,K0smotron,KubeKey,KubeSwift,KubeVirt,Metal3,metal-stack,Nutanix,OCI,OpenNebula,OpenStack,Outscale,Oxide,Proxmox,Scaleway,VCD,vcluster,Virtink,vSphere,Vultr"}}
+{{#tabs name:"tab-installation-infrastructure" tabs:"Akamai (Linode),AWS,Azure,cloudscale,CloudStack,DigitalOcean,Docker,GCP,Harvester,Hetzner,Huawei,IBM Cloud,IONOS Cloud,K0smotron,KubeKey,KubeSwift,KubeVirt,Metal3,metal-stack,Nutanix,OCI,OpenNebula,OpenStack,Outscale,Oxide,Proxmox,Scaleway,VCD,vcluster,Virtink,vSphere,Vultr"}}
 {{#tab Akamai (Linode)}}
 
 ```bash
@@ -580,11 +580,6 @@ For more information, please visit the [Harvester project][Harvester provider].
 {{#tab Hetzner}}
 
 Please visit the [Hetzner project][Hetzner provider].
-
-{{#/tab }}
-{{#tab Hivelocity}}
-
-Please visit the [Hivelocity project][Hivelocity provider].
 
 {{#/tab }}
 {{#tab Huawei}}
@@ -2221,7 +2216,6 @@ kind delete cluster
 [Helm]: https://helm.sh/docs/intro/install/
 [Harvester provider]: https://github.com/rancher-sandbox/cluster-api-provider-harvester
 [Hetzner provider]: https://github.com/syself/cluster-api-provider-hetzner
-[Hivelocity provider]: https://github.com/hivelocity/cluster-api-provider-hivelocity
 [Huawei Cloud provider]: https://github.com/HuaweiCloudDeveloper/cluster-api-provider-huawei
 [IBM Cloud provider]: https://github.com/kubernetes-sigs/cluster-api-provider-ibmcloud
 [infrastructure provider]: ../reference/glossary.md#infrastructure-provider

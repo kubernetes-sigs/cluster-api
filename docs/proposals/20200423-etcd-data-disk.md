@@ -146,7 +146,7 @@ references:
 https://cloudinit.readthedocs.io/en/latest/topics/examples.html#disk-setup
 https://cloudinit.readthedocs.io/en/latest/topics/examples.html#adjust-mount-points-mounted
 
-### Changes required in the infrastructure provider (here Azure is used as an example to illustrate the required changes). 
+### Changes required in the infrastructure provider (here Azure is used as an example to illustrate the required changes)
 
 These changes are required to run etcd on a data device but it should be noted that someone could use the KubeadmConfig changes described above without making any changes to infrastructure.
 

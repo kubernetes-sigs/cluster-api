@@ -24,14 +24,13 @@ import (
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
-	patchvariables "sigs.k8s.io/cluster-api/core/reconcilers/topology/cluster/patches/variables"
 )
 
 // TODO: Add func for validating received variables are of the expected types.
 
 // GetVariable get the variable value.
 func GetVariable(templateVariables map[string]apiextensionsv1.JSON, variableName string) (*apiextensionsv1.JSON, error) {
-	value, err := patchvariables.GetVariableValue(templateVariables, variableName)
+	value, err := GetVariableValue(templateVariables, variableName)
 	if err != nil {
 		return nil, err
 	}

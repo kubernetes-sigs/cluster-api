@@ -137,11 +137,11 @@ linters:
             - sigs.k8s.io/cluster-api/controllers/remote$
             - sigs.k8s.io/cluster-api/core/reconcilers/clusterclass$
             - sigs.k8s.io/cluster-api/core/webhooks/admission$
-            - sigs.k8s.io/cluster-api/exp/runtime/topologymutation$
             - sigs.k8s.io/cluster-api/exp/topology/desiredstate$
             - sigs.k8s.io/cluster-api/exp/topology/scope$
             - sigs.k8s.io/cluster-api/feature$
             - sigs.k8s.io/cluster-api/pkg/runtimesdk/client$
+            - sigs.k8s.io/cluster-api/pkg/runtimesdk/server/topologymutation$
             - sigs.k8s.io/cluster-api/test/extension
             - sigs.k8s.io/cluster-api/test/infrastructure/docker/api
             - sigs.k8s.io/cluster-api/test/infrastructure/kind$

@@ -32,7 +32,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
-	"sigs.k8s.io/cluster-api/core/reconcilers/topology/cluster/patches/variables"
+	"sigs.k8s.io/cluster-api/pkg/runtimesdk/server/topologymutation"
 	conversionutil "sigs.k8s.io/cluster-api/util/conversion"
 )
 
@@ -155,14 +155,14 @@ func getRequestItem(req *runtimehooksv1.GeneratePatchesRequest, holderKind, hold
 		}
 		if topologyNames.mdTopologyName != "" {
 			templateVariables := toMap(template.Variables)
-			v, err := variables.GetVariableValue(templateVariables, "builtin.machineDeployment.topologyName")
+			v, err := topologymutation.GetVariableValue(templateVariables, "builtin.machineDeployment.topologyName")
 			if err != nil || string(v.Raw) != strconv.Quote(topologyNames.mdTopologyName) {
 				continue
 			}
 		}
 		if topologyNames.mpTopologyName != "" {
 			templateVariables := toMap(template.Variables)
-			v, err := variables.GetVariableValue(templateVariables, "builtin.machinePool.topologyName")
+			v, err := topologymutation.GetVariableValue(templateVariables, "builtin.machinePool.topologyName")
 			if err != nil || string(v.Raw) != strconv.Quote(topologyNames.mpTopologyName) {
 				continue
 			}

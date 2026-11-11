@@ -90,6 +90,18 @@ linters:
           - k8s.io/apimachinery/pkg/labels$
           - k8s.io/apimachinery/pkg/util/naming$
           - k8s.io/apimachinery/pkg/util/validation/field$
+        utils:
+          list-mode: strict
+          files:
+            - "**/cluster-api/utils/**/*.go"
+          allow:
+            - $gostd
+            - github.com/onsi/gomega$
+            - github.com/pkg/errors$
+            - k8s.io/apimachinery
+            - sigs.k8s.io/cluster-api/api
+            - sigs.k8s.io/cluster-api/utils
+            - sigs.k8s.io/controller-runtime
         cmd_clusterctl_api:
           list-mode: strict
           files:
@@ -125,7 +137,6 @@ linters:
             - sigs.k8s.io/cluster-api/controllers/remote$
             - sigs.k8s.io/cluster-api/core/reconcilers/clusterclass$
             - sigs.k8s.io/cluster-api/core/webhooks/admission$
-            - sigs.k8s.io/cluster-api/exp/runtime/server$
             - sigs.k8s.io/cluster-api/exp/runtime/topologymutation$
             - sigs.k8s.io/cluster-api/exp/topology/desiredstate$
             - sigs.k8s.io/cluster-api/exp/topology/scope$
@@ -141,6 +152,7 @@ linters:
             - sigs.k8s.io/cluster-api/util/flags$
             - sigs.k8s.io/cluster-api/util/labels$
             - sigs.k8s.io/cluster-api/util/util$
+            - sigs.k8s.io/cluster-api/utils/runtimesdk/server$
             - sigs.k8s.io/cluster-api/version$
             - sigs.k8s.io/controller-runtime
             - sigs.k8s.io/yaml

@@ -48,13 +48,13 @@ import (
 	runtimecatalog "sigs.k8s.io/cluster-api/api/runtime/catalog"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
 	"sigs.k8s.io/cluster-api/controllers/remote"
-	"sigs.k8s.io/cluster-api/exp/runtime/server"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/test/extension/handlers/inplaceupdate"
 	"sigs.k8s.io/cluster-api/test/extension/handlers/lifecycle"
 	"sigs.k8s.io/cluster-api/test/extension/handlers/topologymutation"
 	"sigs.k8s.io/cluster-api/test/extension/handlers/upgradeplan"
 	"sigs.k8s.io/cluster-api/util/flags"
+	"sigs.k8s.io/cluster-api/utils/runtimesdk/server"
 	"sigs.k8s.io/cluster-api/version"
 )
 

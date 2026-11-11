@@ -35,6 +35,7 @@ jobs:
         working-directory:
           - ""
           - api
+          - utils
           - test
           - hack/tools
     steps:

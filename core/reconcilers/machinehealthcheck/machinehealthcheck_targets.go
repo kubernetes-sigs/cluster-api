@@ -247,12 +247,18 @@ func (t *healthCheckTarget) nodeChecks(logger logr.Logger, reconcileStartTime me
 
 		// Use the latest of the following timestamps.
 		comparisonTime := machineCreationTime
-		logger.V(5).Info("Determining comparison time",
-			"machineCreationTime", machineCreationTime,
-			"clusterInfraReadyTime", clusterInfraReady,
-			"controlPlaneInitializedTime", controlPlaneInitialized,
-			"machineInfraReadyTime", machineInfraReady,
-		)
+		loggerComparison := logger
+		if clusterInfraReady != nil {
+			loggerComparison = loggerComparison.WithValues("clusterInfraReadyTime", clusterInfraReady)
+		}
+		if controlPlaneInitialized != nil {
+			loggerComparison = loggerComparison.WithValues("controlPlaneInitializedTime", controlPlaneInitialized)
+		}
+		if machineInfraReady != nil {
+			loggerComparison = loggerComparison.WithValues("machineInfraReadyTime", machineInfraReady)
+		}
+		loggerComparison.V(5).Info("Determining comparison time", "machineCreationTime", machineCreationTime)
+
 		if conditions.IsTrue(t.Cluster, clusterv1.ClusterControlPlaneInitializedCondition) && controlPlaneInitialized != nil && controlPlaneInitialized.After(comparisonTime) {
 			comparisonTime = controlPlaneInitialized.Time
 		}

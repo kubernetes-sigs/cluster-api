@@ -402,29 +402,32 @@ linters:
       # TODO: Excludes that can be removed once we bumped to controller-runtime v0.25.
       - linters:
           - staticcheck
-        text: 'SA1019: (env|mgr).GetEventRecorderFor is deprecated'
+        text: 'SA1019: \(\*?(sigs\.k8s\.io/controller-runtime\.Manager|sigs\.k8s\.io/cluster-api/internal/test/envtest\.Environment)\)\.GetEventRecorderFor is deprecated'
 
       # TODO: Excludes that can be removed as part of the Cluster API v1.17 release.
       - linters:
           - staticcheck
-        text: 'SA1019: feature.(PriorityQueue|ReconcilerRateLimiting) is deprecated'
+        text: 'SA1019: sigs\.k8s\.io/cluster-api/feature\.(PriorityQueue|ReconcilerRateLimiting) is deprecated'
 
       # TODO: Excludes for v1beta1, can be removed once v1beta1 has been removed (current plan: Cluster API v1.19).
       - linters:
           - staticcheck
-        text: 'SA1019: (clusterv1.ClusterClassVariableMetadata|currentDefinition.DeprecatedV1Beta1Metadata|newVariableDefinition.DeprecatedV1Beta1Metadata|specVar.DeprecatedV1Beta1Metadata|statusVarDefinition.DeprecatedV1Beta1Metadata|out.DeprecatedV1Beta1Metadata|variable.DeprecatedV1Beta1Metadata) is deprecated'
+        text: 'SA1019: (\S+\.ClusterClassVariableMetadata|\(\S+\)\.DeprecatedV1Beta1Metadata) is deprecated'
       - linters:
           - staticcheck
-        text: 'SA1019: .* is deprecated: This (package|method) is deprecated and is going to be removed when support for v1beta1 will be dropped.'
+        text: 'SA1019: \(\S+\)\.V1Beta1 is deprecated: This field will be removed when v1beta1 will be dropped\.'
+      - linters:
+          - staticcheck
+        text: 'SA1019: .* is deprecated: This (package|type|method) is deprecated and is going to be removed when support for v1beta1 will be dropped.'
       - linters:
           - staticcheck
         text: 'SA1019: .* is deprecated: This (condition|reason) is deprecated and is going to be removed when support for v1beta1 is dropped\.'
       - linters:
           - staticcheck
-        text: 'SA1019: .*\.Deprecated\.V1Beta1.* is deprecated'
+        text: 'SA1019: \(\S+(V1Beta1DeprecatedStatus\)\.\S+|DeprecatedStatus\)\.V1Beta1) is deprecated'
       - linters:
           - staticcheck
-        text: 'SA1019: clusterv1\.(Condition|Conditions|ConditionSeverity|ConditionType) is deprecated'
+        text: 'SA1019: sigs\.k8s\.io/cluster-api/api/core/v1beta[12]\.(Condition|Conditions|ConditionSeverity|ConditionType) is deprecated'
       - linters:
           - staticcheck
         text: 'SA1019: .* is deprecated|'
@@ -437,6 +440,17 @@ linters:
           - importas
         text: 'imported as ".*" but must be ".*" according to config'
         path: util/deprecated/v1beta1/.*\.go$
+
+      # TODO: Excludes that can be removed once the deprecated field WatchedNamespace of the clusterctl v1alpha3 Provider type has been removed.
+      - linters:
+          - staticcheck
+        text: 'SA1019: \(sigs\.k8s\.io/cluster-api/cmd/clusterctl/api/v1alpha3\.Provider\)\.WatchedNamespace is deprecated'
+
+      # TODO: Excludes that can be removed once the deprecated field Class and ClassNamespace of the ClusterTopologyBuiltins
+      # have been removed (planned for the next apiVersion of the runtime hooks).
+      - linters:
+          - staticcheck
+        text: 'SA1019: \(sigs\.k8s\.io/cluster-api/api/runtime/hooks/v1alpha1\.ClusterTopologyBuiltins\)\.(Class|ClassNamespace) is deprecated'
 
       # Exclude rules that we are going to keep permanently.
       - linters:
@@ -492,7 +506,7 @@ linters:
       - linters:
           - staticcheck
         path: api/core/v1beta1/conversion.go|webhooks/conversion/.*\.go
-        text: 'SA1019: in.(.+) is deprecated'
+        text: 'SA1019: \(\S+\)\.\S+ is deprecated'
       - linters:
           - revive
         # Ignoring stylistic checks for generated code

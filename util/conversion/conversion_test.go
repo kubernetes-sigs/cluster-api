@@ -82,7 +82,6 @@ func TestMarshalData(t *testing.T) {
 				Name:                       "test-1",
 				GenerateName:               "test-",
 				Namespace:                  "default",
-				SelfLink:                   "test",
 				UID:                        "123456",
 				ResourceVersion:            "123",
 				Generation:                 15,

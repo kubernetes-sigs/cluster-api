@@ -51,5 +51,8 @@ jobs:
       - name: golangci-lint
         uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # tag=v9.3.0
         with:
-          version: v2.12.2
+          version: v2.15.0
+          # Build golangci-lint with the Go version of this repo instead of using the prebuilt binary.
+          # The prebuilt binary might be built with a newer Go version, which can format code differently (e.g. gci/gofmt).
+          install-mode: goinstall
           working-directory: ${{matrix.working-directory}}

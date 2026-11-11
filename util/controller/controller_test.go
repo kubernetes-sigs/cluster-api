@@ -358,7 +358,7 @@ func TestReconcileMetrics(t *testing.T) {
 
 		// Requeue
 		r.reconciler = reconcile.Func(func(_ context.Context, _ reconcile.Request) (reconcile.Result, error) {
-			return reconcile.Result{Requeue: true}, nil
+			return reconcile.Result{Requeue: true}, nil //nolint:staticcheck // We have to handle Requeue until it is removed
 		})
 		res, err = r.Reconcile(t.Context(), req)
 		g.Expect(err).ToNot(HaveOccurred())

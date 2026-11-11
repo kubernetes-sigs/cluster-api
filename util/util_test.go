@@ -1218,7 +1218,7 @@ func TestGetMachinePoolByLabels(t *testing.T) {
 		{
 			name:          "missing required key",
 			labels:        map[string]string{},
-			expectedError: fmt.Sprintf("labels missing required key `%s`", clusterv1.MachinePoolNameLabel),
+			expectedError: fmt.Sprintf("labels missing required key %#q", clusterv1.MachinePoolNameLabel),
 		},
 		{
 			name: "returns nil when no machine pool matches",

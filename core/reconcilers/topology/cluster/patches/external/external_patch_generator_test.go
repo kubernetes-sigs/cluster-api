@@ -28,8 +28,8 @@ import (
 	runtimecatalog "sigs.k8s.io/cluster-api/api/runtime/catalog"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
 	runtimev1 "sigs.k8s.io/cluster-api/api/runtime/v1beta2"
-	runtimeclient "sigs.k8s.io/cluster-api/exp/runtime/client"
 	"sigs.k8s.io/cluster-api/feature"
+	runtimeclient "sigs.k8s.io/cluster-api/pkg/runtimesdk/client"
 )
 
 func TestExternalPatchGenerator_Generate(t *testing.T) {

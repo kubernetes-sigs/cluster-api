@@ -14,13 +14,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package client provides the Runtime SDK client.
 package client
 
 import (
 	"context"
 
-	"sigs.k8s.io/controller-runtime/pkg/client"
+	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	runtimecatalog "sigs.k8s.io/cluster-api/api/runtime/catalog"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
@@ -87,11 +86,11 @@ type Client interface {
 	Unregister(extensionConfig *runtimev1.ExtensionConfig) error
 
 	// GetAllExtensions gets all the ExtensionHandlers registered for the hook.
-	GetAllExtensions(ctx context.Context, hook runtimecatalog.Hook, forObject client.Object) ([]string, error)
+	GetAllExtensions(ctx context.Context, hook runtimecatalog.Hook, forObject ctrlclient.Object) ([]string, error)
 
 	// CallAllExtensions calls all the ExtensionHandler registered for the hook.
-	CallAllExtensions(ctx context.Context, hook runtimecatalog.Hook, forObject client.Object, request runtimehooksv1.RequestObject, response runtimehooksv1.ResponseObject) error
+	CallAllExtensions(ctx context.Context, hook runtimecatalog.Hook, forObject ctrlclient.Object, request runtimehooksv1.RequestObject, response runtimehooksv1.ResponseObject) error
 
 	// CallExtension calls the ExtensionHandler with the given name.
-	CallExtension(ctx context.Context, hook runtimecatalog.Hook, forObject client.Object, name string, request runtimehooksv1.RequestObject, response runtimehooksv1.ResponseObject, opts ...CallExtensionOption) error
+	CallExtension(ctx context.Context, hook runtimecatalog.Hook, forObject ctrlclient.Object, name string, request runtimehooksv1.RequestObject, response runtimehooksv1.ResponseObject, opts ...CallExtensionOption) error
 }

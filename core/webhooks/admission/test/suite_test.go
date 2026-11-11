@@ -30,8 +30,8 @@ import (
 
 	"sigs.k8s.io/cluster-api/core/reconcilers/clusterclass"
 	"sigs.k8s.io/cluster-api/core/setup"
-	fakeruntimeclient "sigs.k8s.io/cluster-api/internal/runtime/client/fake"
 	"sigs.k8s.io/cluster-api/internal/test/envtest"
+	fakeruntimeclient "sigs.k8s.io/cluster-api/pkg/runtimesdk/client/fake"
 	"sigs.k8s.io/cluster-api/util/index"
 )
 

@@ -29,7 +29,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
 	runtimev1 "sigs.k8s.io/cluster-api/api/runtime/v1beta2"
-	runtimeclient "sigs.k8s.io/cluster-api/exp/runtime/client"
+	runtimeclient "sigs.k8s.io/cluster-api/pkg/runtimesdk/client"
 )
 
 const (

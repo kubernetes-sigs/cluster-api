@@ -14,8 +14,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package v1alpha1 contains types for tests.
-// Note: they have to be in a separate package because otherwise it wouldn't
-// be possible to register different versions of the same hook.
-// +k8s:conversion-gen=sigs.k8s.io/cluster-api/internal/runtime/test/v1alpha2
 package v1alpha1
+
+import (
+	"k8s.io/apimachinery/pkg/conversion"
+
+	"sigs.k8s.io/cluster-api/pkg/runtimesdk/test/v1alpha2"
+)
+
+func Convert_v1alpha1_FakeResponse_To_v1alpha2_FakeResponse(in *FakeResponse, out *v1alpha2.FakeResponse, s conversion.Scope) error {
+	return autoConvert_v1alpha1_FakeResponse_To_v1alpha2_FakeResponse(in, out, s)
+}

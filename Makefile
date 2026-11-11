@@ -419,7 +419,7 @@ generate-go-deepcopy-core: $(CONTROLLER_GEN) ## Generate deepcopy go code for co
 		paths=./cmd/clusterctl/... \
 		paths=./controllers/crdmigrator/test/... \
 		paths=./internal/contract/api/... \
-		paths=./internal/runtime/test/... \
+		paths=./pkg/runtimesdk/test/... \
 		paths=./internal/topology/upgrade/test/... \
 		paths=./util/test/builder/... \
 		paths=./util/deprecated/v1beta1/test/builder/...
@@ -498,12 +498,12 @@ generate-go-conversions-core-ipam: $(CONVERSION_GEN) ## Generate conversions go 
 
 .PHONY: generate-go-conversions-core-runtime
 generate-go-conversions-core-runtime: $(CONVERSION_GEN) ## Generate conversions go code for core runtime
-	$(MAKE) clean-generated-conversions SRC_DIRS="./internal/runtime/test/v1alpha1,./internal/runtime/test/v1alpha2"
+	$(MAKE) clean-generated-conversions SRC_DIRS="./pkg/runtimesdk/test/v1alpha1,./pkg/runtimesdk/test/v1alpha2"
 	$(CONVERSION_GEN) \
 		--output-file=zz_generated.conversion.go \
 		--go-header-file=./hack/scripts/verify/boilerplate/boilerplate.generatego.txt \
-		./internal/runtime/test/v1alpha1 \
-		./internal/runtime/test/v1alpha2
+		./pkg/runtimesdk/test/v1alpha1 \
+		./pkg/runtimesdk/test/v1alpha2
 	$(MAKE) clean-generated-conversions SRC_DIRS="./api/runtime/v1alpha1"
 	cd api; $(CONVERSION_GEN) \
 		--output-file=zz_generated.conversion.go \

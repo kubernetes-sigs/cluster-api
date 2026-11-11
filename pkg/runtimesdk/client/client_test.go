@@ -48,10 +48,9 @@ import (
 	runtimecatalog "sigs.k8s.io/cluster-api/api/runtime/catalog"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
 	runtimev1 "sigs.k8s.io/cluster-api/api/runtime/v1beta2"
-	runtimeclient "sigs.k8s.io/cluster-api/exp/runtime/client"
-	runtimeregistry "sigs.k8s.io/cluster-api/internal/runtime/registry"
-	fakev1alpha1 "sigs.k8s.io/cluster-api/internal/runtime/test/v1alpha1"
-	fakev1alpha2 "sigs.k8s.io/cluster-api/internal/runtime/test/v1alpha2"
+	runtimeregistry "sigs.k8s.io/cluster-api/pkg/runtimesdk/registry"
+	fakev1alpha1 "sigs.k8s.io/cluster-api/pkg/runtimesdk/test/v1alpha1"
+	fakev1alpha2 "sigs.k8s.io/cluster-api/pkg/runtimesdk/test/v1alpha2"
 	"sigs.k8s.io/cluster-api/util/cache"
 )
 
@@ -901,9 +900,9 @@ func TestClient_CallExtension(t *testing.T) {
 
 			// Call again with caching.
 			serverCallCount = 0
-			cache := cache.New[runtimeclient.CallExtensionCacheEntry](t.Context(), cache.DefaultTTL)
+			cache := cache.New[CallExtensionCacheEntry](t.Context(), cache.DefaultTTL)
 			err = c.CallExtension(context.Background(), tt.args.hook, obj, tt.args.name, tt.args.request, tt.args.response,
-				runtimeclient.WithCaching{Cache: cache, CacheKeyFunc: cacheKeyFunc})
+				WithCaching{Cache: cache, CacheKeyFunc: cacheKeyFunc})
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {
@@ -918,7 +917,7 @@ func TestClient_CallExtension(t *testing.T) {
 				g.Expect(cacheEntry).ToNot(BeNil())
 
 				err = c.CallExtension(context.Background(), tt.args.hook, obj, tt.args.name, tt.args.request, tt.args.response,
-					runtimeclient.WithCaching{Cache: cache, CacheKeyFunc: cacheKeyFunc})
+					WithCaching{Cache: cache, CacheKeyFunc: cacheKeyFunc})
 				// When we expect the response to be cached we always expect no errors.
 				g.Expect(err).ToNot(HaveOccurred())
 				// As the response is cached we expect no further calls to the server.

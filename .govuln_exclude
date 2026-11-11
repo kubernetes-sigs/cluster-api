@@ -10,3 +10,7 @@ GO-2026-6603
 # triggered by a malicious server, i.e. the kube-apiserver of a workload cluster or a repository host
 # configured by the user.
 GO-2026-6610
+# GO-2026-6860 and GO-2026-6866 are fixed in v0.62.0, but that requires go 1.26.0.
+# Both affect the HTML parser in golang.org/x/net/html, which CAPI does not use.
+GO-2026-6860
+GO-2026-6866

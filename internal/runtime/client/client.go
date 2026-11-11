@@ -698,12 +698,11 @@ func httpCall(ctx context.Context, request, response runtime.Object, opts *httpC
 			err: pkgerrors.Wrapf(err, "http call failed"),
 		}
 	}
-	defer resp.Body.Close()
+	// Bound the size of the response body, both for errors and successful responses.
+	maxBytesReader := http.MaxBytesReader(nil, resp.Body, maxExtensionResponseBodyBytes)
+	defer maxBytesReader.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		maxBytesReader := http.MaxBytesReader(nil, resp.Body, maxExtensionResponseBodyBytes)
-		defer maxBytesReader.Close()
-
 		respBody, err := io.ReadAll(maxBytesReader)
 		if err != nil {
 			return callingExtensionHandlerError{
@@ -720,7 +719,7 @@ func httpCall(ctx context.Context, request, response runtime.Object, opts *httpC
 		}
 	}
 
-	if err := json.NewDecoder(resp.Body).Decode(responseLocal); err != nil {
+	if err := json.NewDecoder(maxBytesReader).Decode(responseLocal); err != nil {
 		return callingExtensionHandlerError{
 			err: pkgerrors.Wrap(err, "http call failed: failed to decode response"),
 		}

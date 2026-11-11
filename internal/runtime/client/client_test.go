@@ -193,6 +193,32 @@ func TestClient_httpCall(t *testing.T) {
 			wantErr: false,
 		},
 		{
+			name:     "error if successful response is too large",
+			request:  &fakev1alpha1.FakeRequest{},
+			response: &fakev1alpha1.FakeResponse{},
+			responseHandler: func(w http.ResponseWriter, _ *http.Request) {
+				// Valid JSON that only completes after the limit, so the decoder must read past it.
+				respBody := `{"message":"` + strings.Repeat("a", maxExtensionResponseBodyBytes+1) + `"}`
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write([]byte(respBody))
+			},
+			opts: func() *httpCallOptions {
+				c := runtimecatalog.New()
+				g.Expect(fakev1alpha1.AddToCatalog(c)).To(Succeed())
+
+				// get same gvh for hook by using the FakeHook and catalog
+				gvh, err := c.GroupVersionHook(fakev1alpha1.FakeHook)
+				g.Expect(err).ToNot(HaveOccurred())
+
+				return &httpCallOptions{
+					catalog:         c,
+					registrationGVH: gvh,
+					hookGVH:         gvh,
+				}
+			}(),
+			wantErr: true,
+		},
+		{
 			name:     "error if response is too large",
 			request:  &fakev1alpha1.FakeRequest{},
 			response: &fakev1alpha1.FakeResponse{},

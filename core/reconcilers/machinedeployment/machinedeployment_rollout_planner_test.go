@@ -457,9 +457,9 @@ func assertDesiredMS(g *WithT, md *clusterv1.MachineDeployment, actualMS *cluste
 	g.Expect(actualMS.Annotations).To(HaveKeyWithValue(clusterv1.MaxReplicasAnnotation, fmt.Sprintf("%d", *(md.Spec.Replicas)+mdutil.MaxSurge(*md))))
 
 	// annotations that we are intentionally not setting in this func are not there
-	g.Expect(actualMS.Annotations).ShouldNot(HaveKey(clusterv1.RevisionAnnotation))
-	g.Expect(actualMS.Annotations).ShouldNot(HaveKey("machinedeployment.clusters.x-k8s.io/revision-history"))
-	g.Expect(actualMS.Annotations).ShouldNot(HaveKey(clusterv1.DisableMachineCreateAnnotation))
+	g.Expect(actualMS.Annotations).ToNot(HaveKey(clusterv1.RevisionAnnotation))
+	g.Expect(actualMS.Annotations).ToNot(HaveKey("machinedeployment.clusters.x-k8s.io/revision-history"))
+	g.Expect(actualMS.Annotations).ToNot(HaveKey(clusterv1.DisableMachineCreateAnnotation))
 
 	for k, v := range expectedMS.Spec.Template.Annotations {
 		g.Expect(actualMS.Spec.Template.Annotations).To(HaveKeyWithValue(k, v))

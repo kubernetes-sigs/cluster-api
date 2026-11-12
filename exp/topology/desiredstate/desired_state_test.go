@@ -2093,6 +2093,31 @@ func TestComputeMachineDeployment(t *testing.T) {
 		g.Expect(*actualMd.Spec.Template.Spec.Deletion.NodeDeletionTimeoutSeconds).To(Equal(clusterClassDuration))
 	})
 
+	t.Run("Generates the machine deployment with rollout after from Cluster and rollout strategy from ClusterClass", func(t *testing.T) {
+		g := NewWithT(t)
+		scope := scope.New(cluster)
+		scope.Blueprint = blueprint
+
+		rolloutAfter := metav1.NewTime(time.Date(2027, 9, 24, 17, 1, 37, 0, time.UTC))
+		mdTopology := clusterv1.MachineDeploymentTopology{
+			Class:    "linux-worker",
+			Name:     "big-pool-of-machines",
+			Replicas: &replicas,
+			Rollout: clusterv1.MachineDeploymentTopologyRolloutSpec{
+				After: rolloutAfter,
+			},
+		}
+
+		e := generator{}
+
+		actual, err := e.computeMachineDeployment(ctx, scope, mdTopology)
+		g.Expect(err).ToNot(HaveOccurred())
+
+		actualMd := actual.Object
+		g.Expect(actualMd.Spec.Rollout.After).To(BeComparableTo(rolloutAfter))
+		g.Expect(actualMd.Spec.Rollout.Strategy).To(BeComparableTo(clusterClassMDStrategy))
+	})
+
 	t.Run("Skips setting readinessGates if not set in Cluster and ClusterClass", func(t *testing.T) {
 		g := NewWithT(t)
 

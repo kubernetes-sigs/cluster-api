@@ -561,6 +561,7 @@ generate-go-openapi: $(OPENAPI_GEN) ## Generate openapi go code for runtime SDK
 generate-modules: ## Run go mod tidy to ensure modules are up to date
 	go mod tidy
 	cd api; go mod tidy
+	cd utils; go mod tidy
 	cd $(TOOLS_DIR); go mod tidy
 	cd $(TEST_DIR); go mod tidy
 
@@ -649,6 +650,7 @@ generate-test-infra-prowjobs: $(PROWJOB_GEN) ## Generates the prowjob configurat
 lint: $(GOLANGCI_LINT) $(GOLANGCI_LINT_KAL) ## Lint the codebase
 	$(GOLANGCI_LINT) run -v $(GOLANGCI_LINT_EXTRA_ARGS)
 	cd api; $(GOLANGCI_LINT) run --config $(ROOT_DIR)/.golangci.yml -v $(GOLANGCI_LINT_EXTRA_ARGS)
+	cd utils; $(GOLANGCI_LINT) run --config $(ROOT_DIR)/.golangci.yml -v $(GOLANGCI_LINT_EXTRA_ARGS)
 	cd $(TEST_DIR); $(GOLANGCI_LINT) run --config $(ROOT_DIR)/.golangci.yml -v $(GOLANGCI_LINT_EXTRA_ARGS)
 	cd $(TOOLS_DIR); $(GOLANGCI_LINT) run --config $(ROOT_DIR)/.golangci.yml -v $(GOLANGCI_LINT_EXTRA_ARGS)
 	./hack/scripts/verify/verify-dockerfiles.sh $(HADOLINT_VER) $(HADOLINT_FAILURE_THRESHOLD)
@@ -691,7 +693,7 @@ verify-go-directive:
 
 .PHONY: verify-modules
 verify-modules: generate-modules  ## Verify go modules are up to date
-	@if !(git diff --quiet HEAD -- go.sum go.mod api/go.mod api/go.sum $(TOOLS_DIR)/go.mod $(TOOLS_DIR)/go.sum $(TEST_DIR)/go.mod $(TEST_DIR)/go.sum); then \
+	@if !(git diff --quiet HEAD -- go.sum go.mod api/go.mod api/go.sum utils/go.mod utils/go.sum $(TOOLS_DIR)/go.mod $(TOOLS_DIR)/go.sum $(TEST_DIR)/go.mod $(TEST_DIR)/go.sum); then \
 		git diff; \
 		echo "go module files are out of date"; exit 1; \
 	fi
@@ -754,9 +756,10 @@ verify-licenses: ## Verify licenses
 verify-govulncheck: $(GOVULNCHECK) ## Verify code for vulnerabilities
 	$(GOVULNCHECK) ./... && R1=$$? || R1=$$?; \
 	$(GOVULNCHECK) -C "api" ./... && R2=$$? || R2=$$?; \
-	$(GOVULNCHECK) -C "$(TOOLS_DIR)" ./... && R3=$$? || R3=$$?; \
-	$(GOVULNCHECK) -C "$(TEST_DIR)" ./... && R4=$$? || R4=$$?; \
-	if [ "$$R1" -ne "0" ] || [ "$$R2" -ne "0" ] || [ "$$R3" -ne "0" ] || [ "$$R4" -ne "0" ]; then \
+	$(GOVULNCHECK) -C "utils" ./... && R3=$$? || R3=$$?; \
+	$(GOVULNCHECK) -C "$(TOOLS_DIR)" ./... && R4=$$? || R4=$$?; \
+	$(GOVULNCHECK) -C "$(TEST_DIR)" ./... && R5=$$? || R5=$$?; \
+	if [ "$$R1" -ne "0" ] || [ "$$R2" -ne "0" ] || [ "$$R3" -ne "0" ] || [ "$$R4" -ne "0" ] || [ "$$R5" -ne "0" ]; then \
 		exit 1; \
 	fi
 
@@ -899,6 +902,7 @@ setup-envtest: $(SETUP_ENVTEST) ## Set up envtest (download kubebuilder assets)
 .PHONY: test-no-race
 test-no-race: $(SETUP_ENVTEST) ## Run unit and integration tests
 	cd api; KUBEBUILDER_ASSETS="$(KUBEBUILDER_ASSETS)" go test ./... $(TEST_ARGS)
+	cd utils; KUBEBUILDER_ASSETS="$(KUBEBUILDER_ASSETS)" go test ./... $(TEST_ARGS)
 	KUBEBUILDER_ASSETS="$(KUBEBUILDER_ASSETS)" go test ./... $(TEST_ARGS)
 
 .PHONY: test
@@ -907,6 +911,7 @@ test: $(SETUP_ENVTEST) ## Run unit and integration tests with race detector
 	# To achieve that, all files with fuzz tests have the "!race" build tag, to still run fuzz tests
 	# we have an additional `go test` run that focuses on "TestFuzzyConversion".
 	cd api; KUBEBUILDER_ASSETS="$(KUBEBUILDER_ASSETS)" go test -race ./... $(TEST_ARGS)
+	cd utils; KUBEBUILDER_ASSETS="$(KUBEBUILDER_ASSETS)" go test -race ./... $(TEST_ARGS)
 	KUBEBUILDER_ASSETS="$(KUBEBUILDER_ASSETS)" go test -race ./... $(TEST_ARGS)
 	$(MAKE) test-conversions TEST_ARGS="$(TEST_ARGS)"
 
@@ -926,6 +931,9 @@ test-junit: $(SETUP_ENVTEST) $(GOTESTSUM) ## Run unit and integration tests with
 	cd api; set +o errexit; (KUBEBUILDER_ASSETS="$(KUBEBUILDER_ASSETS)" go test -race -json ./... $(TEST_ARGS); echo $$? > $(ARTIFACTS)/junit-api.exitcode) | tee $(ARTIFACTS)/junit-api.stdout
 	$(GOTESTSUM) --junitfile $(ARTIFACTS)/junit-api.xml --raw-command cat $(ARTIFACTS)/junit-api.stdout
 	exit $$(cat $(ARTIFACTS)/junit-api.exitcode)
+	cd utils; set +o errexit; (KUBEBUILDER_ASSETS="$(KUBEBUILDER_ASSETS)" go test -race -json ./... $(TEST_ARGS); echo $$? > $(ARTIFACTS)/junit-utils.exitcode) | tee $(ARTIFACTS)/junit-utils.stdout
+	$(GOTESTSUM) --junitfile $(ARTIFACTS)/junit-utils.xml --raw-command cat $(ARTIFACTS)/junit-utils.stdout
+	exit $$(cat $(ARTIFACTS)/junit-utils.exitcode)
 	set +o errexit; (KUBEBUILDER_ASSETS="$(KUBEBUILDER_ASSETS)" go test -run "^TestFuzzyConversion$$" -json ./... $(TEST_ARGS); echo $$? > $(ARTIFACTS)/junit-fuzz.exitcode) | tee $(ARTIFACTS)/junit-fuzz.stdout
 	$(GOTESTSUM) --junitfile $(ARTIFACTS)/junit-fuzz.xml --raw-command cat $(ARTIFACTS)/junit-fuzz.stdout
 	exit $$(cat $(ARTIFACTS)/junit-fuzz.exitcode)
@@ -937,6 +945,8 @@ test-cover: ## Run unit and integration tests and generate a coverage report
 	go tool cover -html=coverage.out -o coverage.html
 	go tool cover -func=api/coverage.out -o coverage-api.txt
 	go tool cover -html=api/coverage.out -o coverage-api.html
+	go tool cover -func=utils/coverage.out -o coverage-utils.txt
+	go tool cover -html=utils/coverage.out -o coverage-utils.html
 
 .PHONY: test-infrastructure
 test-infrastructure: $(SETUP_ENVTEST) ## Run unit and integration tests with race detector for docker infrastructure provider

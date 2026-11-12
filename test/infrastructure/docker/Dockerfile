@@ -41,6 +41,9 @@ COPY go.sum go.sum
 COPY api/go.mod api/go.mod
 COPY api/go.sum api/go.sum
 
+COPY utils/go.mod utils/go.mod
+COPY utils/go.sum utils/go.sum
+
 # Essentially, change directories into the test go module
 WORKDIR /workspace/test
 # Copy the Go Modules manifests

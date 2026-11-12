@@ -46,8 +46,8 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
-	runtimecatalog "sigs.k8s.io/cluster-api/exp/runtime/catalog"
-	"sigs.k8s.io/cluster-api/exp/runtime/server"
+	runtimecatalog "sigs.k8s.io/cluster-api/api/runtime/catalog"
+	"sigs.k8s.io/cluster-api/utils/runtimesdk/server"
 )
 
 var (
@@ -192,14 +192,14 @@ Developers are fully responsible for all other elements of the design of a Runti
   metric endpoint).
 
 When using Golang the Runtime Extension developer can benefit from the following packages (provided by the
-`sigs.k8s.io/cluster-api` module) as shown in the example above:
+`sigs.k8s.io/cluster-api/api` and `sigs.k8s.io/cluster-api/utils` modules) as shown in the example above:
 
 - `api/runtime/hooks/v1alpha1` contains the Runtime Hook Golang API types, which are also used to generate the
   OpenAPI specification.
-- `exp/runtime/catalog` provides the `Catalog` object to register Runtime Hook definitions. The `Catalog` is then
+- `api/runtime/catalog` provides the `Catalog` object to register Runtime Hook definitions. The `Catalog` is then
   used by the `server` package to handle requests. `Catalog` is similar to the `runtime.Scheme` of the
   `k8s.io/apimachinery/pkg/runtime` package, but it is designed to store Runtime Hook registrations.
-- `exp/runtime/server` provides a `Server` object which makes it easy to implement a Runtime Extension server.
+- `utils/runtimesdk/server` provides a `Server` object which makes it easy to implement a Runtime Extension server.
   The `Server` will automatically handle tasks like Marshalling/Unmarshalling requests and responses. A Runtime
   Extension developer only has to implement a strongly typed function that contains the actual logic.
 

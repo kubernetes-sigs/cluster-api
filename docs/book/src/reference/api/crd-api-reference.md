@@ -2292,7 +2292,7 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `nodeDrainTimeoutSeconds` _integer_ | nodeDrainTimeoutSeconds is the total amount of time that the controller will spend on draining a node.<br />The default value is 0, meaning that the node can be drained without any time limitations.<br />NOTE: nodeDrainTimeoutSeconds is different from `kubectl drain --timeout`<br />NOTE: This value can be overridden while defining a Cluster.Topology. |  | Minimum: 0 <br />Optional: \{\} <br /> |
 | `nodeVolumeDetachTimeoutSeconds` _integer_ | nodeVolumeDetachTimeoutSeconds is the total amount of time that the controller will spend on waiting for all volumes<br />to be detached. The default value is 0, meaning that the volumes can be detached without any time limitations.<br />NOTE: This value can be overridden while defining a Cluster.Topology. |  | Minimum: 0 <br />Optional: \{\} <br /> |
-| `nodeDeletionTimeoutSeconds` _integer_ | nodeDeletionTimeoutSeconds defines how long the controller will attempt to delete the Node that the Machine<br />hosts after the Machine is marked for deletion. A duration of 0 will retry deletion indefinitely.<br />Defaults to 10 seconds.<br />NOTE: This value can be overridden while defining a Cluster.Topology. |  | Minimum: 0 <br />Optional: \{\} <br /> |
+| `nodeDeletionTimeoutSeconds` _integer_ | nodeDeletionTimeoutSeconds defines how long the controller will attempt to delete the Node that the Machine<br />hosts, measured from when the deletion of the Node started. A duration of 0 will retry deletion indefinitely.<br />Defaults to 10 seconds.<br />NOTE: This value can be overridden while defining a Cluster.Topology. |  | Minimum: 0 <br />Optional: \{\} <br /> |
 
 
 #### ControlPlaneClassMachineInfrastructureTemplate
@@ -2444,7 +2444,7 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `nodeDrainTimeoutSeconds` _integer_ | nodeDrainTimeoutSeconds is the total amount of time that the controller will spend on draining a node.<br />The default value is 0, meaning that the node can be drained without any time limitations.<br />NOTE: nodeDrainTimeoutSeconds is different from `kubectl drain --timeout` |  | Minimum: 0 <br />Optional: \{\} <br /> |
 | `nodeVolumeDetachTimeoutSeconds` _integer_ | nodeVolumeDetachTimeoutSeconds is the total amount of time that the controller will spend on waiting for all volumes<br />to be detached. The default value is 0, meaning that the volumes can be detached without any time limitations. |  | Minimum: 0 <br />Optional: \{\} <br /> |
-| `nodeDeletionTimeoutSeconds` _integer_ | nodeDeletionTimeoutSeconds defines how long the controller will attempt to delete the Node that the Machine<br />hosts after the Machine is marked for deletion. A duration of 0 will retry deletion indefinitely.<br />Defaults to 10 seconds. |  | Minimum: 0 <br />Optional: \{\} <br /> |
+| `nodeDeletionTimeoutSeconds` _integer_ | nodeDeletionTimeoutSeconds defines how long the controller will attempt to delete the Node that the Machine<br />hosts, measured from when the deletion of the Node started. A duration of 0 will retry deletion indefinitely.<br />Defaults to 10 seconds. |  | Minimum: 0 <br />Optional: \{\} <br /> |
 
 
 #### ControlPlaneTopologyRolloutSpec
@@ -2749,7 +2749,7 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `nodeDrainTimeoutSeconds` _integer_ | nodeDrainTimeoutSeconds is the total amount of time that the controller will spend on draining a node.<br />The default value is 0, meaning that the node can be drained without any time limitations.<br />NOTE: nodeDrainTimeoutSeconds is different from `kubectl drain --timeout` |  | Minimum: 0 <br />Optional: \{\} <br /> |
 | `nodeVolumeDetachTimeoutSeconds` _integer_ | nodeVolumeDetachTimeoutSeconds is the total amount of time that the controller will spend on waiting for all volumes<br />to be detached. The default value is 0, meaning that the volumes can be detached without any time limitations. |  | Minimum: 0 <br />Optional: \{\} <br /> |
-| `nodeDeletionTimeoutSeconds` _integer_ | nodeDeletionTimeoutSeconds defines how long the controller will attempt to delete the Node that the Machine<br />hosts after the Machine is marked for deletion. A duration of 0 will retry deletion indefinitely.<br />Defaults to 10 seconds. |  | Minimum: 0 <br />Optional: \{\} <br /> |
+| `nodeDeletionTimeoutSeconds` _integer_ | nodeDeletionTimeoutSeconds defines how long the controller will attempt to delete the Node that the Machine<br />hosts, measured from when the deletion of the Node started. A duration of 0 will retry deletion indefinitely.<br />Defaults to 10 seconds. |  | Minimum: 0 <br />Optional: \{\} <br /> |
 
 
 #### MachineDeletionStatus
@@ -2939,7 +2939,7 @@ _Appears in:_
 | `order` _[MachineSetDeletionOrder](#machinesetdeletionorder)_ | order defines the order in which Machines are deleted when downscaling.<br />Defaults to "Random". Valid values are "Random", "Newest", "Oldest" |  | Enum: [Random Newest Oldest] <br />Optional: \{\} <br /> |
 | `nodeDrainTimeoutSeconds` _integer_ | nodeDrainTimeoutSeconds is the total amount of time that the controller will spend on draining a node.<br />The default value is 0, meaning that the node can be drained without any time limitations.<br />NOTE: nodeDrainTimeoutSeconds is different from `kubectl drain --timeout`<br />NOTE: This value can be overridden while defining a Cluster.Topology using this MachineDeploymentClass. |  | Minimum: 0 <br />Optional: \{\} <br /> |
 | `nodeVolumeDetachTimeoutSeconds` _integer_ | nodeVolumeDetachTimeoutSeconds is the total amount of time that the controller will spend on waiting for all volumes<br />to be detached. The default value is 0, meaning that the volumes can be detached without any time limitations.<br />NOTE: This value can be overridden while defining a Cluster.Topology using this MachineDeploymentClass. |  | Minimum: 0 <br />Optional: \{\} <br /> |
-| `nodeDeletionTimeoutSeconds` _integer_ | nodeDeletionTimeoutSeconds defines how long the controller will attempt to delete the Node that the Machine<br />hosts after the Machine is marked for deletion. A duration of 0 will retry deletion indefinitely.<br />Defaults to 10 seconds.<br />NOTE: This value can be overridden while defining a Cluster.Topology using this MachineDeploymentClass. |  | Minimum: 0 <br />Optional: \{\} <br /> |
+| `nodeDeletionTimeoutSeconds` _integer_ | nodeDeletionTimeoutSeconds defines how long the controller will attempt to delete the Node that the Machine<br />hosts, measured from when the deletion of the Node started. A duration of 0 will retry deletion indefinitely.<br />Defaults to 10 seconds.<br />NOTE: This value can be overridden while defining a Cluster.Topology using this MachineDeploymentClass. |  | Minimum: 0 <br />Optional: \{\} <br /> |
 
 
 #### MachineDeploymentClassNamingSpec
@@ -3330,7 +3330,7 @@ _Appears in:_
 | `order` _[MachineSetDeletionOrder](#machinesetdeletionorder)_ | order defines the order in which Machines are deleted when downscaling.<br />Defaults to "Random". Valid values are "Random", "Newest", "Oldest" |  | Enum: [Random Newest Oldest] <br />Optional: \{\} <br /> |
 | `nodeDrainTimeoutSeconds` _integer_ | nodeDrainTimeoutSeconds is the total amount of time that the controller will spend on draining a node.<br />The default value is 0, meaning that the node can be drained without any time limitations.<br />NOTE: nodeDrainTimeoutSeconds is different from `kubectl drain --timeout` |  | Minimum: 0 <br />Optional: \{\} <br /> |
 | `nodeVolumeDetachTimeoutSeconds` _integer_ | nodeVolumeDetachTimeoutSeconds is the total amount of time that the controller will spend on waiting for all volumes<br />to be detached. The default value is 0, meaning that the volumes can be detached without any time limitations. |  | Minimum: 0 <br />Optional: \{\} <br /> |
-| `nodeDeletionTimeoutSeconds` _integer_ | nodeDeletionTimeoutSeconds defines how long the controller will attempt to delete the Node that the Machine<br />hosts after the Machine is marked for deletion. A duration of 0 will retry deletion indefinitely.<br />Defaults to 10 seconds. |  | Minimum: 0 <br />Optional: \{\} <br /> |
+| `nodeDeletionTimeoutSeconds` _integer_ | nodeDeletionTimeoutSeconds defines how long the controller will attempt to delete the Node that the Machine<br />hosts, measured from when the deletion of the Node started. A duration of 0 will retry deletion indefinitely.<br />Defaults to 10 seconds. |  | Minimum: 0 <br />Optional: \{\} <br /> |
 
 
 #### MachineDeploymentTopologyRolloutSpec
@@ -4964,7 +4964,7 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `nodeDrainTimeoutSeconds` _integer_ | nodeDrainTimeoutSeconds is the total amount of time that the controller will spend on draining a controlplane node<br />The default value is 0, meaning that the node can be drained without any time limitations.<br />NOTE: nodeDrainTimeoutSeconds is different from `kubectl drain --timeout` |  | Minimum: 0 <br />Optional: \{\} <br /> |
 | `nodeVolumeDetachTimeoutSeconds` _integer_ | nodeVolumeDetachTimeoutSeconds is the total amount of time that the controller will spend on waiting for all volumes<br />to be detached. The default value is 0, meaning that the volumes can be detached without any time limitations. |  | Minimum: 0 <br />Optional: \{\} <br /> |
-| `nodeDeletionTimeoutSeconds` _integer_ | nodeDeletionTimeoutSeconds defines how long the machine controller will attempt to delete the Node that the Machine<br />hosts after the Machine is marked for deletion. A duration of 0 will retry deletion indefinitely.<br />If no value is provided, the default value for this property of the Machine resource will be used. |  | Minimum: 0 <br />Optional: \{\} <br /> |
+| `nodeDeletionTimeoutSeconds` _integer_ | nodeDeletionTimeoutSeconds defines how long the machine controller will attempt to delete the Node that the Machine<br />hosts, measured from when the deletion of the Node started. A duration of 0 will retry deletion indefinitely.<br />If no value is provided, the default value for this property of the Machine resource will be used. |  | Minimum: 0 <br />Optional: \{\} <br /> |
 
 
 #### KubeadmControlPlaneMachineTemplateSpec
@@ -5225,7 +5225,7 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `nodeDrainTimeoutSeconds` _integer_ | nodeDrainTimeoutSeconds is the total amount of time that the controller will spend on draining a controlplane node<br />The default value is 0, meaning that the node can be drained without any time limitations.<br />NOTE: nodeDrainTimeoutSeconds is different from `kubectl drain --timeout` |  | Minimum: 0 <br />Optional: \{\} <br /> |
 | `nodeVolumeDetachTimeoutSeconds` _integer_ | nodeVolumeDetachTimeoutSeconds is the total amount of time that the controller will spend on waiting for all volumes<br />to be detached. The default value is 0, meaning that the volumes can be detached without any time limitations. |  | Minimum: 0 <br />Optional: \{\} <br /> |
-| `nodeDeletionTimeoutSeconds` _integer_ | nodeDeletionTimeoutSeconds defines how long the machine controller will attempt to delete the Node that the Machine<br />hosts after the Machine is marked for deletion. A duration of 0 will retry deletion indefinitely.<br />If no value is provided, the default value for this property of the Machine resource will be used. |  | Minimum: 0 <br />Optional: \{\} <br /> |
+| `nodeDeletionTimeoutSeconds` _integer_ | nodeDeletionTimeoutSeconds defines how long the machine controller will attempt to delete the Node that the Machine<br />hosts, measured from when the deletion of the Node started. A duration of 0 will retry deletion indefinitely.<br />If no value is provided, the default value for this property of the Machine resource will be used. |  | Minimum: 0 <br />Optional: \{\} <br /> |
 
 
 #### KubeadmControlPlaneTemplateMachineTemplateSpec

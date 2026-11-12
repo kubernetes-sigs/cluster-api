@@ -28,6 +28,18 @@ See [Cluster API release vs contract versions](../../../reference/versions.md#cl
   
 Additional rules must be considered for a provider to work with the [clusterctl CLI](clusterctl.md).
 
+## Changing the contract
+
+Rules for Cluster API contributors changing how core Cluster API interacts with providers:
+
+- Core controllers access provider objects only through the typed accessors in `internal/contract` and
+  `controllers/external`, never by importing provider types or reading `unstructured` fields directly.
+- A change to the contract must be reflected in the contract page of the affected resource in this section, in the
+  same PR.
+- Core Cluster API must keep working with providers implementing the contract versions that are still supported.
+- Contract changes are listed in the "Contract changes" section of the [migration doc](../migrations/overview.md)
+  for the next release.
+
 ## Improving and contributing to the contract
 
 The definition of the contract between Cluster API and providers may be changed in future versions of Cluster API. 

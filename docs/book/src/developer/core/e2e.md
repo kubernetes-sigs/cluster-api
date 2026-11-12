@@ -14,6 +14,16 @@ The [Cluster API test framework] provides you a set of helper methods for gettin
 quickly. The [test E2E package] provides examples of how this can be achieved and reusable
 test specs for the most common Cluster API use cases.
 
+## Rules
+
+- E2E tests use [Ginkgo] and the [Cluster API test framework]; don't use the table-driven DSL (`DescribeTable`, `Entry`).
+- Create objects with `cluster-templates.yaml` files ([ClusterTemplate method] and [Apply method]) instead of
+  hard-coding objects ([details](#creating-objects)).
+- Never hard-code the infrastructure provider name or wait intervals; read them from the [E2E config file]
+  ([details](#writing-portable-e2e-tests)).
+- Each test spec creates its own namespace and deletes the objects it created ([details](#writing-test-specs)).
+- Label test specs so they can be focused ([details](#naming-the-test-spec)).
+
 ## Prerequisites
 
 Each E2E test requires a set of artifacts to be available:
@@ -186,6 +196,7 @@ test specs for the most common Cluster API use cases.
 <!-- links -->
 [Cluster API quick start]:  ../../user/quick-start.md
 [Cluster API test framework]: https://pkg.go.dev/sigs.k8s.io/cluster-api/test/framework?tab=doc
+[Ginkgo]: https://onsi.github.io/ginkgo/
 [Apply method]: https://pkg.go.dev/sigs.k8s.io/cluster-api/test/framework?tab=doc#Applier
 [CAPA E2E tests]: https://github.com/kubernetes-sigs/cluster-api-provider-aws/blob/main/scripts/ci-e2e.sh
 [CAPG E2E tests]: https://github.com/kubernetes-sigs/cluster-api-provider-gcp/blob/main/scripts/ci-e2e.sh

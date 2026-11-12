@@ -14,6 +14,22 @@ In Cluster API we strive to follow three principles while implementing logging:
   As Cluster API contributors you are not only the ones that implement logs, but also the first users of them. Use it!
   Provide feedback!
 
+## Rules
+
+- Use contextual logging (`ctrl.LoggerFrom(ctx)`, `ctrl.LoggerInto(ctx, log)`) ([details](#contextual-logging)).
+- At the start of the reconcile, add the objects the reconciled object belongs to, e.g. its `Cluster`, to the
+  logger; add the objects you act on (created, updated, deleted) as key/value pairs too ([details](#keyvalue-pairs)).
+- Log Kubernetes objects with `klog.KObj(obj)` or `klog.KRef(namespace, name)`, never as a plain name string.
+- Keys for objects are the Kind in upper camel case (`Cluster`, `MachineSet`, `AWSCluster`); all other keys are
+  lower camel case (`resourceVersion`, `oldReplicas`).
+- Use the well-known keys `reason` for why a change happened and `diff` for the diff that led to or resulted from a change.
+- Messages start with a capital letter, have no trailing period, and use Kind and name of the object, e.g.
+  `Created MachineSet foo-bar` ([details](#log-messages)).
+- `log.Info` (level 0-3) documents state changes; skip and requeue paths use `log.V(5).Info` ([details](#log-levels)).
+- Log lines repeated on every reconcile while waiting for something go through the log rate limiter, with a matching
+  `Forget` when the wait ends ([details](#log-rate-limiter)).
+- Truncate durations, e.g. `time.Since(t).Truncate(time.Second/10)`.
+
 ## Upstream Alignment
 
 Kubernetes defines a set of [logging conventions](https://git.k8s.io/community/contributors/devel/sig-instrumentation/logging.md),
@@ -107,6 +123,26 @@ logs, e.g.
 - key `reason` MUST be used when adding details about WHY a change happened.
 - key `diff` MUST be used when documenting the diff in an object that either lead to a change, or that is resulting from a change.
 
+For example, the MachineDeployment controller adds the Cluster at the start of the reconcile, adds the MachineSet
+while acting on it, and uses `reason` to explain why a MachineSet is rolled out:
+
+```go
+log := ctrl.LoggerFrom(ctx)
+log = log.WithValues("Cluster", klog.KRef(md.Namespace, md.Spec.ClusterName))
+ctx = ctrl.LoggerInto(ctx, log)
+
+for _, ms := range machineSets {
+	log := log.WithValues("MachineSet", klog.KObj(ms))
+	ctx := ctrl.LoggerInto(ctx, log)
+	...
+}
+
+log.Info(fmt.Sprintf("MachineSet %s needs rollout", oldMS.Name), "MachineSet", klog.KObj(oldMS), "reason", createReason)
+```
+
+Don't add a key/value pair that is already in the logger (e.g. the reconciled object, which controller runtime adds),
+and don't use different keys for the same information in different places.
+
 ## Log Messages
 
 - A Message MUST always start with a capital letter.
@@ -136,10 +172,30 @@ for log levels; as a small integration on the above guidelines we would like to 
 - Don’t use verbosity higher than 5.
 
 Log lines that are repeated on every reconcile while a controller is waiting for something (e.g. waiting for the infrastructure
-of a Machine to be provisioned) should not be logged at every reconcile; use the log rate limiter (`util/log`) instead.
+of a Machine to be provisioned) should not be logged at every reconcile; use the [log rate limiter](#log-rate-limiter) instead.
 
 We are using log level 2 as a default verbosity for all core Cluster API
 controllers as recommended by the Kubernetes guidelines.
+
+### Log rate limiter
+
+The log rate limiter in `util/log` logs a message at most once per interval for a given key. Once the wait is over,
+call `Forget` so the next wait for the same object is logged immediately.
+
+```go
+func waitingForInfrastructureDeletionKey(m *clusterv1.Machine) logutil.Key {
+	return logutil.NewKey("WaitingForInfrastructureDeletion", logutil.WithObjects(m))
+}
+
+if !infrastructureDeleted {
+	r.logRateLimiter.InfoAtMostEvery(log, logRateLimitInterval, waitingForInfrastructureDeletionKey(m),
+		"Waiting for infrastructure to be deleted", m.Spec.InfrastructureRef.Kind, klog.KRef(m.Namespace, m.Spec.InfrastructureRef.Name))
+	return ctrl.Result{}, nil
+}
+r.logRateLimiter.Forget(waitingForInfrastructureDeletionKey(m))
+```
+
+See `core/reconcilers/machine` for a complete example.
 
 ## Trade-offs
 

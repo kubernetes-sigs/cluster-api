@@ -5,6 +5,20 @@ This document presents testing guidelines and conventions for Cluster API.
 IMPORTANT: improving and maintaining this document is a collaborative effort, so we are encouraging constructive
 feedback and suggestions.
 
+## Rules
+
+- Unit and integration tests use [go test] and [gomega] (`g := NewWithT(t)` in each test and each `t.Run`); [Ginkgo]
+  is only used for E2E tests ([details](#quick-reference)).
+- Core tests use the generic providers and builders from `util/test/builder`, never a concrete provider
+  ([details](#generic-providers)).
+- Use no client for pure functions, the [fakeclient] for reconciler logic, and [envtest] only for behaviour that needs
+  a real API server ([details](#which-kind-of-test)).
+- Test by layers: don't re-test edge cases of lower-level functions that have their own tests ([details](#test-maintainability)).
+- Extend existing table-driven tests instead of adding parallel ones; keep one `_test.go` file per source file
+  ([details](#writing-unit-and-integration-tests)).
+- Never use `time.Sleep`; use `g.Eventually(func(g Gomega) {...})` and avoid tight timeouts that cause flakes.
+- Don't add tests for conversion code; the [fuzz conversion tests](#fuzz-testing-for-api-conversion) already cover it.
+
 ## Unit tests
 
 Unit tests focus on individual pieces of logic - a single func - and don't require any additional services to execute. They should
@@ -91,6 +105,63 @@ but in this case the distinctive value of the two layers of testing is determine
 - integration test are user story driven: as a user, I want express some desired state using API objects, wait for the
   reconcilers to take action, check the new system state.
 
+## Writing unit and integration tests
+
+Good examples to copy from are in `core/reconcilers/machine/` (`suite_test.go`, `machine_controller_test.go`).
+
+### Which kind of test?
+
+- **Pure function or small unit**: no client at all.
+- **Reconciler logic that doesn't need a real API server**: [fakeclient], e.g.
+  `fake.NewClientBuilder().WithScheme(...).WithObjects(...)`. Add `.WithStatusSubresource(...)` for the types whose
+  `.status` the code updates, and `.WithIndex(...)` if the code lists with field selectors.
+- **Behaviour that depends on a real API server** (webhooks, SSA, managed fields, watches, garbage collection, CRD
+  schemas, interaction between controllers): [envtest], written as user stories: create objects, wait for the
+  reconcilers, assert on the resulting state.
+
+### Structure
+
+- Prefer one table-driven test with many cases over many `TestXxx` functions that only differ in input and expectation.
+  Use `testCases := []struct{ name string; ... }{...}` with `tc` in the loop, and put the expected result in the table.
+- When a function gains a parameter or a new branch, extend the existing table (add the new field to every case) and
+  add cases next to the existing ones, instead of adding a parallel test.
+- One test file per source file: put new tests into the existing `<file>_test.go`.
+- When a function's contract changes or code is removed, update or delete the affected tests in the same change.
+- Test functions come first in the file, helpers at the end, grouped by purpose. Reuse helpers shared in the package
+  instead of duplicating them, and add builder methods to `util/test/builder` instead of hand-assembling the same
+  object in several tests.
+- Inline values in table cases so each case is readable on its own; add constants only for values shared across many
+  tests whose identity matters.
+
+### Assertions
+
+- Use `g.Expect(err).ToNot(HaveOccurred())`, `Equal` for simple values and `BeComparableTo` for structs and objects
+  (it prints a diff). Don't add messages to assertions.
+- Assertions must catch a wrong implementation: compare content, not just length, and when nothing should be created
+  or changed, assert exactly that.
+- Match the entire error message, unless the full message would be too verbose.
+- Case names are sentences that state what differs from their neighbours, e.g. "should add the finalizer if missing".
+
+### envtest
+
+- Each package that needs envtest has a `suite_test.go` with `TestMain` calling `envtest.Run(...)`, which registers the
+  reconcilers under test. Add new reconcilers there; don't start a second manager inside a test.
+- Create a namespace per test with `env.CreateNamespace(ctx, "test-<feature>")` and clean up all objects with
+  `env.Cleanup(ctx, ...)` (or `env.CleanupAndWait` if later steps depend on the objects being gone).
+- Assert asynchronously with `g.Eventually(func(g Gomega) { ... }).Should(Succeed())`, so failures report the actual
+  mismatch; use `g.Consistently` to prove that something does *not* happen. Never use `time.Sleep`.
+- The default `Eventually` timeout and polling interval are set in `suite_test.go`; only override them for tests that
+  are genuinely slower.
+- Don't call `t.Parallel()` unless the package already does; many tests share a single envtest.
+
+### Testing seams
+
+- To make production code testable, use unexported `override<Func>Func` fields grouped under `// Only used for testing.`
+  (see the KubeadmControlPlane reconciler) instead of exporting functions.
+- Reconcilers that use `DeferNextReconcileUntilCacheUpToDate` need the fake controller from `util/controller` in tests.
+- Don't weaken a test to make it pass (e.g. by dropping the part that exercises the controller); fix the fake or the
+  test environment instead.
+
 ## Running unit and integration tests
 
 Run `make test` to execute all unit and integration tests.
@@ -105,6 +176,8 @@ Integration tests use the [envtest](https://github.com/kubernetes-sigs/controlle
 > When running individual tests, it could happen that a testenv is started if this is required by the `suite_test.go` file.
 > However, if the tests you are running don't require testenv (i.e. they are only using fake client), you can skip the testenv
 > creation by setting the environment variable `CAPI_DISABLE_TEST_ENV` (to any non-empty value).
+> Don't set it when running all the tests of a package that also contains envtest-based tests; those tests fail
+> because the test environment is not started.
 >
 > To debug testenv unit tests it is possible to use:
 > * `CAPI_TEST_ENV_KUBECONFIG` to write out a kubeconfig for the testenv to a file location.
@@ -586,7 +659,7 @@ More specifically, in order to use Gomega with go test you should
  ```golang
  func TestFarmHasCow(t *testing.T) {
      g := NewWithT(t)
-     g.Expect(f.HasCow()).To(BeTrue(), "Farm should have cow")
+     g.Expect(f.HasCow()).To(BeTrue())
  }
 ```
 

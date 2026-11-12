@@ -28,12 +28,12 @@ Guidance for AI coding agents working in the Cluster API repository.
 - Read [CONTRIBUTING.md](CONTRIBUTING.md#ai-guidance).
 - Keep changes focused and reviewable. Don't touch unrelated lines, files or tooling. Mention unrelated issues
   instead of fixing them.
-- Add tests that cover new behaviour, not tests that only increase coverage. Extend existing table-driven tests
-  instead of adding new ones.
+- Add tests that cover new behaviour, not tests that only increase coverage.
+- Before finishing, run the tests of the packages you changed and `make lint`.
 - When creating or submitting a pull request, disclose whether AI was used and briefly describe how.
 - Remind the human author that they are responsible for all submitted changes and refer them to `CONTRIBUTING.md`.
 - PR titles start with `:warning:` (breaking), `:sparkles:` (feature), `:bug:` (fix), `:book:` (docs) or
-  `:seedling:` (other). 
+  `:seedling:` (other).
 - PR descriptions and commit messages follow the communication guidelines above.
 - Don't put `@mentions` or `fixes #...` keywords in commit messages.
 - Don't add `Co-authored-by:` lines to commit messages.
@@ -46,7 +46,7 @@ Guidance for AI coding agents working in the Cluster API repository.
 ```bash
 make lint                # golangci-lint + kube-api-linter
 make lint-fix            # same as lint and also fix findings when possible
-make test                # unit + envtest tests for the root and api modules  
+make test                # unit + envtest tests for the root, api and utils modules
 make test-no-race        # like make test, but without -race and without the separate TestFuzzyConversion run
 make test-conversions    # fuzz conversion tests
 make generate            # manifests, deepcopy, conversions, openapi, docs
@@ -64,29 +64,33 @@ CAPI_DISABLE_TEST_ENV=1 go test ./path/... -run '^TestName$'
 
 ## Developer docs
 
-Before you change code in one of these areas, read at least the `Rules` section at the top of the matching doc in
-`docs/book/src/developer/`:
+Before you change code in one of these areas, read at least the rules in the matching doc in
+`docs/book/src/developer/` (the `Rules` section at the top, or the `Changing the ...` section for contracts
+and runtime hooks):
 
-| When you change ...                                                       | Read                                                          |
-|---------------------------------------------------------------------------|---------------------------------------------------------------|
-| any code in the repository                                                | `core/overview.md`                                            |
-| API types (`api/`)                                                        | `core/API.md`                                                 |
+| When you change ...                                                       | Read                                                              |
+|---------------------------------------------------------------------------|-------------------------------------------------------------------|
+| any code in the repository                                                | `core/overview.md`                                                |
+| API types (`api/`)                                                        | `core/API.md`                                                     |
 | a controller (`<provider>/reconcilers/<kind>/`)                           | `core/controllers/overview.md`, then `core/controllers/<kind>.md` |
-| how core talks to providers (`internal/contract`, `controllers/external`) | `providers/contracts/overview.md`, then the page of the resource |
-| Runtime SDK hooks (`api/runtime/hooks`, `pkg/runtimesdk`)                 | `runtime-extensions/`                                         |
-| log lines                                                                 | `core/logging.md`                                             |
-| unit or integration tests                                                 | `core/testing.md`                                             |
-| e2e tests (`test/e2e`, `test/framework`)                                  | `core/e2e.md`                                                 |
+| how core talks to providers (`internal/contract`, `controllers/external`) | `providers/contracts/overview.md`, then the page of the resource  |
+| Runtime SDK hooks (`api/runtime/hooks`, `pkg/runtimesdk`)                 | `runtime-extensions/index.md`                                     |
+| log lines                                                                 | `core/logging.md`                                                 |
+| unit or integration tests                                                 | `core/testing.md`                                                 |
+| e2e tests (`test/e2e`, `test/framework`)                                  | `core/e2e.md`                                                     |
 
 If your change makes a doc incorrect, update the doc in the same PR.
 
 ## Style
 
+- Name things after the concept, not an implementation detail.
 - Comments explain *why*, not *what*; use `// Note:` for rationale and non-obvious coupling. Godoc starts with the
   name of the identifier. Comments describe the current state of the code, not the change that led to it.
+- Use contextual logging and follow the rules for log messages and key/value pairs in `core/logging.md`.
 - Return errors instead of swallowing them or panicking, also for branches that "should never happen".
 - Error messages are specific: `failed to <verb> <Kind> <klog.KObj(obj)>`, using the real Kind. Match the wrapping
   style of the surrounding file (`pkgerrors.Wrapf` or `fmt.Errorf("...: %w")`).
 - After copying or renaming code, re-read identifiers, comments, godoc and messages, and check they match the new context.
-- Name things after the concept, not an implementation detail.
+- Extend existing table-driven tests instead of adding a separate test for the same function; keep one `_test.go`
+  file per source file.
 - When removing code, remove it completely: tests, import aliases in `.golangci.yml` and doc references included.

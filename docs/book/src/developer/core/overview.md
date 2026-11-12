@@ -32,7 +32,7 @@ Please refer to [Developing providers](../providers/overview.md) for documentati
 The repository ships several controller-manager binaries that share code: core Cluster API (`core/main.go`),
 kubeadm bootstrap / CABPK (`bootstrap/kubeadm/main.go`), kubeadm control plane / KCP (`controlplane/kubeadm/main.go`),
 CAPD (`test/infrastructure/docker/main.go`), the Runtime SDK test extension (`test/extension/main.go`), plus the
-`clusterctl` CLI (`cmd/clusterctl`).
+`clusterctl` CLI (`cmd/clusterctl/main.go`).
 
 Each provider uses the same layout:
 
@@ -59,8 +59,9 @@ Other important packages:
   (server for extension authors).
 - `util/patch`, `util/conditions`, `util/collections`, `util/predicates`, `util/annotations`: helpers used by all
   controllers, including providers; `util/test/builder`: generic test providers and objects.
-- `internal/util/ssa`: server-side apply helpers (topology and KCP use SSA with managed-field-aware diffing).
+- `internal/util/ssa`: server-side apply helpers used by controllers when there is a use case that
+  needs SSA.
 - `feature/`: feature gates.
 
 KCP and MachineSet share logic in places (e.g. creating BootstrapConfig and InfraMachine, managedFields cleanup).
-Keep the code and comments of both identical, and move code to a shared helper when it is genuinely reused.
+Keep the code and comments of both a similar as possible, and move code to a shared helper when it is genuinely reused.

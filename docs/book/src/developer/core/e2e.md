@@ -17,12 +17,12 @@ test specs for the most common Cluster API use cases.
 ## Rules
 
 - E2E tests use [Ginkgo] and the [Cluster API test framework]; don't use the table-driven DSL (`DescribeTable`, `Entry`).
+- Label test specs so they can be run in focused groups ([details](#naming-the-test-spec)).
+- Each test must create its own namespace and delete the objects it created ([details](#writing-test-specs)).
 - Create objects with `cluster-templates.yaml` files ([ClusterTemplate method] and [Apply method]) instead of
   hard-coding objects ([details](#creating-objects)).
 - Never hard-code the infrastructure provider name or wait intervals; read them from the [E2E config file]
   ([details](#writing-portable-e2e-tests)).
-- Each test spec creates its own namespace and deletes the objects it created ([details](#writing-test-specs)).
-- Label test specs so they can be focused ([details](#naming-the-test-spec)).
 
 ## Prerequisites
 

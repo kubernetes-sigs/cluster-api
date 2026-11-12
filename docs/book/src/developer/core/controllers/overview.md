@@ -21,11 +21,11 @@ This section of the book provides an overview about "core" controllers in Cluste
 - Create a `patch.NewHelper` at the start of the reconcile and patch the object and its status in a deferred call.
 - After a successful write, call `DeferNextReconcileUntilCacheUpToDate`; call `ClearConsistencyStore` when the object
   is not found and before removing its finalizer ([details](#stale-cache-mitigation)).
-- Every early return must have a clear trigger for the next reconcile: a watch, a requeue, or a returned error
-  ([details](#errors-and-requeues)).
-- Return an error for "should never happen" branches instead of swallowing it, skipping or panicking.
-- Error messages follow the format `failed to <verb> <Kind> <klog.KObj(obj)>` with the real Kind.
-- Use the log rate limiter for log lines repeated while waiting for something (see [Logging](../logging.md#log-rate-limiter)).
+- Every return must have a clear trigger for the next reconcile: a watch, a requeue, or a returned error
+  ([details](#reconcile-results-requeues-and-errors)).
+- Cache and client configuration (watched types, `ByObject` selectors, `DynamicCache` object types, the secret
+  caching client) lives in `<provider>/setup` and is shared by `main.go` and the envtest suites; change it there,
+  not in `main.go` or a `suite_test.go`.
 
 ### Controller reentrancy
 
@@ -68,16 +68,26 @@ r.controller.DeferNextReconcileUntilCacheUpToDate(machineSet, capicontrollerutil
 See `core/reconcilers/machineset` for a complete example, including tests using the fake controller from
 `util/controller/controller_fake.go`.
 
-### Errors and requeues
+### Reconcile results (requeues and errors)
 
-Before adding an early return or a new error path, make sure you can answer:
+A reconcile can complete with one of the following results:
+
+- done, e.g. `return ctrl.Result{}, nil`: the next reconcile is triggered by a watch event or the resync period.
+- requeue after a delay, e.g. `return ctrl.Result{RequeueAfter: 30 * time.Second}, nil`.
+- error, e.g. `return ctrl.Result{}, err`: the request is requeued with exponential backoff. Don't set `RequeueAfter`
+  together with an error: controller-runtime ignores the result when the error is not nil.
+
+Before adding a new return or a new error path, make sure you can answer:
 
 - What triggers the next reconcile after this return (a watch on a related object, `RequeueAfter`, or a returned error)?
-  Can the controller get stuck?
-- How is a failed or timed-out step retried?
+- How is a failed or timed-out reconcile retried?
 - What happens on partial failure, NotFound and stale cache?
+- Can the controller get stuck, e.g. waiting for a long-running operation that never completes?
 - Can a change in defaulting (e.g. a feature gate) cause a rollout of existing Machines?
 
-Return errors instead of swallowing them, also for branches that "should never happen", and check `err` before using a
-result. Error messages are specific and use the real Kind and `klog.KObj`/`klog.KRef`, e.g.
-`failed to delete InfraMachine` is too generic, `failed to delete DockerMachine default/md-0-abcde` is not.
+Also:
+
+- Return errors instead of swallowing them, also for branches that "should never happen", and check `err` before
+  using a result.
+- Error messages must be specific and use the real Kind and `klog.KObj`/`klog.KRef`, e.g.
+  `failed to delete InfraMachine` is too generic, `failed to delete DockerMachine default/md-0-abcde` is not.

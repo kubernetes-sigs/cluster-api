@@ -13,10 +13,6 @@
 The ClusterClass feature introduces a new way to create clusters which reduces boilerplate and enables flexible and powerful customization of clusters.
 ClusterClass is a powerful abstraction implemented on top of existing abstractions and offers a set of tools and operations to streamline cluster lifecycle management while maintaining the same underlying API.
 
-**Feature gate name**: `ClusterTopology`
-
-**Variable name to enable/disable the feature gate**: `CLUSTER_TOPOLOGY`
-
 Additional documentation:
 * Background information: [ClusterClass and Managed Topologies CAEP](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20210526-cluster-class-and-managed-topologies.md)
 * For ClusterClass authors:

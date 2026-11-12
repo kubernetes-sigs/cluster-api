@@ -45,11 +45,10 @@ import (
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
 	runtimev1 "sigs.k8s.io/cluster-api/api/runtime/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/external"
-	runtimeclient "sigs.k8s.io/cluster-api/exp/runtime/client"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/contract"
-	internalruntimeclient "sigs.k8s.io/cluster-api/internal/runtime/client"
 	"sigs.k8s.io/cluster-api/internal/topology/variables"
+	runtimeclient "sigs.k8s.io/cluster-api/pkg/runtimesdk/client"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/cache"
 	capicontrollerutil "sigs.k8s.io/cluster-api/util/controller"
@@ -503,7 +502,7 @@ func (r *Reconciler) extensionConfigToClusterClass(ctx context.Context, o client
 		}
 		for _, patch := range clusterClass.Spec.Patches {
 			if patch.External != nil && patch.External.DiscoverVariablesExtension != "" {
-				extName, err := internalruntimeclient.ExtensionNameFromHandlerName(patch.External.DiscoverVariablesExtension)
+				extName, err := runtimeclient.ExtensionNameFromHandlerName(patch.External.DiscoverVariablesExtension)
 				if err != nil {
 					log.Error(err, "failed to reconcile ClusterClass for ExtensionConfig")
 					continue

@@ -37,11 +37,11 @@ import (
 	"sigs.k8s.io/cluster-api/core/reconcilers/topology/cluster/patches/external"
 	"sigs.k8s.io/cluster-api/core/reconcilers/topology/cluster/patches/inline"
 	"sigs.k8s.io/cluster-api/core/reconcilers/topology/cluster/patches/variables"
-	runtimeclient "sigs.k8s.io/cluster-api/exp/runtime/client"
 	"sigs.k8s.io/cluster-api/exp/topology/scope"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/contract"
 	patchutil "sigs.k8s.io/cluster-api/internal/util/patch"
+	runtimeclient "sigs.k8s.io/cluster-api/pkg/runtimesdk/client"
 )
 
 // Engine is a patch engine which applies patches defined in a ClusterBlueprint to a ClusterState.

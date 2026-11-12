@@ -25,7 +25,7 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	runtimecatalog "sigs.k8s.io/cluster-api/api/runtime/catalog"
-	"sigs.k8s.io/cluster-api/internal/runtime/test/v1alpha2"
+	"sigs.k8s.io/cluster-api/pkg/runtimesdk/test/v1alpha2"
 )
 
 func TestConversion(t *testing.T) {

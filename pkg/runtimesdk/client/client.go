@@ -54,9 +54,8 @@ import (
 	runtimecatalog "sigs.k8s.io/cluster-api/api/runtime/catalog"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
 	runtimev1 "sigs.k8s.io/cluster-api/api/runtime/v1beta2"
-	runtimeclient "sigs.k8s.io/cluster-api/exp/runtime/client"
-	runtimemetrics "sigs.k8s.io/cluster-api/internal/runtime/metrics"
-	runtimeregistry "sigs.k8s.io/cluster-api/internal/runtime/registry"
+	runtimemetrics "sigs.k8s.io/cluster-api/pkg/runtimesdk/client/metrics"
+	runtimeregistry "sigs.k8s.io/cluster-api/pkg/runtimesdk/registry"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/cache"
 )
@@ -95,7 +94,7 @@ type Options struct {
 }
 
 // New returns a new Client.
-func New(ctx context.Context, options Options) (runtimeclient.Client, *certwatcher.CertWatcher, error) {
+func New(ctx context.Context, options Options) (Client, *certwatcher.CertWatcher, error) {
 	httpClientCache := cache.New[httpClientEntry](ctx, 24*time.Hour)
 
 	var certWatcher *certwatcher.CertWatcher
@@ -119,7 +118,7 @@ func New(ctx context.Context, options Options) (runtimeclient.Client, *certwatch
 	}, certWatcher, nil
 }
 
-var _ runtimeclient.Client = &client{}
+var _ Client = &client{}
 
 type client struct {
 	certFile         string
@@ -410,9 +409,9 @@ func aggregateSuccessfulResponses(aggregatedResponse runtimehooksv1.ResponseObje
 // Nb. FailurePolicy does not affect the following kinds of errors:
 // - Internal errors. Examples: hooks is incompatible with ExtensionHandler, ExtensionHandler information is missing.
 // - Error when ExtensionHandler returns a response with `Status` set to `Failure`.
-func (c *client) CallExtension(ctx context.Context, hook runtimecatalog.Hook, forObject ctrlclient.Object, name string, request runtimehooksv1.RequestObject, response runtimehooksv1.ResponseObject, opts ...runtimeclient.CallExtensionOption) error {
+func (c *client) CallExtension(ctx context.Context, hook runtimecatalog.Hook, forObject ctrlclient.Object, name string, request runtimehooksv1.RequestObject, response runtimehooksv1.ResponseObject, opts ...CallExtensionOption) error {
 	// Calculate the options.
-	options := &runtimeclient.CallExtensionOptions{}
+	options := &CallExtensionOptions{}
 	for _, opt := range opts {
 		opt.ApplyToOptions(options)
 	}
@@ -518,7 +517,7 @@ func (c *client) CallExtension(ctx context.Context, hook runtimecatalog.Hook, fo
 
 	if options.WithCaching {
 		// Add response to the cache.
-		options.Cache.Add(runtimeclient.CallExtensionCacheEntry{
+		options.Cache.Add(CallExtensionCacheEntry{
 			CacheKey: cacheKey,
 			Response: response,
 		})

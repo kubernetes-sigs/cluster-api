@@ -43,7 +43,7 @@ import (
 	"sigs.k8s.io/cluster-api/core/webhooks/conversion"
 	"sigs.k8s.io/cluster-api/exp/topology/scope"
 	"sigs.k8s.io/cluster-api/feature"
-	fakeruntimeclient "sigs.k8s.io/cluster-api/internal/runtime/client/fake"
+	fakeruntimeclient "sigs.k8s.io/cluster-api/pkg/runtimesdk/client/fake"
 	"sigs.k8s.io/cluster-api/util/cache"
 	conversionutil "sigs.k8s.io/cluster-api/util/conversion"
 	"sigs.k8s.io/cluster-api/util/test/builder"

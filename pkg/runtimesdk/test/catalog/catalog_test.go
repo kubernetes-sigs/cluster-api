@@ -14,11 +14,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package test contains catalog tests
+// Package catalog contains tests for the Runtime SDK catalog.
 // Note: They have to be outside the catalog package to be realistic. Otherwise using
 // test types with different versions would result in a cyclic dependency and thus
 // wouldn't be possible.
-package test
+package catalog
 
 import (
 	"testing"
@@ -29,8 +29,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	runtimecatalog "sigs.k8s.io/cluster-api/api/runtime/catalog"
-	"sigs.k8s.io/cluster-api/internal/runtime/test/v1alpha1"
-	"sigs.k8s.io/cluster-api/internal/runtime/test/v1alpha2"
+	"sigs.k8s.io/cluster-api/pkg/runtimesdk/test/v1alpha1"
+	"sigs.k8s.io/cluster-api/pkg/runtimesdk/test/v1alpha2"
 )
 
 var c = runtimecatalog.New()

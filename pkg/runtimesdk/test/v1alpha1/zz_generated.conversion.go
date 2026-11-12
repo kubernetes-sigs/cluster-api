@@ -24,7 +24,7 @@ package v1alpha1
 import (
 	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"
-	v1alpha2 "sigs.k8s.io/cluster-api/internal/runtime/test/v1alpha2"
+	v1alpha2 "sigs.k8s.io/cluster-api/pkg/runtimesdk/test/v1alpha2"
 )
 
 func init() {

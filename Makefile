@@ -756,9 +756,10 @@ verify-licenses: ## Verify licenses
 verify-govulncheck: $(GOVULNCHECK) ## Verify code for vulnerabilities
 	$(GOVULNCHECK) ./... && R1=$$? || R1=$$?; \
 	$(GOVULNCHECK) -C "api" ./... && R2=$$? || R2=$$?; \
-	$(GOVULNCHECK) -C "$(TOOLS_DIR)" ./... && R3=$$? || R3=$$?; \
-	$(GOVULNCHECK) -C "$(TEST_DIR)" ./... && R4=$$? || R4=$$?; \
-	if [ "$$R1" -ne "0" ] || [ "$$R2" -ne "0" ] || [ "$$R3" -ne "0" ] || [ "$$R4" -ne "0" ]; then \
+	$(GOVULNCHECK) -C "utils" ./... && R3=$$? || R3=$$?; \
+	$(GOVULNCHECK) -C "$(TOOLS_DIR)" ./... && R4=$$? || R4=$$?; \
+	$(GOVULNCHECK) -C "$(TEST_DIR)" ./... && R5=$$? || R5=$$?; \
+	if [ "$$R1" -ne "0" ] || [ "$$R2" -ne "0" ] || [ "$$R3" -ne "0" ] || [ "$$R4" -ne "0" ] || [ "$$R5" -ne "0" ]; then \
 		exit 1; \
 	fi
 
@@ -944,6 +945,8 @@ test-cover: ## Run unit and integration tests and generate a coverage report
 	go tool cover -html=coverage.out -o coverage.html
 	go tool cover -func=api/coverage.out -o coverage-api.txt
 	go tool cover -html=api/coverage.out -o coverage-api.html
+	go tool cover -func=utils/coverage.out -o coverage-utils.txt
+	go tool cover -html=utils/coverage.out -o coverage-utils.html
 
 .PHONY: test-infrastructure
 test-infrastructure: $(SETUP_ENVTEST) ## Run unit and integration tests with race detector for docker infrastructure provider

@@ -90,7 +90,7 @@ export CLUSTER_NAME=in-memory-development-11461
 
 export CONTROL_PLANE_ENDPOINT_PORT=$(k get cluster -n $NAMESPACE $CLUSTER_NAME  -o=jsonpath='{.spec.controlPlaneEndpoint.port}')
 
-bin/clusterctl get kubeconfig -n $NAMESPACE $CLUSTER_NAME > /tmp/kubeconfig
+_output/bin/clusterctl get kubeconfig -n $NAMESPACE $CLUSTER_NAME > /tmp/kubeconfig
 kubectl --kubeconfig=/tmp/kubeconfig --server=https://127.0.0.1:$CONTROL_PLANE_ENDPOINT_PORT get nodes
 ```
 

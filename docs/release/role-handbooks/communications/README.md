@@ -69,7 +69,7 @@ The goal of this task is to keep the CAPI community updated on recent PRs that h
    ```
 2. Generate the weekly update with the following command for desired branches:
    ```bash
-   ./bin/weekly --since <YYYY-MM-DD> --until <YYYY-MM-DD> --branch <branch_name>
+   ./_output/bin/weekly --since <YYYY-MM-DD> --until <YYYY-MM-DD> --branch <branch_name>
    ```
    **Note:** the `GITHUB_TOKEN` environment variable can be set to prevent/reduce GitHub rate limiting issues.
 3. Paste the output into a new Slack message in the [`#cluster-api`](https://kubernetes.slack.com/archives/C8TSNPY4T) channel. Currently, we post separate messages in a thread for the branch `main` - which corresponds to the active milestone - as well as the two most recent release branches (e.g. `release-1.6` and `release-1.5`).
@@ -77,11 +77,11 @@ The goal of this task is to keep the CAPI community updated on recent PRs that h
    Example commands to run for the weekly update during ongoing development towards release 1.7:
    ```bash
    # Main branch changes, which correspond to actively worked on release 1.7
-   ./bin/weekly --since 2024-01-22 --until 2024-01-28 --branch main
+   ./_output/bin/weekly --since 2024-01-22 --until 2024-01-28 --branch main
 
    # Previous 2 release branches
-   ./bin/weekly --since 2024-01-22 --until 2024-01-28 --branch release-1.6
-   ./bin/weekly --since 2024-01-22 --until 2024-01-28 --branch release-1.5
+   ./_output/bin/weekly --since 2024-01-22 --until 2024-01-28 --branch release-1.6
+   ./_output/bin/weekly --since 2024-01-22 --until 2024-01-28 --branch release-1.5
    ```
 
 ### Create PR for release notes

@@ -41,7 +41,7 @@ done
 REPO_ROOT=$(git rev-parse --show-toplevel)
 "${REPO_ROOT}/hack/scripts/ensure/ensure-trivy.sh" "${VERSION}"
 
-TRIVY="${REPO_ROOT}/hack/tools/bin/trivy/${VERSION}/trivy"
+TRIVY="${REPO_ROOT}/_output/tools/trivy/${VERSION}/trivy"
 
 # Builds all the container images to be scanned and cleans up changes to ./*manager_image_patch.yaml ./*manager_pull_policy.yaml.
 make REGISTRY=gcr.io/k8s-staging-cluster-api PULL_POLICY=IfNotPresent TAG=dev docker-build

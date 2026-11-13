@@ -15,8 +15,7 @@
 # Directories.
 ROOT_DIR:=$(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
 TOOLS_DIR := $(realpath ../../hack/tools)
-TOOLS_BIN_DIR := $(TOOLS_DIR)/bin
-BIN_DIR := bin
+TOOLS_BIN_DIR := $(realpath ../..)/_output/tools
 MDBOOK_INSTALL := $(realpath ../../hack/scripts/ensure/ensure-mdbook.sh)
 
 export PATH := $(TOOLS_BIN_DIR):$(PATH)
@@ -24,15 +23,15 @@ export PATH := $(TOOLS_BIN_DIR):$(PATH)
 # Binaries.
 TABULATE := $(TOOLS_BIN_DIR)/mdbook-tabulate
 $(TABULATE): $(TOOLS_DIR)/go.mod
-	cd $(TOOLS_DIR); go build -tags=tools -o $(BIN_DIR)/mdbook-tabulate ./mdbook/tabulate
+	cd $(TOOLS_DIR); go build -tags=tools -o $(TOOLS_BIN_DIR)/mdbook-tabulate ./mdbook/tabulate
 
 EMBED := $(TOOLS_BIN_DIR)/mdbook-embed
 $(EMBED): $(TOOLS_DIR)/go.mod
-	cd $(TOOLS_DIR); go build -tags=tools -o $(BIN_DIR)/mdbook-embed ./mdbook/embed
+	cd $(TOOLS_DIR); go build -tags=tools -o $(TOOLS_BIN_DIR)/mdbook-embed ./mdbook/embed
 
 RELEASELINK := $(TOOLS_BIN_DIR)/mdbook-releaselink
 $(RELEASELINK): $(TOOLS_DIR)/go.mod
-	cd $(TOOLS_DIR); go build -tags=tools -o $(BIN_DIR)/mdbook-releaselink ./mdbook/releaselink
+	cd $(TOOLS_DIR); go build -tags=tools -o $(TOOLS_BIN_DIR)/mdbook-releaselink ./mdbook/releaselink
 
 # Only set MDBOOK if it's not set as an environment variable
 MDBOOK ?= $(TOOLS_BIN_DIR)/mdbook

@@ -1,6 +1,6 @@
 module sigs.k8s.io/cluster-api/utils
 
-go 1.26.0
+go 1.27.0
 
 replace sigs.k8s.io/cluster-api/api => ../api
 

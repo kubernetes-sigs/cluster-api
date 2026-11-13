@@ -6,8 +6,8 @@ options:
 steps:
   # The latest image tag + sha can be found with:
   # crane ls registry.k8s.io/releng/gcb-docker-gcloud
-  # crane digest registry.k8s.io/releng/gcb-docker-gcloud:v20260806
-  - name: 'registry.k8s.io/releng/gcb-docker-gcloud@sha256:b2651f57b579d925a243e308c41546d4fd895f705de091a5a8a39060e6192604' # v20260806
+  # crane digest registry.k8s.io/releng/gcb-docker-gcloud:v20261022
+  - name: 'registry.k8s.io/releng/gcb-docker-gcloud@sha256:2bf2ec376b86cf5ebdb3a598f6dca69d5f977477315c870a0ce0847563dc148e' # v20261022
     entrypoint: make
     env:
     - DOCKER_CLI_EXPERIMENTAL=enabled

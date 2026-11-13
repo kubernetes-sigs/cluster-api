@@ -534,17 +534,46 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) error {
 
 	// else delete owned machinesets.
 	for _, ms := range s.machineSets {
-		if ms.DeletionTimestamp.IsZero() {
-			if err := r.Client.Delete(ctx, ms); err != nil && !apierrors.IsNotFound(err) {
-				return pkgerrors.Wrapf(err, "failed to delete MachineSet %s (MachineDeployment deleting)", klog.KObj(ms))
-			}
-			// Note: We intentionally log after Delete because we want this log line to show up only after DeletionTimestamp has been set.
-			// Also, setting DeletionTimestamp doesn't mean the MachineSet is actually deleted (deletion takes some time).
-			log.Info(fmt.Sprintf("MachineSet %s deleting (MachineDeployment deleting)", ms.Name), "MachineSet", klog.KObj(ms), "reason", "MachineDeploymentDeleted")
+		// Propagate the subset of fields that impact tearing down Machines (e.g. nodeDrainTimeoutSeconds),
+		// so that changes to the MachineDeployment still take effect while it is deleting.
+		// Note: The MachineSet controller then propagates these fields to its deleting Machines.
+		if err := syncDeletingMachineSet(ctx, r.Client, s.machineDeployment, ms); err != nil {
+			return err
 		}
+
+		if !ms.DeletionTimestamp.IsZero() {
+			continue
+		}
+
+		if err := r.Client.Delete(ctx, ms); err != nil && !apierrors.IsNotFound(err) {
+			return pkgerrors.Wrapf(err, "failed to delete MachineSet %s (MachineDeployment deleting)", klog.KObj(ms))
+		}
+		// Note: We intentionally log after Delete because we want this log line to show up only after DeletionTimestamp has been set.
+		// Also, setting DeletionTimestamp doesn't mean the MachineSet is actually deleted (deletion takes some time).
+		log.Info(fmt.Sprintf("MachineSet %s deleting (MachineDeployment deleting)", ms.Name), "MachineSet", klog.KObj(ms), "reason", "MachineDeploymentDeleted")
 	}
 
 	r.logRateLimiter.InfoAtMostEvery(log, logRateLimitInterval, waitingForMachineSetsDeletionKey(s.machineDeployment), "Waiting for MachineSets to be deleted", "MachineSets", logutil.ObjNamesString(s.machineSets))
+	return nil
+}
+
+// syncDeletingMachineSet propagates the subset of in-place mutable fields that impact tearing down Machines
+// from the MachineDeployment to a MachineSet that is deleting or about to be deleted.
+// Note: These MachineSets are patched with a merge patch instead of SSA, so we only touch the fields that matter
+// for tearing down Machines (e.g. nodeDrainTimeoutSeconds), which allows users to unblock a stuck deletion.
+func syncDeletingMachineSet(ctx context.Context, c client.Client, md *clusterv1.MachineDeployment, ms *clusterv1.MachineSet) error {
+	original := ms.DeepCopy()
+
+	ms.Spec.Template.Spec.ReadinessGates = md.Spec.Template.Spec.ReadinessGates
+	ms.Spec.Template.Spec.Deletion.NodeDrainTimeoutSeconds = md.Spec.Template.Spec.Deletion.NodeDrainTimeoutSeconds
+	ms.Spec.Template.Spec.Deletion.NodeDeletionTimeoutSeconds = md.Spec.Template.Spec.Deletion.NodeDeletionTimeoutSeconds
+	ms.Spec.Template.Spec.Deletion.NodeVolumeDetachTimeoutSeconds = md.Spec.Template.Spec.Deletion.NodeVolumeDetachTimeoutSeconds
+	ms.Spec.Template.Spec.MinReadySeconds = md.Spec.Template.Spec.MinReadySeconds
+	ms.Spec.Template.Spec.Taints = md.Spec.Template.Spec.Taints
+
+	if err := c.Patch(ctx, ms, client.MergeFrom(original)); err != nil {
+		return pkgerrors.Wrapf(err, "failed to patch deleting MachineSet %s", klog.KObj(ms))
+	}
 	return nil
 }
 

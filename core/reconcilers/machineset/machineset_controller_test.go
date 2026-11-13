@@ -21,6 +21,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"maps"
 	"slices"
 	"sort"
 	"strings"
@@ -4442,8 +4443,47 @@ func TestReconciler_reconcileDelete(t *testing.T) {
 	ms.Spec.Selector = metav1.LabelSelector{
 		MatchLabels: labels,
 	}
+	ms.Spec.Template.Spec.Deletion = clusterv1.MachineDeletionSpec{
+		NodeDrainTimeoutSeconds:        ptr.To(int32(10)),
+		NodeVolumeDetachTimeoutSeconds: ptr.To(int32(20)),
+		NodeDeletionTimeoutSeconds:     ptr.To(int32(30)),
+	}
+	ms.Spec.Template.Spec.MinReadySeconds = ptr.To(int32(40))
+	ms.Spec.Template.Spec.ReadinessGates = []clusterv1.MachineReadinessGate{{ConditionType: "foo"}}
+	ms.Spec.Template.Spec.Taints = []clusterv1.MachineTaint{{
+		Key:         "taint-key",
+		Value:       "taint-value",
+		Effect:      corev1.TaintEffectNoSchedule,
+		Propagation: clusterv1.MachineTaintPropagationAlways,
+	}}
 	msWithoutFinalizer := ms.DeepCopy()
 	msWithoutFinalizer.Finalizers = []string{}
+
+	// Machines with outdated values for the fields that impact tearing down a Machine.
+	// Note: The Machines have a finalizer, so they still exist after deletion has been triggered.
+	// Note: Cloning labels because the builder adds the cluster name label to the map, which is shared with the MachineSet selector.
+	deletingMachine := builder.Machine("default", "m0-deleting").WithClusterName("test").WithLabels(maps.Clone(labels)).Build()
+	deletingMachine.SetOwnerReferences([]metav1.OwnerReference{*metav1.NewControllerRef(ms, machineSetKind)})
+	deletingMachine.Finalizers = []string{"block-deletion"}
+	deletingMachine.DeletionTimestamp = ptr.To(metav1.Now())
+	deletingMachine.Spec.Deletion = clusterv1.MachineDeletionSpec{
+		NodeDrainTimeoutSeconds:        ptr.To(int32(1)),
+		NodeVolumeDetachTimeoutSeconds: ptr.To(int32(2)),
+		NodeDeletionTimeoutSeconds:     ptr.To(int32(3)),
+	}
+	notDeletingMachine := deletingMachine.DeepCopy()
+	notDeletingMachine.Name = "m1-not-deleting"
+	notDeletingMachine.DeletionTimestamp = nil
+	// Expected state of the Machines after reconcileDelete: fields have been propagated, deletion has been triggered.
+	wantDeletingMachine := deletingMachine.DeepCopy()
+	wantDeletingMachine.Spec.Deletion = ms.Spec.Template.Spec.Deletion
+	wantDeletingMachine.Spec.MinReadySeconds = ms.Spec.Template.Spec.MinReadySeconds
+	wantDeletingMachine.Spec.ReadinessGates = ms.Spec.Template.Spec.ReadinessGates
+	wantDeletingMachine.Spec.Taints = ms.Spec.Template.Spec.Taints
+	wantDeletingMachine.DeletionTimestamp = &metav1.Time{} // see normalization of DeletionTimestamp below.
+	wantNotDeletingMachine := wantDeletingMachine.DeepCopy()
+	wantNotDeletingMachine.Name = notDeletingMachine.Name
+
 	tests := []struct {
 		name         string
 		machineSet   *clusterv1.MachineSet
@@ -4484,6 +4524,22 @@ func TestReconciler_reconcileDelete(t *testing.T) {
 			},
 			expectError: false,
 		},
+		{
+			name:       "Should propagate fields that impact tearing down Machines to descendant Machines and trigger deletion for Machines that are not deleting yet",
+			machineSet: ms.DeepCopy(),
+			want:       ms.DeepCopy(),
+			objs: []client.Object{
+				deletingMachine.DeepCopy(),
+				notDeletingMachine.DeepCopy(),
+				builder.Machine("default", "m2-not-part-of-ms").WithClusterName("test").Build(),
+			},
+			wantMachines: []clusterv1.Machine{
+				*wantDeletingMachine.DeepCopy(),
+				*wantNotDeletingMachine.DeepCopy(),
+				*builder.Machine("default", "m2-not-part-of-ms").WithClusterName("test").Build(),
+			},
+			expectError: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -4517,8 +4573,12 @@ func TestReconciler_reconcileDelete(t *testing.T) {
 			g.Expect(c.List(ctx, machineList, client.InNamespace("default"))).To(Succeed())
 
 			// Remove ResourceVersion so we can actually compare.
+			// Also normalize DeletionTimestamp to only compare whether it is set.
 			for i := range machineList.Items {
 				machineList.Items[i].ResourceVersion = ""
+				if machineList.Items[i].DeletionTimestamp != nil {
+					machineList.Items[i].DeletionTimestamp = &metav1.Time{}
+				}
 			}
 
 			g.Expect(machineList.Items).To(ConsistOf(tt.wantMachines))

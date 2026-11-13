@@ -608,14 +608,22 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (ctrl.Result
 
 	// else delete owned machines.
 	for _, machine := range machineList {
-		if machine.DeletionTimestamp.IsZero() {
-			if err := r.Client.Delete(ctx, machine); err != nil && !apierrors.IsNotFound(err) {
-				return ctrl.Result{}, pkgerrors.Wrapf(err, "failed to delete Machine %s", klog.KObj(machine))
-			}
-			// Note: We intentionally log after Delete because we want this log line to show up only after DeletionTimestamp has been set.
-			// Also, setting DeletionTimestamp doesn't mean the Machine is actually deleted (deletion takes some time).
-			log.Info(fmt.Sprintf("Deleting Machine %s (MachineSet deleted)", machine.Name), "Machine", klog.KObj(machine), "reason", "MachineSetDeleted")
+		// Propagate the subset of fields that impact tearing down a Machine (e.g. nodeDrainTimeoutSeconds),
+		// so that changes to the MachineSet still take effect while it is deleting.
+		if err := syncDeletingMachine(ctx, r.Client, machineSet, machine); err != nil {
+			return ctrl.Result{}, err
 		}
+
+		if !machine.DeletionTimestamp.IsZero() {
+			continue
+		}
+
+		if err := r.Client.Delete(ctx, machine); err != nil && !apierrors.IsNotFound(err) {
+			return ctrl.Result{}, pkgerrors.Wrapf(err, "failed to delete Machine %s", klog.KObj(machine))
+		}
+		// Note: We intentionally log after Delete because we want this log line to show up only after DeletionTimestamp has been set.
+		// Also, setting DeletionTimestamp doesn't mean the Machine is actually deleted (deletion takes some time).
+		log.Info(fmt.Sprintf("Deleting Machine %s (MachineSet deleted)", machine.Name), "Machine", klog.KObj(machine), "reason", "MachineSetDeleted")
 	}
 
 	r.logRateLimiter.InfoAtMostEvery(log, logRateLimitInterval, waitingForMachinesDeletionKey(machineSet), "Waiting for Machines to be deleted", "Machines", klog.KObjSlice(machineList))
@@ -745,6 +753,27 @@ func (r *Reconciler) getAndAdoptMachinesForMachineSet(ctx context.Context, s *sc
 	return ctrl.Result{}, false, nil
 }
 
+// syncDeletingMachine propagates the subset of in-place mutable fields that impact tearing down a Machine
+// from the MachineSet to a Machine that is deleting or about to be deleted.
+// Note: These Machines are patched with a merge patch instead of SSA, so we only touch the fields that matter
+// for tearing down the Machine (e.g. nodeDrainTimeoutSeconds), which allows users to unblock a stuck deletion.
+func syncDeletingMachine(ctx context.Context, c client.Client, machineSet *clusterv1.MachineSet, m *clusterv1.Machine) error {
+	original := m.DeepCopy()
+
+	m.Spec.ReadinessGates = machineSet.Spec.Template.Spec.ReadinessGates
+	m.Spec.Deletion.NodeDrainTimeoutSeconds = machineSet.Spec.Template.Spec.Deletion.NodeDrainTimeoutSeconds
+	m.Spec.Deletion.NodeDeletionTimeoutSeconds = machineSet.Spec.Template.Spec.Deletion.NodeDeletionTimeoutSeconds
+	coreadmission.DefaultMachineNodeDeletionTimeoutSeconds(m) // Default to avoid unnecessary patch calls if field is not set on MS.
+	m.Spec.Deletion.NodeVolumeDetachTimeoutSeconds = machineSet.Spec.Template.Spec.Deletion.NodeVolumeDetachTimeoutSeconds
+	m.Spec.MinReadySeconds = machineSet.Spec.Template.Spec.MinReadySeconds
+	m.Spec.Taints = machineSet.Spec.Template.Spec.Taints
+
+	if err := c.Patch(ctx, m, client.MergeFrom(original)); err != nil {
+		return pkgerrors.Wrapf(err, "failed to patch deleting Machine %s", klog.KObj(m))
+	}
+	return nil
+}
+
 // syncMachines updates Machines, InfrastructureMachine and BootstrapConfig to propagate in-place mutable fields
 // from the MachineSet.
 func (r *Reconciler) syncMachines(ctx context.Context, s *scope) (ctrl.Result, bool, error) {
@@ -760,18 +789,7 @@ func (r *Reconciler) syncMachines(ctx context.Context, s *scope) (ctrl.Result, b
 		// If the machine is already being deleted, we only need to sync
 		// the subset of fields that impact tearing down a machine
 		if !m.DeletionTimestamp.IsZero() {
-			original := m.DeepCopy()
-
-			// Set all other in-place mutable fields that impact the ability to tear down existing machines.
-			m.Spec.ReadinessGates = machineSet.Spec.Template.Spec.ReadinessGates
-			m.Spec.Deletion.NodeDrainTimeoutSeconds = machineSet.Spec.Template.Spec.Deletion.NodeDrainTimeoutSeconds
-			m.Spec.Deletion.NodeDeletionTimeoutSeconds = machineSet.Spec.Template.Spec.Deletion.NodeDeletionTimeoutSeconds
-			coreadmission.DefaultMachineNodeDeletionTimeoutSeconds(m) // Default to avoid unnecessary patch calls if field is not set on MS.
-			m.Spec.Deletion.NodeVolumeDetachTimeoutSeconds = machineSet.Spec.Template.Spec.Deletion.NodeVolumeDetachTimeoutSeconds
-			m.Spec.MinReadySeconds = machineSet.Spec.Template.Spec.MinReadySeconds
-			m.Spec.Taints = machineSet.Spec.Template.Spec.Taints
-
-			if err := r.Client.Patch(ctx, m, client.MergeFrom(original)); err != nil {
+			if err := syncDeletingMachine(ctx, r.Client, machineSet, m); err != nil {
 				return ctrl.Result{}, true, err
 			}
 			continue

@@ -831,6 +831,10 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, controlPlane *pkg.Cont
 
 		if !machineToDelete.DeletionTimestamp.IsZero() {
 			// Nothing to do, Machine already has deletionTimestamp set.
+			// Note: Contrary to syncMachines, we intentionally don't propagate nodeDrainTimeoutSeconds,
+			// nodeVolumeDetachTimeoutSeconds and nodeDeletionTimeoutSeconds to deleting Machines here. As soon as
+			// the control plane is deleting, the Machine controller skips Node drain, wait for volume detach and
+			// Node deletion for all Machines of the Cluster, so these fields have no effect anymore.
 			continue
 		}
 

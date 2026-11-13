@@ -63,7 +63,7 @@ providers:
   - name: v1.15.99 # next; use manifest from source files
     value: ../../../core/config/default
     files:
-    - sourcePath: "../data/shared/main/metadata.yaml"
+    - sourcePath: "../../../metadata.yaml"
 
 - name: kubeadm
   type: BootstrapProvider
@@ -98,7 +98,7 @@ providers:
   - name: v1.15.99 # next; use manifest from source files
     value: ../../../bootstrap/kubeadm/config/default
     files:
-    - sourcePath: "../data/shared/main/metadata.yaml"
+    - sourcePath: "../../../metadata.yaml"
 
 - name: kubeadm
   type: ControlPlaneProvider
@@ -133,7 +133,7 @@ providers:
   - name: v1.15.99 # next; use manifest from source files
     value: ../../../controlplane/kubeadm/config/default
     files:
-    - sourcePath: "../data/shared/main/metadata.yaml"
+    - sourcePath: "../../../metadata.yaml"
 
 - name: docker
   type: InfrastructureProvider
@@ -204,7 +204,7 @@ providers:
     - sourcePath: "../data/infrastructure-docker/main/clusterclass-quick-start-kcp-only.yaml"
     - sourcePath: "../data/infrastructure-docker/main/clusterclass-quick-start-runtimesdk.yaml"
     - sourcePath: "../data/infrastructure-docker/main/clusterclass-quick-start-runtimesdk-v1beta1.yaml"
-    - sourcePath: "../data/shared/main/metadata.yaml"
+    - sourcePath: "../../../metadata.yaml"
 
 - name: test-extension
   type: RuntimeExtensionProvider
@@ -212,7 +212,7 @@ providers:
     - name: v1.15.99 # next; use manifest from source files
       value: ../../../test/extension/config/default
       files:
-      - sourcePath: "../data/shared/main/metadata.yaml"
+      - sourcePath: "../../../metadata.yaml"
 
 variables:
   # Default variables for the e2e test; those values could be overridden via env variables, thus

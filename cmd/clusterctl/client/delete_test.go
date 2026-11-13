@@ -18,13 +18,19 @@ package client
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	. "github.com/onsi/gomega"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
 
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
+	"sigs.k8s.io/cluster-api/cmd/clusterctl/internal/test"
 )
 
 const (
@@ -40,11 +46,13 @@ func Test_clusterctlClient_Delete(t *testing.T) {
 		options DeleteOptions
 	}
 	tests := []struct {
-		name          string
-		fields        fields
-		args          args
-		wantProviders sets.Set[string]
-		wantErr       bool
+		name            string
+		fields          fields
+		args            args
+		wantProviders   sets.Set[string]
+		wantDeleteOrder []string
+		wantErr         bool
+		wantErrContains string
 	}{
 		{
 			name: "Delete all the providers",
@@ -65,7 +73,14 @@ func Test_clusterctlClient_Delete(t *testing.T) {
 				},
 			},
 			wantProviders: sets.Set[string]{},
-			wantErr:       false,
+			// Core provider last, so a delete that fails part way leaves Cluster API in place.
+			wantDeleteOrder: []string{
+				clusterctlv1.ManifestLabel(infraProviderConfig.Name(), infraProviderConfig.Type()),
+				clusterctlv1.ManifestLabel(controlPlaneProviderConfig.Name(), controlPlaneProviderConfig.Type()),
+				clusterctlv1.ManifestLabel(bootstrapProviderConfig.Name(), bootstrapProviderConfig.Type()),
+				clusterctlv1.ManifestLabel(capiProviderConfig.Name(), capiProviderConfig.Type()),
+			},
+			wantErr: false,
 		},
 		{
 			name: "Delete all the providers including CRDs",
@@ -87,6 +102,43 @@ func Test_clusterctlClient_Delete(t *testing.T) {
 			},
 			wantProviders: sets.Set[string]{},
 			wantErr:       false,
+		},
+		{
+			// A previous run removed the Cluster CRD and then failed, so the
+			// next run must still be able to delete what is left.
+			name: "Delete all the providers when the Cluster CRD is already gone but the inventory lists providers",
+			fields: fields{
+				client: fakeClusterForDelete(inventoryCRD()),
+			},
+			args: args{
+				options: DeleteOptions{
+					Kubeconfig:       Kubeconfig{Path: "kubeconfig", Context: "mgmt-context"},
+					IncludeNamespace: true,
+					IncludeCRDs:      true,
+					DeleteAll:        true,
+				},
+			},
+			wantProviders: sets.Set[string]{},
+			wantErr:       false,
+		},
+		{
+			name: "Refuse a management cluster with another contract",
+			fields: fields{
+				client: fakeClusterForDelete(&apiextensionsv1.CustomResourceDefinition{
+					ObjectMeta: metav1.ObjectMeta{Name: "clusters.cluster.x-k8s.io"},
+					Spec: apiextensionsv1.CustomResourceDefinitionSpec{
+						Versions: []apiextensionsv1.CustomResourceDefinitionVersion{{Name: "v1alpha3", Storage: true}},
+					},
+				}),
+			},
+			args: args{
+				options: DeleteOptions{
+					Kubeconfig: Kubeconfig{Path: "kubeconfig", Context: "mgmt-context"},
+					DeleteAll:  true,
+				},
+			},
+			wantErr:         true,
+			wantErrContains: "could be used only with",
 		},
 		{
 			name: "Delete single provider auto-detect namespace",
@@ -191,14 +243,32 @@ func Test_clusterctlClient_Delete(t *testing.T) {
 
 			ctx := context.Background()
 
+			input := cluster.Kubeconfig(tt.args.options.Kubeconfig)
+			var deleted []string
+			if tt.wantDeleteOrder != nil {
+				tt.fields.client.clusters[input].Proxy().(*test.FakeProxy).WithInterceptorFuncs(interceptor.Funcs{
+					Delete: func(ctx context.Context, cl client.WithWatch, obj client.Object, opts ...client.DeleteOption) error {
+						if obj.GetObjectKind().GroupVersionKind().Kind == "Provider" {
+							deleted = append(deleted, obj.GetName())
+						}
+						return cl.Delete(ctx, obj, opts...)
+					},
+				})
+			}
+
 			err := tt.fields.client.Delete(ctx, tt.args.options)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
+				if tt.wantErrContains != "" {
+					g.Expect(err).To(MatchError(ContainSubstring(tt.wantErrContains)))
+				}
 				return
 			}
 			g.Expect(err).ToNot(HaveOccurred())
+			if tt.wantDeleteOrder != nil {
+				g.Expect(deleted).To(Equal(tt.wantDeleteOrder))
+			}
 
-			input := cluster.Kubeconfig(tt.args.options.Kubeconfig)
 			proxy := tt.fields.client.clusters[input].Proxy()
 			gotProviders := &clusterctlv1.ProviderList{}
 
@@ -216,9 +286,55 @@ func Test_clusterctlClient_Delete(t *testing.T) {
 	}
 }
 
+// inventoryCRD is the clusterctl inventory CRD as a management cluster has it.
+func inventoryCRD() client.Object {
+	return &apiextensionsv1.CustomResourceDefinition{
+		ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("providers.%s", clusterctlv1.GroupVersion.Group)},
+		Spec: apiextensionsv1.CustomResourceDefinitionSpec{
+			Versions: []apiextensionsv1.CustomResourceDefinitionVersion{{Name: clusterctlv1.GroupVersion.Version, Storage: true}},
+		},
+	}
+}
+
+func Test_sortProvidersForDelete(t *testing.T) {
+	g := NewWithT(t)
+	provider := func(name string, providerType clusterctlv1.ProviderType) clusterctlv1.Provider {
+		return clusterctlv1.Provider{ProviderName: name, Type: string(providerType)}
+	}
+	// The order List returns them in: by namespace and name.
+	providers := []clusterctlv1.Provider{
+		provider("cluster-api", clusterctlv1.CoreProviderType),
+		provider("kubeadm", clusterctlv1.BootstrapProviderType),
+		provider("kubeadm", clusterctlv1.ControlPlaneProviderType),
+		provider("vsphere", clusterctlv1.InfrastructureProviderType),
+		provider("in-cluster", clusterctlv1.IPAMProviderType),
+		provider("test-extension", clusterctlv1.RuntimeExtensionProviderType),
+		provider("helm", clusterctlv1.AddonProviderType),
+	}
+	sortProvidersForDelete(providers)
+	var got []string
+	for _, p := range providers {
+		got = append(got, p.Type)
+	}
+	g.Expect(got).To(Equal([]string{
+		string(clusterctlv1.AddonProviderType),
+		string(clusterctlv1.RuntimeExtensionProviderType),
+		string(clusterctlv1.IPAMProviderType),
+		string(clusterctlv1.InfrastructureProviderType),
+		string(clusterctlv1.ControlPlaneProviderType),
+		string(clusterctlv1.BootstrapProviderType),
+		string(clusterctlv1.CoreProviderType),
+	}))
+}
+
 // clusterctl client for a management cluster with capi and bootstrap provider.
-func fakeClusterForDelete() *fakeClient {
+// objs, if any, are in the management cluster instead of the Cluster API setup objects.
+func fakeClusterForDelete(objs ...client.Object) *fakeClient {
 	ctx := context.Background()
+
+	if len(objs) == 0 {
+		objs = fakeCAPISetupObjects()
+	}
 
 	config1 := newFakeConfig(ctx).
 		WithVar("var", "value").
@@ -237,7 +353,7 @@ func fakeClusterForDelete() *fakeClient {
 	cluster1.fakeProxy.WithProviderInventory(bootstrapProviderConfig.Name(), bootstrapProviderConfig.Type(), providerVersion, "capi-kubeadm-bootstrap-system")
 	cluster1.fakeProxy.WithProviderInventory(controlPlaneProviderConfig.Name(), controlPlaneProviderConfig.Type(), providerVersion, "capi-kubeadm-control-plane-system")
 	cluster1.fakeProxy.WithProviderInventory(infraProviderConfig.Name(), infraProviderConfig.Type(), providerVersion, namespace)
-	cluster1.fakeProxy.WithObjs(fakeCAPISetupObjects()...)
+	cluster1.fakeProxy.WithObjs(objs...)
 
 	client := newFakeClient(ctx, config1).
 		// fake repository for capi, bootstrap, controlplane and infra provider (matching provider's config)

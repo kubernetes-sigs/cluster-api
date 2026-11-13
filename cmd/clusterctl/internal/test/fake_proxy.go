@@ -29,6 +29,7 @@ import (
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
 
 	addonsv1 "sigs.k8s.io/cluster-api/api/addons/v1beta2"
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
@@ -45,6 +46,7 @@ type FakeProxy struct {
 	namespace string
 	objs      []client.Object
 	available *bool
+	funcs     *interceptor.Funcs
 }
 
 var (
@@ -81,7 +83,11 @@ func (f *FakeProxy) NewClient(_ context.Context) (client.Client, error) {
 	if f.cs != nil {
 		return f.cs, nil
 	}
-	f.cs = fake.NewClientBuilder().WithScheme(FakeScheme).WithObjects(f.objs...).Build()
+	builder := fake.NewClientBuilder().WithScheme(FakeScheme).WithObjects(f.objs...)
+	if f.funcs != nil {
+		builder = builder.WithInterceptorFuncs(*f.funcs)
+	}
+	f.cs = builder.Build()
 	return f.cs, nil
 }
 
@@ -186,6 +192,12 @@ func (f *FakeProxy) WithProviderInventory(name string, providerType clusterctlv1
 		Version:      version,
 	})
 
+	return f
+}
+
+// WithInterceptorFuncs makes the client returned by NewClient call funcs; it must be set before the first NewClient.
+func (f *FakeProxy) WithInterceptorFuncs(funcs interceptor.Funcs) *FakeProxy {
+	f.funcs = &funcs
 	return f
 }
 

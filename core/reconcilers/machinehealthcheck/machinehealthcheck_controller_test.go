@@ -2046,6 +2046,131 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 			return obj
 		}, timeout, 100*time.Millisecond).Should(BeNil())
 	})
+
+	t.Run("When remediationTemplate is set and node transitions back to healthy also if remediation request no longer exists", func(t *testing.T) {
+		g := NewWithT(t)
+		cluster := createCluster(g, ns.Name)
+
+		// Create remediation template resource.
+		infraRemediationResource := map[string]interface{}{
+			"kind":       "GenericExternalRemediation",
+			"apiVersion": builder.RemediationGroupVersion.String(),
+			"metadata":   map[string]interface{}{},
+			"spec": map[string]interface{}{
+				"size": "3xlarge",
+			},
+		}
+		infraRemediationTmpl := &unstructured.Unstructured{
+			Object: map[string]interface{}{
+				"spec": map[string]interface{}{
+					"template": infraRemediationResource,
+				},
+			},
+		}
+		infraRemediationTmpl.SetKind("GenericExternalRemediationTemplate")
+		infraRemediationTmpl.SetAPIVersion(builder.RemediationGroupVersion.String())
+		infraRemediationTmpl.SetGenerateName("remediation-template-name-")
+		infraRemediationTmpl.SetNamespace(cluster.Namespace)
+		g.Expect(env.Create(ctx, infraRemediationTmpl)).To(Succeed())
+
+		remediationTemplate := clusterv1.MachineHealthCheckRemediationTemplateReference{
+			APIVersion: builder.RemediationGroupVersion.String(),
+			Kind:       "GenericExternalRemediationTemplate",
+			Name:       infraRemediationTmpl.GetName(),
+		}
+
+		mhc := newMachineHealthCheck(cluster.Namespace, cluster.Name)
+		mhc.Spec.Remediation.TemplateRef = remediationTemplate
+		g.Expect(env.Create(ctx, mhc)).To(Succeed())
+		defer func(do ...client.Object) {
+			g.Expect(env.Cleanup(ctx, do...)).To(Succeed())
+		}(cluster, mhc, infraRemediationTmpl)
+
+		// Healthy nodes and machines.
+		_, machines, cleanup := createMachinesWithNodes(g, cluster,
+			count(1),
+			firstMachineAsControlPlane(),
+			createNodeRefForMachine(true),
+			nodeStatus(corev1.ConditionTrue),
+			machineLabels(mhc.Spec.Selector.MatchLabels),
+		)
+		defer cleanup()
+		machine := machines[0]
+
+		// Make sure the MachineHealthCheck reports the machine as healthy.
+		g.Eventually(func() int32 {
+			if err := env.Get(ctx, util.ObjectKey(mhc), mhc); err != nil {
+				return -1
+			}
+			return ptr.Deref(mhc.Status.CurrentHealthy, -1)
+		}, timeout, 100*time.Millisecond).Should(Equal(int32(1)))
+
+		// Pause the MachineHealthCheck reconciler so it cannot flip the stale condition back to True
+		// before the test has observed it.
+		mhcPatch := client.MergeFrom(mhc.DeepCopy())
+		mhc.Annotations = map[string]string{
+			clusterv1.PausedAnnotation: "",
+		}
+		g.Expect(env.Patch(ctx, mhc, mhcPatch)).To(Succeed())
+
+		// Simulate a stale HealthCheckSucceeded=False condition on the healthy Machine, e.g. left behind
+		// after the node recovered and the Remediation Request was already deleted by the external remediator.
+		machinePatch := client.MergeFrom(machine.DeepCopy())
+		v1beta1conditions.MarkFalse(machine, clusterv1.MachineHealthCheckSucceededV1Beta1Condition, clusterv1.UnhealthyNodeConditionV1Beta1Reason, clusterv1.ConditionSeverityWarning, "stale unhealthy condition")
+		conditions.Set(machine, metav1.Condition{
+			Type:    clusterv1.MachineHealthCheckSucceededCondition,
+			Status:  metav1.ConditionFalse,
+			Reason:  clusterv1.MachineHealthCheckUnhealthyNodeReason,
+			Message: "stale unhealthy condition",
+		})
+		g.Expect(env.Status().Patch(ctx, machine, machinePatch)).To(Succeed())
+
+		// Wait until the stale False condition is visible in the cache, otherwise the checks below could match the previous True state.
+		g.Eventually(func() metav1.ConditionStatus {
+			if err := env.Get(ctx, util.ObjectKey(machine), machine); err != nil {
+				return ""
+			}
+			c := conditions.Get(machine, clusterv1.MachineHealthCheckSucceededCondition)
+			if c == nil {
+				return ""
+			}
+			return c.Status
+		}, timeout, 100*time.Millisecond).Should(Equal(metav1.ConditionFalse))
+
+		// Unpause the MachineHealthCheck reconciler so it can set the condition back to True.
+		mhcUnpatch := client.MergeFrom(mhc.DeepCopy())
+		delete(mhc.Annotations, clusterv1.PausedAnnotation)
+		g.Expect(env.Patch(ctx, mhc, mhcUnpatch)).To(Succeed())
+
+		// The condition must be set back to True for the healthy Machine.
+		g.Eventually(func() metav1.ConditionStatus {
+			if err := env.Get(ctx, util.ObjectKey(machine), machine); err != nil {
+				return ""
+			}
+			c := conditions.Get(machine, clusterv1.MachineHealthCheckSucceededCondition)
+			if c == nil {
+				return ""
+			}
+			return c.Status
+		}, timeout, 100*time.Millisecond).Should(Equal(metav1.ConditionTrue))
+		g.Eventually(func() corev1.ConditionStatus {
+			if err := env.Get(ctx, util.ObjectKey(machine), machine); err != nil {
+				return ""
+			}
+			c := v1beta1conditions.Get(machine, clusterv1.MachineHealthCheckSucceededV1Beta1Condition)
+			if c == nil {
+				return ""
+			}
+			return c.Status
+		}, timeout, 100*time.Millisecond).Should(Equal(corev1.ConditionTrue))
+
+		// Make sure no Remediation Request was created for the healthy Machine.
+		obj := &unstructured.Unstructured{}
+		obj.SetAPIVersion(builder.RemediationGroupVersion.String())
+		obj.SetKind("GenericExternalRemediation")
+		err := env.Get(ctx, client.ObjectKey{Namespace: machine.Namespace, Name: machine.Name}, obj)
+		g.Expect(apierrors.IsNotFound(err)).To(BeTrue())
+	})
 }
 
 func assertMachinesNotHealthy(g *WithT, mhc *clusterv1.MachineHealthCheck, expectNotHealthy int) {

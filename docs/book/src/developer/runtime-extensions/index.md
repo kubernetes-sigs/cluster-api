@@ -10,10 +10,6 @@ The Runtime SDK feature provides an extensibility mechanism that allows systems,
 > [!CAUTION]
 > Please note Runtime SDK is an advanced feature. If implemented incorrectly, a failing Runtime Extension can severely impact the Cluster API runtime.
 
-**Feature gate name**: `RuntimeSDK`
-
-**Variable name to enable/disable the feature gate**: `EXP_RUNTIME_SDK`
-
 Additional documentation:
 
 * Background information:
@@ -28,3 +24,14 @@ Additional documentation:
     * [Implementing Upgrade Plan Runtime Extensions](./implement-upgrade-plan-hooks.md)
 * For Cluster operators:
     * [Deploying Runtime Extensions](./deploy-runtime-extension.md)
+
+## Changing the runtime hooks
+
+Rules for Cluster API contributors changing runtime hooks:
+
+- Breaking changes within the same version of runtime hooks are not allowed.
+- A change to the runtime hooks must be discussed with the community (e.g. in an issue or a CAEP) and approved by maintainers first.
+- Changes to runtime hooks must be reflected in the corresponding page in this section, in the same PR that
+  implements them.
+- Runtime hook changes must also be listed in the "Runtime hooks Changes" section of the [migration doc](../providers/migrations/overview.md)
+  for the next release.

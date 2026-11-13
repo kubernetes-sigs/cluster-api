@@ -35,3 +35,17 @@ The Cluster API maintainers welcome feedback and contributions to the contract i
 its clarity and visibility to provider implementers and its suitability across the different kinds of Cluster API providers. 
 To provide feedback or open a discussion about the provider contract please [open an issue on the Cluster API](https://github.com/kubernetes-sigs/cluster-api/issues/new?assignees=&labels=&template=feature_request.md) 
 repo or add an item to the agenda in the [Cluster API community meeting](https://git.k8s.io/community/sig-cluster-lifecycle/README.md#cluster-api).
+
+### Changing the contract
+
+Rules for Cluster API contributors changing how core Cluster API interacts with providers:
+
+- Breaking changes within the same version of the Cluster API contract are not allowed.
+- Core Cluster API must keep working with providers implementing the contract versions that are still supported.
+- Core controllers must access provider objects only through `internal/contract` and `controllers/external`,
+  never by importing provider types or reading `unstructured` fields directly.
+- A change to the contract must be discussed with the community (e.g. in an issue or a CAEP) and approved by maintainers first.
+- Changes to the contract must be reflected in the contract page of the affected resource in this section, in the
+  same PR that implements them.
+- Contract changes must also be listed in the "Cluster API Contract changes" section of the [migration doc](../migrations/overview.md)
+  for the next release.

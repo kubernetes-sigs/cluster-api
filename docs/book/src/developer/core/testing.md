@@ -5,7 +5,23 @@ This document presents testing guidelines and conventions for Cluster API.
 IMPORTANT: improving and maintaining this document is a collaborative effort, so we are encouraging constructive
 feedback and suggestions.
 
-## Unit tests
+## Rules
+
+- Unit and integration tests use [go test] and [gomega] (`g := NewWithT(t)` in each test and each `t.Run`); [Ginkgo]
+  is only used for E2E tests ([details](#quick-reference)).
+- Core tests use the generic providers and builders from `util/test/builder`, never a concrete provider
+  ([details](#generic-providers)).
+- Use no client for pure functions, the [fakeclient] for reconciler logic, and [envtest] only for behaviour that needs
+  a real API server ([details](#which-kind-of-test)).
+- Test by layers: don't re-test edge cases of lower-level functions that have their own tests ([details](#test-maintainability)).
+- Extend existing table-driven tests instead of adding a separate test for the same function; keep one `_test.go`
+  file per source file ([details](#writing-unit-and-integration-tests)).
+- Never use `time.Sleep`; use `g.Eventually(func(g Gomega) {...})` and avoid tight timeouts that cause flakes.
+- Don't add tests for conversion code; the [fuzz conversion tests](#fuzzing-tests) already cover it.
+
+## Overview
+
+### Unit tests
 
 Unit tests focus on individual pieces of logic - a single func - and don't require any additional services to execute. They should
 be fast and great for getting the first signal on the current implementation, but unit tests have the risk of
@@ -15,7 +31,7 @@ In Cluster API most of the unit tests are developed using [go test], [gomega] an
 [fakeclient] is not suitable for all the use cases due to some limitations in how it is implemented. In some cases
 contributors will be required to use [envtest]. See the [quick reference](#quick-reference) below for more details.
 
-### Mocking external APIs
+#### Mocking external APIs
 In some cases when writing tests it is required to mock external API, e.g. etcd client API or the AWS SDK API.
 
 This problem is usually well scoped in core Cluster API, and in most cases it is already solved by using fake
@@ -25,7 +41,7 @@ Instead, mocking is much more relevant for infrastructure providers; in order to
 some providers can use simulators reproducing the behaviour of a real infrastructure providers (e.g CAPV);
 if this is not possible, a viable solution is to use mocks (e.g CAPA).
 
-### Generic providers
+#### Generic providers
 When writing tests core Cluster API contributors should ensure that the code works with any providers, and thus it is required
 to not use any specific provider implementation. Instead, the so-called generic providers e.g. "GenericInfrastructureCluster"
 should be used because they implement the plain Cluster API contract. This prevents tests from relying on assumptions that
@@ -35,7 +51,7 @@ Please note that in the long term we would like to improve the implementation of
 the existing set of utilities scattered across the codebase, but while details of this work will be defined do not
 hesitate to reach out to reviewers and maintainers for guidance.
 
-## Integration tests
+### Integration tests
 
 Integration tests are focused on testing the behavior of an entire controller or the interactions between two or
 more Cluster API controllers.
@@ -48,21 +64,68 @@ Kubernetes objects and waiting for the controllers to take action. See the [quic
 
 Also in case of integration tests, considerations about [mocking external APIs](#mocking-external-apis) and usage of [generic providers](#generic-providers) apply.
 
-## Fuzzing tests
+### Fuzzing tests
 
 Fuzzing tests automatically inject randomly generated inputs, often invalid or with unexpected values, into functions to discover vulnerabilities.
-
-Two different types of fuzzing are currently being used on the Cluster API repository:
-
-### Fuzz testing for API conversion
 
 Cluster API uses Kubernetes' conversion-gen to automate the generation of functions to convert our API objects between versions. These conversion functions are tested using the [FuzzTestFunc util in our conversion utils package](https://github.com/kubernetes-sigs/cluster-api/blob/1ec0cd6174f1b860dc466db587241ea7edea0b9f/util/conversion/conversion.go#L194).
 For more information about these conversions see the API conversion code walkthrough in our [video walkthrough series](../getting-started.md#videos-explaining-capi-architecture-and-code-walkthroughs).
 
-### OSS-Fuzz continuous fuzzing
+## Writing unit and integration tests
 
-Parts of the CAPI code base are continuously fuzzed through the [OSS-Fuzz project](https://github.com/google/oss-fuzz). Issues found in these fuzzing tests are reported to Cluster API maintainers and surfaced in issues on the repo for resolution.
-To read more about the integration of Cluster API with OSS Fuzz see [the 2022 Cluster API Fuzzing Report](https://github.com/kubernetes/sig-security/blob/main/sig-security-assessments/cluster-api/capi_2022_fuzzing.pdf).
+Good examples to copy from are in `core/reconcilers/machine/` (`suite_test.go`, `machine_controller_test.go`).
+
+### Which kind of test?
+
+- **Pure function or small unit**: no client at all is required.
+- **Reconciler logic that doesn't need a real API server**: use [fakeclient], e.g.
+  `fake.NewClientBuilder().WithScheme(...).WithObjects(...)`. Add `.WithStatusSubresource(...)` for the types whose
+  `.status` the code updates, and `.WithIndex(...)` if the code lists with field selectors.
+- **Behaviour that depends on a real API server** (webhooks, SSA, managed fields, watches, CRD
+  schemas, interaction between controllers): use [envtest], written as user stories: create objects, wait for the
+  reconcilers, assert on the resulting state.
+
+### Organizing tests
+
+- One test file per source file: put new tests into the existing `<file>_test.go`.
+- Test functions come first in the file, helpers at the end, grouped by purpose. Reuse helpers shared in the package
+  instead of duplicating them, and add builder methods to `util/test/builder` instead of hand-assembling the same
+  object in several tests.
+- Prefer one table-driven test with many cases over many `TestXxx` functions that only differ in input and expectation.
+  Use `testCases := []struct{ name string; ... }{...}` with `tc` in the loop, and put the expected result in the table.
+- Inline values in table cases so each case is readable on its own; add constants only for values shared across many
+  tests whose identity matters.
+- When a function gains a parameter or a new branch, extend the existing table (add the new field to every case) and
+  add cases next to the existing ones, instead of adding a separate test.
+- When the contract of a function changes or code is removed, update or delete the affected tests in the same change.
+
+### Writing assertions
+
+- Use `Equal` for simple values and `BeComparableTo` for structs and objects (it prints a diff). Don't add messages
+  to assertions.
+- Assertions must catch a wrong implementation: compare content, not just length, and when nothing should be created
+  or changed, assert exactly that.
+- Match the entire error message, unless the full message would be too verbose.
+
+### Using envtest
+
+- Each package that needs envtest should have a `suite_test.go` with `TestMain` calling `envtest.Run(...)`, which registers the
+  reconcilers under test. Add new reconcilers there; don't start a second manager inside a test.
+- Reconciler suites configure the envtest manager with the same `<provider>/setup` helpers as `main.go`,
+  so tests run with the production cache configuration. See `core/reconcilers/machine/suite_test.go`.
+- Create a namespace per test with `env.CreateNamespace(ctx, "test-<feature>")` and clean up all objects with
+  `env.Cleanup(ctx, ...)` (or `env.CleanupAndWait` if later steps depend on the objects being gone).
+- Assert asynchronously with `g.Eventually(func(g Gomega) { ... }).Should(Succeed())`, so failures report the actual
+  mismatch; use `g.Consistently` to prove that something does *not* happen. Never use `time.Sleep`.
+- Don't call `t.Parallel()` unless the package already does; many tests share a single envtest.
+
+### Making code testable
+
+- To make production code testable, use unexported `override<Func>Func` fields grouped under `// Only used for testing.`
+  (see the KubeadmControlPlane reconciler) instead of exporting functions.
+- Reconcilers that use `DeferNextReconcileUntilCacheUpToDate` need the fake controller from `util/controller` in tests.
+- Don't weaken a test to make it pass (e.g. by dropping the part that exercises the controller); fix the fake or the
+  test environment instead.
 
 ## Test maintainability
 
@@ -105,6 +168,8 @@ Integration tests use the [envtest](https://github.com/kubernetes-sigs/controlle
 > When running individual tests, it could happen that a testenv is started if this is required by the `suite_test.go` file.
 > However, if the tests you are running don't require testenv (i.e. they are only using fake client), you can skip the testenv
 > creation by setting the environment variable `CAPI_DISABLE_TEST_ENV` (to any non-empty value).
+> Don't set it when running all the tests of a package that also contains envtest-based tests; those tests fail
+> because the test environment is not started.
 >
 > To debug testenv unit tests it is possible to use:
 > * `CAPI_TEST_ENV_KUBECONFIG` to write out a kubeconfig for the testenv to a file location.
@@ -423,10 +488,15 @@ func TestMain(m *testing.M) {
 
 	// Run tests
 	os.Exit(envtest.Run(ctx, envtest.RunInput{
-		M:        m,
-		SetupEnv: func(e *envtest.Environment) { env = e },
-		SetupIndexes:     setupIndexes,
-		SetupReconcilers: setupReconcilers,
+		M: m,
+		// Use the same cache and client configuration as main.go.
+		SetupManagerCacheOptions: func(scheme *runtime.Scheme) ctrlcache.Options {
+			return setup.ManagerCacheOptions(scheme, "test-controller-manager", "", 10*time.Minute)
+		},
+		ManagerClientOptions: setup.ManagerClientOptions(),
+		SetupEnv:             func(e *envtest.Environment) { env = e },
+		SetupIndexes:         setupIndexes,
+		SetupReconcilers:     setupReconcilers,
 	}))
 }
 ```
@@ -439,19 +509,19 @@ func TestMain(m *testing.M) {
 	// Setup envtest
 	setupReconcilers := func(ctx context.Context, mgr ctrl.Manager) {
 		if err := (&MyReconciler{
-			Client:  mgr.GetClient(),
-			Log:     log.NullLogger{},
-		}).SetupWithManager(mgr, controller.Options{MaxConcurrentReconciles: 1}); err != nil {
+			Client: mgr.GetClient(),
+		}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: 1}); err != nil {
 			panic(fmt.Sprintf("Failed to start the MyReconciler: %v", err))
 		}
 	}
 
 	setupIndexes := func(ctx context.Context, mgr ctrl.Manager) {
 		if err := index.AddDefaultIndexes(ctx, mgr); err != nil {
-		panic(fmt.Sprintf("unable to setup index: %v", err))
+			panic(fmt.Sprintf("unable to setup index: %v", err))
+		}
 	}
-    
-    // Run tests
+
+	// Run tests
 	...
 }
 ```
@@ -586,7 +656,7 @@ More specifically, in order to use Gomega with go test you should
  ```golang
  func TestFarmHasCow(t *testing.T) {
      g := NewWithT(t)
-     g.Expect(f.HasCow()).To(BeTrue(), "Farm should have cow")
+     g.Expect(f.HasCow()).To(BeTrue())
  }
 ```
 

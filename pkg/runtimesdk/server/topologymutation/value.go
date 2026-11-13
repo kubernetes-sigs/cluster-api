@@ -157,7 +157,7 @@ func getVariableArrayElement(array *fastjson.Value, arrayPathSegment *pathSegmen
 	}
 
 	if len(arr) < *arrayPathSegment.index+1 {
-		return nil, pkgerrors.Errorf("variable %q is invalid: array does not have index %d", fullVariablePath, arrayPathSegment.index)
+		return nil, pkgerrors.Errorf("variable %q is invalid: array does not have index %d", fullVariablePath, *arrayPathSegment.index)
 	}
 
 	return arr[*arrayPathSegment.index], nil

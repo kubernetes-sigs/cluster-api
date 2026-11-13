@@ -455,6 +455,46 @@ func TestUpdateImageRepositoryInKubeadmConfigMap(t *testing.T) {
 	}
 }
 
+// TestUpdateImageRepositoryAndCoreDNSImageInfoInKubeadmConfigMap covers the mutator
+// sequence used by the KCP reconciler: when the spec sets both the top level
+// imageRepository and dns.imageRepository, both must land in the config map in the
+// same reconcile instead of the DNS section lagging behind until every Machine rotated.
+func TestUpdateImageRepositoryAndCoreDNSImageInfoInKubeadmConfigMap(t *testing.T) {
+	g := NewWithT(t)
+	fakeClient := fake.NewClientBuilder().WithObjects(&corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      kubeadmConfigKey,
+			Namespace: metav1.NamespaceSystem,
+		},
+		Data: map[string]string{
+			clusterConfigurationKey: utilyaml.Raw(`
+				apiVersion: kubeadm.k8s.io/v1beta4
+				kind: ClusterConfiguration`),
+		},
+	}).Build()
+
+	w := &Workload{
+		Client: fakeClient,
+	}
+	err := w.UpdateClusterConfiguration(ctx, semver.MustParse("1.31.1"),
+		w.UpdateImageRepositoryInKubeadmConfigMap("registry.example.org"),
+		w.UpdateCoreDNSImageInfoInKubeadmConfigMap(&bootstrapv1.DNS{
+			ImageRepository: "registry.example.org/coredns",
+			ImageTag:        "v1.12.1",
+		}))
+	g.Expect(err).ToNot(HaveOccurred())
+
+	var actualConfig corev1.ConfigMap
+	g.Expect(w.Client.Get(
+		ctx,
+		client.ObjectKey{Name: kubeadmConfigKey, Namespace: metav1.NamespaceSystem},
+		&actualConfig,
+	)).To(Succeed())
+	g.Expect(actualConfig.Data[clusterConfigurationKey]).To(ContainSubstring("imageRepository: registry.example.org\n"))
+	g.Expect(actualConfig.Data[clusterConfigurationKey]).To(ContainSubstring("imageRepository: registry.example.org/coredns"))
+	g.Expect(actualConfig.Data[clusterConfigurationKey]).To(ContainSubstring("imageTag: v1.12.1"))
+}
+
 func TestUpdateApiServerInKubeadmConfigMap(t *testing.T) {
 	tests := []struct {
 		name                     string

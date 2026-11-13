@@ -86,7 +86,7 @@ The proposal introduces update extensions allowing users to execute changes on e
 
 An External Update Extension will report the subset of changes they know how to perform. Cluster API will orchestrate the different extensions, polling the update progress from them.
 
-If the totality of the required changes cannot be covered by the defined extensions, Cluster API will fall back to the current behavior (rolling update).
+If the totality of the required changes cannot be covered by the defined extensions, by default Cluster API will fall back to the current behavior (rolling update).
 
 ## Motivation
 
@@ -133,13 +133,19 @@ This proposal, with the introduction of update extensions, expands the set of to
 
 #### Fallback to Immutable rollouts
 
-If external update extensions can not cover the totality of the desired changes, CAPI will defer to Cluster API’s default, immutable rollouts. This is important for a couple of reasons:
+By default, if external update extensions can not cover the totality of the desired changes, CAPI will defer to Cluster API’s default, immutable rollouts. This is important for a couple of reasons:
 
 * It allows to implement in-place update capabilities incrementally, without the need to cover all use cases up-front.
 * There are cases when replacing the machine will always be necessary:
     * When it is not possible to recover the machine, e.g. hardware failure.
     * When the user determines that recovering the machine is too complex/costly vs replacing it. 
     * Automatic machine remediation (unless you use external remediation strategies)
+
+If, instead, the update extensions do not allow the `Replace` operation (see `allowedOperations`), CAPI will not fall back
+to immutable rollouts, and the rollout is blocked until the extensions change their opinion or the desired state changes.
+
+Please note that CAPI controllers remain ultimately responsible for availability and for other concurrent operations,
+e.g. scale up or remediation, and as a consequence `allowedOperations` only constrains decisions taken while the extensions are consulted.
 
 #### Clean separation of concern
 
@@ -230,7 +236,7 @@ sequenceDiagram
 
 When configured, external updates will, roughly, follow these steps:
 1. CP/MD Controller: detect an update is required.
-2. CP/MD Controller: query defined update extensions, and based on the response decides if an update should happen in-place. If not, the update will be performed as of today (rollout).
+2. CP/MD Controller: query defined update extensions, and based on the response decides if an update should happen in-place. If not, by default the update will be performed as of today (rollout).
 3. CP/MD Controller: mark machines as updating in-place.
 4. Machine Controller: invoke all registered updaters, sequentially, one by one.
 5. Machine Controller: once updaters finish Mark Machine as UpToDate.
@@ -276,7 +282,14 @@ The changes supported by an updater can be the complete set of desired changes, 
 
 If the combination of the updaters can handle ALL the desired changes then CAPI will determine that the update can be performed in-place. 
 
-If ANY of the desired changes cannot be covered by the updaters capabilities, CAPI will determine the desired state cannot be reached through external updaters. In this case, it will fallback to the rolling update strategy, replacing machines as needed. 
+If ANY of the desired changes cannot be covered by the updaters capabilities, CAPI will determine the desired state cannot be reached through external updaters. In this case, by default, it will fall back to the rolling update strategy, replacing machines as needed. 
+
+Updaters can also use `allowedOperations` to express a binding opinion on which operations (`UpdateInPlace`, `Replace`) can be used
+to roll out the changes, independently of the changes they can handle; if `allowedOperations` is not set, all operations are allowed (default),
+if it is set to an empty list, the rollout is blocked.
+
+Updaters can also set `retryAfterSeconds` to signal that they are not yet able to take a decision; in this case no fallback to rolling update
+is performed, and updaters are called again after the given amount of seconds.
 
 ### MachineDeployment updates
 
@@ -327,9 +340,12 @@ Please note that:
   - **Warning!** the system is going to perform in-place update on the first Machine without the safety net provided by the additional machine.
   - If something goes wrong unexpectedly, and the operation leads to actual unavailability, workloads could be impacted.
   - **Use this feature with caution!** 
+- The `CanUpdateMachineSet` answer can differ for each old MachineSet; while a decision is pending for at least one old MachineSet,
+  the rollout of the entire MachineDeployment is paused, instead, when the rollout is blocked for an old MachineSet, the other old MachineSets keep rolling out.
 - No in-place updates are performed when using rollout strategy OnDelete.
 
-Please refer to [implementation notes](./20240807-in-place-updates-implementation-notes.md) for more details about how the move operation is performed.
+Please refer to [implementation notes](./20240807-in-place-updates-implementation-notes.md) for more details about how the move operation is performed,
+and to [CanUpdateMachineSet](../book/src/developer/runtime-extensions/implement-in-place-update-hooks.md#canupdatemachineset) for more details about the `CanUpdateMachineSet` hook.
 
 ### KCP updates
 
@@ -377,8 +393,11 @@ Please note that:
   - **Warning!** the system is going to perform in-place update on the first Machine without the safety net provided by the additional machine.
   - If something goes wrong unexpectedly, and the operation leads to actual unavailability, workloads could be impacted.
   - **Use this feature with caution!**
+- When maxSurge is 1, creating the additional Machine is part of the `Replace` operation; as a consequence, if `Replace` is not allowed,
+  in-place update can start only if the `CanUpdateMachine` hook specifies that the required change does not affect availability.
 
-Please refer to [implementation note](./20240807-in-place-updates-implementation-notes.md) for more details about how KCP handles in-place updates.
+Please refer to [implementation note](./20240807-in-place-updates-implementation-notes.md) for more details about how KCP handles in-place updates,
+and to [CanUpdateMachine](../book/src/developer/runtime-extensions/implement-in-place-update-hooks.md#canupdatemachine) for more details about the `CanUpdateMachine` hook.
 
 ### Machine updates
 
@@ -764,6 +783,7 @@ we will provide a way to toggle the in-place possibly though the API.
 - [x] 2025-04: Proposal merged
 - [x] 2025-12: Update proposal after first implementation
 - [x] 2026-09: Introduce support for in-place update changes that do not impact availability
+- [x] 2026-10: Introduce support for `allowedOperations` and `retryAfterSeconds` in `CanUpdateMachine` and `CanUpdateMachineSet` hooks
 
 <!-- Links -->
 [community meeting]: https://docs.google.com/document/d/1ushaVqAKYnZ2VN_aa3GyKlS4kEd6bSug13xaXOakAQI/edit#heading=h.pxsq37pzkbdq

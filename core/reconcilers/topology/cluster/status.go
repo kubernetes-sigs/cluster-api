@@ -323,6 +323,36 @@ func (r *Reconciler) reconcileTopologyReconciledCondition(s *scope.Scope, cluste
 		return nil
 	}
 
+	// If creation of any MachineDeployment or MachinePool has been deferred because failureDomain(s) on the Cluster have
+	// not been reported yet, surface it.
+	if s.UpgradeTracker.MachineDeployments.IsAnyWaitingForFailureDomains() || s.UpgradeTracker.MachinePools.IsAnyWaitingForFailureDomains() {
+		msgBuilder := &strings.Builder{}
+		fmt.Fprint(msgBuilder, "Cluster topology is waiting for failure domains to be reported in Cluster.status.failureDomains")
+
+		if s.UpgradeTracker.MachineDeployments.IsAnyWaitingForFailureDomains() {
+			fmt.Fprintf(msgBuilder, "\n  * %s creation deferred until the requested failure domain(s) are reported", nameList("MachineDeployment", "MachineDeployments", s.UpgradeTracker.MachineDeployments.WaitingForFailureDomainsTopologyNames()))
+		}
+		if s.UpgradeTracker.MachinePools.IsAnyWaitingForFailureDomains() {
+			fmt.Fprintf(msgBuilder, "\n  * %s creation deferred until the requested failure domain(s) are reported", nameList("MachinePool", "MachinePools", s.UpgradeTracker.MachinePools.WaitingForFailureDomainsTopologyNames()))
+		}
+
+		v1beta1conditions.Set(cluster,
+			v1beta1conditions.FalseCondition(
+				clusterv1.TopologyReconciledV1Beta1Condition,
+				clusterv1.TopologyReconciledWaitingForFailureDomainsV1Beta1Reason,
+				clusterv1.ConditionSeverityInfo,
+				"%s", msgBuilder.String(),
+			),
+		)
+		conditions.Set(cluster, metav1.Condition{
+			Type:    clusterv1.ClusterTopologyReconciledCondition,
+			Status:  metav1.ConditionFalse,
+			Reason:  clusterv1.ClusterTopologyReconciledWaitingForFailureDomainsReason,
+			Message: msgBuilder.String(),
+		})
+		return nil
+	}
+
 	// If there are no errors while reconciling and if the topology is not holding out changes
 	// we can consider that spec of all the objects is reconciled to match the topology. Set the
 	// TopologyReconciled condition to true.

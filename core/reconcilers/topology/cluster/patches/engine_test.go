@@ -40,7 +40,7 @@ import (
 	runtimecatalog "sigs.k8s.io/cluster-api/api/runtime/catalog"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
 	"sigs.k8s.io/cluster-api/exp/topology/scope"
-	"sigs.k8s.io/cluster-api/feature"
+	"sigs.k8s.io/cluster-api/pkg/features"
 	fakeruntimeclient "sigs.k8s.io/cluster-api/pkg/runtimesdk/client/fake"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/labels"
@@ -48,7 +48,7 @@ import (
 )
 
 func TestApply(t *testing.T) {
-	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.RuntimeSDK, true)
+	utilfeature.SetFeatureGateDuringTest(t, features.Gates, features.RuntimeSDK, true)
 	type expectedFields struct {
 		infrastructureCluster                          map[string]interface{}
 		controlPlane                                   map[string]interface{}

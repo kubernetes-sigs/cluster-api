@@ -33,14 +33,14 @@ import (
 	runtimecatalog "sigs.k8s.io/cluster-api/api/runtime/catalog"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
 	runtimev1 "sigs.k8s.io/cluster-api/api/runtime/v1beta2"
-	"sigs.k8s.io/cluster-api/feature"
+	"sigs.k8s.io/cluster-api/pkg/features"
 	runtimeclient "sigs.k8s.io/cluster-api/pkg/runtimesdk/client"
 	runtimeregistry "sigs.k8s.io/cluster-api/pkg/runtimesdk/registry"
 	fakev1alpha1 "sigs.k8s.io/cluster-api/pkg/runtimesdk/test/v1alpha1"
 )
 
 func Test_warmupRunnable_Start(t *testing.T) {
-	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.RuntimeSDK, true)
+	utilfeature.SetFeatureGateDuringTest(t, features.Gates, features.RuntimeSDK, true)
 
 	t.Run("succeed to warm up registry on Start", func(t *testing.T) {
 		g := NewWithT(t)

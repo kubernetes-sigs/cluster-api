@@ -81,8 +81,8 @@ import (
 	"sigs.k8s.io/cluster-api/core/setup"
 	coreadmission "sigs.k8s.io/cluster-api/core/webhooks/admission"
 	"sigs.k8s.io/cluster-api/core/webhooks/conversion"
-	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/contract"
+	"sigs.k8s.io/cluster-api/pkg/features"
 	runtimeclient "sigs.k8s.io/cluster-api/pkg/runtimesdk/client"
 	runtimeregistry "sigs.k8s.io/cluster-api/pkg/runtimesdk/registry"
 	"sigs.k8s.io/cluster-api/util/apiwarnings"
@@ -288,7 +288,7 @@ func InitFlags(fs *pflag.FlagSet) {
 
 	flags.AddManagerOptions(fs, &managerOptions)
 
-	feature.MutableGates.AddFlag(fs)
+	features.MutableGates.AddFlag(fs)
 }
 
 // Add RBAC for the authorized diagnostics endpoint.
@@ -335,7 +335,7 @@ func main() {
 	restConfig.WarningHandler = apiwarnings.DefaultHandler(klog.Background().WithName("API Server Warning"))
 
 	minVer := version.MinimumKubernetesVersion
-	if feature.Gates.Enabled(feature.ClusterTopology) {
+	if features.Gates.Enabled(features.ClusterTopology) {
 		minVer = version.MinimumKubernetesVersionClusterTopology
 	}
 
@@ -369,7 +369,7 @@ func main() {
 
 	ctrlOptions := ctrl.Options{
 		Controller: config.Controller{
-			UsePriorityQueue: ptr.To[bool](feature.Gates.Enabled(feature.PriorityQueue)),
+			UsePriorityQueue: ptr.To[bool](features.Gates.Enabled(features.PriorityQueue)),
 			// Give the manager more time to sync the caches during startup. This is required
 			// in high scale environments when they are more objects in the system (default is 3m).
 			CacheSyncTimeout: 5 * time.Minute,
@@ -475,13 +475,13 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager, watchNamespace stri
 		&ipamv1.IPAddress{}:                   {UseCache: false},
 		&ipamv1.IPAddressClaim{}:              {UseCache: false, UseStatusForStorageVersionMigration: true},
 	}
-	if feature.Gates.Enabled(feature.ClusterTopology) {
+	if features.Gates.Enabled(features.ClusterTopology) {
 		crdMigratorConfig[&clusterv1.ClusterClass{}] = crdmigrator.ByObjectConfig{UseCache: false, UseStatusForStorageVersionMigration: true}
 	}
-	if feature.Gates.Enabled(feature.RuntimeSDK) {
+	if features.Gates.Enabled(features.RuntimeSDK) {
 		crdMigratorConfig[&runtimev1.ExtensionConfig{}] = crdmigrator.ByObjectConfig{UseCache: false, UseStatusForStorageVersionMigration: true}
 	}
-	if feature.Gates.Enabled(feature.MachinePool) {
+	if features.Gates.Enabled(features.MachinePool) {
 		crdMigratorConfig[&clusterv1.MachinePool{}] = crdmigrator.ByObjectConfig{UseCache: false, UseStatusForStorageVersionMigration: true}
 	}
 	crdMigratorSkipPhases := make([]crdmigrator.Phase, 0, len(skipCRDMigrationPhases))
@@ -501,7 +501,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager, watchNamespace stri
 	}
 
 	var runtimeClient runtimeclient.Client
-	if feature.Gates.Enabled(feature.RuntimeSDK) {
+	if features.Gates.Enabled(features.RuntimeSDK) {
 		// This is the creation of the runtimeClient for the controllers, embedding a shared catalog and registry instance.
 		var certWatcher *certwatcher.CertWatcher
 		runtimeClient, certWatcher, err = runtimeclient.New(ctx, runtimeclient.Options{
@@ -560,7 +560,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager, watchNamespace stri
 		os.Exit(1)
 	}
 
-	if feature.Gates.Enabled(feature.ClusterTopology) {
+	if features.Gates.Enabled(features.ClusterTopology) {
 		if err := (&clusterclass.Reconciler{
 			Client:           mgr.GetClient(),
 			RuntimeClient:    runtimeClient,
@@ -582,7 +582,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager, watchNamespace stri
 		}
 	}
 
-	if feature.Gates.Enabled(feature.RuntimeSDK) {
+	if features.Gates.Enabled(features.RuntimeSDK) {
 		if err = (&extensionconfig.Reconciler{
 			Client:             mgr.GetClient(),
 			APIReader:          mgr.GetAPIReader(),
@@ -686,7 +686,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager, watchNamespace stri
 		os.Exit(1)
 	}
 
-	if feature.Gates.Enabled(feature.MachinePool) {
+	if features.Gates.Enabled(features.MachinePool) {
 		if err := (&machinepool.Reconciler{
 			Client:           mgr.GetClient(),
 			APIReader:        mgr.GetAPIReader(),

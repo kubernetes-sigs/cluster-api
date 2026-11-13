@@ -34,8 +34,8 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/core/reconcilers/machinedeployment/mdutil"
-	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/util/taints"
+	"sigs.k8s.io/cluster-api/pkg/features"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -345,7 +345,7 @@ func (r *Reconciler) patchNode(ctx context.Context, remoteClient client.Client, 
 
 	// Propagate taints set on the Machine to the Node.
 	var propagateTaintsChanges bool
-	if feature.Gates.Enabled(feature.MachineTaintPropagation) {
+	if features.Gates.Enabled(features.MachineTaintPropagation) {
 		var err error
 		if propagateTaintsChanges, err = propagateMachineTaintsToNode(newNode, m.Spec.Taints); err != nil {
 			return pkgerrors.Wrapf(err, "failed to propagate Machine taints to Node %s", klog.KObj(node))

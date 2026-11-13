@@ -29,7 +29,7 @@ import (
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
-	"sigs.k8s.io/cluster-api/feature"
+	"sigs.k8s.io/cluster-api/pkg/features"
 )
 
 func TestKubeadmControlPlaneTemplateValidationFeatureGateEnabled(t *testing.T) {
@@ -64,7 +64,7 @@ func TestKubeadmControlPlaneTemplateValidationFeatureGateEnabled(t *testing.T) {
 
 func TestKubeadmControlPlaneTemplateValidationFeatureGateDisabled(t *testing.T) {
 	// NOTE: ClusterTopology feature flag is enabled by default, thus we have to disable it explicitly to test the disabled behavior.
-	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, false)
+	utilfeature.SetFeatureGateDuringTest(t, features.Gates, features.ClusterTopology, false)
 	t.Run("create kubeadmcontrolplanetemplate should not pass if gate disabled and valid kubeadmcontrolplanetemplate", func(t *testing.T) {
 		testnamespace := "test"
 		g := NewWithT(t)

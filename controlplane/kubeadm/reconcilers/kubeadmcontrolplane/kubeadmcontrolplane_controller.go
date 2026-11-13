@@ -50,10 +50,10 @@ import (
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/pkg"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/pkg/etcd"
 	coreadmission "sigs.k8s.io/cluster-api/core/webhooks/admission"
-	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/util/inplace"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
 	"sigs.k8s.io/cluster-api/pkg/dynamiccache"
+	"sigs.k8s.io/cluster-api/pkg/features"
 	runtimeclient "sigs.k8s.io/cluster-api/pkg/runtimesdk/client"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/cache"
@@ -158,7 +158,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 			"EtcdDialTimeout and EtcdCallTimeout must not be 0 and " +
 			"RemoteConditionsGracePeriod must not be < 2m")
 	}
-	if feature.Gates.Enabled(feature.InPlaceUpdates) && r.RuntimeClient == nil {
+	if features.Gates.Enabled(features.InPlaceUpdates) && r.RuntimeClient == nil {
 		return pkgerrors.New("RuntimeClient must not be nil when InPlaceUpdates feature gate is enabled")
 	}
 
@@ -789,7 +789,7 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, controlPlane *pkg.Cont
 
 	allMachinePools := &clusterv1.MachinePoolList{}
 	// Get all machine pools.
-	if feature.Gates.Enabled(feature.MachinePool) {
+	if features.Gates.Enabled(features.MachinePool) {
 		allMachinePools, err = r.managementCluster.GetMachinePoolsForCluster(ctx, controlPlane.Cluster)
 		if err != nil {
 			controlPlane.DeletingReason = controlplanev1.KubeadmControlPlaneDeletingInternalErrorReason
@@ -888,7 +888,7 @@ func objectsPendingDeleteNames(allMachines collections.Machines, allMachinePools
 	workerMachines := allMachines.Difference(controlPlaneMachines)
 
 	descendants := make([]string, 0)
-	if feature.Gates.Enabled(feature.MachinePool) {
+	if features.Gates.Enabled(features.MachinePool) {
 		machinePoolNames := make([]string, len(allMachinePools.Items))
 		for i, machinePool := range allMachinePools.Items {
 			machinePoolNames[i] = machinePool.Name

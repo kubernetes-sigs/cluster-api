@@ -56,7 +56,7 @@ import (
 	coreadmission "sigs.k8s.io/cluster-api/core/webhooks/admission"
 	"sigs.k8s.io/cluster-api/exp/topology/desiredstate"
 	"sigs.k8s.io/cluster-api/exp/topology/scope"
-	"sigs.k8s.io/cluster-api/feature"
+	"sigs.k8s.io/cluster-api/pkg/features"
 	runtimeclient "sigs.k8s.io/cluster-api/pkg/runtimesdk/client"
 	"sigs.k8s.io/cluster-api/util/cache"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -71,7 +71,7 @@ func TestHandler(t *testing.T) {
 	g := NewWithT(t)
 
 	// Enable RuntimeSDK for this test so we can use RuntimeExtensions.
-	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.RuntimeSDK, true)
+	utilfeature.SetFeatureGateDuringTest(t, features.Gates, features.RuntimeSDK, true)
 
 	// Get a scope based on the Cluster and ClusterClass.
 	cluster := getCluster()

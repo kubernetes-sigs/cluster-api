@@ -63,8 +63,8 @@ import (
 	controlplaneadmission "sigs.k8s.io/cluster-api/controlplane/kubeadm/webhooks/admission"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/webhooks/conversion"
 	"sigs.k8s.io/cluster-api/core/reconcilers/extensionconfig"
-	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/contract"
+	"sigs.k8s.io/cluster-api/pkg/features"
 	runtimeclient "sigs.k8s.io/cluster-api/pkg/runtimesdk/client"
 	runtimeregistry "sigs.k8s.io/cluster-api/pkg/runtimesdk/registry"
 	"sigs.k8s.io/cluster-api/util/apiwarnings"
@@ -215,7 +215,7 @@ func InitFlags(fs *pflag.FlagSet) {
 
 	flags.AddManagerOptions(fs, &managerOptions)
 
-	feature.MutableGates.AddFlag(fs)
+	features.MutableGates.AddFlag(fs)
 }
 
 // Add RBAC for the authorized diagnostics endpoint.
@@ -281,7 +281,7 @@ func main() {
 
 	ctrlOptions := ctrl.Options{
 		Controller: config.Controller{
-			UsePriorityQueue: ptr.To[bool](feature.Gates.Enabled(feature.PriorityQueue)),
+			UsePriorityQueue: ptr.To[bool](features.Gates.Enabled(features.PriorityQueue)),
 			// Give the manager more time to sync the caches during startup. This is required
 			// in high scale environments when they are more objects in the system (default is 3m).
 			CacheSyncTimeout: 5 * time.Minute,
@@ -398,7 +398,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 	}
 
 	var runtimeClient runtimeclient.Client
-	if feature.Gates.Enabled(feature.InPlaceUpdates) {
+	if features.Gates.Enabled(features.InPlaceUpdates) {
 		// This is the creation of the runtimeClient for the controllers, embedding a shared catalog and registry instance.
 		var certWatcher *certwatcher.CertWatcher
 		runtimeClient, certWatcher, err = runtimeclient.New(ctx, runtimeclient.Options{

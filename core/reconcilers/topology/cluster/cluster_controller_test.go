@@ -46,8 +46,8 @@ import (
 	runtimev1 "sigs.k8s.io/cluster-api/api/runtime/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/exp/topology/scope"
-	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/contract"
+	"sigs.k8s.io/cluster-api/pkg/features"
 	fakeruntimeclient "sigs.k8s.io/cluster-api/pkg/runtimesdk/client/fake"
 	"sigs.k8s.io/cluster-api/pkg/runtimesdk/hooks"
 	"sigs.k8s.io/cluster-api/util/cache"
@@ -486,7 +486,7 @@ func TestClusterReconciler_reconcileClusterClassRebase(t *testing.T) {
 }
 
 func TestClusterReconciler_reconcileDelete(t *testing.T) {
-	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.RuntimeSDK, true)
+	utilfeature.SetFeatureGateDuringTest(t, features.Gates, features.RuntimeSDK, true)
 
 	catalog := runtimecatalog.New()
 	_ = runtimehooksv1.AddToCatalog(catalog)

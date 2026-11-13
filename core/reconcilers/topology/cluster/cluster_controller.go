@@ -51,8 +51,8 @@ import (
 	coreadmission "sigs.k8s.io/cluster-api/core/webhooks/admission"
 	"sigs.k8s.io/cluster-api/exp/topology/desiredstate"
 	"sigs.k8s.io/cluster-api/exp/topology/scope"
-	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
+	"sigs.k8s.io/cluster-api/pkg/features"
 	runtimeclient "sigs.k8s.io/cluster-api/pkg/runtimesdk/client"
 	"sigs.k8s.io/cluster-api/pkg/runtimesdk/hooks"
 	"sigs.k8s.io/cluster-api/util"
@@ -106,7 +106,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 		return pkgerrors.New("Client, APIReader and ClusterCache must not be nil")
 	}
 
-	if feature.Gates.Enabled(feature.RuntimeSDK) && r.RuntimeClient == nil {
+	if features.Gates.Enabled(features.RuntimeSDK) && r.RuntimeClient == nil {
 		return pkgerrors.New("RuntimeClient must not be nil")
 	}
 
@@ -375,7 +375,7 @@ func (r *Reconciler) reconcile(ctx context.Context, s *scope.Scope) (ctrl.Result
 	}
 
 	// The cluster topology is yet to be created. Call the BeforeClusterCreate hook before proceeding.
-	if feature.Gates.Enabled(feature.RuntimeSDK) {
+	if features.Gates.Enabled(features.RuntimeSDK) {
 		res, err := r.callBeforeClusterCreateHook(ctx, s)
 		if err != nil {
 			return reconcile.Result{}, err
@@ -560,7 +560,7 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope.Scope) (ctrl.
 	// and add the annotation to the cluster after receiving a successful non-blocking response.
 	log := ctrl.LoggerFrom(ctx).WithValues(hookLogValues(runtimehooksv1.BeforeClusterDelete)...)
 
-	if feature.Gates.Enabled(feature.RuntimeSDK) {
+	if features.Gates.Enabled(features.RuntimeSDK) {
 		if !hooks.IsOkToDelete(cluster) {
 			// Return quickly if the hook is not defined.
 			extensionHandlers, err := r.RuntimeClient.GetAllExtensions(ctx, runtimehooksv1.BeforeClusterDelete, s.Current.Cluster)

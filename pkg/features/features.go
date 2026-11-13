@@ -14,8 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package feature implements feature functionality.
-package feature
+// Package features implements feature gates functionality.
+package features
 
 import (
 	"k8s.io/apimachinery/pkg/util/runtime"

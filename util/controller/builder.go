@@ -40,7 +40,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
-	"sigs.k8s.io/cluster-api/feature"
+	"sigs.k8s.io/cluster-api/pkg/features"
 	"sigs.k8s.io/cluster-api/util/cache"
 	predicatesutil "sigs.k8s.io/cluster-api/util/predicates"
 )
@@ -185,7 +185,7 @@ func (blder *Builder) Complete(ctx context.Context, r reconcile.TypedReconciler[
 
 // Build builds the Application Controller and returns the Controller it created.
 func (blder *Builder) Build(ctx context.Context, r reconcile.TypedReconciler[reconcile.Request]) (Controller, error) {
-	if feature.Gates.Enabled(feature.ReconcilerRateLimiting) && !feature.Gates.Enabled(feature.PriorityQueue) {
+	if features.Gates.Enabled(features.ReconcilerRateLimiting) && !features.Gates.Enabled(features.PriorityQueue) {
 		return nil, pkgerrors.New("if feature gate ReconcilerRateLimiting is enabled, feature gate PriorityQueue must be enabled as well")
 	}
 
@@ -248,7 +248,7 @@ func (blder *Builder) Build(ctx context.Context, r reconcile.TypedReconciler[rec
 	}
 
 	var queueRateLimiter *typedItemExponentialFailureRateLimiter[reconcile.Request]
-	if feature.Gates.Enabled(feature.ReconcilerRateLimiting) {
+	if features.Gates.Enabled(features.ReconcilerRateLimiting) {
 		queueRateLimiter = newTypedItemExponentialFailureRateLimiter[reconcile.Request](rateLimitInterval, 5*time.Millisecond, 1000*time.Second)
 		blder.options.RateLimiter = queueRateLimiter
 	}

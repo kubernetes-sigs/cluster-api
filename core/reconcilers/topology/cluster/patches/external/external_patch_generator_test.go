@@ -28,12 +28,12 @@ import (
 	runtimecatalog "sigs.k8s.io/cluster-api/api/runtime/catalog"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
 	runtimev1 "sigs.k8s.io/cluster-api/api/runtime/v1beta2"
-	"sigs.k8s.io/cluster-api/feature"
+	"sigs.k8s.io/cluster-api/pkg/features"
 	runtimeclient "sigs.k8s.io/cluster-api/pkg/runtimesdk/client"
 )
 
 func TestExternalPatchGenerator_Generate(t *testing.T) {
-	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.RuntimeSDK, true)
+	utilfeature.SetFeatureGateDuringTest(t, features.Gates, features.RuntimeSDK, true)
 
 	ctx := context.Background()
 	tests := []struct {

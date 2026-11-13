@@ -42,12 +42,12 @@ import (
 	"sigs.k8s.io/cluster-api/core/reconcilers/topology/cluster/patches"
 	coreadmission "sigs.k8s.io/cluster-api/core/webhooks/admission"
 	"sigs.k8s.io/cluster-api/exp/topology/scope"
-	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/contract"
 	"sigs.k8s.io/cluster-api/internal/topology/clustershim"
 	topologynames "sigs.k8s.io/cluster-api/internal/topology/names"
 	"sigs.k8s.io/cluster-api/internal/topology/ownerrefs"
 	"sigs.k8s.io/cluster-api/internal/topology/selectors"
+	"sigs.k8s.io/cluster-api/pkg/features"
 	runtimeclient "sigs.k8s.io/cluster-api/pkg/runtimesdk/client"
 	"sigs.k8s.io/cluster-api/pkg/runtimesdk/hooks"
 	"sigs.k8s.io/cluster-api/util"
@@ -66,7 +66,7 @@ func NewGenerator(client client.Client, clusterCache clustercache.ClusterCache, 
 		return nil, pkgerrors.New("Client and ClusterCache must not be nil")
 	}
 
-	if feature.Gates.Enabled(feature.RuntimeSDK) && runtimeClient == nil {
+	if features.Gates.Enabled(features.RuntimeSDK) && runtimeClient == nil {
 		return nil, pkgerrors.New("RuntimeClient must not be nil")
 	}
 
@@ -596,7 +596,7 @@ func (g *generator) computeControlPlaneVersion(ctx context.Context, s *scope.Sco
 		s.UpgradeTracker.ControlPlane.IsUpgrading = true
 
 		// Recovery code in case control plane version was changed, but it failed to apply the list of pending hooks.
-		if feature.Gates.Enabled(feature.RuntimeSDK) {
+		if features.Gates.Enabled(features.RuntimeSDK) {
 			if !hooks.IsPending(runtimehooksv1.AfterControlPlaneUpgrade, s.Current.Cluster) {
 				hooksToMarkPending := getHooksToMarkPending(s, *currentVersion)
 				if err := hooks.MarkAsPending(ctx, g.Client, s.Current.Cluster, false, hooksToMarkPending...); err != nil {
@@ -609,7 +609,7 @@ func (g *generator) computeControlPlaneVersion(ctx context.Context, s *scope.Sco
 
 	// if the control plane is not upgrading, before making further considerations about if to pick up another version,
 	// we should call the AfterControlPlaneUpgrade and the BeforeWorkersUpgrade hooks if not already done.
-	if feature.Gates.Enabled(feature.RuntimeSDK) {
+	if features.Gates.Enabled(features.RuntimeSDK) {
 		// Note: calling the AfterControlPlaneUpgrade is the final step of a control plane upgrade.
 		hookCompleted, err := g.callAfterControlPlaneUpgradeHook(ctx, s, currentVersion)
 		if err != nil {
@@ -659,7 +659,7 @@ func (g *generator) computeControlPlaneVersion(ctx context.Context, s *scope.Sco
 
 	// If not already done, call the AfterWorkersUpgrade hook before picking up the desired version.
 	// (this is the last step of the previous upgrade).
-	if feature.Gates.Enabled(feature.RuntimeSDK) {
+	if features.Gates.Enabled(features.RuntimeSDK) {
 		// Note: calling the AfterWorkersUpgrade is the last step of workers upgrade.
 		// The call to this hook is implemented in this function in order to ensure that AfterWorkersUpgrade
 		// can block the control plane upgrade to proceed in the upgrade plan.
@@ -682,7 +682,7 @@ func (g *generator) computeControlPlaneVersion(ctx context.Context, s *scope.Sco
 	}
 
 	// If not already done, call the BeforeClusterUpgrade hook before picking up the desired version.
-	if feature.Gates.Enabled(feature.RuntimeSDK) {
+	if features.Gates.Enabled(features.RuntimeSDK) {
 		// Note: calling the BeforeClusterUpgrade is the first step of an upgrade plan;
 		// this operation is a no-op for intermediate steps of an upgrade plan.
 		hookCompleted, err := g.callBeforeClusterUpgradeHook(ctx, s, currentVersion, topologyVersion)
@@ -710,7 +710,7 @@ func (g *generator) computeControlPlaneVersion(ctx context.Context, s *scope.Sco
 	}
 	nextVersion := s.UpgradeTracker.ControlPlane.UpgradePlan[0]
 
-	if feature.Gates.Enabled(feature.RuntimeSDK) {
+	if features.Gates.Enabled(features.RuntimeSDK) {
 		// Note: calling the BeforeControlPlaneUpgrade is the first step of a control plan upgrade step from the upgrade plan.
 		hookCompleted, err := g.callBeforeControlPlaneUpgradeHook(ctx, s, currentVersion, nextVersion)
 		if err != nil {
@@ -782,8 +782,8 @@ func computeCluster(_ context.Context, s *scope.Scope, infrastructureCluster, co
 	if cluster.Annotations == nil {
 		cluster.Annotations = map[string]string{}
 	}
-	if (feature.Gates.Enabled(feature.RuntimeSDK) && hooks.IsPending(runtimehooksv1.AfterClusterUpgrade, s.Current.Cluster)) ||
-		(!feature.Gates.Enabled(feature.RuntimeSDK) && (len(s.UpgradeTracker.ControlPlane.UpgradePlan) > 0 || len(s.UpgradeTracker.MachineDeployments.UpgradePlan) > 0 || len(s.UpgradeTracker.MachinePools.UpgradePlan) > 0)) {
+	if (features.Gates.Enabled(features.RuntimeSDK) && hooks.IsPending(runtimehooksv1.AfterClusterUpgrade, s.Current.Cluster)) ||
+		(!features.Gates.Enabled(features.RuntimeSDK) && (len(s.UpgradeTracker.ControlPlane.UpgradePlan) > 0 || len(s.UpgradeTracker.MachineDeployments.UpgradePlan) > 0 || len(s.UpgradeTracker.MachinePools.UpgradePlan) > 0)) {
 		controlPlaneVersion, err := contract.ControlPlane().Version().Get(controlPlane)
 		if err != nil {
 			return nil, pkgerrors.Wrap(err, "error getting control plane version")

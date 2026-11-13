@@ -44,10 +44,10 @@ import (
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
 	bootstrapadmission "sigs.k8s.io/cluster-api/bootstrap/kubeadm/webhooks/admission"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/pkg"
-	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/util/compare"
 	"sigs.k8s.io/cluster-api/internal/util/patch"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
+	"sigs.k8s.io/cluster-api/pkg/features"
 	fakeruntimeclient "sigs.k8s.io/cluster-api/pkg/runtimesdk/client/fake"
 	"sigs.k8s.io/cluster-api/util/cache"
 	"sigs.k8s.io/cluster-api/util/test/builder"
@@ -560,7 +560,7 @@ func Test_canUpdateMachine(t *testing.T) {
 			g := NewWithT(t)
 
 			if tt.enableInPlaceUpdatesFeatureGate {
-				utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.InPlaceUpdates, true)
+				utilfeature.SetFeatureGateDuringTest(t, features.Gates, features.InPlaceUpdates, true)
 			}
 
 			runtimeClient := tt.runtimeClient

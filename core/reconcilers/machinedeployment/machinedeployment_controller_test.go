@@ -39,7 +39,7 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/external"
-	"sigs.k8s.io/cluster-api/feature"
+	"sigs.k8s.io/cluster-api/pkg/features"
 	"sigs.k8s.io/cluster-api/util"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 	capicontrollerutil "sigs.k8s.io/cluster-api/util/controller"
@@ -57,7 +57,7 @@ func TestMachineDeploymentReconciler(t *testing.T) {
 	setup := func(t *testing.T, g *WithT) (*corev1.Namespace, *clusterv1.Cluster) {
 		t.Helper()
 
-		utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.MachineTaintPropagation, true)
+		utilfeature.SetFeatureGateDuringTest(t, features.Gates, features.MachineTaintPropagation, true)
 
 		t.Log("Creating the namespace")
 		ns, err := env.CreateNamespace(ctx, machineDeploymentNamespace)

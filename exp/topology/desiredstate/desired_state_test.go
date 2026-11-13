@@ -48,11 +48,11 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	"sigs.k8s.io/cluster-api/core/webhooks/conversion"
 	"sigs.k8s.io/cluster-api/exp/topology/scope"
-	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/contract"
 	"sigs.k8s.io/cluster-api/internal/topology/clustershim"
 	topologynames "sigs.k8s.io/cluster-api/internal/topology/names"
 	"sigs.k8s.io/cluster-api/internal/topology/ownerrefs"
+	"sigs.k8s.io/cluster-api/pkg/features"
 	fakeruntimeclient "sigs.k8s.io/cluster-api/pkg/runtimesdk/client/fake"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/cache"
@@ -1109,7 +1109,7 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 		return "", fmt.Errorf("unknown GroupVersionKind: %v", gk)
 	}))
 
-	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.RuntimeSDK, true)
+	utilfeature.SetFeatureGateDuringTest(t, features.Gates, features.RuntimeSDK, true)
 
 	catalog := runtimecatalog.New()
 	_ = runtimehooksv1.AddToCatalog(catalog)
@@ -1791,7 +1791,7 @@ func TestComputeCluster(t *testing.T) {
 	g.Expect(obj.GetAnnotations()).ToNot(HaveKey(clusterv1.ClusterTopologyUpgradeStepAnnotation))
 
 	// Surfaces the ClusterTopologyUpgradeStepAnnotation annotation during upgrades when runtime SDK feature flag is on.
-	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.RuntimeSDK, true)
+	utilfeature.SetFeatureGateDuringTest(t, features.Gates, features.RuntimeSDK, true)
 
 	annotations := s.Current.Cluster.GetAnnotations()
 	if annotations == nil {

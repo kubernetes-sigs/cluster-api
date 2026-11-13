@@ -27,7 +27,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
-	"sigs.k8s.io/cluster-api/feature"
+	"sigs.k8s.io/cluster-api/pkg/features"
 	"sigs.k8s.io/cluster-api/util/test/builder"
 )
 
@@ -529,7 +529,7 @@ func TestClusterClassWebhook_Delete_MultipleExistingClusters(t *testing.T) {
 // carries both a templateRef and a template field, requiring that exactly one of the two is set.
 func TestClusterClassWebhook_TemplateRefOrTemplate(t *testing.T) {
 	g := NewWithT(t)
-	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterClassInlineTemplates, true)
+	utilfeature.SetFeatureGateDuringTest(t, features.Gates, features.ClusterClassInlineTemplates, true)
 
 	ns, err := env.CreateNamespace(ctx, "test-clusterclass-webhook-template")
 	g.Expect(err).ToNot(HaveOccurred())

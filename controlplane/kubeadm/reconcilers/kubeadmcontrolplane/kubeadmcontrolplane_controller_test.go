@@ -60,9 +60,9 @@ import (
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/setup"
 	controlplaneadmission "sigs.k8s.io/cluster-api/controlplane/kubeadm/webhooks/admission"
 	coreadmission "sigs.k8s.io/cluster-api/core/webhooks/admission"
-	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
 	"sigs.k8s.io/cluster-api/pkg/dynamiccache"
+	"sigs.k8s.io/cluster-api/pkg/features"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/certs"
 	"sigs.k8s.io/cluster-api/util/collections"
@@ -4957,7 +4957,7 @@ func TestKubeadmControlPlaneReconciler_reconcileDelete(t *testing.T) {
 	})
 
 	t.Run("does not remove any control plane Machines if MachinePools exist", func(t *testing.T) {
-		utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.MachinePool, true)
+		utilfeature.SetFeatureGateDuringTest(t, features.Gates, features.MachinePool, true)
 		g := NewWithT(t)
 
 		cluster, kcp, _ := createClusterWithControlPlane(metav1.NamespaceDefault)

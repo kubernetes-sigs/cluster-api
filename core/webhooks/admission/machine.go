@@ -29,8 +29,8 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/core/webhooks/conversion"
-	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/util/taints"
+	"sigs.k8s.io/cluster-api/pkg/features"
 	"sigs.k8s.io/cluster-api/util/labels"
 )
 
@@ -137,7 +137,7 @@ func (webhook *Machine) validate(oldM, newM *clusterv1.Machine) error {
 func validateMachineTaintsForWorkers(taints []clusterv1.MachineTaint, machine *clusterv1.Machine, taintsPath *field.Path) field.ErrorList {
 	var allErrs field.ErrorList
 
-	if !feature.Gates.Enabled(feature.MachineTaintPropagation) {
+	if !features.Gates.Enabled(features.MachineTaintPropagation) {
 		return allErrs
 	}
 

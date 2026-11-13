@@ -34,8 +34,8 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
 	"sigs.k8s.io/cluster-api/core/reconcilers/machinedeployment/mdutil"
-	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/util/inplace"
+	"sigs.k8s.io/cluster-api/pkg/features"
 	"sigs.k8s.io/cluster-api/util"
 )
 
@@ -136,7 +136,7 @@ func (p *rolloutPlanner) planRollingUpdate(ctx context.Context) error {
 func (p *rolloutPlanner) reconcileReplicasPendingAcknowledgeMove(ctx context.Context) {
 	log := ctrl.LoggerFrom(ctx)
 
-	if !feature.Gates.Enabled(feature.InPlaceUpdates) {
+	if !features.Gates.Enabled(features.InPlaceUpdates) {
 		return
 	}
 
@@ -212,7 +212,7 @@ func (p *rolloutPlanner) reconcileReplicasPendingAcknowledgeMove(ctx context.Con
 func (p *rolloutPlanner) canUpdateMachineSetInPlaceDecisions(ctx context.Context) error {
 	log := ctrl.LoggerFrom(ctx)
 
-	if !feature.Gates.Enabled(feature.InPlaceUpdates) {
+	if !features.Gates.Enabled(features.InPlaceUpdates) {
 		return nil
 	}
 

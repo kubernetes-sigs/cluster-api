@@ -31,7 +31,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	"sigs.k8s.io/cluster-api/feature"
+	"sigs.k8s.io/cluster-api/pkg/features"
 	"sigs.k8s.io/cluster-api/util/cache"
 )
 
@@ -50,7 +50,7 @@ type reconcilerWrapper struct {
 
 // Reconcile reconciles the passed in object.
 func (r *reconcilerWrapper) Reconcile(ctx context.Context, req reconcile.Request) (reconcile.Result, error) {
-	if !feature.Gates.Enabled(feature.ReconcilerRateLimiting) {
+	if !features.Gates.Enabled(features.ReconcilerRateLimiting) {
 		return r.reconciler.Reconcile(ctx, req)
 	}
 

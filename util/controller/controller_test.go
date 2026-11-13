@@ -41,12 +41,12 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
-	"sigs.k8s.io/cluster-api/feature"
+	"sigs.k8s.io/cluster-api/pkg/features"
 	"sigs.k8s.io/cluster-api/util/cache"
 )
 
 func TestReconcile(t *testing.T) {
-	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ReconcilerRateLimiting, true)
+	utilfeature.SetFeatureGateDuringTest(t, features.Gates, features.ReconcilerRateLimiting, true)
 
 	// reconcileCache has to be created outside synctest.Test, otherwise
 	// the test would fail because of the cleanup go routine in the cache.
@@ -279,7 +279,7 @@ func TestReconcile(t *testing.T) {
 }
 
 func TestReconcileMetrics(t *testing.T) {
-	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ReconcilerRateLimiting, true)
+	utilfeature.SetFeatureGateDuringTest(t, features.Gates, features.ReconcilerRateLimiting, true)
 
 	// reconcileCache has to be created outside synctest.Test, otherwise
 	// the test would fail because of the cleanup go routine in the cache.

@@ -50,9 +50,9 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/controllers/noderefutil"
 	"sigs.k8s.io/cluster-api/core/reconcilers/machine/drain"
-	"sigs.k8s.io/cluster-api/feature"
 	contractapi "sigs.k8s.io/cluster-api/internal/contract/api"
 	"sigs.k8s.io/cluster-api/pkg/dynamiccache"
+	"sigs.k8s.io/cluster-api/pkg/features"
 	runtimeclient "sigs.k8s.io/cluster-api/pkg/runtimesdk/client"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
@@ -132,7 +132,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 		// to have some buffer.
 		return pkgerrors.New("Client, APIReader and ClusterCache must not be nil and RemoteConditionsGracePeriod must not be < 2m")
 	}
-	if feature.Gates.Enabled(feature.InPlaceUpdates) && r.RuntimeClient == nil {
+	if features.Gates.Enabled(features.InPlaceUpdates) && r.RuntimeClient == nil {
 		return pkgerrors.New("RuntimeClient must not be nil when InPlaceUpdates feature gate is enabled")
 	}
 

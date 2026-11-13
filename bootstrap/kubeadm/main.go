@@ -51,7 +51,7 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	"sigs.k8s.io/cluster-api/controllers/crdmigrator"
 	"sigs.k8s.io/cluster-api/controllers/remote"
-	"sigs.k8s.io/cluster-api/feature"
+	"sigs.k8s.io/cluster-api/pkg/features"
 	"sigs.k8s.io/cluster-api/util/apiwarnings"
 	"sigs.k8s.io/cluster-api/util/flags"
 	"sigs.k8s.io/cluster-api/version"
@@ -173,7 +173,7 @@ func InitFlags(fs *pflag.FlagSet) {
 
 	flags.AddManagerOptions(fs, &managerOptions)
 
-	feature.MutableGates.AddFlag(fs)
+	features.MutableGates.AddFlag(fs)
 }
 
 // Add RBAC for the authorized diagnostics endpoint.
@@ -229,7 +229,7 @@ func main() {
 
 	ctrlOptions := ctrl.Options{
 		Controller: config.Controller{
-			UsePriorityQueue: ptr.To[bool](feature.Gates.Enabled(feature.PriorityQueue)),
+			UsePriorityQueue: ptr.To[bool](features.Gates.Enabled(features.PriorityQueue)),
 			// Give the manager more time to sync the caches during startup. This is required
 			// in high scale environments when they are more objects in the system (default is 3m).
 			CacheSyncTimeout: 5 * time.Minute,

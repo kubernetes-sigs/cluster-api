@@ -32,7 +32,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/pkg"
-	"sigs.k8s.io/cluster-api/feature"
+	"sigs.k8s.io/cluster-api/pkg/features"
 	"sigs.k8s.io/cluster-api/util/collections"
 )
 
@@ -192,7 +192,7 @@ func (r *Reconciler) rollingUpdate(
 
 func (r *Reconciler) inPlaceUpdateOrScaleUpControlPlane(ctx context.Context, controlPlane *pkg.ControlPlane, machineToInPlaceUpdate *clusterv1.Machine, machineUpToDateResult pkg.UpToDateResult) (ctrl.Result, error) {
 	// If either the InPlaceUpdates feature is not enabled or the Machine is not eligible for in-place update, scale up.
-	if !feature.Gates.Enabled(feature.InPlaceUpdates) || !machineUpToDateResult.EligibleForInPlaceUpdate {
+	if !features.Gates.Enabled(features.InPlaceUpdates) || !machineUpToDateResult.EligibleForInPlaceUpdate {
 		return r.scaleUpControlPlane(ctx, controlPlane, true)
 	}
 
@@ -244,7 +244,7 @@ func (r *Reconciler) inPlaceUpdateOrScaleUpControlPlane(ctx context.Context, con
 
 func (r *Reconciler) inPlaceUpdateOrScaleDownControlPlane(ctx context.Context, controlPlane *pkg.ControlPlane, machineToInPlaceUpdateOrScaleDown *clusterv1.Machine, machineUpToDateResult pkg.UpToDateResult) (ctrl.Result, error) {
 	// If either the InPlaceUpdates feature is not enabled or the Machine is not eligible for in-place update, scale down.
-	if !feature.Gates.Enabled(feature.InPlaceUpdates) || !machineUpToDateResult.EligibleForInPlaceUpdate {
+	if !features.Gates.Enabled(features.InPlaceUpdates) || !machineUpToDateResult.EligibleForInPlaceUpdate {
 		return r.scaleDownControlPlane(ctx, controlPlane, machineToInPlaceUpdateOrScaleDown, true)
 	}
 

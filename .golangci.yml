@@ -139,7 +139,7 @@ linters:
             - sigs.k8s.io/cluster-api/core/webhooks/admission$
             - sigs.k8s.io/cluster-api/exp/topology/desiredstate$
             - sigs.k8s.io/cluster-api/exp/topology/scope$
-            - sigs.k8s.io/cluster-api/feature$
+            - sigs.k8s.io/cluster-api/pkg/features$
             - sigs.k8s.io/cluster-api/pkg/runtimesdk/client$
             - sigs.k8s.io/cluster-api/pkg/runtimesdk/server/topologymutation$
             - sigs.k8s.io/cluster-api/test/extension
@@ -413,7 +413,7 @@ linters:
       # TODO: Excludes that can be removed as part of the Cluster API v1.17 release.
       - linters:
           - staticcheck
-        text: 'SA1019: sigs\.k8s\.io/cluster-api/feature\.(PriorityQueue|ReconcilerRateLimiting) is deprecated'
+        text: 'SA1019: sigs\.k8s\.io/cluster-api/pkg/features\.(PriorityQueue|ReconcilerRateLimiting) is deprecated'
 
       # TODO: Excludes for v1beta1, can be removed once v1beta1 has been removed (current plan: Cluster API v1.19).
       - linters:

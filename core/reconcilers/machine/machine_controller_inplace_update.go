@@ -36,8 +36,8 @@ import (
 	runtimecatalog "sigs.k8s.io/cluster-api/api/runtime/catalog"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
 	"sigs.k8s.io/cluster-api/controllers/external"
-	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/util/inplace"
+	"sigs.k8s.io/cluster-api/pkg/features"
 	"sigs.k8s.io/cluster-api/pkg/runtimesdk/hooks"
 	"sigs.k8s.io/cluster-api/util/cache"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -46,7 +46,7 @@ import (
 
 // reconcileInPlaceUpdate handles the in-place update workflow for a Machine.
 func (r *Reconciler) reconcileInPlaceUpdate(ctx context.Context, s *scope) (ctrl.Result, error) {
-	if !feature.Gates.Enabled(feature.InPlaceUpdates) {
+	if !features.Gates.Enabled(features.InPlaceUpdates) {
 		return ctrl.Result{}, nil
 	}
 

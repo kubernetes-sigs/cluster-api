@@ -27,7 +27,7 @@ import (
 
 	runtimev1 "sigs.k8s.io/cluster-api/api/runtime/v1beta2"
 	"sigs.k8s.io/cluster-api/core/webhooks/admission/testutil"
-	"sigs.k8s.io/cluster-api/feature"
+	"sigs.k8s.io/cluster-api/pkg/features"
 )
 
 func init() {
@@ -85,7 +85,7 @@ func TestExtensionConfigValidationFeatureGated(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.RuntimeSDK, tt.featureGate)
+			utilfeature.SetFeatureGateDuringTest(t, features.Gates, features.RuntimeSDK, tt.featureGate)
 			webhook := ExtensionConfig{}
 			g := NewWithT(t)
 			warnings, err := webhook.validate(context.TODO(), tt.old, tt.new)
@@ -102,7 +102,7 @@ func TestExtensionConfigValidationFeatureGated(t *testing.T) {
 
 func TestExtensionConfigDefault(t *testing.T) {
 	g := NewWithT(t)
-	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.RuntimeSDK, true)
+	utilfeature.SetFeatureGateDuringTest(t, features.Gates, features.RuntimeSDK, true)
 
 	extensionConfig := &runtimev1.ExtensionConfig{
 		ObjectMeta: metav1.ObjectMeta{
@@ -326,7 +326,7 @@ func TestExtensionConfigValidate(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.RuntimeSDK, tt.featureGate)
+			utilfeature.SetFeatureGateDuringTest(t, features.Gates, features.RuntimeSDK, tt.featureGate)
 			g := NewWithT(t)
 			webhook := &ExtensionConfig{}
 			// Default the objects so we're not handling defaulted cases.

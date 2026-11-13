@@ -32,7 +32,7 @@ import (
 
 	runtimev1 "sigs.k8s.io/cluster-api/api/runtime/v1beta2"
 	"sigs.k8s.io/cluster-api/core/webhooks/conversion"
-	"sigs.k8s.io/cluster-api/feature"
+	"sigs.k8s.io/cluster-api/pkg/features"
 )
 
 // ExtensionConfig is the webhook for runtimev1.ExtensionConfig.
@@ -81,7 +81,7 @@ func (webhook *ExtensionConfig) ValidateUpdate(ctx context.Context, oldExtension
 func (webhook *ExtensionConfig) validate(_ context.Context, _, newExtensionConfig *runtimev1.ExtensionConfig) (admission.Warnings, error) {
 	// NOTE: ExtensionConfig is behind the RuntimeSDK feature gate flag; the web hook
 	// must prevent creating and updating objects in case the feature flag is disabled.
-	if !feature.Gates.Enabled(feature.RuntimeSDK) {
+	if !features.Gates.Enabled(features.RuntimeSDK) {
 		return nil, field.Forbidden(
 			field.NewPath("spec"),
 			"can be set only if the RuntimeSDK feature flag is enabled",

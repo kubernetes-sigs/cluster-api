@@ -36,8 +36,8 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
-	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/topology/ownerrefs"
+	"sigs.k8s.io/cluster-api/pkg/features"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/index"
@@ -300,7 +300,7 @@ func TestReconcileNode(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.MachineTaintPropagation, tc.featureGateMachineTaintsEnabled)
+			utilfeature.SetFeatureGateDuringTest(t, features.Gates, features.MachineTaintPropagation, tc.featureGateMachineTaintsEnabled)
 
 			c := fake.NewClientBuilder().WithObjects(tc.machine).WithIndex(&corev1.Node{}, "spec.providerID", index.NodeByProviderID).Build()
 			if tc.nodeGetErr {

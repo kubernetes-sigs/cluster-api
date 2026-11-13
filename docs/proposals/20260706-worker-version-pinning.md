@@ -181,7 +181,7 @@ Version string `json:"version,omitempty"`
 The feature as a whole is guarded by a new feature gate — proposed name
 `ClusterTopologyWorkerVersionPinning` — that we will register (defaulted off) when we implement,
 following the existing `ClusterTopology` gate in
-[`feature/feature.go`](https://github.com/kubernetes-sigs/cluster-api/blob/main/feature/feature.go).
+[`pkg/features/features.go`](https://github.com/kubernetes-sigs/cluster-api/blob/main/pkg/features/features.go).
 Cluster API gates behavior in controller and webhook code rather than via a field-level codegen
 marker, so the gate is enforced by the topology controller and the validating webhooks (below);
 the field is always present in the API and inert unless the gate is enabled. We will follow the

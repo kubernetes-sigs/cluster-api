@@ -31,7 +31,7 @@ import (
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/pkg"
-	"sigs.k8s.io/cluster-api/feature"
+	"sigs.k8s.io/cluster-api/pkg/features"
 	"sigs.k8s.io/cluster-api/util/collections"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	logutil "sigs.k8s.io/cluster-api/util/log"
@@ -72,7 +72,7 @@ func (r *Reconciler) preflightChecks(ctx context.Context, controlPlane *pkg.Cont
 		return preflightChecksResult{succeeded: true}
 	}
 
-	if feature.Gates.Enabled(feature.ClusterTopology) && controlPlane.Cluster.Spec.Topology.IsDefined() {
+	if features.Gates.Enabled(features.ClusterTopology) && controlPlane.Cluster.Spec.Topology.IsDefined() {
 		// Block when we expect an upgrade to be propagated for topology clusters.
 		// NOTE: in case the cluster is performing an upgrade, allow creation of machines for the intermediate step.
 		hasSameVersionOfCurrentUpgradeStep := false

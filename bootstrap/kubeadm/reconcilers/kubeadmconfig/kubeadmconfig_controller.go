@@ -53,9 +53,9 @@ import (
 	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/pkg/types/upstream"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	"sigs.k8s.io/cluster-api/controllers/external"
-	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/contract"
 	"sigs.k8s.io/cluster-api/internal/util/taints"
+	"sigs.k8s.io/cluster-api/pkg/features"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
@@ -134,7 +134,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 			handler.EnqueueRequestsFromMapFunc(r.MachineToBootstrapMapFunc),
 		).WithEventFilter(predicates.ResourceHasFilterLabel(mgr.GetScheme(), predicateLog, r.WatchFilterValue))
 
-	if feature.Gates.Enabled(feature.MachinePool) {
+	if features.Gates.Enabled(features.MachinePool) {
 		b = b.Watches(
 			&clusterv1.MachinePool{},
 			handler.EnqueueRequestsFromMapFunc(r.MachinePoolToBootstrapMapFunc),
@@ -1229,7 +1229,7 @@ func (r *Reconciler) ClusterToKubeadmConfigs(ctx context.Context, o client.Objec
 		}
 	}
 
-	if feature.Gates.Enabled(feature.MachinePool) {
+	if features.Gates.Enabled(features.MachinePool) {
 		machinePoolList := &clusterv1.MachinePoolList{}
 		if err := r.Client.List(ctx, machinePoolList, selectors...); err != nil {
 			return nil

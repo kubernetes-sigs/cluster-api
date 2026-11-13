@@ -34,10 +34,10 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	runtimev1 "sigs.k8s.io/cluster-api/api/runtime/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
-	"sigs.k8s.io/cluster-api/feature"
 	contractapi "sigs.k8s.io/cluster-api/internal/contract/api"
 	contractv1beta1 "sigs.k8s.io/cluster-api/internal/contract/api/v1beta1"
 	contractv1 "sigs.k8s.io/cluster-api/internal/contract/api/v1beta2"
+	"sigs.k8s.io/cluster-api/pkg/features"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -3149,7 +3149,7 @@ func TestReconcileMachinePhases(t *testing.T) {
 	})
 
 	t.Run("Should set `Updating` when Machine is in-place updating", func(t *testing.T) {
-		utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.InPlaceUpdates, true)
+		utilfeature.SetFeatureGateDuringTest(t, features.Gates, features.InPlaceUpdates, true)
 
 		g := NewWithT(t)
 

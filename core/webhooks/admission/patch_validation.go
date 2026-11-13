@@ -31,7 +31,7 @@ import (
 	"k8s.io/utils/ptr"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
-	"sigs.k8s.io/cluster-api/feature"
+	"sigs.k8s.io/cluster-api/pkg/features"
 )
 
 // validatePatches returns errors if the Patches in the ClusterClass violate any validation rules.
@@ -121,7 +121,7 @@ func validatePatchDefinitions(patch clusterv1.ClusterClassPatch, clusterClass *c
 		}
 	}
 	if patch.External != nil {
-		if !feature.Gates.Enabled(feature.RuntimeSDK) {
+		if !features.Gates.Enabled(features.RuntimeSDK) {
 			allErrs = append(allErrs,
 				field.Forbidden(
 					path.Child("external"),

@@ -32,7 +32,7 @@ import (
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
-	"sigs.k8s.io/cluster-api/feature"
+	"sigs.k8s.io/cluster-api/pkg/features"
 )
 
 func TestGetConfigOwner(t *testing.T) {
@@ -91,7 +91,7 @@ func TestGetConfigOwner(t *testing.T) {
 		})
 
 		t.Run("should get the owner when present (MachinePool)", func(t *testing.T) {
-			utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.MachinePool, true)
+			utilfeature.SetFeatureGateDuringTest(t, features.Gates, features.MachinePool, true)
 
 			g := NewWithT(t)
 			myPool := &clusterv1.MachinePool{

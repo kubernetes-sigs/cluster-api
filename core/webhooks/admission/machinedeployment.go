@@ -37,9 +37,9 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/core/webhooks/conversion"
-	"sigs.k8s.io/cluster-api/feature"
 	topologynames "sigs.k8s.io/cluster-api/internal/topology/names"
 	"sigs.k8s.io/cluster-api/internal/util/taints"
+	"sigs.k8s.io/cluster-api/pkg/features"
 )
 
 // SetupWebhookWithManager sets up the webhook with the Manager.
@@ -197,7 +197,7 @@ func (webhook *MachineDeployment) validate(oldMD, newMD *clusterv1.MachineDeploy
 
 	// MachineSet preflight checks that should be skipped could also be set as annotation on the MachineDeployment
 	// since MachineDeployment annotations are synced to the MachineSet.
-	if feature.Gates.Enabled(feature.MachineSetPreflightChecks) {
+	if features.Gates.Enabled(features.MachineSetPreflightChecks) {
 		if err := validateSkippedMachineSetPreflightChecks(newMD); err != nil {
 			allErrs = append(allErrs, err)
 		}

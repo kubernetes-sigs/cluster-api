@@ -33,7 +33,7 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/core/webhooks/conversion"
-	"sigs.k8s.io/cluster-api/feature"
+	"sigs.k8s.io/cluster-api/pkg/features"
 )
 
 // SetupWebhookWithManager sets up the webhook with the Manager.
@@ -123,7 +123,7 @@ func (webhook *MachinePool) validate(oldObj, newObj *clusterv1.MachinePool) erro
 	// NOTE: MachinePool is behind MachinePool feature gate flag; the web hook
 	// must prevent creating newObj objects when the feature flag is disabled.
 	specPath := field.NewPath("spec")
-	if !feature.Gates.Enabled(feature.MachinePool) {
+	if !features.Gates.Enabled(features.MachinePool) {
 		return field.Forbidden(
 			specPath,
 			"can be set only if the MachinePool feature flag is enabled",
@@ -181,7 +181,7 @@ func (webhook *MachinePool) validate(oldObj, newObj *clusterv1.MachinePool) erro
 }
 
 func validateMachinePoolsFeatureGate[T any](machinePools []T, machinePoolsPath *field.Path) field.ErrorList {
-	if len(machinePools) == 0 || feature.Gates.Enabled(feature.MachinePool) {
+	if len(machinePools) == 0 || features.Gates.Enabled(features.MachinePool) {
 		return nil
 	}
 	return field.ErrorList{
@@ -197,7 +197,7 @@ func validateMachinePoolTaints(taints []clusterv1.MachineTaint, taintsPath *fiel
 	allErrs := field.ErrorList{
 		field.Forbidden(taintsPath, "taints feature for MachinePools is not yet implemented"),
 	}
-	if !feature.Gates.Enabled(feature.MachineTaintPropagation) {
+	if !features.Gates.Enabled(features.MachineTaintPropagation) {
 		allErrs = append(allErrs, field.Forbidden(taintsPath, "taints are not allowed to be set when the feature gate MachineTaintPropagation is disabled"))
 	}
 	return allErrs

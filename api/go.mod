@@ -1,6 +1,6 @@
 module sigs.k8s.io/cluster-api/api
 
-go 1.26.0
+go 1.27.0
 
 require (
 	k8s.io/api v0.37.2

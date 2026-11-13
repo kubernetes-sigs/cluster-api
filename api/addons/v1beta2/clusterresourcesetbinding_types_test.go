@@ -208,8 +208,8 @@ func TestSetResourceBinding(t *testing.T) {
 			exist := false
 			for _, b := range tt.resourceSetBinding.Resources {
 				if b.ResourceRef == tt.resourceBinding.ResourceRef {
-					if tt.resourceBinding.Applied != b.Applied {
-						t.Fatalf("Expected %d to equal %d", tt.resourceBinding.Applied, b.Applied)
+					if deref(tt.resourceBinding.Applied, false) != deref(b.Applied, false) {
+						t.Fatalf("Expected %t to equal %t", deref(tt.resourceBinding.Applied, false), deref(b.Applied, false))
 					}
 					exist = true
 				}

@@ -241,3 +241,35 @@ func TestModifyImageTag(t *testing.T) {
 		g.Expect(res).To(Equal("docker.io/dev/image:v1.17.4_build1"))
 	})
 }
+
+func TestValidateImageRepository(t *testing.T) {
+	tests := []struct {
+		repository string
+		wantErr    bool
+	}{
+		{repository: "registry.k8s.io"},
+		{repository: "registry.k8s.io/coredns"},
+		{repository: "example.com:5000/some/path"},
+		{repository: "localhost:5000"},
+		{repository: "myrepo"},
+		{repository: "registry.contoso.com/kubernetes\n", wantErr: true},
+		{repository: "registry.contoso.com/kubernetes\n     s", wantErr: true},
+		{repository: " registry.k8s.io", wantErr: true},
+		{repository: "registry.k8s.io/", wantErr: true},
+		{repository: "example.com/Upper", wantErr: true},
+		{repository: "example.com/repo:v1", wantErr: true},
+		{repository: "https://example.com", wantErr: true},
+		{repository: "a new image repository", wantErr: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.repository, func(t *testing.T) {
+			g := NewWithT(t)
+			err := ValidateImageRepository(tt.repository)
+			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
+			} else {
+				g.Expect(err).ToNot(HaveOccurred())
+			}
+		})
+	}
+}

@@ -86,12 +86,12 @@ func ApplyPreviousKubeadmConfigDefaults(c *bootstrapv1.KubeadmConfigSpec) {
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
 func (webhook *KubeadmConfigTemplate) ValidateCreate(_ context.Context, c *bootstrapv1.KubeadmConfigTemplate) (admission.Warnings, error) {
-	return nil, webhook.validate(&c.Spec, c.Name)
+	return nil, webhook.validate(c, nil)
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
-func (webhook *KubeadmConfigTemplate) ValidateUpdate(_ context.Context, _, newC *bootstrapv1.KubeadmConfigTemplate) (admission.Warnings, error) {
-	return nil, webhook.validate(&newC.Spec, newC.Name)
+func (webhook *KubeadmConfigTemplate) ValidateUpdate(_ context.Context, oldC, newC *bootstrapv1.KubeadmConfigTemplate) (admission.Warnings, error) {
+	return nil, webhook.validate(newC, oldC)
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type.
@@ -99,10 +99,16 @@ func (webhook *KubeadmConfigTemplate) ValidateDelete(_ context.Context, _ *boots
 	return nil, nil
 }
 
-func (webhook *KubeadmConfigTemplate) validate(r *bootstrapv1.KubeadmConfigTemplateSpec, name string) error {
+func (webhook *KubeadmConfigTemplate) validate(c, oldC *bootstrapv1.KubeadmConfigTemplate) error {
 	var allErrs field.ErrorList //nolint:prealloc // Not all paths append
 
+	r := &c.Spec
 	allErrs = append(allErrs, Validate(&r.Template.Spec, false, field.NewPath("spec", "template", "spec"))...)
+	var oldSpec *bootstrapv1.KubeadmConfigSpec
+	if oldC != nil {
+		oldSpec = &oldC.Spec.Template.Spec
+	}
+	allErrs = append(allErrs, ValidateImageRepositories(&r.Template.Spec, oldSpec, field.NewPath("spec", "template", "spec"))...)
 	// Validate the metadata of the template.
 	allErrs = append(allErrs, r.Template.ObjectMeta.Validate(field.NewPath("spec", "template", "metadata"))...)
 
@@ -110,5 +116,5 @@ func (webhook *KubeadmConfigTemplate) validate(r *bootstrapv1.KubeadmConfigTempl
 		return nil
 	}
 
-	return apierrors.NewInvalid(bootstrapv1.GroupVersion.WithKind("KubeadmConfigTemplate").GroupKind(), name, allErrs)
+	return apierrors.NewInvalid(bootstrapv1.GroupVersion.WithKind("KubeadmConfigTemplate").GroupKind(), c.Name, allErrs)
 }

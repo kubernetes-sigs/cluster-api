@@ -152,6 +152,9 @@ func TestKubeadmControlPlaneValidateCreate(t *testing.T) {
 	invalidCoreDNSVersion := valid.DeepCopy()
 	invalidCoreDNSVersion.Spec.KubeadmConfigSpec.ClusterConfiguration.DNS.ImageTag = "1-7" // not a valid semantic version
 
+	invalidDNSImageRepository := valid.DeepCopy()
+	invalidDNSImageRepository.Spec.KubeadmConfigSpec.ClusterConfiguration.DNS.ImageRepository = "registry.k8s.io/coredns\n"
+
 	invalidIgnitionConfiguration := valid.DeepCopy() // Format is not set to ignition.
 	invalidIgnitionConfiguration.Spec.KubeadmConfigSpec.Ignition = bootstrapv1.IgnitionSpec{
 		ContainerLinuxConfig: bootstrapv1.ContainerLinuxConfig{
@@ -247,6 +250,11 @@ func TestKubeadmControlPlaneValidateCreate(t *testing.T) {
 			name:      "should return error when given an invalid semantic CoreDNS version",
 			expectErr: true,
 			kcp:       invalidCoreDNSVersion,
+		},
+		{
+			name:      "should return error when given an invalid CoreDNS imageRepository",
+			expectErr: true,
+			kcp:       invalidDNSImageRepository,
 		},
 		{
 			name:      "should return error when maxSurge is not 1",
@@ -608,7 +616,10 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 	certificatesDir.Spec.KubeadmConfigSpec.ClusterConfiguration.CertificatesDir = "a new certificates directory"
 
 	imageRepository := before.DeepCopy()
-	imageRepository.Spec.KubeadmConfigSpec.ClusterConfiguration.ImageRepository = "a new image repository"
+	imageRepository.Spec.KubeadmConfigSpec.ClusterConfiguration.ImageRepository = "registry.example.com/new"
+
+	invalidImageRepository := before.DeepCopy()
+	invalidImageRepository.Spec.KubeadmConfigSpec.ClusterConfiguration.ImageRepository = "registry.example.com/new\n"
 
 	featureGates := before.DeepCopy()
 	featureGates.Spec.KubeadmConfigSpec.ClusterConfiguration.FeatureGates = map[string]bool{"a feature gate": true}
@@ -962,6 +973,12 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 			expectErr: false,
 			before:    before,
 			kcp:       imageRepository,
+		},
+		{
+			name:      "should return error when changing the cluster config's imageRepository to an invalid value",
+			expectErr: true,
+			before:    before,
+			kcp:       invalidImageRepository,
 		},
 		{
 			name:      "should succeed when making a change to the cluster config's featureGates",

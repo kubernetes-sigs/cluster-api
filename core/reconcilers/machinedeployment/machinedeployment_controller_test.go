@@ -903,8 +903,46 @@ func TestReconciler_reconcileDelete(t *testing.T) {
 	md.Spec.Selector = metav1.LabelSelector{
 		MatchLabels: labels,
 	}
+	md.Spec.Template.Spec.Deletion = clusterv1.MachineDeletionSpec{
+		NodeDrainTimeoutSeconds:        ptr.To(int32(10)),
+		NodeVolumeDetachTimeoutSeconds: ptr.To(int32(20)),
+		NodeDeletionTimeoutSeconds:     ptr.To(int32(30)),
+	}
+	md.Spec.Template.Spec.MinReadySeconds = ptr.To(int32(40))
+	md.Spec.Template.Spec.ReadinessGates = []clusterv1.MachineReadinessGate{{ConditionType: "foo"}}
+	md.Spec.Template.Spec.Taints = []clusterv1.MachineTaint{{
+		Key:         "taint-key",
+		Value:       "taint-value",
+		Effect:      corev1.TaintEffectNoSchedule,
+		Propagation: clusterv1.MachineTaintPropagationAlways,
+	}}
 	mdWithoutFinalizer := md.DeepCopy()
 	mdWithoutFinalizer.Finalizers = []string{}
+
+	// MachineSets with outdated values for the fields that impact tearing down Machines.
+	// Note: The MachineSets have a finalizer, so they still exist after deletion has been triggered.
+	deletingMS := builder.MachineSet("default", "ms0-deleting").WithClusterName("test").WithLabels(labels).Build()
+	deletingMS.SetOwnerReferences([]metav1.OwnerReference{*metav1.NewControllerRef(md, machineDeploymentKind)})
+	deletingMS.Finalizers = []string{clusterv1.MachineSetFinalizer}
+	deletingMS.DeletionTimestamp = ptr.To(metav1.Now())
+	deletingMS.Spec.Template.Spec.Deletion = clusterv1.MachineDeletionSpec{
+		NodeDrainTimeoutSeconds:        ptr.To(int32(1)),
+		NodeVolumeDetachTimeoutSeconds: ptr.To(int32(2)),
+		NodeDeletionTimeoutSeconds:     ptr.To(int32(3)),
+	}
+	notDeletingMS := deletingMS.DeepCopy()
+	notDeletingMS.Name = "ms1-not-deleting"
+	notDeletingMS.DeletionTimestamp = nil
+	// Expected state of the MachineSets after reconcileDelete: fields have been propagated, deletion has been triggered.
+	wantDeletingMS := deletingMS.DeepCopy()
+	wantDeletingMS.Spec.Template.Spec.Deletion = md.Spec.Template.Spec.Deletion
+	wantDeletingMS.Spec.Template.Spec.MinReadySeconds = md.Spec.Template.Spec.MinReadySeconds
+	wantDeletingMS.Spec.Template.Spec.ReadinessGates = md.Spec.Template.Spec.ReadinessGates
+	wantDeletingMS.Spec.Template.Spec.Taints = md.Spec.Template.Spec.Taints
+	wantDeletingMS.DeletionTimestamp = &metav1.Time{} // see normalization of DeletionTimestamp below.
+	wantNotDeletingMS := wantDeletingMS.DeepCopy()
+	wantNotDeletingMS.Name = notDeletingMS.Name
+
 	tests := []struct {
 		name              string
 		machineDeployment *clusterv1.MachineDeployment
@@ -945,6 +983,22 @@ func TestReconciler_reconcileDelete(t *testing.T) {
 			},
 			expectError: false,
 		},
+		{
+			name:              "Should propagate fields that impact tearing down Machines to descendant MachineSets and trigger deletion for MachineSets that are not deleting yet",
+			machineDeployment: md.DeepCopy(),
+			want:              md.DeepCopy(),
+			objs: []client.Object{
+				deletingMS.DeepCopy(),
+				notDeletingMS.DeepCopy(),
+				builder.MachineSet("default", "ms2-not-part-of-md").WithClusterName("test").Build(),
+			},
+			wantMachineSets: []clusterv1.MachineSet{
+				*wantDeletingMS.DeepCopy(),
+				*wantNotDeletingMS.DeepCopy(),
+				*builder.MachineSet("default", "ms2-not-part-of-md").WithClusterName("test").Build(),
+			},
+			expectError: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -973,8 +1027,12 @@ func TestReconciler_reconcileDelete(t *testing.T) {
 			g.Expect(c.List(ctx, machineSetList, client.InNamespace("default"))).To(Succeed())
 
 			// Remove ResourceVersion so we can actually compare.
+			// Also normalize DeletionTimestamp to only compare whether it is set.
 			for i := range machineSetList.Items {
 				machineSetList.Items[i].ResourceVersion = ""
+				if machineSetList.Items[i].DeletionTimestamp != nil {
+					machineSetList.Items[i].DeletionTimestamp = &metav1.Time{}
+				}
 			}
 
 			g.Expect(machineSetList.Items).To(ConsistOf(tt.wantMachineSets))

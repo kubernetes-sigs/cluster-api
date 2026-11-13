@@ -184,7 +184,7 @@ GOLANGCI_LINT_PKG := github.com/golangci/golangci-lint/v2/cmd/golangci-lint
 GOLANGCI_LINT_CONFIG := $(ROOT_DIR)/hack/config/golangci.yml
 
 GOLANGCI_LINT_KAL_BIN := golangci-lint-kube-api-linter
-GOLANGCI_LINT_KAL_VER := $(shell cat ./hack/tools/.custom-gcl.yaml | grep version: | sed 's/version: //')
+GOLANGCI_LINT_KAL_VER := $(shell cat ./hack/build/.custom-gcl.yaml | grep version: | sed 's/version: //')
 GOLANGCI_LINT_KAL := $(abspath $(TOOLS_BIN_DIR)/$(GOLANGCI_LINT_KAL_BIN))
 GOLANGCI_LINT_KAL_CONFIG := $(ROOT_DIR)/hack/config/golangci-kal.yml
 
@@ -1511,7 +1511,7 @@ $(GOLANGCI_LINT): # Build golangci-lint from tools folder.
 	GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) $(GOLANGCI_LINT_PKG) $(GOLANGCI_LINT_BIN) $(GOLANGCI_LINT_VER)
 
 $(GOLANGCI_LINT_KAL): $(GOLANGCI_LINT) # Build golangci-lint-kal from custom configuration.
-	cd $(TOOLS_DIR); $(GOLANGCI_LINT) custom
+	cd $(ROOT_DIR)/hack/build; $(GOLANGCI_LINT) custom
 
 $(CRANE): # Build crane.
 	GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) $(CRANE_PKG) $(CRANE_BIN) $(CRANE_VER)

@@ -1,7 +1,7 @@
 version: "2"
 run:
   timeout: 10m
-  go: "1.26"
+  go: "1.27"
   build-tags:
     - tools
     - e2e

@@ -118,31 +118,31 @@ func (b *ClusterBlueprint) IsControlPlaneMachineHealthCheckEnabled() bool {
 func (b *ClusterBlueprint) ControlPlaneMachineHealthCheckClass() (clusterv1.MachineHealthCheckChecks, clusterv1.MachineHealthCheckRemediation) {
 	if b.Topology.ControlPlane.HealthCheck.IsDefined() {
 		return clusterv1.MachineHealthCheckChecks{
-				NodeStartupTimeoutSeconds:  b.Topology.ControlPlane.HealthCheck.Checks.NodeStartupTimeoutSeconds,
-				UnhealthyNodeConditions:    b.Topology.ControlPlane.HealthCheck.Checks.UnhealthyNodeConditions,
-				UnhealthyMachineConditions: b.Topology.ControlPlane.HealthCheck.Checks.UnhealthyMachineConditions,
-				UnhealthyExpressions:       b.Topology.ControlPlane.HealthCheck.Checks.UnhealthyExpressions,
-			}, clusterv1.MachineHealthCheckRemediation{
-				TriggerIf: clusterv1.MachineHealthCheckRemediationTriggerIf{
-					UnhealthyLessThanOrEqualTo: b.Topology.ControlPlane.HealthCheck.Remediation.TriggerIf.UnhealthyLessThanOrEqualTo,
-					UnhealthyInRange:           b.Topology.ControlPlane.HealthCheck.Remediation.TriggerIf.UnhealthyInRange,
-				},
-				TemplateRef: b.Topology.ControlPlane.HealthCheck.Remediation.TemplateRef,
-			}
+			NodeStartupTimeoutSeconds:  b.Topology.ControlPlane.HealthCheck.Checks.NodeStartupTimeoutSeconds,
+			UnhealthyNodeConditions:    b.Topology.ControlPlane.HealthCheck.Checks.UnhealthyNodeConditions,
+			UnhealthyMachineConditions: b.Topology.ControlPlane.HealthCheck.Checks.UnhealthyMachineConditions,
+			UnhealthyExpressions:       b.Topology.ControlPlane.HealthCheck.Checks.UnhealthyExpressions,
+		}, clusterv1.MachineHealthCheckRemediation{
+			TriggerIf: clusterv1.MachineHealthCheckRemediationTriggerIf{
+				UnhealthyLessThanOrEqualTo: b.Topology.ControlPlane.HealthCheck.Remediation.TriggerIf.UnhealthyLessThanOrEqualTo,
+				UnhealthyInRange:           b.Topology.ControlPlane.HealthCheck.Remediation.TriggerIf.UnhealthyInRange,
+			},
+			TemplateRef: b.Topology.ControlPlane.HealthCheck.Remediation.TemplateRef,
+		}
 	}
 
 	return clusterv1.MachineHealthCheckChecks{
-			NodeStartupTimeoutSeconds:  b.ControlPlane.HealthCheck.Checks.NodeStartupTimeoutSeconds,
-			UnhealthyNodeConditions:    b.ControlPlane.HealthCheck.Checks.UnhealthyNodeConditions,
-			UnhealthyMachineConditions: b.ControlPlane.HealthCheck.Checks.UnhealthyMachineConditions,
-			UnhealthyExpressions:       b.ControlPlane.HealthCheck.Checks.UnhealthyExpressions,
-		}, clusterv1.MachineHealthCheckRemediation{
-			TriggerIf: clusterv1.MachineHealthCheckRemediationTriggerIf{
-				UnhealthyLessThanOrEqualTo: b.ControlPlane.HealthCheck.Remediation.TriggerIf.UnhealthyLessThanOrEqualTo,
-				UnhealthyInRange:           b.ControlPlane.HealthCheck.Remediation.TriggerIf.UnhealthyInRange,
-			},
-			TemplateRef: b.ControlPlane.HealthCheck.Remediation.TemplateRef,
-		}
+		NodeStartupTimeoutSeconds:  b.ControlPlane.HealthCheck.Checks.NodeStartupTimeoutSeconds,
+		UnhealthyNodeConditions:    b.ControlPlane.HealthCheck.Checks.UnhealthyNodeConditions,
+		UnhealthyMachineConditions: b.ControlPlane.HealthCheck.Checks.UnhealthyMachineConditions,
+		UnhealthyExpressions:       b.ControlPlane.HealthCheck.Checks.UnhealthyExpressions,
+	}, clusterv1.MachineHealthCheckRemediation{
+		TriggerIf: clusterv1.MachineHealthCheckRemediationTriggerIf{
+			UnhealthyLessThanOrEqualTo: b.ControlPlane.HealthCheck.Remediation.TriggerIf.UnhealthyLessThanOrEqualTo,
+			UnhealthyInRange:           b.ControlPlane.HealthCheck.Remediation.TriggerIf.UnhealthyInRange,
+		},
+		TemplateRef: b.ControlPlane.HealthCheck.Remediation.TemplateRef,
+	}
 }
 
 // HasControlPlaneMachineHealthCheck returns true if the ControlPlaneClass has both MachineInfrastructure and a MachineHealthCheck defined.
@@ -169,31 +169,31 @@ func (b *ClusterBlueprint) IsMachineDeploymentMachineHealthCheckEnabled(md *clus
 func (b *ClusterBlueprint) MachineDeploymentMachineHealthCheckClass(md *clusterv1.MachineDeploymentTopology) (clusterv1.MachineHealthCheckChecks, clusterv1.MachineHealthCheckRemediation) {
 	if md.HealthCheck.IsDefined() {
 		return clusterv1.MachineHealthCheckChecks{
-				NodeStartupTimeoutSeconds:  md.HealthCheck.Checks.NodeStartupTimeoutSeconds,
-				UnhealthyNodeConditions:    md.HealthCheck.Checks.UnhealthyNodeConditions,
-				UnhealthyMachineConditions: md.HealthCheck.Checks.UnhealthyMachineConditions,
-				UnhealthyExpressions:       md.HealthCheck.Checks.UnhealthyExpressions,
-			}, clusterv1.MachineHealthCheckRemediation{
-				TriggerIf: clusterv1.MachineHealthCheckRemediationTriggerIf{
-					UnhealthyLessThanOrEqualTo: md.HealthCheck.Remediation.TriggerIf.UnhealthyLessThanOrEqualTo,
-					UnhealthyInRange:           md.HealthCheck.Remediation.TriggerIf.UnhealthyInRange,
-				},
-				TemplateRef: md.HealthCheck.Remediation.TemplateRef,
-			}
+			NodeStartupTimeoutSeconds:  md.HealthCheck.Checks.NodeStartupTimeoutSeconds,
+			UnhealthyNodeConditions:    md.HealthCheck.Checks.UnhealthyNodeConditions,
+			UnhealthyMachineConditions: md.HealthCheck.Checks.UnhealthyMachineConditions,
+			UnhealthyExpressions:       md.HealthCheck.Checks.UnhealthyExpressions,
+		}, clusterv1.MachineHealthCheckRemediation{
+			TriggerIf: clusterv1.MachineHealthCheckRemediationTriggerIf{
+				UnhealthyLessThanOrEqualTo: md.HealthCheck.Remediation.TriggerIf.UnhealthyLessThanOrEqualTo,
+				UnhealthyInRange:           md.HealthCheck.Remediation.TriggerIf.UnhealthyInRange,
+			},
+			TemplateRef: md.HealthCheck.Remediation.TemplateRef,
+		}
 	}
 
 	return clusterv1.MachineHealthCheckChecks{
-			NodeStartupTimeoutSeconds:  b.MachineDeployments[md.Class].HealthCheck.Checks.NodeStartupTimeoutSeconds,
-			UnhealthyNodeConditions:    b.MachineDeployments[md.Class].HealthCheck.Checks.UnhealthyNodeConditions,
-			UnhealthyMachineConditions: b.MachineDeployments[md.Class].HealthCheck.Checks.UnhealthyMachineConditions,
-			UnhealthyExpressions:       b.MachineDeployments[md.Class].HealthCheck.Checks.UnhealthyExpressions,
-		}, clusterv1.MachineHealthCheckRemediation{
-			TriggerIf: clusterv1.MachineHealthCheckRemediationTriggerIf{
-				UnhealthyLessThanOrEqualTo: b.MachineDeployments[md.Class].HealthCheck.Remediation.TriggerIf.UnhealthyLessThanOrEqualTo,
-				UnhealthyInRange:           b.MachineDeployments[md.Class].HealthCheck.Remediation.TriggerIf.UnhealthyInRange,
-			},
-			TemplateRef: b.MachineDeployments[md.Class].HealthCheck.Remediation.TemplateRef,
-		}
+		NodeStartupTimeoutSeconds:  b.MachineDeployments[md.Class].HealthCheck.Checks.NodeStartupTimeoutSeconds,
+		UnhealthyNodeConditions:    b.MachineDeployments[md.Class].HealthCheck.Checks.UnhealthyNodeConditions,
+		UnhealthyMachineConditions: b.MachineDeployments[md.Class].HealthCheck.Checks.UnhealthyMachineConditions,
+		UnhealthyExpressions:       b.MachineDeployments[md.Class].HealthCheck.Checks.UnhealthyExpressions,
+	}, clusterv1.MachineHealthCheckRemediation{
+		TriggerIf: clusterv1.MachineHealthCheckRemediationTriggerIf{
+			UnhealthyLessThanOrEqualTo: b.MachineDeployments[md.Class].HealthCheck.Remediation.TriggerIf.UnhealthyLessThanOrEqualTo,
+			UnhealthyInRange:           b.MachineDeployments[md.Class].HealthCheck.Remediation.TriggerIf.UnhealthyInRange,
+		},
+		TemplateRef: b.MachineDeployments[md.Class].HealthCheck.Remediation.TemplateRef,
+	}
 }
 
 // HasMachineDeployments checks whether the topology has MachineDeployments.

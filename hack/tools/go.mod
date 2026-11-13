@@ -1,6 +1,6 @@
 module sigs.k8s.io/cluster-api/hack/tools
 
-go 1.26.0
+go 1.27.0
 
 replace (
 	sigs.k8s.io/cluster-api => ../../
@@ -11,6 +11,7 @@ replace (
 require (
 	cloud.google.com/go/storage v1.70.0
 	github.com/blang/semver/v4 v4.0.0
+	github.com/drone/envsubst/v2 v2.0.0-20210730161058-179042472c46
 	github.com/google/go-cmp v0.7.0
 	github.com/google/go-github/v92 v92.0.0
 	github.com/onsi/gomega v1.44.0
@@ -25,6 +26,7 @@ require (
 	k8s.io/client-go v0.37.2
 	k8s.io/klog/v2 v2.140.0
 	k8s.io/kube-openapi v0.0.0-20260821135717-be32def86098
+	k8s.io/release v0.16.9
 	k8s.io/utils v0.0.0-20260707023825-cf1189d6abe3
 	sigs.k8s.io/cluster-api v0.0.0-00010101000000-000000000000
 	sigs.k8s.io/cluster-api/api v0.0.0-00010101000000-000000000000
@@ -35,8 +37,6 @@ require (
 	sigs.k8s.io/kustomize/api v0.17.3
 	sigs.k8s.io/yaml v1.6.0
 )
-
-require go.opentelemetry.io/otel/log v1.47.0 // indirect
 
 require (
 	cel.dev/expr v0.25.3 // indirect
@@ -68,7 +68,6 @@ require (
 	github.com/distribution/reference v0.6.0 // indirect
 	github.com/docker/go-connections v0.8.2 // indirect
 	github.com/docker/go-units v0.5.0 // indirect
-	github.com/drone/envsubst/v2 v2.0.0-20210730161058-179042472c46
 	github.com/emicklei/go-restful/v3 v3.14.0 // indirect
 	github.com/emirpasic/gods v1.18.1 // indirect
 	github.com/envoyproxy/go-control-plane/envoy v1.39.1-0.20260819172001-e6e3fd93e4be // indirect
@@ -150,6 +149,7 @@ require (
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.68.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.69.0 // indirect
 	go.opentelemetry.io/otel v1.47.0 // indirect
+	go.opentelemetry.io/otel/log v1.47.0 // indirect
 	go.opentelemetry.io/otel/metric v1.47.0 // indirect
 	go.opentelemetry.io/otel/sdk v1.47.0 // indirect
 	go.opentelemetry.io/otel/sdk/metric v1.47.0 // indirect
@@ -177,7 +177,6 @@ require (
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	k8s.io/apiserver v0.37.2 // indirect
 	k8s.io/cluster-bootstrap v0.37.2 // indirect
-	k8s.io/release v0.16.9
 	sigs.k8s.io/json v0.0.0-20250730193827-2d320260d730 // indirect
 	sigs.k8s.io/kustomize/kyaml v0.17.2 // indirect
 	sigs.k8s.io/randfill v1.0.0 // indirect

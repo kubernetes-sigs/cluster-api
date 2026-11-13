@@ -87,10 +87,9 @@ Here's an example of how to do this for the `v1.11` release cycle. That means `v
        2. Remove providers that are not used anymore in clusterctl upgrade tests.
        3. Change `v1.10.99` to `v1.11.99`.
    3. Adjust `metadata.yaml`'s:
-      1. Create a new `v1.10` `metadata.yaml` (`test/e2e/data/shared/v1.10/metadata.yaml`) by copying the `test/e2e/data/shared/main` folder and renaming it to `v1.10`.
-      2. Add the new release, `v1.11`, to the main `metadata.yaml` (`test/e2e/data/shared/main/metadata.yaml`).
-      3. Add the new release, `v1.11`, to the root level `metadata.yaml`.
-      4. Remove old `metadata.yaml`'s that are not used anymore in clusterctl upgrade tests, the `test/e2e/data/shared/v1.7` folder in this example.
+      1. Create a new `v1.10` `metadata.yaml` (`test/e2e/data/shared/v1.10/metadata.yaml`) by copying the root level `metadata.yaml`.
+      2. Add the new release, `v1.11`, to the root level `metadata.yaml`.
+      3. Remove old `metadata.yaml`'s that are not used anymore in clusterctl upgrade tests, the `test/e2e/data/shared/v1.7` folder in this example.
    4. Adjust cluster templates in `test/e2e/data/infrastructure-docker`:
       1. Create a new `v1.10` folder. It should be created based on the `main` folder and only contain the files we use in the clusterctl upgrade tests (as of today `cluster-template-in-memory-topology.yaml` and `clusterclass-in-memory.yaml`).
       2. Remove old folders that are not used anymore in clusterctl upgrade tests, `test/e2e/data/infrastructure-docker/v1.7` in this example.

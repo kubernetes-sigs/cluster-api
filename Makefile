@@ -181,10 +181,12 @@ GOLANGCI_LINT_BIN := golangci-lint
 GOLANGCI_LINT_VER := $(shell cat .github/workflows/pr-golangci-lint.yaml | grep [[:space:]]version: | sed 's/.*version: //')
 GOLANGCI_LINT := $(abspath $(TOOLS_BIN_DIR)/$(GOLANGCI_LINT_BIN)-$(GOLANGCI_LINT_VER))
 GOLANGCI_LINT_PKG := github.com/golangci/golangci-lint/v2/cmd/golangci-lint
+GOLANGCI_LINT_CONFIG := $(ROOT_DIR)/hack/config/golangci.yml
 
 GOLANGCI_LINT_KAL_BIN := golangci-lint-kube-api-linter
 GOLANGCI_LINT_KAL_VER := $(shell cat ./hack/tools/.custom-gcl.yaml | grep version: | sed 's/version: //')
 GOLANGCI_LINT_KAL := $(abspath $(TOOLS_BIN_DIR)/$(GOLANGCI_LINT_KAL_BIN))
+GOLANGCI_LINT_KAL_CONFIG := $(ROOT_DIR)/hack/config/golangci-kal.yml
 
 GOVULNCHECK_BIN := govulncheck
 GOVULNCHECK_VER := v1.3.0
@@ -651,13 +653,13 @@ generate-test-infra-prowjobs: $(PROWJOB_GEN) ## Generates the prowjob configurat
 
 .PHONY: lint
 lint: $(GOLANGCI_LINT) $(GOLANGCI_LINT_KAL) ## Lint the codebase
-	$(GOLANGCI_LINT) run -v $(GOLANGCI_LINT_EXTRA_ARGS)
-	cd api; $(GOLANGCI_LINT) run --config $(ROOT_DIR)/.golangci.yml -v $(GOLANGCI_LINT_EXTRA_ARGS)
-	cd utils; $(GOLANGCI_LINT) run --config $(ROOT_DIR)/.golangci.yml -v $(GOLANGCI_LINT_EXTRA_ARGS)
-	cd $(TEST_DIR); $(GOLANGCI_LINT) run --config $(ROOT_DIR)/.golangci.yml -v $(GOLANGCI_LINT_EXTRA_ARGS)
-	cd $(TOOLS_DIR); $(GOLANGCI_LINT) run --config $(ROOT_DIR)/.golangci.yml -v $(GOLANGCI_LINT_EXTRA_ARGS)
+	$(GOLANGCI_LINT) run --config $(GOLANGCI_LINT_CONFIG) -v $(GOLANGCI_LINT_EXTRA_ARGS)
+	cd api; $(GOLANGCI_LINT) run --config $(GOLANGCI_LINT_CONFIG) -v $(GOLANGCI_LINT_EXTRA_ARGS)
+	cd utils; $(GOLANGCI_LINT) run --config $(GOLANGCI_LINT_CONFIG) -v $(GOLANGCI_LINT_EXTRA_ARGS)
+	cd $(TEST_DIR); $(GOLANGCI_LINT) run --config $(GOLANGCI_LINT_CONFIG) -v $(GOLANGCI_LINT_EXTRA_ARGS)
+	cd $(TOOLS_DIR); $(GOLANGCI_LINT) run --config $(GOLANGCI_LINT_CONFIG) -v $(GOLANGCI_LINT_EXTRA_ARGS)
 	./hack/scripts/verify/verify-dockerfiles.sh $(HADOLINT_VER) $(HADOLINT_FAILURE_THRESHOLD)
-	cd api; $(GOLANGCI_LINT_KAL) run -v --config $(ROOT_DIR)/.golangci-kal.yml $(GOLANGCI_LINT_EXTRA_ARGS)
+	cd api; $(GOLANGCI_LINT_KAL) run -v --config $(GOLANGCI_LINT_KAL_CONFIG) $(GOLANGCI_LINT_EXTRA_ARGS)
 
 .PHONY: lint-dockerfiles
 lint-dockerfiles:
@@ -669,7 +671,7 @@ lint-fix: $(GOLANGCI_LINT) ## Lint the codebase and run auto-fixers if supported
 
 .PHONY: lint-api
 lint-api: $(GOLANGCI_LINT_KAL)
-	cd api; $(GOLANGCI_LINT_KAL) run -v --config $(ROOT_DIR)/.golangci-kal.yml $(GOLANGCI_LINT_EXTRA_ARGS)
+	cd api; $(GOLANGCI_LINT_KAL) run -v --config $(GOLANGCI_LINT_KAL_CONFIG) $(GOLANGCI_LINT_EXTRA_ARGS)
 
 .PHONY: lint-api-fix
 lint-api-fix: $(GOLANGCI_LINT_KAL)

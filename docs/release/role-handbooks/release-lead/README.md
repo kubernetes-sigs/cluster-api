@@ -255,7 +255,7 @@ Additional information:
     3. Add conversion and conversion tests.
     4. Adjust generate targets in the Makefile.
     5. Consider dropping fields deprecated in the previous apiVersion.
-2. Update import aliases in `.golangci.yml`.
+2. Update import aliases in `hack/config/golangci.yml`.
 3. Switch other code over to the new version (imports across the code base, e.g. controllers).
     1. Add all versions to the schema in the `main.go` files.
 4. Add types to the `PROJECT` files of the respective provider.

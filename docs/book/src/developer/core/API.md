@@ -16,7 +16,7 @@ The API defines the main contract with the Cluster API users. This makes API des
 This project follows the [Kubernetes API conventions](https://github.com/kubernetes/community/blob/master/contributors/devel/sig-architecture/api-conventions.md).
 
 We enforce the API conventions via [kube-api-linter](https://github.com/kubernetes-sigs/kube-api-linter).
-The corresponding configuration field can be found [here](https://github.com/kubernetes-sigs/cluster-api/blob/main/.golangci-kal.yml).
+The corresponding configuration field can be found [here](https://github.com/kubernetes-sigs/cluster-api/blob/main/hack/config/golangci-kal.yml).
 
 API versioning and guarantees are inspired by the [Kubernetes deprecation policy](https://kubernetes.io/docs/reference/using-api/deprecation-policy/)
 and [API change guidelines](https://github.com/kubernetes/community/blob/f0eec4d19d407c13681431b3c436be67da8c448d/contributors/devel/sig-architecture/api_changes.md).

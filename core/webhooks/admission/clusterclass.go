@@ -120,6 +120,8 @@ func (webhook *ClusterClass) validate(ctx context.Context, oldClusterClass, newC
 
 	allErrs = append(allErrs, validateClusterClassRollout(newClusterClass)...)
 
+	allErrs = append(allErrs, validateMachinePoolsFeatureGate(newClusterClass.Spec.Workers.MachinePools, field.NewPath("spec", "workers", "machinePools"))...)
+
 	// Ensure MachineHealthChecks are valid.
 	allErrs = append(allErrs, validateMachineHealthCheckClasses(webhook.MHCProgramCache, newClusterClass)...)
 
@@ -554,11 +556,12 @@ func validateTaints(clusterClass *clusterv1.ClusterClass) field.ErrorList {
 	for _, md := range clusterClass.Spec.Workers.MachineDeployments {
 		fldPath := field.NewPath("spec", "workers", "machineDeployments").Key(md.Class).Child("taints")
 		allErrs = append(allErrs, taints.ValidateMachineTaints(md.Taints, fldPath)...)
+		allErrs = append(allErrs, validateMachineTaintsForWorkers(md.Taints, nil, fldPath)...)
 	}
 
 	for _, mp := range clusterClass.Spec.Workers.MachinePools {
 		fldPath := field.NewPath("spec", "workers", "machinePools").Key(mp.Class).Child("taints")
-		allErrs = append(allErrs, taints.ValidateMachineTaints(mp.Taints, fldPath)...)
+		allErrs = append(allErrs, validateMachinePoolTaints(mp.Taints, fldPath)...)
 	}
 
 	return allErrs

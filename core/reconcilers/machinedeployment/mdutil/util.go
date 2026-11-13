@@ -452,7 +452,7 @@ func FindNewAndOldMachineSets(deployment *clusterv1.MachineDeployment, msList []
 		} else {
 			oldMSs = append(oldMSs, ms)
 			// Override the EligibleForInPlaceUpdate decision if rollout after is expired.
-			if !deployment.Spec.Rollout.After.IsZero() && deployment.Spec.Rollout.After.Before(&reconcileStartTime) && ms.CreationTimestamp.Before(ptr.To(deployment.Spec.Rollout.After)) {
+			if shouldRolloutAfter(ms, reconcileStartTime, deployment.Spec.Rollout.After) {
 				upToDateResult.EligibleForInPlaceUpdate = false
 				upToDateResult.LogMessages = append(upToDateResult.LogMessages, "MachineDeployment spec.rolloutAfter expired")
 				// No need to set an additional condition message, it is not used anywhere.
@@ -466,49 +466,36 @@ func FindNewAndOldMachineSets(deployment *clusterv1.MachineDeployment, msList []
 		return nil, oldMSs, upToDateResults, fmt.Sprintf("couldn't find MachineSet matching MachineDeployment spec template: %s", strings.Join(diffs, "; "))
 	}
 
-	// If RolloutAfter is not set, pick the first matching MachineSet.
-	if deployment.Spec.Rollout.After.IsZero() {
-		for _, ms := range newMSCandidates[1:] {
-			oldMSs = append(oldMSs, ms)
-			upToDateResults[ms.Name] = UpToDateResult{
-				// No need to set log or condition message for discarded candidates, it is not used anywhere.
-				EligibleForInPlaceUpdate: false,
-			}
-		}
-		return newMSCandidates[0], oldMSs, upToDateResults, ""
-	}
-
-	// If reconcile start time is before RolloutAfter, pick the first matching MachineSet.
-	if reconcileStartTime.Before(&deployment.Spec.Rollout.After) {
-		for _, ms := range newMSCandidates[1:] {
-			oldMSs = append(oldMSs, ms)
-			upToDateResults[ms.Name] = UpToDateResult{
-				// No need to set log or condition for discarded candidates, it is not used anywhere.
-				EligibleForInPlaceUpdate: false,
-			}
-		}
-		return newMSCandidates[0], oldMSs, upToDateResults, ""
-	}
-
-	// Pick the first matching MachineSet that has been created at RolloutAfter or later.
+	// Pick the first matching MachineSet for which rollout after is not expired.
+	// Note: If rollout after is not set or not yet expired, this is the first matching MachineSet.
 	for _, ms := range newMSCandidates {
-		if newMS == nil && !ms.CreationTimestamp.Before(ptr.To(deployment.Spec.Rollout.After)) {
+		if newMS == nil && !shouldRolloutAfter(ms, reconcileStartTime, deployment.Spec.Rollout.After) {
 			newMS = ms
 			continue
 		}
 
 		oldMSs = append(oldMSs, ms)
 		upToDateResults[ms.Name] = UpToDateResult{
-			// No need to set log or condition for discarded candidates, it is not used anywhere.
+			// No need to set log or condition message for discarded candidates, it is not used anywhere.
 			EligibleForInPlaceUpdate: false,
 		}
 	}
 
-	// If no matching MachineSet was created after RolloutAfter, trigger creation of a new MachineSet.
+	// If rollout after is expired for all matching MachineSets, trigger creation of a new MachineSet.
 	if newMS == nil {
 		return nil, oldMSs, upToDateResults, fmt.Sprintf("spec.rollout.after on MachineDeployment set to %s, no MachineSet has been created afterwards", deployment.Spec.Rollout.After.Format(time.RFC3339))
 	}
 	return newMS, oldMSs, upToDateResults, ""
+}
+
+// shouldRolloutAfter returns true if the MachineSet has to be rolled out because of rolloutAfter,
+// i.e. if CreationTimestamp < rolloutAfter < reconcileStartTime.
+// Note: This is the MachineSet equivalent of collections.ShouldRolloutAfter.
+func shouldRolloutAfter(ms *clusterv1.MachineSet, reconcileStartTime, rolloutAfter metav1.Time) bool {
+	if rolloutAfter.IsZero() {
+		return false
+	}
+	return ms.CreationTimestamp.Before(&rolloutAfter) && rolloutAfter.Before(&reconcileStartTime)
 }
 
 // GetReplicaCountForMachineSets returns the sum of Replicas of the given machine sets.

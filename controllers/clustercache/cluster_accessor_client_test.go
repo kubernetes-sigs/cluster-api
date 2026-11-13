@@ -17,7 +17,11 @@ limitations under the License.
 package clustercache
 
 import (
+	"context"
 	"fmt"
+	"io"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"testing"
@@ -26,11 +30,61 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	"sigs.k8s.io/cluster-api/util/secret"
 )
+
+func TestDynamicBearerTokenRoundTripper(t *testing.T) {
+	g := NewWithT(t)
+
+	var authorizationHeaders []string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		authorizationHeaders = append(authorizationHeaders, r.Header.Get("Authorization"))
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	holder := newTokenHolder("stale-token")
+	config := &rest.Config{
+		Host:        server.URL,
+		BearerToken: "stale-token",
+	}
+	holder.originalWrapTransport = config.WrapTransport
+	holder.setConfigWrapTransport(config)
+
+	httpClient, err := rest.HTTPClientFor(config)
+	g.Expect(err).ToNot(HaveOccurred())
+
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, server.URL, http.NoBody)
+	g.Expect(err).ToNot(HaveOccurred())
+	resp, err := httpClient.Do(req)
+	g.Expect(err).ToNot(HaveOccurred())
+	g.Expect(resp.Body.Close()).To(Succeed())
+	g.Expect(authorizationHeaders).To(Equal([]string{"Bearer stale-token"}))
+
+	holder.store("rotated-token")
+
+	req, err = http.NewRequestWithContext(context.Background(), http.MethodGet, server.URL, http.NoBody)
+	g.Expect(err).ToNot(HaveOccurred())
+	resp, err = httpClient.Do(req)
+	g.Expect(err).ToNot(HaveOccurred())
+	body, err := io.ReadAll(resp.Body)
+	g.Expect(err).ToNot(HaveOccurred())
+	g.Expect(resp.Body.Close()).To(Succeed())
+	g.Expect(body).To(BeEmpty())
+	g.Expect(authorizationHeaders).To(Equal([]string{"Bearer stale-token", "Bearer rotated-token"}))
+
+	req, err = http.NewRequestWithContext(context.Background(), http.MethodGet, server.URL, http.NoBody)
+	g.Expect(err).ToNot(HaveOccurred())
+	req.Header.Set("Authorization", "Bearer request-token")
+	resp, err = httpClient.Do(req)
+	g.Expect(err).ToNot(HaveOccurred())
+	g.Expect(resp.Body.Close()).To(Succeed())
+	g.Expect(authorizationHeaders).To(Equal([]string{"Bearer stale-token", "Bearer rotated-token", "Bearer request-token"}))
+}
 
 func TestRunningOnWorkloadCluster(t *testing.T) {
 	tests := []struct {
@@ -230,7 +284,7 @@ users:
 			}
 			c := fake.NewClientBuilder().WithObjects(kubeconfigSecret).Build()
 
-			restConfig, err := createRESTConfig(ctx, &clusterAccessorClientConfig{}, c, client.ObjectKey{Namespace: namespace, Name: clusterName})
+			restConfig, _, _, _, err := createRESTConfig(ctx, &clusterAccessorClientConfig{}, c, client.ObjectKey{Namespace: namespace, Name: clusterName})
 			if tt.wantErr != "" {
 				g.Expect(err).To(MatchError(ContainSubstring(tt.wantErr)))
 				g.Expect(restConfig).To(BeNil())

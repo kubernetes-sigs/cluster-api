@@ -939,27 +939,26 @@ func (g *generator) computeMachineDeployment(ctx context.Context, s *scope.Scope
 		minReadySeconds = machineDeploymentTopology.MinReadySeconds
 	}
 
-	var rollout clusterv1.MachineDeploymentRolloutSpec
-	if !reflect.DeepEqual(machineDeploymentClass.Rollout, clusterv1.MachineDeploymentRolloutSpec{}) {
-		rollout = clusterv1.MachineDeploymentRolloutSpec{
-			Strategy: clusterv1.MachineDeploymentRolloutStrategy{
-				Type: machineDeploymentClass.Rollout.Strategy.Type,
-				RollingUpdate: clusterv1.MachineDeploymentRolloutStrategyRollingUpdate{
-					MaxUnavailable: machineDeploymentClass.Rollout.Strategy.RollingUpdate.MaxUnavailable,
-					MaxSurge:       machineDeploymentClass.Rollout.Strategy.RollingUpdate.MaxSurge,
-				},
+	// Note: after and strategy are handled independently, i.e. strategy from the topology overrides
+	// strategy from the class, while after is only set from the topology.
+	rollout := clusterv1.MachineDeploymentRolloutSpec{
+		After: machineDeploymentTopology.Rollout.After,
+	}
+	if !reflect.DeepEqual(machineDeploymentClass.Rollout.Strategy, clusterv1.MachineDeploymentClassRolloutStrategy{}) {
+		rollout.Strategy = clusterv1.MachineDeploymentRolloutStrategy{
+			Type: machineDeploymentClass.Rollout.Strategy.Type,
+			RollingUpdate: clusterv1.MachineDeploymentRolloutStrategyRollingUpdate{
+				MaxUnavailable: machineDeploymentClass.Rollout.Strategy.RollingUpdate.MaxUnavailable,
+				MaxSurge:       machineDeploymentClass.Rollout.Strategy.RollingUpdate.MaxSurge,
 			},
 		}
 	}
-	if !reflect.DeepEqual(machineDeploymentTopology.Rollout, clusterv1.MachineDeploymentTopologyRolloutSpec{}) {
-		rollout = clusterv1.MachineDeploymentRolloutSpec{
-			After: machineDeploymentTopology.Rollout.After,
-			Strategy: clusterv1.MachineDeploymentRolloutStrategy{
-				Type: machineDeploymentTopology.Rollout.Strategy.Type,
-				RollingUpdate: clusterv1.MachineDeploymentRolloutStrategyRollingUpdate{
-					MaxUnavailable: machineDeploymentTopology.Rollout.Strategy.RollingUpdate.MaxUnavailable,
-					MaxSurge:       machineDeploymentTopology.Rollout.Strategy.RollingUpdate.MaxSurge,
-				},
+	if !reflect.DeepEqual(machineDeploymentTopology.Rollout.Strategy, clusterv1.MachineDeploymentTopologyRolloutStrategy{}) {
+		rollout.Strategy = clusterv1.MachineDeploymentRolloutStrategy{
+			Type: machineDeploymentTopology.Rollout.Strategy.Type,
+			RollingUpdate: clusterv1.MachineDeploymentRolloutStrategyRollingUpdate{
+				MaxUnavailable: machineDeploymentTopology.Rollout.Strategy.RollingUpdate.MaxUnavailable,
+				MaxSurge:       machineDeploymentTopology.Rollout.Strategy.RollingUpdate.MaxSurge,
 			},
 		}
 	}

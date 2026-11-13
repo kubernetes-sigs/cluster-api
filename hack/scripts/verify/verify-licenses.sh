@@ -33,7 +33,7 @@ REPO_ROOT=$(git rev-parse --show-toplevel)
 "${REPO_ROOT}/hack/scripts/ensure/ensure-trivy.sh" "${VERSION}"
 
 
-TRIVY="${REPO_ROOT}/hack/tools/bin/trivy/${VERSION}/trivy"
+TRIVY="${REPO_ROOT}/_output/tools/trivy/${VERSION}/trivy"
 $TRIVY filesystem . --license-full --ignored-licenses ${CNCF_LICENSE_ALLOWLIST} --scanners license --severity UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL -f json | \
 # Specifically ignore 'github.com/hashicorp/hcl'. This is a known indirect dependency that we should remove where possible.
 # This query ensures we only skip github.com/hashicorp/hcl for as long as the license remains MPL-2.0

@@ -4,8 +4,17 @@
 *.so
 *.dylib
 cmd/clusterctl/clusterctl
+
+# Output of Makefile targets (including tools), test results and Tilt builds
+_output
+
+# Output folders used before _output was introduced; kept so leftovers of older builds don't show up as untracked files.
+# TODO(output-dir): Drop these entries after a few releases.
 bin
-hack/tools/bin
+.tiltbuild
+_artifacts
+out
+hack/tools/triage/.cache
 
 # Test binary, build with `go test -c`
 *.test
@@ -59,16 +68,9 @@ vendor
 tilt.d
 tilt-settings.json
 tilt-settings.*yaml
-.tiltbuild
 
 # User-supplied clusterctl hacks settings
 clusterctl-settings.json
-
-# test results
-_artifacts
-
-# release artifacts
-out
 
 # Helm
 .helm

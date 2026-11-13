@@ -68,7 +68,7 @@ cleanup() {
 trap cleanup EXIT
 
 
-SHELLCHECK="${ROOT_PATH}/hack/tools/bin/shellcheck/${VERSION}/shellcheck"
+SHELLCHECK="${ROOT_PATH}/_output/tools/shellcheck/${VERSION}/shellcheck"
 
 if [ ! -f "$SHELLCHECK" ]; then
   # install shellcheck
@@ -80,7 +80,7 @@ if [ ! -f "$SHELLCHECK" ]; then
   cd "${TMP_DIR}" || exit
   tar xf "${TMP_DIR}/shellcheck.tar.xz"
   cd "${ROOT_PATH}"
-  mkdir -p "${ROOT_PATH}/hack/tools/bin/shellcheck/${VERSION}"
+  mkdir -p "${ROOT_PATH}/_output/tools/shellcheck/${VERSION}"
   mv "${TMP_DIR}/shellcheck-${VERSION}/shellcheck" "$SHELLCHECK"
 fi
 

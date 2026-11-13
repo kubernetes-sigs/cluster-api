@@ -187,7 +187,7 @@ def create_local_repositories():
             url = "{}/{}".format(sys.argv[1], components_file)
             components_yaml = urllib.request.urlopen(url).read()
         else:
-            components_yaml = execCmd(['./hack/tools/bin/kustomize', 'build', os.path.join(repo, config_folder)])
+            components_yaml = execCmd(['./_output/tools/kustomize', 'build', os.path.join(repo, config_folder)])
 
         components_path = write_local_repository(provider, next_version, components_file, components_yaml,
                                                      metadata_file)

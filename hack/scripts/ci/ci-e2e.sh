@@ -32,7 +32,7 @@ source "${REPO_ROOT}/hack/scripts/ensure/ensure-go.sh"
 source "${REPO_ROOT}/hack/scripts/ensure/ensure-kind.sh"
 
 # Make sure the tools binaries are on the path.
-export PATH="${REPO_ROOT}/hack/tools/bin:${PATH}"
+export PATH="${REPO_ROOT}/_output/tools:${PATH}"
 
 # Builds CAPI (and CAPD) images.
 capi:buildDockerImages
@@ -42,7 +42,7 @@ export GINKGO_NODES=5
 export GINKGO_NOCOLOR=true
 export GINKGO_ARGS="${GINKGO_ARGS:-""}"
 export E2E_CONF_FILE="${REPO_ROOT}/test/e2e/config/docker.yaml"
-export ARTIFACTS="${ARTIFACTS:-${REPO_ROOT}/_artifacts}"
+export ARTIFACTS="${ARTIFACTS:-${REPO_ROOT}/_output/artifacts}"
 export SKIP_RESOURCE_CLEANUP=${SKIP_RESOURCE_CLEANUP:-"false"}
 export USE_EXISTING_CLUSTER=false
 

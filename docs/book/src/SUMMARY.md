@@ -40,6 +40,7 @@
         - [Autoscaling](./user/guide/lifecycle/autoscaling.md)
         - [Rollout Changes](./user/guide/lifecycle/rollout.md)
         - [Upgrade the Kubernetes Version](./user/guide/lifecycle/upgrades.md)
+        - [Worker Version Pinning](./user/guide/lifecycle/worker-version-pinning.md)
         - [MachineHealthCheck and Remediation](./user/guide/lifecycle/healthchecking.md)
         - [Machine Deletion](./user/guide/lifecycle/machine_deletions.md)
         - [MachineSet Preflight Checks](./user/guide/lifecycle/machineset-preflight-checks.md)

@@ -37,6 +37,7 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/contract"
+	"sigs.k8s.io/cluster-api/internal/topology/pinning"
 	logutil "sigs.k8s.io/cluster-api/util/log"
 )
 
@@ -127,7 +128,7 @@ func (r *Reconciler) runPreflightChecks(ctx context.Context, cluster *clusterv1.
 
 		// Run the control plane version skew preflight check.
 		if shouldRun(r.PreflightChecks, skipped, clusterv1.MachineSetPreflightCheckControlPlaneVersionSkew) {
-			if preflightCheckErr := r.controlPlaneVersionPreflightCheck(cluster, *cpVersion, msVersion); preflightCheckErr != nil {
+			if preflightCheckErr := r.controlPlaneVersionPreflightCheck(cluster, ms, *cpVersion, msVersion); preflightCheckErr != nil {
 				preflightCheckErrs = append(preflightCheckErrs, preflightCheckErr)
 			}
 		}
@@ -235,8 +236,14 @@ func (r *Reconciler) kubeadmVersionPreflightCheck(cpSemver, msSemver semver.Vers
 	return nil
 }
 
-func (r *Reconciler) controlPlaneVersionPreflightCheck(cluster *clusterv1.Cluster, cpVersion, msVersion string) preflightCheckErrorMessage {
+func (r *Reconciler) controlPlaneVersionPreflightCheck(cluster *clusterv1.Cluster, ms *clusterv1.MachineSet, cpVersion, msVersion string) preflightCheckErrorMessage {
 	if feature.Gates.Enabled(feature.ClusterTopology) && cluster.Spec.Topology.IsDefined() {
+		// A MachineDeployment pinning its own version manages its version independently of the
+		// control plane, so waiting for the control plane version to propagate would block forever.
+		// Note: the Kubernetes version skew is still enforced by the KubernetesVersionSkew check.
+		if pinning.MachineDeploymentTopologyVersion(cluster.Spec.Topology, ms.Labels[clusterv1.ClusterTopologyMachineDeploymentNameLabel]) != "" {
+			return nil
+		}
 		if cpVersion != msVersion {
 			return ptr.To(fmt.Sprintf("MachineSet version (%s) is not yet the same as the ControlPlane version (%s), waiting for version to be propagated to the MachineSet (%q preflight check failed)", msVersion, cpVersion, clusterv1.MachineSetPreflightCheckControlPlaneVersionSkew))
 		}

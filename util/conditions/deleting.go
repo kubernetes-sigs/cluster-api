@@ -17,30 +17,37 @@ limitations under the License.
 package conditions
 
 import (
-	"fmt"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	"sigs.k8s.io/cluster-api/util"
 )
 
-// WaitingForDeletionMessage computes the message for the Deleting condition of an object while
-// it is waiting for one of its child objects (e.g. ControlPlane, InfraCluster, InfraMachine,
-// BootstrapConfig) to be deleted.
-// If the child object surfaces a Deleting condition with a message, the message is appended to
-// provide more details about why deletion is not completed yet; otherwise the base message is
-// returned unchanged (according to the contract child objects are not required to report conditions).
-func WaitingForDeletionMessage(kind string, child *unstructured.Unstructured) string {
-	baseMessage := fmt.Sprintf("Waiting for %s to be deleted", kind)
-	if child == nil {
-		return baseMessage
+// AppendDeletingMessage appends obj's own Deleting condition message to msg, if reported.
+// It accepts unstructured objects and typed objects implementing Getter.
+// According to the contract, obj is not required to report conditions; msg is returned unchanged in that case.
+func AppendDeletingMessage(msg string, obj client.Object) string {
+	if util.IsNil(obj) {
+		return msg
 	}
 
-	childDeleting, err := UnstructuredGet(child, clusterv1.DeletingCondition)
-	if err != nil || childDeleting == nil || childDeleting.Status != metav1.ConditionTrue || childDeleting.Message == "" {
-		return baseMessage
+	var deleting *metav1.Condition
+	switch o := obj.(type) {
+	case *unstructured.Unstructured:
+		c, err := UnstructuredGet(o, clusterv1.DeletingCondition)
+		if err != nil {
+			return msg
+		}
+		deleting = c
+	case Getter:
+		deleting = Get(o, clusterv1.DeletingCondition)
 	}
 
-	return baseMessage + ":" + indentIfMultiline(childDeleting.Message)
+	if deleting == nil || deleting.Status != metav1.ConditionTrue || deleting.Message == "" {
+		return msg
+	}
+
+	return msg + ":" + indentIfMultiline(deleting.Message)
 }

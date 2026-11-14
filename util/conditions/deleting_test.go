@@ -22,24 +22,26 @@ import (
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	"sigs.k8s.io/cluster-api/util/test/builder"
 )
 
-func TestWaitingForDeletionMessage(t *testing.T) {
-	fakeChild := func(conditions ...interface{}) *unstructured.Unstructured {
-		child := &unstructured.Unstructured{Object: map[string]interface{}{
+func TestAppendDeletingMessage(t *testing.T) {
+	fakeUnstructured := func(conditions ...interface{}) *unstructured.Unstructured {
+		obj := &unstructured.Unstructured{Object: map[string]interface{}{
 			"kind": "FakeControlPlane",
 			"metadata": map[string]interface{}{
 				"name": "cp1",
 			},
 		}}
 		if len(conditions) > 0 {
-			_ = unstructured.SetNestedSlice(child.Object, conditions, "status", "conditions")
+			_ = unstructured.SetNestedSlice(obj.Object, conditions, "status", "conditions")
 		}
-		return child
+		return obj
 	}
-	fakeCondition := func(status metav1.ConditionStatus, message string) map[string]interface{} {
+	unstructuredCondition := func(status metav1.ConditionStatus, message string) map[string]interface{} {
 		return map[string]interface{}{
 			"type":               clusterv1.DeletingCondition,
 			"status":             string(status),
@@ -48,36 +50,103 @@ func TestWaitingForDeletionMessage(t *testing.T) {
 			"lastTransitionTime": "2026-08-06T10:00:00Z",
 		}
 	}
+	fakeTyped := func(conditions ...metav1.Condition) *builder.Phase3Obj {
+		return &builder.Phase3Obj{
+			TypeMeta:   metav1.TypeMeta{Kind: "FakeControlPlane"},
+			ObjectMeta: metav1.ObjectMeta{Name: "cp1"},
+			Status:     builder.Phase3ObjStatus{Conditions: conditions},
+		}
+	}
+	typedCondition := func(status metav1.ConditionStatus, message string) metav1.Condition {
+		return metav1.Condition{
+			Type:    clusterv1.DeletingCondition,
+			Status:  status,
+			Reason:  "SomeReason",
+			Message: message,
+		}
+	}
+
+	const (
+		baseMsg   = "Waiting for FakeControlPlane to be deleted"
+		multiline = "FakeControlPlane deletion blocked because following objects still exist:\n* Machine m1\n* Machine m2"
+		// wantMultiline is baseMsg followed by multiline, indented as a nested bullet list.
+		wantMultiline = baseMsg + ":\n  * FakeControlPlane deletion blocked because following objects still exist:\n    * Machine m1\n    * Machine m2"
+	)
 
 	tests := []struct {
-		name  string
-		child *unstructured.Unstructured
-		want  string
+		name string
+		obj  client.Object
+		want string
 	}{
 		{
-			name:  "child is nil",
-			child: nil,
-			want:  "Waiting for FakeControlPlane to be deleted",
+			name: "nil interface",
+			obj:  nil,
+			want: baseMsg,
 		},
 		{
-			name:  "child does not report conditions",
-			child: fakeChild(),
-			want:  "Waiting for FakeControlPlane to be deleted",
+			name: "unstructured nil pointer",
+			obj:  (*unstructured.Unstructured)(nil),
+			want: baseMsg,
 		},
 		{
-			name:  "child reports Deleting condition with a single line message",
-			child: fakeChild(fakeCondition(metav1.ConditionTrue, "Deleting 3 Machines")),
-			want:  "Waiting for FakeControlPlane to be deleted: Deleting 3 Machines",
+			name: "typed nil pointer",
+			obj:  (*builder.Phase3Obj)(nil),
+			want: baseMsg,
 		},
 		{
-			name:  "child reports Deleting condition with a multiline message",
-			child: fakeChild(fakeCondition(metav1.ConditionTrue, "FakeControlPlane deletion blocked because following objects still exist:\n* Machine m1\n* Machine m2")),
-			want:  "Waiting for FakeControlPlane to be deleted:\n  * FakeControlPlane deletion blocked because following objects still exist:\n    * Machine m1\n    * Machine m2",
+			name: "object implementing neither unstructured nor Getter",
+			obj:  &metav1.PartialObjectMetadata{},
+			want: baseMsg,
 		},
 		{
-			name:  "child reports Deleting condition with status False",
-			child: fakeChild(fakeCondition(metav1.ConditionFalse, "some message")),
-			want:  "Waiting for FakeControlPlane to be deleted",
+			name: "unstructured without conditions",
+			obj:  fakeUnstructured(),
+			want: baseMsg,
+		},
+		{
+			name: "unstructured with Deleting condition status False",
+			obj:  fakeUnstructured(unstructuredCondition(metav1.ConditionFalse, "some message")),
+			want: baseMsg,
+		},
+		{
+			name: "unstructured with Deleting condition and empty message",
+			obj:  fakeUnstructured(unstructuredCondition(metav1.ConditionTrue, "")),
+			want: baseMsg,
+		},
+		{
+			name: "unstructured with Deleting condition and single line message",
+			obj:  fakeUnstructured(unstructuredCondition(metav1.ConditionTrue, "Deleting 3 Machines")),
+			want: baseMsg + ": Deleting 3 Machines",
+		},
+		{
+			name: "unstructured with Deleting condition and multiline message",
+			obj:  fakeUnstructured(unstructuredCondition(metav1.ConditionTrue, multiline)),
+			want: wantMultiline,
+		},
+		{
+			name: "typed without conditions",
+			obj:  fakeTyped(),
+			want: baseMsg,
+		},
+		{
+			name: "typed with Deleting condition status False",
+			obj:  fakeTyped(typedCondition(metav1.ConditionFalse, "some message")),
+			want: baseMsg,
+		},
+		{
+			name: "typed with Deleting condition and empty message",
+			obj:  fakeTyped(typedCondition(metav1.ConditionTrue, "")),
+			want: baseMsg,
+		},
+		{
+			name: "typed with Deleting condition and single line message",
+			obj:  fakeTyped(typedCondition(metav1.ConditionTrue, "Deleting 3 Machines")),
+			want: baseMsg + ": Deleting 3 Machines",
+		},
+		{
+			name: "typed with Deleting condition and multiline message",
+			obj:  fakeTyped(typedCondition(metav1.ConditionTrue, multiline)),
+			want: wantMultiline,
 		},
 	}
 
@@ -85,7 +154,7 @@ func TestWaitingForDeletionMessage(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			g.Expect(WaitingForDeletionMessage("FakeControlPlane", tt.child)).To(Equal(tt.want))
+			g.Expect(AppendDeletingMessage(baseMsg, tt.obj)).To(Equal(tt.want))
 		})
 	}
 }

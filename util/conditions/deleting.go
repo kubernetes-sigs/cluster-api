@@ -17,30 +17,23 @@ limitations under the License.
 package conditions
 
 import (
-	"fmt"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
 
-// WaitingForDeletionMessage computes the message for the Deleting condition of an object while
-// it is waiting for one of its child objects (e.g. ControlPlane, InfraCluster, InfraMachine,
-// BootstrapConfig) to be deleted.
-// If the child object surfaces a Deleting condition with a message, the message is appended to
-// provide more details about why deletion is not completed yet; otherwise the base message is
-// returned unchanged (according to the contract child objects are not required to report conditions).
-func WaitingForDeletionMessage(kind string, child *unstructured.Unstructured) string {
-	baseMessage := fmt.Sprintf("Waiting for %s to be deleted", kind)
-	if child == nil {
-		return baseMessage
+// AppendDeletingMessage appends obj's own Deleting condition message to msg, if reported.
+// According to the contract, obj is not required to report conditions; msg is returned unchanged in that case.
+func AppendDeletingMessage(msg string, obj *unstructured.Unstructured) string {
+	if obj == nil {
+		return msg
 	}
 
-	childDeleting, err := UnstructuredGet(child, clusterv1.DeletingCondition)
-	if err != nil || childDeleting == nil || childDeleting.Status != metav1.ConditionTrue || childDeleting.Message == "" {
-		return baseMessage
+	deleting, err := UnstructuredGet(obj, clusterv1.DeletingCondition)
+	if err != nil || deleting == nil || deleting.Status != metav1.ConditionTrue || deleting.Message == "" {
+		return msg
 	}
 
-	return baseMessage + ":" + indentIfMultiline(childDeleting.Message)
+	return msg + ":" + indentIfMultiline(deleting.Message)
 }

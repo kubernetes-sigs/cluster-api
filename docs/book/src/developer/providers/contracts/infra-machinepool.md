@@ -372,7 +372,7 @@ In case conditions are implemented on a InfraMachinePool resource, Cluster API w
 
 Other fields will be ignored.
 
-If a condition with type `Ready` exist, such condition will be mirrored in MachinePool’s `InfrastructureReady` condition (not implemented yet).
+If a condition with type `Ready` exist, such condition will be mirrored in MachinePool’s `InfrastructureReady` condition.
 
 Please note that the `Ready` condition is expected to surface the status of the InfraMachinePool during its own entire lifecycle, including initial provisioning, the final deletion process, and the period in between these two moments.
 

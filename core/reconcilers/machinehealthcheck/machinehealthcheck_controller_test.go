@@ -2921,9 +2921,21 @@ func TestPatchTargets(t *testing.T) {
 	machine2 := machine1.DeepCopy()
 	machine2.Name = "machine2"
 
+	// Simulate a machine which previously failed a health check but is now
+	// healthy, with its external remediation request already gone.
+	machine3 := machine1.DeepCopy()
+	machine3.Name = "machine3"
+	v1beta1conditions.MarkFalse(machine3, clusterv1.MachineHealthCheckSucceededV1Beta1Condition, clusterv1.UnhealthyNodeConditionV1Beta1Reason, clusterv1.ConditionSeverityWarning, "")
+	conditions.Set(machine3, metav1.Condition{
+		Type:   clusterv1.MachineHealthCheckSucceededCondition,
+		Status: metav1.ConditionFalse,
+		Reason: clusterv1.MachineHealthCheckUnhealthyNodeReason,
+	})
+
 	cl := fake.NewClientBuilder().WithObjects(
 		machine1,
 		machine2,
+		machine3,
 		mhc,
 	).WithStatusSubresource(&clusterv1.MachineHealthCheck{}, &clusterv1.Machine{}).Build()
 	r := &Reconciler{
@@ -2963,4 +2975,29 @@ func TestPatchTargets(t *testing.T) {
 
 	// Target with wrong patch helper will fail but the other one will be patched.
 	g.Expect(r.patchHealthyTargets(context.TODO(), logr.New(log.NullLogSink{}), []healthCheckTarget{target1, target3}, mhc)).ToNot(BeEmpty())
+
+	// A missing external remediation request must not prevent the health check
+	// condition from being updated after the machine recovers.
+	mhc.Spec.Remediation.TemplateRef = clusterv1.MachineHealthCheckRemediationTemplateReference{
+		APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+		Kind:       "GenericExternalRemediationTemplate",
+		Name:       "remediation-template",
+	}
+	patchHelper3, err := patch.NewHelper(machine3, cl)
+	g.Expect(err).ToNot(HaveOccurred())
+	target4 := healthCheckTarget{
+		MHC:         mhc,
+		Machine:     machine3,
+		patchHelper: patchHelper3,
+	}
+	v1beta1conditions.MarkTrue(machine3, clusterv1.MachineHealthCheckSucceededV1Beta1Condition)
+	conditions.Set(machine3, metav1.Condition{
+		Type:   clusterv1.MachineHealthCheckSucceededCondition,
+		Status: metav1.ConditionTrue,
+		Reason: clusterv1.MachineHealthCheckSucceededReason,
+	})
+	g.Expect(r.patchHealthyTargets(context.TODO(), logr.New(log.NullLogSink{}), []healthCheckTarget{target4}, mhc)).To(BeEmpty())
+	g.Expect(cl.Get(ctx, client.ObjectKeyFromObject(machine3), machine3)).To(Succeed())
+	g.Expect(v1beta1conditions.IsTrue(machine3, clusterv1.MachineHealthCheckSucceededV1Beta1Condition)).To(BeTrue())
+	g.Expect(conditions.IsTrue(machine3, clusterv1.MachineHealthCheckSucceededCondition)).To(BeTrue())
 }

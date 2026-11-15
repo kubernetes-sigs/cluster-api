@@ -437,15 +437,16 @@ func (r *Reconciler) patchHealthyTargets(ctx context.Context, logger logr.Logger
 				if !apierrors.IsNotFound(pkgerrors.Cause(err)) {
 					wrappedErr := pkgerrors.Wrapf(err, "failed to fetch remediation request for machine %q in namespace %q within cluster %q", t.Machine.Name, t.Machine.Namespace, t.Machine.Spec.ClusterName)
 					errList = append(errList, wrappedErr)
-				}
-				continue
-			}
-			// Check that obj has no DeletionTimestamp to avoid hot loop
-			if obj.GetDeletionTimestamp() == nil {
-				// Issue a delete for remediation request.
-				if err := r.Client.Delete(ctx, obj); err != nil && !apierrors.IsNotFound(err) {
-					errList = append(errList, pkgerrors.Wrapf(err, "failed to delete %v %q for Machine %q", obj.GroupVersionKind(), obj.GetName(), t.Machine.Name))
 					continue
+				}
+			} else {
+				// Check that obj has no DeletionTimestamp to avoid hot loop
+				if obj.GetDeletionTimestamp() == nil {
+					// Issue a delete for remediation request.
+					if err := r.Client.Delete(ctx, obj); err != nil && !apierrors.IsNotFound(err) {
+						errList = append(errList, pkgerrors.Wrapf(err, "failed to delete %v %q for Machine %q", obj.GroupVersionKind(), obj.GetName(), t.Machine.Name))
+						continue
+					}
 				}
 			}
 		}

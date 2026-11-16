@@ -35,11 +35,11 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/core/reconcilers/machinehealthcheck/cel"
 	"sigs.k8s.io/cluster-api/core/webhooks/conversion"
-	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/topology/check"
 	topologynames "sigs.k8s.io/cluster-api/internal/topology/names"
 	"sigs.k8s.io/cluster-api/internal/topology/variables"
 	"sigs.k8s.io/cluster-api/internal/util/taints"
+	"sigs.k8s.io/cluster-api/pkg/features"
 	"sigs.k8s.io/cluster-api/util/cache"
 	"sigs.k8s.io/cluster-api/util/index"
 	logutil "sigs.k8s.io/cluster-api/util/log"
@@ -94,13 +94,13 @@ func (webhook *ClusterClass) ValidateDelete(ctx context.Context, clusterClass *c
 func (webhook *ClusterClass) validate(ctx context.Context, oldClusterClass, newClusterClass *clusterv1.ClusterClass) error {
 	// NOTE: ClusterClass and managed topologies are behind ClusterTopology feature gate flag; the web hook
 	// must prevent creating new objects when the feature flag is disabled.
-	if !feature.Gates.Enabled(feature.ClusterTopology) {
+	if !features.Gates.Enabled(features.ClusterTopology) {
 		return field.Forbidden(
 			field.NewPath("spec"),
 			"can be set only if the ClusterTopology feature flag is enabled",
 		)
 	}
-	if !feature.Gates.Enabled(feature.ClusterClassInlineTemplates) && anyInlineTemplateIsSet(newClusterClass) {
+	if !features.Gates.Enabled(features.ClusterClassInlineTemplates) && anyInlineTemplateIsSet(newClusterClass) {
 		return field.Forbidden(
 			field.NewPath("spec"),
 			"inline templates can only be set if the ClusterClassInlineTemplates feature flag is enabled",

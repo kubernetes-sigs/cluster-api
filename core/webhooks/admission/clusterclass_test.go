@@ -36,8 +36,8 @@ import (
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/core/reconcilers/machinehealthcheck/cel"
-	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/topology/variables"
+	"sigs.k8s.io/cluster-api/pkg/features"
 	"sigs.k8s.io/cluster-api/util/cache"
 	"sigs.k8s.io/cluster-api/util/index"
 	"sigs.k8s.io/cluster-api/util/test/builder"
@@ -55,7 +55,7 @@ func init() {
 
 func TestClusterClassValidationFeatureGated(t *testing.T) {
 	// NOTE: ClusterTopology feature flag is enabled by default, thus we have to disable it explicitly to test the disabled behavior.
-	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, false)
+	utilfeature.SetFeatureGateDuringTest(t, features.Gates, features.ClusterTopology, false)
 
 	tests := []struct {
 		name      string
@@ -1968,7 +1968,7 @@ func TestClusterClassValidation(t *testing.T) {
 			variables.SetEnvSetVersion(version.MustParse("1.29"))
 
 			if tt.clusterClassInlineFeatureGateEnabled {
-				utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterClassInlineTemplates, true)
+				utilfeature.SetFeatureGateDuringTest(t, features.Gates, features.ClusterClassInlineTemplates, true)
 			}
 
 			// Create the webhook and add the fakeClient as its client.

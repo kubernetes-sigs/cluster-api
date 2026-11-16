@@ -32,8 +32,8 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	runtimev1 "sigs.k8s.io/cluster-api/api/runtime/v1beta2"
-	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/contract"
+	"sigs.k8s.io/cluster-api/pkg/features"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/collections"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -512,7 +512,7 @@ func TestClusterReconciler(t *testing.T) {
 }
 
 func TestClusterReconciler_reconcileDelete(t *testing.T) {
-	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.RuntimeSDK, true)
+	utilfeature.SetFeatureGateDuringTest(t, features.Gates, features.RuntimeSDK, true)
 
 	fakeInfraCluster := builder.InfrastructureCluster("test-ns", "test-cluster").Build()
 
@@ -786,7 +786,7 @@ func (b *machinePoolBuilder) build() clusterv1.MachinePool {
 }
 
 func TestFilterOwnedDescendants(t *testing.T) {
-	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.MachinePool, true)
+	utilfeature.SetFeatureGateDuringTest(t, features.Gates, features.MachinePool, true)
 
 	c := clusterv1.Cluster{
 		ObjectMeta: metav1.ObjectMeta{

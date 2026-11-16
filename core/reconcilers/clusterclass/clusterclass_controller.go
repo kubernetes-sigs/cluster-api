@@ -45,9 +45,9 @@ import (
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
 	runtimev1 "sigs.k8s.io/cluster-api/api/runtime/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/external"
-	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/contract"
 	"sigs.k8s.io/cluster-api/internal/topology/variables"
+	"sigs.k8s.io/cluster-api/pkg/features"
 	runtimeclient "sigs.k8s.io/cluster-api/pkg/runtimesdk/client"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/cache"
@@ -81,7 +81,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 	if r.Client == nil {
 		return pkgerrors.New("Client must not be nil")
 	}
-	if feature.Gates.Enabled(feature.RuntimeSDK) && r.RuntimeClient == nil {
+	if features.Gates.Enabled(features.RuntimeSDK) && r.RuntimeClient == nil {
 		return pkgerrors.New("RuntimeClient must not be nil")
 	}
 
@@ -289,7 +289,7 @@ func (r *Reconciler) reconcileVariables(ctx context.Context, s *scope) (ctrl.Res
 
 	// If RuntimeSDK is enabled call the DiscoverVariables hook for all associated Runtime Extensions and add the variables
 	// to the ClusterClass status.
-	if feature.Gates.Enabled(feature.RuntimeSDK) {
+	if features.Gates.Enabled(features.RuntimeSDK) {
 		for _, patch := range clusterClass.Spec.Patches {
 			if patch.External == nil || patch.External.DiscoverVariablesExtension == "" {
 				continue

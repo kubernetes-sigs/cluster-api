@@ -29,7 +29,7 @@ import (
 
 	addonsv1 "sigs.k8s.io/cluster-api/api/addons/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
-	"sigs.k8s.io/cluster-api/feature"
+	"sigs.k8s.io/cluster-api/pkg/features"
 	"sigs.k8s.io/cluster-api/pkg/runtimesdk/hooks"
 	"sigs.k8s.io/cluster-api/util"
 	capicontrollerutil "sigs.k8s.io/cluster-api/util/controller"
@@ -96,7 +96,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 	}
 	// If the owner cluster is in deletion process, delete its ClusterResourceSetBinding
 	if !cluster.DeletionTimestamp.IsZero() {
-		if feature.Gates.Enabled(feature.RuntimeSDK) && feature.Gates.Enabled(feature.ClusterTopology) {
+		if features.Gates.Enabled(features.RuntimeSDK) && features.Gates.Enabled(features.ClusterTopology) {
 			if cluster.Spec.Topology.IsDefined() && !hooks.IsOkToDelete(cluster) {
 				// If the Cluster is not yet ready to be deleted then do not delete the ClusterResourceSetBinding.
 				return ctrl.Result{}, nil

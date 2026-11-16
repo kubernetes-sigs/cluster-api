@@ -37,12 +37,12 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
 	"sigs.k8s.io/cluster-api/core/reconcilers/machinedeployment/mdutil"
-	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/util/inplace"
+	"sigs.k8s.io/cluster-api/pkg/features"
 )
 
 func TestReconcileReplicasPendingAcknowledgeMove(t *testing.T) {
-	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.InPlaceUpdates, true)
+	utilfeature.SetFeatureGateDuringTest(t, features.Gates, features.InPlaceUpdates, true)
 
 	testCases := []struct {
 		name                              string
@@ -468,7 +468,7 @@ func Test_canUpdateMachineSetInPlaceDecisions(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.InPlaceUpdates, !tt.inPlaceUpdatesOff)
+			utilfeature.SetFeatureGateDuringTest(t, features.Gates, features.InPlaceUpdates, !tt.inPlaceUpdatesOff)
 
 			p := &rolloutPlanner{
 				md:              tt.md,
@@ -1586,7 +1586,7 @@ type rollingUpdateSequenceTestCase struct {
 }
 
 func Test_RollingUpdateSequences(t *testing.T) {
-	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.InPlaceUpdates, true)
+	utilfeature.SetFeatureGateDuringTest(t, features.Gates, features.InPlaceUpdates, true)
 
 	tests := []rollingUpdateSequenceTestCase{
 		// Regular rollout (no in-place)

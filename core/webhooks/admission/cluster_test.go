@@ -46,7 +46,7 @@ import (
 	runtimev1 "sigs.k8s.io/cluster-api/api/runtime/v1beta2"
 	"sigs.k8s.io/cluster-api/core/reconcilers/machinehealthcheck/cel"
 	"sigs.k8s.io/cluster-api/core/webhooks/admission/testutil"
-	"sigs.k8s.io/cluster-api/feature"
+	"sigs.k8s.io/cluster-api/pkg/features"
 	"sigs.k8s.io/cluster-api/util/cache"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/test/builder"
@@ -1377,7 +1377,7 @@ func TestClusterFailOnMissingClassField(t *testing.T) {
 
 func TestClusterValidation(t *testing.T) {
 	// NOTE: ClusterTopology feature flag is enabled by default, thus we have to disable it explicitly to test the disabled behavior.
-	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, false)
+	utilfeature.SetFeatureGateDuringTest(t, features.Gates, features.ClusterTopology, false)
 
 	tests := []struct {
 		name         string
@@ -1663,7 +1663,7 @@ func TestClusterValidation(t *testing.T) {
 }
 
 func TestClusterTopologyValidation(t *testing.T) {
-	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopologyWorkerVersionPinning, true)
+	utilfeature.SetFeatureGateDuringTest(t, features.Gates, features.ClusterTopologyWorkerVersionPinning, true)
 
 	tests := []struct {
 		name                         string
@@ -3835,7 +3835,7 @@ func Test_validateTopologyVersionUpdate(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopologyWorkerVersionPinning, true)
+			utilfeature.SetFeatureGateDuringTest(t, features.Gates, features.ClusterTopologyWorkerVersionPinning, true)
 
 			webhook := &Cluster{Client: fake.NewClientBuilder().WithObjects(controlPlaneObjects...).WithScheme(fakeScheme).Build()}
 
@@ -4158,7 +4158,7 @@ func Test_validateTopologyWorkerVersionsFeatureGate(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopologyWorkerVersionPinning, tt.versionPinning)
+			utilfeature.SetFeatureGateDuringTest(t, features.Gates, features.ClusterTopologyWorkerVersionPinning, tt.versionPinning)
 
 			errs := validateTopologyWorkerVersionsFeatureGate(tt.new, field.NewPath("spec", "topology"))
 
@@ -4461,7 +4461,7 @@ func Test_validateTopologyWorkerVersionsUpdate(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopologyWorkerVersionPinning, !tt.versionPinningDisabled)
+			utilfeature.SetFeatureGateDuringTest(t, features.Gates, features.ClusterTopologyWorkerVersionPinning, !tt.versionPinningDisabled)
 
 			objs := []client.Object{builder.GenericControlPlaneCRD}
 			if tt.controlPlaneVersion != "" {

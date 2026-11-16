@@ -31,7 +31,7 @@ import (
 	runtimecatalog "sigs.k8s.io/cluster-api/api/runtime/catalog"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
 	"sigs.k8s.io/cluster-api/exp/topology/scope"
-	"sigs.k8s.io/cluster-api/feature"
+	"sigs.k8s.io/cluster-api/pkg/features"
 	fakeruntimeclient "sigs.k8s.io/cluster-api/pkg/runtimesdk/client/fake"
 	"sigs.k8s.io/cluster-api/util/cache"
 	"sigs.k8s.io/cluster-api/util/test/builder"
@@ -1188,7 +1188,7 @@ func TestGetUpgradePlanFromExtension(t *testing.T) {
 	ctx := t.Context()
 
 	// Enable RuntimeSDK feature flag
-	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.RuntimeSDK, true)
+	utilfeature.SetFeatureGateDuringTest(t, features.Gates, features.RuntimeSDK, true)
 
 	// Create a test cluster
 	cluster := builder.Cluster("test-namespace", "test-cluster").Build()
@@ -1285,7 +1285,7 @@ func TestGetUpgradePlanFromExtension_Errors(t *testing.T) {
 			ctx := t.Context()
 
 			// Enable/disable RuntimeSDK feature flag
-			utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.RuntimeSDK, tt.enableRuntimeSDK)
+			utilfeature.SetFeatureGateDuringTest(t, features.Gates, features.RuntimeSDK, tt.enableRuntimeSDK)
 
 			// Create a test cluster
 			cluster := builder.Cluster("test-namespace", "test-cluster").Build()

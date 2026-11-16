@@ -33,7 +33,7 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/core/webhooks/admission/testutil"
-	"sigs.k8s.io/cluster-api/feature"
+	"sigs.k8s.io/cluster-api/pkg/features"
 	"sigs.k8s.io/cluster-api/util/test/builder"
 )
 
@@ -928,7 +928,7 @@ func TestMachineDeploymentTaintValidation(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.MachineTaintPropagation, tt.featureEnabled)
+			utilfeature.SetFeatureGateDuringTest(t, features.Gates, features.MachineTaintPropagation, tt.featureEnabled)
 
 			warnings, err := webhook.ValidateCreate(ctx, tt.machineDeployment)
 			if tt.expectErr {

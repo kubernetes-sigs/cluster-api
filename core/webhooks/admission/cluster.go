@@ -43,11 +43,11 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/core/reconcilers/machinehealthcheck/cel"
 	"sigs.k8s.io/cluster-api/core/webhooks/conversion"
-	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/contract"
 	"sigs.k8s.io/cluster-api/internal/topology/check"
 	"sigs.k8s.io/cluster-api/internal/topology/variables"
 	"sigs.k8s.io/cluster-api/internal/util/taints"
+	"sigs.k8s.io/cluster-api/pkg/features"
 	"sigs.k8s.io/cluster-api/pkg/runtimesdk/hooks"
 	"sigs.k8s.io/cluster-api/util/cache"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -243,7 +243,7 @@ func (webhook *Cluster) validateTopology(ctx context.Context, oldCluster, newClu
 
 	// NOTE: ClusterClass and managed topologies are behind ClusterTopology feature gate flag; the web hook
 	// must prevent the usage of Cluster.Topology in case the feature flag is disabled.
-	if !feature.Gates.Enabled(feature.ClusterTopology) {
+	if !features.Gates.Enabled(features.ClusterTopology) {
 		return allWarnings, field.ErrorList{
 			field.Forbidden(
 				fldPath,
@@ -774,12 +774,12 @@ func validateTopologyWorkerVersions(topology clusterv1.Topology, fldPath *field.
 // validateTopologyWorkerVersionsFeatureGate rejects MachineDeployment/MachinePool versions while the
 // ClusterTopologyWorkerVersionPinning feature gate is disabled.
 func validateTopologyWorkerVersionsFeatureGate(newCluster *clusterv1.Cluster, fldPath *field.Path) field.ErrorList {
-	if feature.Gates.Enabled(feature.ClusterTopologyWorkerVersionPinning) {
+	if features.Gates.Enabled(features.ClusterTopologyWorkerVersionPinning) {
 		return nil
 	}
 
 	var allErrs field.ErrorList
-	forbidden := fmt.Sprintf("can be set only if the %s feature flag is enabled", feature.ClusterTopologyWorkerVersionPinning)
+	forbidden := fmt.Sprintf("can be set only if the %s feature flag is enabled", features.ClusterTopologyWorkerVersionPinning)
 	for _, md := range newCluster.Spec.Topology.Workers.MachineDeployments {
 		if md.Version != "" {
 			allErrs = append(allErrs, field.Forbidden(fldPath.Child("workers", "machineDeployments").Key(md.Name).Child("version"), forbidden))
@@ -848,7 +848,7 @@ func (webhook *Cluster) validateTopologyWorkerVersionsUpdate(ctx context.Context
 	// If the feature gate is disabled every version is rejected by validateTopologyWorkerVersionsFeatureGate,
 	// so the only valid change is unsetting a version. It is always allowed, otherwise a version
 	// behind Cluster.spec.topology.version could never be removed.
-	if !feature.Gates.Enabled(feature.ClusterTopologyWorkerVersionPinning) {
+	if !features.Gates.Enabled(features.ClusterTopologyWorkerVersionPinning) {
 		return nil
 	}
 

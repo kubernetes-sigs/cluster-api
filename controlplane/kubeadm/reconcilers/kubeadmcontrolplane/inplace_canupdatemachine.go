@@ -39,11 +39,11 @@ import (
 	runtimecatalog "sigs.k8s.io/cluster-api/api/runtime/catalog"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/pkg"
-	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/util/compare"
 	"sigs.k8s.io/cluster-api/internal/util/inplace"
 	"sigs.k8s.io/cluster-api/internal/util/patch"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
+	"sigs.k8s.io/cluster-api/pkg/features"
 	"sigs.k8s.io/cluster-api/util/cache"
 )
 
@@ -101,7 +101,7 @@ func (r *Reconciler) canUpdateMachine(ctx context.Context, controlPlane *pkg.Con
 	log := ctrl.LoggerFrom(ctx).WithValues(append(hookLogValues(runtimehooksv1.CanUpdateMachine), "Machine", klog.KObj(machine))...)
 
 	// Machine cannot be updated in-place if the feature gate is not enabled.
-	if !feature.Gates.Enabled(feature.InPlaceUpdates) {
+	if !features.Gates.Enabled(features.InPlaceUpdates) {
 		return canUpdateMachineResult{canUpdateMachine: false}, nil
 	}
 

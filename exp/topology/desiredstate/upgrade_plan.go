@@ -32,8 +32,8 @@ import (
 	runtimecatalog "sigs.k8s.io/cluster-api/api/runtime/catalog"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
 	"sigs.k8s.io/cluster-api/exp/topology/scope"
-	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/contract"
+	"sigs.k8s.io/cluster-api/pkg/features"
 	runtimeclient "sigs.k8s.io/cluster-api/pkg/runtimesdk/client"
 	"sigs.k8s.io/cluster-api/util/cache"
 	"sigs.k8s.io/cluster-api/util/version"
@@ -449,7 +449,7 @@ func (r GenerateUpgradePlanCacheEntry) Key() string {
 // GetUpgradePlanFromExtension returns an upgrade plan by calling the GenerateUpgradePlan runtime extension.
 func GetUpgradePlanFromExtension(runtimeClient runtimeclient.Client, getUpgradePlanCache cache.Cache[GenerateUpgradePlanCacheEntry], cluster *clusterv1.Cluster, extensionName string) func(ctx context.Context, desiredVersion, currentControlPlaneVersion, currentMinWorkersVersion string) ([]string, []string, error) {
 	return func(ctx context.Context, desiredVersion, currentControlPlaneVersion, currentMinWorkersVersion string) ([]string, []string, error) {
-		if !feature.Gates.Enabled(feature.RuntimeSDK) {
+		if !features.Gates.Enabled(features.RuntimeSDK) {
 			return nil, nil, pkgerrors.Errorf("can not use GenerateUpgradePlan extension %q if RuntimeSDK feature flag is disabled", extensionName)
 		}
 		log := ctrl.LoggerFrom(ctx)

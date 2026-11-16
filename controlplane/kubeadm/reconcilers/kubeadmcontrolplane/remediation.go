@@ -38,8 +38,8 @@ import (
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/pkg"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/pkg/etcd"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/pkg/etcd/util"
-	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/contract"
+	"sigs.k8s.io/cluster-api/pkg/features"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/collections"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -168,7 +168,7 @@ func (r *Reconciler) reconcileUnhealthyMachines(ctx context.Context, controlPlan
 	// Before starting remediation, run preflight checks in order to verify it is safe to remediate.
 	// If any of the following checks fails, we'll surface the reason in the MachineOwnerRemediated condition.
 
-	if feature.Gates.Enabled(feature.ClusterTopology) && controlPlane.Cluster.Spec.Topology.IsDefined() {
+	if features.Gates.Enabled(features.ClusterTopology) && controlPlane.Cluster.Spec.Topology.IsDefined() {
 		// Skip remediation when we expect an upgrade to be propagated from the cluster topology.
 		// NOTE: in case the cluster is performing an upgrade, allow remediation of machines for the intermediate step.
 		hasSameVersionOfCurrentUpgradeStep := false

@@ -38,9 +38,9 @@ import (
 	"sigs.k8s.io/cluster-api/core/reconcilers/topology/cluster/patches/inline"
 	"sigs.k8s.io/cluster-api/core/reconcilers/topology/cluster/patches/variables"
 	"sigs.k8s.io/cluster-api/exp/topology/scope"
-	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/contract"
 	patchutil "sigs.k8s.io/cluster-api/internal/util/patch"
+	"sigs.k8s.io/cluster-api/pkg/features"
 	runtimeclient "sigs.k8s.io/cluster-api/pkg/runtimesdk/client"
 )
 
@@ -476,7 +476,7 @@ func createPatchGenerator(runtimeClient runtimeclient.Client, patch *clusterv1.C
 	}
 	// Return an externalPatchGenerator if there is an external configuration in the patch.
 	if patch.External != nil && patch.External.GeneratePatchesExtension != "" {
-		if !feature.Gates.Enabled(feature.RuntimeSDK) {
+		if !features.Gates.Enabled(features.RuntimeSDK) {
 			return nil, pkgerrors.Errorf("can not use external patch %q if RuntimeSDK feature flag is disabled", patch.Name)
 		}
 		if runtimeClient == nil {

@@ -38,9 +38,9 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/core/webhooks/conversion"
-	"sigs.k8s.io/cluster-api/feature"
 	topologynames "sigs.k8s.io/cluster-api/internal/topology/names"
 	"sigs.k8s.io/cluster-api/internal/util/taints"
+	"sigs.k8s.io/cluster-api/pkg/features"
 	"sigs.k8s.io/cluster-api/util/labels/format"
 )
 
@@ -171,7 +171,7 @@ func (webhook *MachineSet) validate(oldMS, newMS *clusterv1.MachineSet) error {
 		)
 	}
 
-	if feature.Gates.Enabled(feature.MachineSetPreflightChecks) {
+	if features.Gates.Enabled(features.MachineSetPreflightChecks) {
 		if err := validateSkippedMachineSetPreflightChecks(newMS); err != nil {
 			allErrs = append(allErrs, err)
 		}

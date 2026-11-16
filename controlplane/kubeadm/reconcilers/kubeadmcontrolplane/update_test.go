@@ -44,9 +44,9 @@ import (
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/pkg/desiredstate"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/pkg/etcd"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/setup"
-	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
 	"sigs.k8s.io/cluster-api/pkg/dynamiccache"
+	"sigs.k8s.io/cluster-api/pkg/features"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/cache"
 	"sigs.k8s.io/cluster-api/util/collections"
@@ -811,7 +811,7 @@ func Test_rollingUpdate(t *testing.T) {
 			g := NewWithT(t)
 
 			if tt.enableInPlaceUpdatesFeatureGate {
-				utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.InPlaceUpdates, true)
+				utilfeature.SetFeatureGateDuringTest(t, features.Gates, features.InPlaceUpdates, true)
 			}
 
 			var preflightChecksFuncCalled bool
@@ -1278,7 +1278,7 @@ func Test_rollingUpdateSequences(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.InPlaceUpdates, true)
+			utilfeature.SetFeatureGateDuringTest(t, features.Gates, features.InPlaceUpdates, true)
 
 			g := NewWithT(t)
 

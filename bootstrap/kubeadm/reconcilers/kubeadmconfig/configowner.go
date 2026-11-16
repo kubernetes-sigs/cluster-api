@@ -30,7 +30,7 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/external"
-	"sigs.k8s.io/cluster-api/feature"
+	"sigs.k8s.io/cluster-api/pkg/features"
 )
 
 // ConfigOwner provides a data interface for different config owner types.
@@ -144,7 +144,7 @@ func getConfigOwner(ctx context.Context, c client.Client, obj metav1.Object, get
 		},
 	}
 
-	if feature.Gates.Enabled(feature.MachinePool) {
+	if features.Gates.Enabled(features.MachinePool) {
 		allowedGKs = append(allowedGKs, schema.GroupKind{
 			Group: clusterv1.GroupVersion.Group,
 			Kind:  "MachinePool",

@@ -27,7 +27,7 @@ import (
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/webhooks/conversion"
-	"sigs.k8s.io/cluster-api/feature"
+	"sigs.k8s.io/cluster-api/pkg/features"
 )
 
 // SetupWebhookWithManager sets up the webhook with the Manager.
@@ -241,7 +241,7 @@ func validateUsers(c *bootstrapv1.KubeadmConfigSpec, pathPrefix *field.Path) fie
 func validateIgnition(c *bootstrapv1.KubeadmConfigSpec, pathPrefix *field.Path) field.ErrorList {
 	var allErrs field.ErrorList
 
-	if !feature.Gates.Enabled(feature.KubeadmBootstrapFormatIgnition) {
+	if !features.Gates.Enabled(features.KubeadmBootstrapFormatIgnition) {
 		if c.Format == bootstrapv1.Ignition {
 			allErrs = append(allErrs, field.Forbidden(
 				pathPrefix.Child("format"), kubeadmBootstrapFormatIgnitionFeatureDisabledMsg))

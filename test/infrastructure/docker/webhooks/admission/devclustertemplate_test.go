@@ -26,7 +26,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
-	"sigs.k8s.io/cluster-api/feature"
+	"sigs.k8s.io/cluster-api/pkg/features"
 	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta2"
 )
 
@@ -55,7 +55,7 @@ func TestDevClusterTemplateValidationFeatureGateEnabled(t *testing.T) {
 
 func TestDevClusterTemplateValidationFeatureGateDisabled(t *testing.T) {
 	// NOTE: ClusterTopology feature flag is enabled by default, thus we have to disable it explicitly to test the disabled behavior.
-	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, false)
+	utilfeature.SetFeatureGateDuringTest(t, features.Gates, features.ClusterTopology, false)
 	t.Run("create devclustertemplate should not pass if gate disabled and valid devclustertemplate", func(t *testing.T) {
 		g := NewWithT(t)
 		dct := &infrav1.DevClusterTemplate{

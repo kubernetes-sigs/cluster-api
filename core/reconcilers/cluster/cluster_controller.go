@@ -45,7 +45,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	"sigs.k8s.io/cluster-api/controllers/external"
-	"sigs.k8s.io/cluster-api/feature"
+	"sigs.k8s.io/cluster-api/pkg/features"
 	"sigs.k8s.io/cluster-api/pkg/runtimesdk/hooks"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/collections"
@@ -113,7 +113,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 			&clusterv1.MachineDeployment{},
 			handler.EnqueueRequestsFromMapFunc(r.machineDeploymentToCluster),
 		)
-	if feature.Gates.Enabled(feature.MachinePool) {
+	if features.Gates.Enabled(features.MachinePool) {
 		b = b.Watches(
 			&clusterv1.MachinePool{},
 			handler.EnqueueRequestsFromMapFunc(r.machinePoolToCluster),
@@ -352,7 +352,7 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (reconcile.R
 
 	// If the RuntimeSDK and ClusterTopology flags are enabled, for clusters with managed topologies
 	// only proceed with delete if the cluster is marked as `ok-to-delete`
-	if feature.Gates.Enabled(feature.RuntimeSDK) && feature.Gates.Enabled(feature.ClusterTopology) {
+	if features.Gates.Enabled(features.RuntimeSDK) && features.Gates.Enabled(features.ClusterTopology) {
 		if cluster.Spec.Topology.IsDefined() && !hooks.IsOkToDelete(cluster) {
 			s.deletingReason = clusterv1.ClusterDeletingWaitingForBeforeDeleteHookReason
 			s.deletingMessage = "Waiting for BeforeClusterDelete hook"
@@ -592,7 +592,7 @@ func (c *clusterDescendants) objectsPendingDeleteNames(cluster *clusterv1.Cluste
 		sort.Strings(machineSetNames)
 		descendants = append(descendants, "MachineSets: "+logutil.StringListToString(machineSetNames))
 	}
-	if feature.Gates.Enabled(feature.MachinePool) {
+	if features.Gates.Enabled(features.MachinePool) {
 		machinePoolNames := make([]string, len(c.machinePools.Items))
 		for i, machinePool := range c.machinePools.Items {
 			machinePoolNames[i] = machinePool.Name
@@ -631,7 +631,7 @@ func (r *Reconciler) getDescendants(ctx context.Context, s *scope) (reconcile.Re
 		return reconcile.Result{}, pkgerrors.Wrapf(err, "failed to list MachineSets for cluster %s/%s", cluster.Namespace, cluster.Name)
 	}
 
-	if feature.Gates.Enabled(feature.MachinePool) {
+	if features.Gates.Enabled(features.MachinePool) {
 		if err := r.Client.List(ctx, &descendants.machinePools, listOptions...); err != nil {
 			return reconcile.Result{}, pkgerrors.Wrapf(err, "failed to list MachinePools for the cluster %s/%s", cluster.Namespace, cluster.Name)
 		}
@@ -690,7 +690,7 @@ func (c *clusterDescendants) filterOwnedDescendants(cluster *clusterv1.Cluster) 
 		&c.machineSets,
 		toObjectList(c.workerMachines),
 	}
-	if feature.Gates.Enabled(feature.MachinePool) {
+	if features.Gates.Enabled(features.MachinePool) {
 		lists = append([]client.ObjectList{&c.machinePools}, lists...)
 	}
 

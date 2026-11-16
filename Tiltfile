@@ -71,7 +71,7 @@ providers = {
             "main.go",
             "../api",
             "../exp",
-            "../feature",
+            "../pkg/features",
             "../internal",
             "../util",
             "../go.mod",

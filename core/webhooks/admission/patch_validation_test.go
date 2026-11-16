@@ -27,7 +27,7 @@ import (
 	"k8s.io/utils/ptr"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
-	"sigs.k8s.io/cluster-api/feature"
+	"sigs.k8s.io/cluster-api/pkg/features"
 	"sigs.k8s.io/cluster-api/util/test/builder"
 )
 
@@ -1437,7 +1437,7 @@ func TestValidatePatches(t *testing.T) {
 	for i := range tests {
 		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
-			utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.RuntimeSDK, tt.runtimeSDK)
+			utilfeature.SetFeatureGateDuringTest(t, features.Gates, features.RuntimeSDK, tt.runtimeSDK)
 
 			g := NewWithT(t)
 

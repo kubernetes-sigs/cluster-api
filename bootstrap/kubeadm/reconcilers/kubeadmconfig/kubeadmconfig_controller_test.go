@@ -43,7 +43,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	bootstrapbuilder "sigs.k8s.io/cluster-api/bootstrap/kubeadm/pkg/builder"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
-	"sigs.k8s.io/cluster-api/feature"
+	"sigs.k8s.io/cluster-api/pkg/features"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/certs"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -752,7 +752,7 @@ func TestReconcileIfJoinCertificatesAvailableConditionInNodesAndControlPlaneIsRe
 }
 
 func TestReconcileIfJoinNodePoolsAndControlPlaneIsReady(t *testing.T) {
-	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.MachinePool, true)
+	utilfeature.SetFeatureGateDuringTest(t, features.Gates, features.MachinePool, true)
 
 	cluster := builder.Cluster(metav1.NamespaceDefault, "cluster").Build()
 	cluster.Status.Initialization.InfrastructureProvisioned = ptr.To(true)
@@ -1284,7 +1284,7 @@ func TestBootstrapTokenTTLExtension(t *testing.T) {
 }
 
 func TestBootstrapTokenRotationMachinePool(t *testing.T) {
-	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.MachinePool, true)
+	utilfeature.SetFeatureGateDuringTest(t, features.Gates, features.MachinePool, true)
 	g := NewWithT(t)
 
 	cluster := builder.Cluster(metav1.NamespaceDefault, "cluster").Build()
@@ -1553,7 +1553,7 @@ func TestBootstrapTokenRefreshIfTokenSecretCleaned(t *testing.T) {
 		g.Expect(l.Items).To(BeEmpty())
 	})
 	t.Run("should recreate the token for MachinePools", func(t *testing.T) {
-		utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.MachinePool, true)
+		utilfeature.SetFeatureGateDuringTest(t, features.Gates, features.MachinePool, true)
 		g := NewWithT(t)
 
 		cluster := builder.Cluster(metav1.NamespaceDefault, "cluster").Build()
@@ -2051,7 +2051,7 @@ func TestKubeadmConfigReconciler_Reconcile_AlwaysCheckCAVerificationUnlessReques
 // If a cluster object changes then all associated KubeadmConfigs should be re-reconciled.
 // This allows us to not requeue a kubeadm config while we wait for InfrastructureReady.
 func TestKubeadmConfigReconciler_ClusterToKubeadmConfigs(t *testing.T) {
-	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.MachinePool, true)
+	utilfeature.SetFeatureGateDuringTest(t, features.Gates, features.MachinePool, true)
 	g := NewWithT(t)
 
 	cluster := builder.Cluster(metav1.NamespaceDefault, "my-cluster").Build()

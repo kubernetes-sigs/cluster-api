@@ -62,7 +62,9 @@ tilt-settings.*yaml
 .tiltbuild
 
 # User-supplied clusterctl hacks settings
-clusterctl-settings.json
+/cmd/clusterctl/hack/providers.json
+# Deprecated: legacy location of cmd/clusterctl/hack/providers.json.
+/clusterctl-settings.json
 
 # test results
 _artifacts

@@ -39,9 +39,9 @@ In order to build artifacts for the CAPI core provider, the kubeadm bootstrap pr
 make docker-build REGISTRY=gcr.io/k8s-staging-cluster-api PULL_POLICY=IfNotPresent
 ```
 
-### Create a clusterctl-settings.json file
+### Create a providers.json file
 
-Next, create a `clusterctl-settings.json` file and place it in your local copy
+Next, create a `providers.json` file and place it in the `cmd/clusterctl/hack` folder of your local copy
 of Cluster API. This file will be used by [create-local-repository.py](#create-the-local-repository). Here is an example:
 
 ```yaml
@@ -54,8 +54,13 @@ of Cluster API. This file will be used by [create-local-repository.py](#create-t
 **providers** (Array[]String, default=[]): A list of the providers to enable.
 See [available providers](#available-providers) for more details.
 
-**provider_repos** (Array[]String, default=[]): A list of paths to all the providers you want to use. Each provider must have
-a `clusterctl-settings.json` file describing how to build the provider assets.
+**provider_repos** (Array[]String, default=[]): A list of paths to all the providers you want to use, relative to the root
+of your local copy of Cluster API. Each provider must have a `clusterctl-settings.json` file at the root of its repository
+describing how to build the provider assets.
+
+> [!NOTE]
+> Previously this file was named `clusterctl-settings.json` and placed at the root of your local copy of Cluster API.
+> This location is deprecated and is only used when `cmd/clusterctl/hack/providers.json` does not exist.
 
 ### Create the local repository
 
@@ -117,7 +122,7 @@ The following providers are currently defined in the script:
 * `control-plane-kubeadm`
 * `infrastructure-docker`
 
-More providers can be added by editing the `clusterctl-settings.json` in your local copy of Cluster API;
+More providers can be added by editing the `cmd/clusterctl/hack/providers.json` in your local copy of Cluster API;
 please note that each `provider_repo` should have its own `clusterctl-settings.json` describing how to build the provider assets, e.g.
 
 ```json

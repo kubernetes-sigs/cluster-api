@@ -22,8 +22,9 @@
 # prerequisites:
 
 # - the script should be executed from sigs.k8s.io/cluster-api/ by calling cmd/clusterctl/hack/create-local-repository.py
-# - there should be a sigs.k8s.io/cluster-api/clusterctl-settings.json file with the list of provider for which
+# - there should be a sigs.k8s.io/cluster-api/cmd/clusterctl/hack/providers.json file with the list of provider for which
 #   the local overrides should be generated and the list of provider repositories to be included (on top of cluster-api).
+#   Paths in provider_repos are relative to sigs.k8s.io/cluster-api/.
 # {
 #    "providers": [ "cluster-api", "bootstrap-kubeadm", "infrastructure-aws"],
 #    "provider_repos": ["../cluster-api-provider-aws"]
@@ -50,6 +51,12 @@ from distutils.dir_util import copy_tree
 from distutils.file_util import copy_file
 
 settings = {}
+
+settings_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'providers.json')
+
+# Deprecated: clusterctl-settings.json at the root of sigs.k8s.io/cluster-api/ is still read when providers.json does
+# not exist; it is going to be removed in a future release.
+legacy_settings_file = 'clusterctl-settings.json'
 
 providers = {
     'cluster-api': {
@@ -85,10 +92,16 @@ providers = {
 
 def load_settings():
     global settings
+    path = settings_file
+    if not os.path.exists(path) and os.path.exists(legacy_settings_file):
+        # Note: Intentionally falling back to the legacy location so existing dev setups and provider tooling
+        # that writes the file at the root of Cluster API keep working.
+        print('WARNING: {} is deprecated, please move it to {}'.format(os.path.abspath(legacy_settings_file), settings_file))
+        path = legacy_settings_file
     try:
-        settings = json.load(open('clusterctl-settings.json'))
+        settings = json.load(open(path))
     except  Exception as e:
-        raise Exception('failed to load clusterctl-settings.json: {}'.format(e))
+        raise Exception('failed to load {}: {}'.format(path, e))
 
 
 def load_providers():

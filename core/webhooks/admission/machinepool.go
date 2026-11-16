@@ -169,12 +169,7 @@ func (webhook *MachinePool) validate(oldObj, newObj *clusterv1.MachinePool) erro
 		}
 	}
 
-	if len(newObj.Spec.Template.Spec.Taints) > 0 {
-		allErrs = append(allErrs, field.Forbidden(specPath.Child("taints"), "taints feature for MachinePools is not yet implemented"))
-		if !feature.Gates.Enabled(feature.MachineTaintPropagation) {
-			allErrs = append(allErrs, field.Forbidden(specPath.Child("taints"), "taints are not allowed to be set when the feature gate MachineTaintPropagation is disabled"))
-		}
-	}
+	allErrs = append(allErrs, validateMachinePoolTaints(newObj.Spec.Template.Spec.Taints, specPath.Child("template", "spec", "taints"))...)
 
 	// Validate the metadata of the MachinePool template.
 	allErrs = append(allErrs, newObj.Spec.Template.Validate(specPath.Child("template", "metadata"))...)
@@ -183,6 +178,29 @@ func (webhook *MachinePool) validate(oldObj, newObj *clusterv1.MachinePool) erro
 		return nil
 	}
 	return apierrors.NewInvalid(clusterv1.GroupVersion.WithKind("MachinePool").GroupKind(), newObj.Name, allErrs)
+}
+
+func validateMachinePoolsFeatureGate[T any](machinePools []T, machinePoolsPath *field.Path) field.ErrorList {
+	if len(machinePools) == 0 || feature.Gates.Enabled(feature.MachinePool) {
+		return nil
+	}
+	return field.ErrorList{
+		field.Forbidden(machinePoolsPath, "can be set only if the MachinePool feature flag is enabled"),
+	}
+}
+
+func validateMachinePoolTaints(taints []clusterv1.MachineTaint, taintsPath *field.Path) field.ErrorList {
+	if len(taints) == 0 {
+		return nil
+	}
+
+	allErrs := field.ErrorList{
+		field.Forbidden(taintsPath, "taints feature for MachinePools is not yet implemented"),
+	}
+	if !feature.Gates.Enabled(feature.MachineTaintPropagation) {
+		allErrs = append(allErrs, field.Forbidden(taintsPath, "taints are not allowed to be set when the feature gate MachineTaintPropagation is disabled"))
+	}
+	return allErrs
 }
 
 func calculateMachinePoolReplicas(ctx context.Context, oldMP *clusterv1.MachinePool, newMP *clusterv1.MachinePool, dryRun bool) (int32, error) {

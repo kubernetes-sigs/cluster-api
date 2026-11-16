@@ -259,7 +259,7 @@ func (webhook *Cluster) validateTopology(ctx context.Context, oldCluster, newClu
 		allErrs = append(
 			allErrs,
 			field.Required(
-				fldPath.Child("class"),
+				fldPath.Child("classRef", "name"),
 				"classRef.name cannot be empty",
 			),
 		)
@@ -269,6 +269,7 @@ func (webhook *Cluster) validateTopology(ctx context.Context, oldCluster, newClu
 
 	allErrs = append(allErrs, validateTopologyVersion(newCluster.Spec.Topology, fldPath)...)
 	allErrs = append(allErrs, validateTopologyWorkerVersionsFeatureGate(newCluster, fldPath)...)
+	allErrs = append(allErrs, validateMachinePoolsFeatureGate(newCluster.Spec.Topology.Workers.MachinePools, fldPath.Child("workers", "machinePools"))...)
 
 	// metadata in topology should be valid
 	allErrs = append(allErrs, validateTopologyMetadata(newCluster.Spec.Topology, fldPath)...)
@@ -301,7 +302,7 @@ func (webhook *Cluster) validateTopology(ctx context.Context, oldCluster, newClu
 	// Note: If the ClusterClass is not reconciled, a warning and no err is returned and the ClusterClass is returned.
 	clusterClass, warnings, err := webhook.validateClusterClassExistsAndIsReconciled(ctx, newCluster)
 	if err != nil {
-		return allWarnings, append(allErrs, field.InternalError(fldPath.Child("class"), err))
+		return allWarnings, append(allErrs, field.InternalError(fldPath.Child("classRef"), err))
 	}
 	allWarnings = append(allWarnings, warnings...)
 
@@ -325,7 +326,7 @@ func (webhook *Cluster) validateTopology(ctx context.Context, oldCluster, newClu
 		if clusterClass == nil {
 			allErrs = append(
 				allErrs, field.InternalError(
-					fldPath.Child("class"),
+					fldPath.Child("classRef"),
 					pkgerrors.Errorf("ClusterClass %s not found", newCluster.GetClassKey())))
 			return allWarnings, allErrs
 		}
@@ -339,7 +340,7 @@ func (webhook *Cluster) validateTopology(ctx context.Context, oldCluster, newClu
 			allErrs = append(
 				allErrs,
 				field.Forbidden(
-					fldPath.Child("class"),
+					fldPath.Child("classRef"),
 					"classRef cannot be set on an existing Cluster",
 				),
 			)
@@ -359,7 +360,7 @@ func (webhook *Cluster) validateTopology(ctx context.Context, oldCluster, newClu
 			if err := webhook.Client.Get(ctx, oldCluster.GetClassKey(), oldClusterClass); err != nil {
 				allErrs = append(
 					allErrs, field.Forbidden(
-						fldPath.Child("class"),
+						fldPath.Child("classRef"),
 						fmt.Sprintf("valid ClusterClass with name %q could not be retrieved, change from class %[1]q to class %q cannot be validated. Error: %s",
 							oldCluster.GetClassKey(), newCluster.GetClassKey(), err.Error())))
 				return allWarnings, allErrs
@@ -741,11 +742,12 @@ func validateTopologyTaints(topology clusterv1.Topology, fldPath *field.Path) fi
 	for _, md := range topology.Workers.MachineDeployments {
 		fldPath := fldPath.Child("workers", "machineDeployments").Key(md.Name).Child("taints")
 		allErrs = append(allErrs, taints.ValidateMachineTaints(md.Taints, fldPath)...)
+		allErrs = append(allErrs, validateMachineTaintsForWorkers(md.Taints, nil, fldPath)...)
 	}
 
 	for _, mp := range topology.Workers.MachinePools {
 		fldPath := fldPath.Child("workers", "machinePools").Key(mp.Name).Child("taints")
-		allErrs = append(allErrs, taints.ValidateMachineTaints(mp.Taints, fldPath)...)
+		allErrs = append(allErrs, validateMachinePoolTaints(mp.Taints, fldPath)...)
 	}
 
 	return allErrs
@@ -1243,7 +1245,7 @@ func validateMachineHealthChecks(mhcProgramCache cache.Cache[cel.ProgramEntry], 
 		// Ensure the MHC is defined in at least one of the ControlPlaneTopology of the Cluster or the ControlPlaneClass of the ClusterClass.
 		if !cluster.Spec.Topology.ControlPlane.HealthCheck.IsDefined() && clusterClass != nil && !clusterClass.Spec.ControlPlane.HealthCheck.IsDefined() {
 			allErrs = append(allErrs, field.Forbidden(
-				fldPath.Child("enable"),
+				fldPath.Child("enabled"),
 				fmt.Sprintf("cannot be set to %t as healthCheck definition is not available in the Cluster topology or the ClusterClass", *cluster.Spec.Topology.ControlPlane.HealthCheck.Enabled),
 			))
 		}
@@ -1273,7 +1275,7 @@ func validateMachineHealthChecks(mhcProgramCache cache.Cache[cel.ProgramEntry], 
 					// Ensure the MHC is defined in at least one of the MachineDeploymentTopology of the Cluster or the MachineDeploymentClass of the ClusterClass.
 					if !md.HealthCheck.IsDefined() && !mdClass.HealthCheck.IsDefined() {
 						allErrs = append(allErrs, field.Forbidden(
-							fldPath.Child("enable"),
+							fldPath.Child("enabled"),
 							fmt.Sprintf("cannot be set to %t as healthCheck definition is not available in the Cluster topology or the ClusterClass", *md.HealthCheck.Enabled),
 						))
 					}

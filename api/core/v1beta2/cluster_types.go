@@ -630,6 +630,7 @@ type ControlPlaneTopology struct {
 	// and it's assumed that the control plane controller does not implement support for this field.
 	// When specified against a control plane provider that lacks support for this field, this value will be ignored.
 	// +optional
+	// +kubebuilder:validation:Minimum=0
 	Replicas *int32 `json:"replicas,omitempty"`
 
 	// rollout allows you to configure the behavior of rolling updates to the control plane.
@@ -940,6 +941,7 @@ type MachineDeploymentTopology struct {
 	// and it's assumed that an external entity (like cluster autoscaler) is responsible for the management
 	// of this value.
 	// +optional
+	// +kubebuilder:validation:Minimum=0
 	Replicas *int32 `json:"replicas,omitempty"`
 
 	// healthCheck allows to enable, disable and override MachineDeployment health check
@@ -1347,6 +1349,7 @@ type MachinePoolTopology struct {
 	// and it's assumed that an external entity (like cluster autoscaler) is responsible for the management
 	// of this value.
 	// +optional
+	// +kubebuilder:validation:Minimum=0
 	Replicas *int32 `json:"replicas,omitempty"`
 
 	// variables can be used to customize the MachinePool through patches.

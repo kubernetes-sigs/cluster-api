@@ -126,6 +126,7 @@ func (r *Reconciler) reconcileNode(ctx context.Context, s *scope) (ctrl.Result, 
 
 	// Set the NodeSystemInfo.
 	machine.Status.NodeInfo = &s.node.Status.NodeInfo
+	machine.Status.Version = s.node.Status.NodeInfo.KubeletVersion
 
 	// Compute all the annotations that CAPI is setting on nodes;
 	nodeAnnotations := annotations.GetManagedAnnotations(machine, r.AdditionalSyncMachineAnnotations...)

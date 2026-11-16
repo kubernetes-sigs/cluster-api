@@ -58,7 +58,7 @@ func IsMachineDeploymentUpgrading(ctx context.Context, c client.Reader, md *clus
 		if machine.Spec.Version != mdVersion {
 			return true, nil
 		}
-		if machine.Status.NodeInfo != nil && machine.Status.NodeInfo.KubeletVersion != "" && machine.Status.NodeInfo.KubeletVersion != mdVersion {
+		if machine.Status.Version != "" && machine.Status.Version != mdVersion {
 			return true, nil
 		}
 	}

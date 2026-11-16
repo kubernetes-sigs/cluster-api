@@ -3354,6 +3354,7 @@ func autoConvert_v1beta2_MachineSpec_To_v1beta1_MachineSpec(in *v1beta2.MachineS
 func autoConvert_v1beta1_MachineStatus_To_v1beta2_MachineStatus(in *MachineStatus, out *v1beta2.MachineStatus, s conversion.Scope) error {
 	// WARNING: in.NodeRef requires manual conversion: inconvertible types (*k8s.io/api/core/v1.ObjectReference vs sigs.k8s.io/cluster-api/api/core/v1beta2.MachineNodeReference)
 	out.NodeInfo = (*corev1.NodeSystemInfo)(unsafe.Pointer(in.NodeInfo))
+	out.Version = in.Version
 	// WARNING: in.LastUpdated requires manual conversion: inconvertible types (*k8s.io/apimachinery/pkg/apis/meta/v1.Time vs k8s.io/apimachinery/pkg/apis/meta/v1.Time)
 	// WARNING: in.FailureReason requires manual conversion: does not exist in peer-type
 	// WARNING: in.FailureMessage requires manual conversion: does not exist in peer-type
@@ -3402,6 +3403,7 @@ func autoConvert_v1beta2_MachineStatus_To_v1beta1_MachineStatus(in *v1beta2.Mach
 	// WARNING: in.Initialization requires manual conversion: does not exist in peer-type
 	// WARNING: in.NodeRef requires manual conversion: inconvertible types (sigs.k8s.io/cluster-api/api/core/v1beta2.MachineNodeReference vs *k8s.io/api/core/v1.ObjectReference)
 	out.NodeInfo = (*corev1.NodeSystemInfo)(unsafe.Pointer(in.NodeInfo))
+	out.Version = in.Version
 	// WARNING: in.LastUpdated requires manual conversion: inconvertible types (k8s.io/apimachinery/pkg/apis/meta/v1.Time vs *k8s.io/apimachinery/pkg/apis/meta/v1.Time)
 	out.Addresses = *(*MachineAddresses)(unsafe.Pointer(&in.Addresses))
 	// WARNING: in.FailureDomain requires manual conversion: does not exist in peer-type

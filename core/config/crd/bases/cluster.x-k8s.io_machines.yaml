@@ -728,6 +728,13 @@ spec:
                     - type
                     x-kubernetes-list-type: map
                 type: object
+              version:
+                description: |-
+                  version is the Kubernetes version of the Machine.
+                  It is identical to the Node's status.nodeInfo.kubeletVersion field.
+                maxLength: 256
+                minLength: 1
+                type: string
             type: object
         type: object
     served: true
@@ -1488,6 +1495,13 @@ spec:
                 - Deleted
                 - Failed
                 - Unknown
+                type: string
+              version:
+                description: |-
+                  version is the Kubernetes version of the Machine.
+                  It is identical to the Node's status.nodeInfo.kubeletVersion field.
+                maxLength: 256
+                minLength: 1
                 type: string
             type: object
         required:

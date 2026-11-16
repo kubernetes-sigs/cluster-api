@@ -21,7 +21,6 @@ import (
 	"time"
 
 	. "github.com/onsi/gomega"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
@@ -88,7 +87,7 @@ func TestAggregateStatusVersions(t *testing.T) {
 }
 
 func TestVersionsFromMachines(t *testing.T) {
-	t.Run("returns sorted versions from machine spec versions", func(t *testing.T) {
+	t.Run("returns sorted versions from machine status and spec versions", func(t *testing.T) {
 		g := NewWithT(t)
 
 		machines := []*clusterv1.Machine{
@@ -97,8 +96,8 @@ func TestVersionsFromMachines(t *testing.T) {
 			{Spec: clusterv1.MachineSpec{Version: "v1.32.0"}},
 			{Spec: clusterv1.MachineSpec{Version: "v1.31.1"}},
 			{Spec: clusterv1.MachineSpec{Version: "v1.31.1"}},
-			{Spec: clusterv1.MachineSpec{Version: "v1.31.1"}, Status: clusterv1.MachineStatus{NodeInfo: &corev1.NodeSystemInfo{KubeletVersion: "v1.30.0"}}},
-			{Spec: clusterv1.MachineSpec{Version: "v1.31.1"}, Status: clusterv1.MachineStatus{NodeInfo: &corev1.NodeSystemInfo{KubeletVersion: "v1.31.1"}}},
+			{Spec: clusterv1.MachineSpec{Version: "v1.31.1"}, Status: clusterv1.MachineStatus{Version: "v1.30.0"}},
+			{Spec: clusterv1.MachineSpec{Version: "v1.31.1"}, Status: clusterv1.MachineStatus{Version: "v1.31.1"}},
 		}
 
 		g.Expect(VersionsFromMachines(machines)).To(Equal([]clusterv1.StatusVersion{

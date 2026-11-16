@@ -601,6 +601,13 @@ type MachineStatus struct {
 	// +optional
 	NodeInfo *corev1.NodeSystemInfo `json:"nodeInfo,omitempty"`
 
+	// version is the Kubernetes version of the Machine.
+	// It is identical to the Node's status.nodeInfo.kubeletVersion field.
+	// +optional
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=256
+	Version string `json:"version,omitempty"`
+
 	// lastUpdated identifies when the phase of the Machine last transitioned.
 	// +optional
 	LastUpdated metav1.Time `json:"lastUpdated,omitempty,omitzero"`

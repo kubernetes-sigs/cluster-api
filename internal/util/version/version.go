@@ -89,8 +89,8 @@ func VersionsFromMachines(machines []*clusterv1.Machine) []clusterv1.StatusVersi
 		}
 
 		version := machine.Spec.Version
-		if machine.Status.NodeInfo != nil && machine.Status.NodeInfo.KubeletVersion != "" {
-			version = machine.Status.NodeInfo.KubeletVersion
+		if machine.Status.Version != "" {
+			version = machine.Status.Version
 		}
 
 		if version == "" {

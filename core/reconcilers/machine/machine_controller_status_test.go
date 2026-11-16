@@ -1620,7 +1620,7 @@ func TestSetUpToDateCondition(t *testing.T) {
 			},
 		},
 		{
-			name: "kubeletVersion out of sync",
+			name: "status.version out of sync",
 			machineDeployment: &clusterv1.MachineDeployment{
 				Spec: clusterv1.MachineDeploymentSpec{
 					Template: clusterv1.MachineTemplateSpec{
@@ -1644,16 +1644,14 @@ func TestSetUpToDateCondition(t *testing.T) {
 					Version: "v1.31.0",
 				},
 				Status: clusterv1.MachineStatus{
-					NodeInfo: &corev1.NodeSystemInfo{
-						KubeletVersion: "v1.30.0",
-					},
+					Version: "v1.30.0",
 				},
 			},
 			expectCondition: &metav1.Condition{
 				Type:    clusterv1.MachineUpToDateCondition,
 				Status:  metav1.ConditionFalse,
 				Reason:  clusterv1.MachineUpToDateUpdatingReason,
-				Message: "* Node.status.nodeInfo.kubeletVersion v1.30.0, v1.31.0 required",
+				Message: "* Machine.status.version v1.30.0, v1.31.0 required",
 			},
 		},
 		{
@@ -1662,9 +1660,7 @@ func TestSetUpToDateCondition(t *testing.T) {
 			machineSet:        &clusterv1.MachineSet{},
 			machine: &clusterv1.Machine{
 				Status: clusterv1.MachineStatus{
-					NodeInfo: &corev1.NodeSystemInfo{
-						KubeletVersion: "v1.31.0",
-					},
+					Version: "v1.31.0",
 				},
 			},
 			expectCondition: &metav1.Condition{

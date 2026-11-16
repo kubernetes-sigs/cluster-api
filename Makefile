@@ -60,6 +60,7 @@ TRACE ?= 0
 # Full directory of where the Makefile resides
 ROOT_DIR:=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
 OUTPUT_DIR := _output
+# Note: BIN_DIR is for the binaries we build and ship (controllers, clusterctl); TOOLS_BIN_DIR is for dev, CI and release tooling.
 BIN_DIR := $(OUTPUT_DIR)/bin
 TEST_DIR := test
 TOOLS_DIR := hack/tools
@@ -1212,11 +1213,11 @@ release-alias-tag: ## Add the release alias tag to the last build tag
 
 .PHONY: release-notes-tool
 release-notes-tool:
-	go build -C hack/tools -o $(ROOT_DIR)/$(BIN_DIR)/notes -tags tools sigs.k8s.io/cluster-api/hack/tools/release/notes
+	go build -C hack/tools -o $(TOOLS_BIN_DIR)/notes -tags tools sigs.k8s.io/cluster-api/hack/tools/release/notes
 
 .PHONY: release-notes
 release-notes: release-notes-tool
-	./$(BIN_DIR)/notes --release $(RELEASE_TAG) --previous-release-version "$(PREVIOUS_RELEASE_TAG)" > CHANGELOG/$(RELEASE_TAG).md
+	$(TOOLS_BIN_DIR)/notes --release $(RELEASE_TAG) --previous-release-version "$(PREVIOUS_RELEASE_TAG)" > CHANGELOG/$(RELEASE_TAG).md
 
 .PHONY: test-release-notes-tool
 test-release-notes-tool:
@@ -1228,7 +1229,7 @@ release-provider-issues-tool: # Creates GitHub issues in a pre-defined list of C
 
 .PHONY: release-weekly-update-tool
 release-weekly-update-tool:
-	go build -C hack/tools -o $(ROOT_DIR)/$(BIN_DIR)/weekly -tags tools sigs.k8s.io/cluster-api/hack/tools/release/weekly
+	go build -C hack/tools -o $(TOOLS_BIN_DIR)/weekly -tags tools sigs.k8s.io/cluster-api/hack/tools/release/weekly
 
 .PHONY: promote-images
 promote-images: $(KPROMO)

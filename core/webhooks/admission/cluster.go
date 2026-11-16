@@ -313,7 +313,9 @@ func (webhook *Cluster) validateTopology(ctx context.Context, oldCluster, newClu
 
 	// Validate the MachineHealthChecks defined in the cluster topology.
 	// Note: ClusterClass validation is only run if clusterClass is not nil.
-	allErrs = append(allErrs, validateMachineHealthChecks(webhook.MHCProgramCache, newCluster, clusterClass)...)
+	mhcWarnings, mhcErrs := validateMachineHealthChecks(webhook.MHCProgramCache, newCluster, clusterClass)
+	allWarnings = append(allWarnings, mhcWarnings...)
+	allErrs = append(allErrs, mhcErrs...)
 
 	// Validate the Cluster and associated ClusterClass' autoscaler annotations.
 	// Note: ClusterClass validation is only run if clusterClass is not nil.
@@ -1216,7 +1218,8 @@ func getControlPlaneVersion(ctx context.Context, ctrlClient client.Reader, clust
 	return &cpVersion, nil
 }
 
-func validateMachineHealthChecks(mhcProgramCache cache.Cache[cel.ProgramEntry], cluster *clusterv1.Cluster, clusterClass *clusterv1.ClusterClass) field.ErrorList {
+func validateMachineHealthChecks(mhcProgramCache cache.Cache[cel.ProgramEntry], cluster *clusterv1.Cluster, clusterClass *clusterv1.ClusterClass) (admission.Warnings, field.ErrorList) {
+	var allWarnings admission.Warnings
 	var allErrs field.ErrorList
 
 	fldPath := field.NewPath("spec", "topology", "controlPlane", "healthCheck")
@@ -1234,6 +1237,9 @@ func validateMachineHealthChecks(mhcProgramCache cache.Cache[cel.ProgramEntry], 
 		allErrs = append(allErrs, validateMachineHealthCheckUnhealthyExpressions(mhcProgramCache, fldPath,
 			cluster.Spec.Topology.ControlPlane.HealthCheck.Checks.UnhealthyExpressions)...)
 		allErrs = append(allErrs, validateMachineHealthCheckUnhealthyLessThanOrEqualTo(fldPath, cluster.Spec.Topology.ControlPlane.HealthCheck.Remediation.TriggerIf.UnhealthyLessThanOrEqualTo)...)
+		if cluster.Spec.Topology.ControlPlane.HealthCheck.Enabled != nil && !*cluster.Spec.Topology.ControlPlane.HealthCheck.Enabled {
+			allWarnings = append(allWarnings, fmt.Sprintf("%s: checks and remediation are ignored while enabled is false", fldPath))
+		}
 	}
 
 	// If MachineHealthCheck is explicitly enabled then make sure that a MachineHealthCheck definition is
@@ -1262,6 +1268,9 @@ func validateMachineHealthChecks(mhcProgramCache cache.Cache[cel.ProgramEntry], 
 				md.HealthCheck.Checks.UnhealthyExpressions)...)
 			allErrs = append(allErrs, validateMachineHealthCheckUnhealthyLessThanOrEqualTo(fldPath, md.HealthCheck.Remediation.TriggerIf.UnhealthyLessThanOrEqualTo)...)
 			allErrs = append(allErrs, validateRemediationMaxInFlight(fldPath.Child("remediation"), md.HealthCheck.Remediation.MaxInFlight)...)
+			if md.HealthCheck.Enabled != nil && !*md.HealthCheck.Enabled {
+				allWarnings = append(allWarnings, fmt.Sprintf("%s: checks and remediation are ignored while enabled is false", fldPath))
+			}
 		}
 
 		// If MachineHealthCheck is explicitly enabled then make sure that a MachineHealthCheck definition is
@@ -1284,7 +1293,7 @@ func validateMachineHealthChecks(mhcProgramCache cache.Cache[cel.ProgramEntry], 
 		}
 	}
 
-	return allErrs
+	return allWarnings, allErrs
 }
 
 // machineDeploymentClassOfName find a MachineDeploymentClass of the given name in the provided ClusterClass.

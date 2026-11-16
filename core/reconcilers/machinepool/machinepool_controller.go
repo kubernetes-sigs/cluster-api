@@ -84,6 +84,8 @@ type Reconciler struct {
 	// WatchFilterValue is the label value used to filter events prior to reconciliation.
 	WatchFilterValue string
 
+	MachineStatusVersionExcludeSuffix bool
+
 	controller      controller.Controller
 	ssaCache        ssa.Cache
 	recorder        record.EventRecorder

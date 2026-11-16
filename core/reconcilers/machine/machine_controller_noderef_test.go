@@ -83,17 +83,18 @@ func TestReconcileNode(t *testing.T) {
 	}
 
 	testCases := []struct {
-		name                            string
-		machine                         *clusterv1.Machine
-		node                            *corev1.Node
-		controlPlaneInitialized         bool
-		featureGateMachineTaintsEnabled bool
-		nodeGetErr                      bool
-		expectResult                    ctrl.Result
-		expectError                     bool
-		expected                        func(g *WithT, m *clusterv1.Machine)
-		expectNodeGetError              bool
-		expectedNode                    func(g *WithT, m *corev1.Node)
+		name                              string
+		machine                           *clusterv1.Machine
+		node                              *corev1.Node
+		controlPlaneInitialized           bool
+		featureGateMachineTaintsEnabled   bool
+		nodeGetErr                        bool
+		machineStatusVersionExcludeSuffix bool
+		expectResult                      ctrl.Result
+		expectError                       bool
+		expected                          func(g *WithT, m *clusterv1.Machine)
+		expectNodeGetError                bool
+		expectedNode                      func(g *WithT, m *corev1.Node)
 	}{
 		{
 			name:                            "No op if provider ID is not set",
@@ -145,7 +146,8 @@ func TestReconcileNode(t *testing.T) {
 				},
 				Status: corev1.NodeStatus{
 					NodeInfo: corev1.NodeSystemInfo{
-						MachineID: "foo",
+						MachineID:      "foo",
+						KubeletVersion: "v1.36.3-eks-cb19647",
 					},
 					Addresses: []corev1.NodeAddress{
 						{
@@ -167,6 +169,31 @@ func TestReconcileNode(t *testing.T) {
 				g.Expect(m.Status.NodeRef.Name).To(Equal("test-node-1"))
 				g.Expect(m.Status.NodeInfo).ToNot(BeNil())
 				g.Expect(m.Status.NodeInfo.MachineID).To(Equal("foo"))
+				g.Expect(m.Status.Version).To(Equal("v1.36.3-eks-cb19647"))
+			},
+		},
+		{
+			name:    "node found, should exclude the version suffix from status.version if configured",
+			machine: defaultMachine.DeepCopy(),
+			node: &corev1.Node{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test-node-1",
+				},
+				Spec: corev1.NodeSpec{
+					ProviderID: "aws://us-east-1/test-node-1",
+				},
+				Status: corev1.NodeStatus{
+					NodeInfo: corev1.NodeSystemInfo{
+						KubeletVersion: "v1.36.3-eks-cb19647",
+					},
+				},
+			},
+			machineStatusVersionExcludeSuffix: true,
+			expectResult:                      ctrl.Result{},
+			expected: func(g *WithT, m *clusterv1.Machine) {
+				g.Expect(m.Status.NodeInfo).ToNot(BeNil())
+				g.Expect(m.Status.NodeInfo.KubeletVersion).To(Equal("v1.36.3-eks-cb19647"))
+				g.Expect(m.Status.Version).To(Equal("v1.36.3"))
 			},
 		},
 		{
@@ -325,10 +352,11 @@ func TestReconcileNode(t *testing.T) {
 			}
 
 			r := &Reconciler{
-				ClusterCache: clustercache.NewFakeClusterCache(c, client.ObjectKeyFromObject(cluster), watches...),
-				Client:       c,
-				recorder:     record.NewFakeRecorder(10),
-				predicateLog: ptr.To(logr.New(log.NullLogSink{})),
+				ClusterCache:                      clustercache.NewFakeClusterCache(c, client.ObjectKeyFromObject(cluster), watches...),
+				Client:                            c,
+				recorder:                          record.NewFakeRecorder(10),
+				predicateLog:                      ptr.To(logr.New(log.NullLogSink{})),
+				MachineStatusVersionExcludeSuffix: tc.machineStatusVersionExcludeSuffix,
 			}
 			s := &scope{cluster: cluster, machine: tc.machine}
 			result, err := r.reconcileNode(ctx, s)

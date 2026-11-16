@@ -26,6 +26,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	internalversion "sigs.k8s.io/cluster-api/internal/util/version"
 )
 
 // IsMachineDeploymentUpgrading determines if the MachineDeployment is upgrading.
@@ -58,7 +59,7 @@ func IsMachineDeploymentUpgrading(ctx context.Context, c client.Reader, md *clus
 		if machine.Spec.Version != mdVersion {
 			return true, nil
 		}
-		if machine.Status.NodeInfo != nil && machine.Status.NodeInfo.KubeletVersion != "" && machine.Status.NodeInfo.KubeletVersion != mdVersion {
+		if machine.Status.Version != "" && machine.Status.Version != mdVersion {
 			return true, nil
 		}
 	}
@@ -68,7 +69,9 @@ func IsMachineDeploymentUpgrading(ctx context.Context, c client.Reader, md *clus
 // IsMachinePoolUpgrading determines if the MachinePool is upgrading.
 // A machine pool is considered upgrading if at least one of the Machines of this
 // MachinePool has a different version.
-func IsMachinePoolUpgrading(ctx context.Context, c client.Reader, mp *clusterv1.MachinePool) (bool, error) {
+// The kubelet versions of the Nodes are converted via MachineStatusVersion (see machineStatusVersionExcludeSuffix) before
+// they are compared, so the result is consistent with Machine.status.version.
+func IsMachinePoolUpgrading(ctx context.Context, c client.Reader, mp *clusterv1.MachinePool, machineStatusVersionExcludeSuffix bool) (bool, error) {
 	// If the MachinePool has no version there is no definitive way to check if it is upgrading. Therefore, return false.
 	// Note: This case should not happen.
 	if mp.Spec.Template.Spec.Version == "" {
@@ -81,7 +84,7 @@ func IsMachinePoolUpgrading(ctx context.Context, c client.Reader, mp *clusterv1.
 		if err := c.Get(ctx, client.ObjectKey{Name: nodeRef.Name}, node); err != nil {
 			return false, fmt.Errorf("failed to check if MachinePool %s is upgrading: failed to get Node %s", mp.Name, nodeRef.Name)
 		}
-		if mpVersion != node.Status.NodeInfo.KubeletVersion {
+		if mpVersion != internalversion.MachineStatusVersion(node.Status.NodeInfo.KubeletVersion, machineStatusVersionExcludeSuffix) {
 			return true, nil
 		}
 	}

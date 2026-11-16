@@ -4941,7 +4941,7 @@ func Test_validateTopologyMachinePoolVersions(t *testing.T) {
 					Build(),
 			}
 
-			err = validateTopologyMachinePoolVersions(ctx, fakeClient, fakeClusterCacheTracker, tt.old, oldVersion)
+			err = validateTopologyMachinePoolVersions(ctx, fakeClient, fakeClusterCacheTracker, tt.old, oldVersion, false)
 			if tt.expectErr {
 				g.Expect(err).To(HaveOccurred())
 				return

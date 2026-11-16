@@ -45,7 +45,7 @@ func (r *Reconciler) updateStatus(ctx context.Context, s *scope) error {
 	}
 
 	if !hasMachinePoolMachines || s.getMachinesForMachinePoolSucceeded {
-		setReplicas(s.machinePool, hasMachinePoolMachines, s.machines, s.nodeRefMap)
+		setReplicas(s.machinePool, hasMachinePoolMachines, s.machines, s.nodeRefMap, r.MachineStatusVersionExcludeSuffix)
 	}
 
 	setMachinesUpToDateCondition(ctx, s.machinePool, s.machines, hasMachinePoolMachines, s.getMachinesForMachinePoolSucceeded)
@@ -53,13 +53,13 @@ func (r *Reconciler) updateStatus(ctx context.Context, s *scope) error {
 	return nil
 }
 
-func setReplicas(mp *clusterv1.MachinePool, hasMachinePoolMachines bool, machines []*clusterv1.Machine, nodeRefMap map[string]*corev1.Node) {
+func setReplicas(mp *clusterv1.MachinePool, hasMachinePoolMachines bool, machines []*clusterv1.Machine, nodeRefMap map[string]*corev1.Node, machineStatusVersionExcludeSuffix bool) {
 	if !hasMachinePoolMachines {
 		// If we don't have machinepool machine then calculate the values differently
 		mp.Status.ReadyReplicas = mp.Status.Replicas
 		mp.Status.AvailableReplicas = mp.Status.Replicas
 		mp.Status.UpToDateReplicas = mp.Spec.Replicas
-		mp.Status.Versions = versionsFromNodeRefs(mp.Status.NodeRefs, nodeRefMap)
+		mp.Status.Versions = versionsFromNodeRefs(mp.Status.NodeRefs, nodeRefMap, machineStatusVersionExcludeSuffix)
 
 		return
 	}
@@ -83,7 +83,7 @@ func setReplicas(mp *clusterv1.MachinePool, hasMachinePoolMachines bool, machine
 	mp.Status.Versions = internalversion.VersionsFromMachines(machines)
 }
 
-func versionsFromNodeRefs(nodeRefs []corev1.ObjectReference, nodeRefMap map[string]*corev1.Node) []clusterv1.StatusVersion {
+func versionsFromNodeRefs(nodeRefs []corev1.ObjectReference, nodeRefMap map[string]*corev1.Node, machineStatusVersionExcludeSuffix bool) []clusterv1.StatusVersion {
 	if len(nodeRefs) == 0 || len(nodeRefMap) == 0 {
 		return nil
 	}
@@ -103,7 +103,7 @@ func versionsFromNodeRefs(nodeRefs []corev1.ObjectReference, nodeRefMap map[stri
 			continue
 		}
 		versions = append(versions, clusterv1.StatusVersion{
-			Version:  node.Status.NodeInfo.KubeletVersion,
+			Version:  internalversion.MachineStatusVersion(node.Status.NodeInfo.KubeletVersion, machineStatusVersionExcludeSuffix),
 			Replicas: 1,
 		})
 	}

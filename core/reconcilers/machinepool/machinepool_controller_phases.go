@@ -47,6 +47,7 @@ import (
 	"sigs.k8s.io/cluster-api/internal/contract"
 	contractapi "sigs.k8s.io/cluster-api/internal/contract/api"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
+	internalversion "sigs.k8s.io/cluster-api/internal/util/version"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
@@ -582,7 +583,7 @@ func (r *Reconciler) computeDesiredMachine(mp *clusterv1.MachinePool, infraMachi
 
 	var kubernetesVersion string
 	if existingNode != nil && existingNode.Status.NodeInfo.KubeletVersion != "" {
-		kubernetesVersion = existingNode.Status.NodeInfo.KubeletVersion
+		kubernetesVersion = internalversion.MachineStatusVersion(existingNode.Status.NodeInfo.KubeletVersion, r.MachineStatusVersionExcludeSuffix)
 	}
 
 	machine := &clusterv1.Machine{

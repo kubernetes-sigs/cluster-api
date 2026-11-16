@@ -210,7 +210,7 @@ func Test_setReplicas(t *testing.T) {
 			},
 		}
 
-		setReplicas(mp, false, nil, nil)
+		setReplicas(mp, false, nil, nil, false)
 
 		g.Expect(mp.Status.ReadyReplicas).To(Equal(ptr.To[int32](2)))
 		g.Expect(mp.Status.AvailableReplicas).To(Equal(ptr.To[int32](2)))
@@ -244,11 +244,39 @@ func Test_setReplicas(t *testing.T) {
 			},
 		}
 
-		setReplicas(mp, false, nil, nodeRefMap)
+		setReplicas(mp, false, nil, nodeRefMap, false)
 
 		g.Expect(mp.Status.Versions).To(Equal([]clusterv1.StatusVersion{
 			{Version: "v1.31.1", Replicas: 2},
 			{Version: "v1.32.0", Replicas: 1},
+		}))
+	})
+
+	t.Run("without MachinePool Machines versions exclude the kubelet version suffix if configured", func(t *testing.T) {
+		g := NewWithT(t)
+		mp := &clusterv1.MachinePool{
+			Status: clusterv1.MachinePoolStatus{
+				NodeRefs: []corev1.ObjectReference{
+					{Name: "node-1"},
+					{Name: "node-2"},
+				},
+			},
+		}
+		nodeRefMap := map[string]*corev1.Node{
+			"provider-id-1": {
+				ObjectMeta: metav1.ObjectMeta{Name: "node-1"},
+				Status:     corev1.NodeStatus{NodeInfo: corev1.NodeSystemInfo{KubeletVersion: "v1.31.1-eks-cb19647"}},
+			},
+			"provider-id-2": {
+				ObjectMeta: metav1.ObjectMeta{Name: "node-2"},
+				Status:     corev1.NodeStatus{NodeInfo: corev1.NodeSystemInfo{KubeletVersion: "v1.31.1+k0s"}},
+			},
+		}
+
+		setReplicas(mp, false, nil, nodeRefMap, true)
+
+		g.Expect(mp.Status.Versions).To(Equal([]clusterv1.StatusVersion{
+			{Version: "v1.31.1", Replicas: 2},
 		}))
 	})
 
@@ -273,7 +301,7 @@ func Test_setReplicas(t *testing.T) {
 			},
 		}
 
-		setReplicas(mp, true, machines, nil)
+		setReplicas(mp, true, machines, nil, false)
 
 		g.Expect(mp.Status.Versions).To(Equal([]clusterv1.StatusVersion{
 			{Version: "v1.31.1", Replicas: 2},

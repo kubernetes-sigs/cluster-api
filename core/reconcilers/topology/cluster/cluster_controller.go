@@ -88,6 +88,8 @@ type Reconciler struct {
 	// WatchFilterValue is the label value used to filter events prior to reconciliation.
 	WatchFilterValue string
 
+	MachineStatusVersionExcludeSuffix bool
+
 	externalTracker external.ObjectTracker
 	controller      capicontrollerutil.Controller
 	recorder        record.EventRecorder
@@ -161,6 +163,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 		// Note: We are using 10m so that we are able to relatively quickly pick up changes to the
 		// upgrade plan from the extension if necessary.
 		cache.New[desiredstate.GenerateUpgradePlanCacheEntry](ctx, 10*time.Minute),
+		r.MachineStatusVersionExcludeSuffix,
 	)
 	if err != nil {
 		return pkgerrors.Wrap(err, "failed creating desired state generator")

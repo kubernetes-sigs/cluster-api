@@ -107,10 +107,10 @@ type MachinePoolsStateMap map[string]*MachinePoolState
 
 // Upgrading returns the list of the machine pools
 // that are upgrading.
-func (mps MachinePoolsStateMap) Upgrading(ctx context.Context, c client.Reader) ([]string, error) {
+func (mps MachinePoolsStateMap) Upgrading(ctx context.Context, c client.Reader, machineStatusVersionExcludeSuffix bool) ([]string, error) {
 	names := []string{}
 	for _, mp := range mps {
-		upgrading, err := mp.IsUpgrading(ctx, c)
+		upgrading, err := mp.IsUpgrading(ctx, c, machineStatusVersionExcludeSuffix)
 		if err != nil {
 			return nil, pkgerrors.Wrap(err, "failed to list upgrading MachinePools")
 		}
@@ -136,6 +136,6 @@ type MachinePoolState struct {
 // IsUpgrading determines if the MachinePool is upgrading.
 // A machine pool is considered upgrading if at least one of the Machines of this
 // MachinePool has a different version.
-func (mp *MachinePoolState) IsUpgrading(ctx context.Context, c client.Reader) (bool, error) {
-	return check.IsMachinePoolUpgrading(ctx, c, mp.Object)
+func (mp *MachinePoolState) IsUpgrading(ctx context.Context, c client.Reader, machineStatusVersionExcludeSuffix bool) (bool, error) {
+	return check.IsMachinePoolUpgrading(ctx, c, mp.Object, machineStatusVersionExcludeSuffix)
 }

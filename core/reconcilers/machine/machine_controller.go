@@ -111,6 +111,8 @@ type Reconciler struct {
 	AdditionalSyncMachineLabels      []*regexp.Regexp
 	AdditionalSyncMachineAnnotations []*regexp.Regexp
 
+	MachineStatusVersionExcludeSuffix bool
+
 	controller     capicontrollerutil.Controller
 	recorder       record.EventRecorder
 	logRateLimiter *logutil.Limiter

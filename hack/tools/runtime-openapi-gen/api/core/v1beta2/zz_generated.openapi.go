@@ -6756,6 +6756,13 @@ func schema_cluster_api_api_core_v1beta2_MachineStatus(ref common.ReferenceCallb
 							Ref:         ref("k8s.io/api/core/v1.NodeSystemInfo"),
 						},
 					},
+					"version": {
+						SchemaProps: spec.SchemaProps{
+							Description: "version is the Kubernetes version of the Machine, derived from Node's status.nodeInfo.kubeletVersion field. By default, it is identical to kubeletVersion. If the Cluster API core controller is configured via the --machine-status-version-exclude-suffix flag, prerelease and build metadata are excluded, so the version is just v<major>.<minor>.<patch> (e.g. v1.36.3).",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
 					"lastUpdated": {
 						SchemaProps: spec.SchemaProps{
 							Description: "lastUpdated identifies when the phase of the Machine last transitioned.",

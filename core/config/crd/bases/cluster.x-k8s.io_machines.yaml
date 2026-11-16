@@ -728,6 +728,15 @@ spec:
                     - type
                     x-kubernetes-list-type: map
                 type: object
+              version:
+                description: |-
+                  version is the Kubernetes version of the Machine, derived from Node's status.nodeInfo.kubeletVersion field.
+                  By default, it is identical to kubeletVersion. If the Cluster API core controller is configured via the
+                  --machine-status-version-exclude-suffix flag, prerelease and build metadata are excluded, so the version
+                  is just v<major>.<minor>.<patch> (e.g. v1.36.3).
+                maxLength: 256
+                minLength: 1
+                type: string
             type: object
         type: object
     served: true
@@ -1488,6 +1497,15 @@ spec:
                 - Deleted
                 - Failed
                 - Unknown
+                type: string
+              version:
+                description: |-
+                  version is the Kubernetes version of the Machine, derived from Node's status.nodeInfo.kubeletVersion field.
+                  By default, it is identical to kubeletVersion. If the Cluster API core controller is configured via the
+                  --machine-status-version-exclude-suffix flag, prerelease and build metadata are excluded, so the version
+                  is just v<major>.<minor>.<patch> (e.g. v1.36.3).
+                maxLength: 256
+                minLength: 1
                 type: string
             type: object
         required:

@@ -81,6 +81,8 @@ type Cluster struct {
 	ClusterCacheReader ClusterCacheReader
 	MHCProgramCache    cache.Cache[cel.ProgramEntry]
 
+	MachineStatusVersionExcludeSuffix bool
+
 	decoder admission.Decoder
 }
 
@@ -542,7 +544,7 @@ func (webhook *Cluster) validateClusterVersionUpdate(ctx context.Context, fldPat
 	}
 
 	// minor version cannot be increased if MachinePools are upgrading or not yet on the current version
-	if err := validateTopologyMachinePoolVersions(ctx, webhook.Client, webhook.ClusterCacheReader, oldCluster, oldVersion); err != nil {
+	if err := validateTopologyMachinePoolVersions(ctx, webhook.Client, webhook.ClusterCacheReader, oldCluster, oldVersion, webhook.MachineStatusVersionExcludeSuffix); err != nil {
 		allErrs = append(allErrs, err)
 	}
 
@@ -659,7 +661,7 @@ func validateTopologyMachineDeploymentVersions(ctx context.Context, ctrlClient c
 	return nil
 }
 
-func validateTopologyMachinePoolVersions(ctx context.Context, ctrlClient client.Reader, clusterCacheReader ClusterCacheReader, oldCluster *clusterv1.Cluster, oldVersion semver.Version) error {
+func validateTopologyMachinePoolVersions(ctx context.Context, ctrlClient client.Reader, clusterCacheReader ClusterCacheReader, oldCluster *clusterv1.Cluster, oldVersion semver.Version, machineStatusVersionExcludeSuffix bool) error {
 	// List all the machine pools in the current cluster and in a managed topology.
 	// FROM: current_state.go getCurrentMachinePoolState
 	mps := &clusterv1.MachinePoolList{}
@@ -709,7 +711,7 @@ func validateTopologyMachinePoolVersions(ctx context.Context, ctrlClient client.
 			continue
 		}
 
-		upgrading, err := check.IsMachinePoolUpgrading(ctx, wlClient, mp)
+		upgrading, err := check.IsMachinePoolUpgrading(ctx, wlClient, mp, machineStatusVersionExcludeSuffix)
 		if err != nil {
 			return err
 		}
@@ -923,7 +925,7 @@ func (webhook *Cluster) validateClusterUpgradeCompleted(ctx context.Context, clu
 	if err := validateTopologyMachineDeploymentVersions(ctx, webhook.Client, cluster, topologyVersion); err != nil {
 		allErrs = append(allErrs, err)
 	}
-	if err := validateTopologyMachinePoolVersions(ctx, webhook.Client, webhook.ClusterCacheReader, cluster, topologyVersion); err != nil {
+	if err := validateTopologyMachinePoolVersions(ctx, webhook.Client, webhook.ClusterCacheReader, cluster, topologyVersion, webhook.MachineStatusVersionExcludeSuffix); err != nil {
 		allErrs = append(allErrs, err)
 	}
 	return kerrors.NewAggregate(allErrs)
@@ -997,7 +999,7 @@ func (webhook *Cluster) currentWorkerStates(ctx context.Context, cluster *cluste
 		for i := range changedMPs {
 			mp := &changedMPs[i]
 			topologyName := mp.Labels[clusterv1.ClusterTopologyMachinePoolNameLabel]
-			upgrading, err := check.IsMachinePoolUpgrading(ctx, wlClient, mp)
+			upgrading, err := check.IsMachinePoolUpgrading(ctx, wlClient, mp, webhook.MachineStatusVersionExcludeSuffix)
 			if err != nil {
 				return nil, nil, err
 			}

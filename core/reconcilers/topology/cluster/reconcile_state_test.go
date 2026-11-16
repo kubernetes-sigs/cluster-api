@@ -1310,6 +1310,7 @@ func TestReconcile_callAfterClusterUpgrade(t *testing.T) {
 				fakeRuntimeClient,
 				cache.New[cache.HookEntry](ctx, cache.HookCacheDefaultTTL),
 				cache.New[desiredstate.GenerateUpgradePlanCacheEntry](ctx, 10*time.Minute),
+				false,
 			)
 			g.Expect(err).ToNot(HaveOccurred())
 

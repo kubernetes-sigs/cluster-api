@@ -31,6 +31,28 @@ type orderedStatusVersion struct {
 	order int
 }
 
+// MachineStatusVersion derives the value of Machine.status.version from Node.status.nodeInfo.kubeletVersion.
+// If excludeSuffix is false the kubeletVersion is returned as is.
+// If excludeSuffix is true prerelease and build metadata are dropped, e.g.:
+//   - v1.36.3-eks-cb19647 => v1.36.3
+//   - v1.36.3-gke.1626001 => v1.36.3
+//   - v1.36.3+k0s => v1.36.3
+//
+// If the kubeletVersion cannot be parsed it is returned as is.
+func MachineStatusVersion(kubeletVersion string, excludeSuffix bool) string {
+	if kubeletVersion == "" || !excludeSuffix {
+		return kubeletVersion
+	}
+
+	v, err := semver.ParseTolerant(kubeletVersion)
+	if err != nil {
+		return kubeletVersion
+	}
+	v.Pre = nil
+	v.Build = nil
+	return "v" + v.String()
+}
+
 // AggregateStatusVersions returns versions aggregated by version.
 func AggregateStatusVersions(versions []clusterv1.StatusVersion) []clusterv1.StatusVersion {
 	if len(versions) == 0 {
@@ -89,8 +111,8 @@ func VersionsFromMachines(machines []*clusterv1.Machine) []clusterv1.StatusVersi
 		}
 
 		version := machine.Spec.Version
-		if machine.Status.NodeInfo != nil && machine.Status.NodeInfo.KubeletVersion != "" {
-			version = machine.Status.NodeInfo.KubeletVersion
+		if machine.Status.Version != "" {
+			version = machine.Status.Version
 		}
 
 		if version == "" {

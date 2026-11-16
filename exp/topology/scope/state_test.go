@@ -127,7 +127,7 @@ func TestMPUpgrading(t *testing.T) {
 		}
 		want := []string{"upgradingMP"}
 
-		got, err := mpsStateMap.Upgrading(ctx, fakeClient)
+		got, err := mpsStateMap.Upgrading(ctx, fakeClient, false)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(got).To(BeComparableTo(want))
 	})

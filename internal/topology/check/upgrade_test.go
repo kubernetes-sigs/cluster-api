@@ -82,7 +82,7 @@ func TestIsMachineDeploymentUpgrading(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "should return true if at least one of the machines of MachineDeployment has a different kubeletVersion",
+			name: "should return true if at least one of the machines of MachineDeployment has a different status.version",
 			md: builder.MachineDeployment("ns", "md1").
 				WithClusterName("cluster1").
 				WithVersion("v1.2.3").
@@ -97,9 +97,7 @@ func TestIsMachineDeploymentUpgrading(t *testing.T) {
 						WithClusterName("cluster1").
 						WithVersion("v1.2.3").
 						Build()
-					m.Status.NodeInfo = &corev1.NodeSystemInfo{
-						KubeletVersion: "v1.2.2",
-					}
+					m.Status.Version = "v1.2.2"
 					return m
 				}(),
 			},
@@ -147,11 +145,12 @@ func TestIsMachinePoolUpgrading(t *testing.T) {
 	g.Expect(corev1.AddToScheme(scheme)).To(Succeed())
 
 	tests := []struct {
-		name    string
-		mp      *clusterv1.MachinePool
-		nodes   []*corev1.Node
-		want    bool
-		wantErr bool
+		name                              string
+		mp                                *clusterv1.MachinePool
+		nodes                             []*corev1.Node
+		machineStatusVersionExcludeSuffix bool
+		want                              bool
+		wantErr                           bool
 	}{
 		{
 			name: "should return false if all the nodes of MachinePool have the same version as the MachinePool",
@@ -212,6 +211,72 @@ func TestIsMachinePoolUpgrading(t *testing.T) {
 			wantErr: false,
 		},
 		{
+			name: "should return true if the nodes of MachinePool have a version suffix and the suffix is not excluded",
+			mp: builder.MachinePool("ns", "mp1").
+				WithClusterName("cluster1").
+				WithVersion("v1.2.3").
+				WithStatus(clusterv1.MachinePoolStatus{
+					NodeRefs: []corev1.ObjectReference{{Name: "node1"}},
+				}).
+				Build(),
+			nodes: []*corev1.Node{
+				{
+					ObjectMeta: metav1.ObjectMeta{Name: "node1"},
+					Status: corev1.NodeStatus{
+						NodeInfo: corev1.NodeSystemInfo{KubeletVersion: "v1.2.3-eks-cb19647"},
+					},
+				},
+			},
+			machineStatusVersionExcludeSuffix: false,
+			want:                              true,
+		},
+		{
+			name: "should return false if the nodes of MachinePool have a version suffix and the suffix is excluded",
+			mp: builder.MachinePool("ns", "mp1").
+				WithClusterName("cluster1").
+				WithVersion("v1.2.3").
+				WithStatus(clusterv1.MachinePoolStatus{
+					NodeRefs: []corev1.ObjectReference{{Name: "node1"}, {Name: "node2"}},
+				}).
+				Build(),
+			nodes: []*corev1.Node{
+				{
+					ObjectMeta: metav1.ObjectMeta{Name: "node1"},
+					Status: corev1.NodeStatus{
+						NodeInfo: corev1.NodeSystemInfo{KubeletVersion: "v1.2.3-eks-cb19647"},
+					},
+				},
+				{
+					ObjectMeta: metav1.ObjectMeta{Name: "node2"},
+					Status: corev1.NodeStatus{
+						NodeInfo: corev1.NodeSystemInfo{KubeletVersion: "v1.2.3+k0s"},
+					},
+				},
+			},
+			machineStatusVersionExcludeSuffix: true,
+			want:                              false,
+		},
+		{
+			name: "should return true if the nodes of MachinePool have a different version and the suffix is excluded",
+			mp: builder.MachinePool("ns", "mp1").
+				WithClusterName("cluster1").
+				WithVersion("v1.2.3").
+				WithStatus(clusterv1.MachinePoolStatus{
+					NodeRefs: []corev1.ObjectReference{{Name: "node1"}},
+				}).
+				Build(),
+			nodes: []*corev1.Node{
+				{
+					ObjectMeta: metav1.ObjectMeta{Name: "node1"},
+					Status: corev1.NodeStatus{
+						NodeInfo: corev1.NodeSystemInfo{KubeletVersion: "v1.2.2-eks-cb19647"},
+					},
+				},
+			},
+			machineStatusVersionExcludeSuffix: true,
+			want:                              true,
+		},
+		{
 			name: "should return false if the MachinePool has no nodes (creation phase)",
 			mp: builder.MachinePool("ns", "mp1").
 				WithClusterName("cluster1").
@@ -237,7 +302,7 @@ func TestIsMachinePoolUpgrading(t *testing.T) {
 			}
 			fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(objs...).Build()
 
-			got, err := IsMachinePoolUpgrading(ctx, fakeClient, tt.mp)
+			got, err := IsMachinePoolUpgrading(ctx, fakeClient, tt.mp, tt.machineStatusVersionExcludeSuffix)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {

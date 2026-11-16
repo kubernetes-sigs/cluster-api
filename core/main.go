@@ -124,23 +124,24 @@ var (
 	logOptions                  = logs.NewOptions()
 	// core Cluster API specific flags.
 
-	remoteConnectionGracePeriod      time.Duration
-	remoteConditionsGracePeriod      time.Duration
-	clusterTopologyConcurrency       int
-	clusterCacheConcurrency          int
-	clusterClassConcurrency          int
-	clusterConcurrency               int
-	extensionConfigConcurrency       int
-	machineConcurrency               int
-	machineSetConcurrency            int
-	machineDeploymentConcurrency     int
-	machinePoolConcurrency           int
-	clusterResourceSetConcurrency    int
-	machineHealthCheckConcurrency    int
-	machineSetPreflightChecks        []string
-	skipCRDMigrationPhases           []string
-	additionalSyncMachineLabels      []string
-	additionalSyncMachineAnnotations []string
+	remoteConnectionGracePeriod       time.Duration
+	remoteConditionsGracePeriod       time.Duration
+	clusterTopologyConcurrency        int
+	clusterCacheConcurrency           int
+	clusterClassConcurrency           int
+	clusterConcurrency                int
+	extensionConfigConcurrency        int
+	machineConcurrency                int
+	machineSetConcurrency             int
+	machineDeploymentConcurrency      int
+	machinePoolConcurrency            int
+	clusterResourceSetConcurrency     int
+	machineHealthCheckConcurrency     int
+	machineSetPreflightChecks         []string
+	skipCRDMigrationPhases            []string
+	additionalSyncMachineLabels       []string
+	additionalSyncMachineAnnotations  []string
+	machineStatusVersionExcludeSuffix bool
 )
 
 func init() {
@@ -285,6 +286,10 @@ func InitFlags(fs *pflag.FlagSet) {
 
 	fs.StringSliceVar(&additionalSyncMachineAnnotations, "additional-sync-machine-annotations", []string{},
 		"List of regexes to select an additional set of labels to sync from a Machine to its associated Node. An annotation will be synced as long as it matches at least one of the regexes.")
+
+	fs.BoolVar(&machineStatusVersionExcludeSuffix, "machine-status-version-exclude-suffix", false,
+		"If set, Machine.status.version is derived from Node.status.nodeInfo.kubeletVersion without prerelease and build metadata (e.g. v1.36.3-eks-cb19647, v1.36.3-gke.1626001 and v1.36.3+k0s all result in v1.36.3). "+
+			"If unset, Machine.status.version is identical to Node.status.nodeInfo.kubeletVersion.")
 
 	flags.AddManagerOptions(fs, &managerOptions)
 
@@ -571,11 +576,12 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager, watchNamespace stri
 		}
 
 		if err := (&topologycluster.Reconciler{
-			Client:           mgr.GetClient(),
-			APIReader:        mgr.GetAPIReader(),
-			RuntimeClient:    runtimeClient,
-			ClusterCache:     clusterCache,
-			WatchFilterValue: watchFilterValue,
+			Client:                            mgr.GetClient(),
+			APIReader:                         mgr.GetAPIReader(),
+			RuntimeClient:                     runtimeClient,
+			ClusterCache:                      clusterCache,
+			WatchFilterValue:                  watchFilterValue,
+			MachineStatusVersionExcludeSuffix: machineStatusVersionExcludeSuffix,
 		}).SetupWithManager(ctx, mgr, concurrency(clusterTopologyConcurrency)); err != nil {
 			setupLog.Error(err, "Unable to create controller", "controller", "ClusterTopology")
 			os.Exit(1)
@@ -633,15 +639,16 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager, watchNamespace stri
 		os.Exit(1)
 	}
 	if err := (&machine.Reconciler{
-		Client:                           mgr.GetClient(),
-		APIReader:                        mgr.GetAPIReader(),
-		ClusterCache:                     clusterCache,
-		DynamicCache:                     dynamicCache,
-		RuntimeClient:                    runtimeClient,
-		WatchFilterValue:                 watchFilterValue,
-		RemoteConditionsGracePeriod:      remoteConditionsGracePeriod,
-		AdditionalSyncMachineLabels:      additionalSyncMachineLabelRegexes,
-		AdditionalSyncMachineAnnotations: additionalSyncMachineAnnotationRegexes,
+		Client:                            mgr.GetClient(),
+		APIReader:                         mgr.GetAPIReader(),
+		ClusterCache:                      clusterCache,
+		DynamicCache:                      dynamicCache,
+		RuntimeClient:                     runtimeClient,
+		WatchFilterValue:                  watchFilterValue,
+		RemoteConditionsGracePeriod:       remoteConditionsGracePeriod,
+		AdditionalSyncMachineLabels:       additionalSyncMachineLabelRegexes,
+		AdditionalSyncMachineAnnotations:  additionalSyncMachineAnnotationRegexes,
+		MachineStatusVersionExcludeSuffix: machineStatusVersionExcludeSuffix,
 	}).SetupWithManager(ctx, mgr, concurrency(machineConcurrency)); err != nil {
 		setupLog.Error(err, "Unable to create controller", "controller", "Machine")
 		os.Exit(1)
@@ -688,11 +695,12 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager, watchNamespace stri
 
 	if features.Gates.Enabled(features.MachinePool) {
 		if err := (&machinepool.Reconciler{
-			Client:           mgr.GetClient(),
-			APIReader:        mgr.GetAPIReader(),
-			ClusterCache:     clusterCache,
-			DynamicCache:     dynamicCache,
-			WatchFilterValue: watchFilterValue,
+			Client:                            mgr.GetClient(),
+			APIReader:                         mgr.GetAPIReader(),
+			ClusterCache:                      clusterCache,
+			DynamicCache:                      dynamicCache,
+			WatchFilterValue:                  watchFilterValue,
+			MachineStatusVersionExcludeSuffix: machineStatusVersionExcludeSuffix,
 		}).SetupWithManager(ctx, mgr, concurrency(machinePoolConcurrency)); err != nil {
 			setupLog.Error(err, "Unable to create controller", "controller", "MachinePool")
 			os.Exit(1)
@@ -752,9 +760,10 @@ func setupWebhooks(_ context.Context, mgr ctrl.Manager, clusterCacheReader corea
 	// NOTE: ClusterClass and managed topologies are behind ClusterTopology feature gate flag; the webhook
 	// is going to prevent usage of Cluster.Topology in case the feature flag is disabled.
 	if err := (&coreadmission.Cluster{
-		Client:             mgr.GetClient(),
-		ClusterCacheReader: clusterCacheReader,
-		MHCProgramCache:    mhcCELProgramCache,
+		Client:                            mgr.GetClient(),
+		ClusterCacheReader:                clusterCacheReader,
+		MHCProgramCache:                   mhcCELProgramCache,
+		MachineStatusVersionExcludeSuffix: machineStatusVersionExcludeSuffix,
 	}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "Unable to create webhook", "webhook", "Cluster")
 		os.Exit(1)

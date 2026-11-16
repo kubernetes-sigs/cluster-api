@@ -21,11 +21,38 @@ import (
 	"time"
 
 	. "github.com/onsi/gomega"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
+
+func TestMachineStatusVersion(t *testing.T) {
+	tests := []struct {
+		name           string
+		kubeletVersion string
+		excludeSuffix  bool
+		want           string
+	}{
+		{name: "empty, suffix included", kubeletVersion: "", excludeSuffix: false, want: ""},
+		{name: "empty, suffix excluded", kubeletVersion: "", excludeSuffix: true, want: ""},
+		{name: "plain version, suffix included", kubeletVersion: "v1.36.3", excludeSuffix: false, want: "v1.36.3"},
+		{name: "plain version, suffix excluded", kubeletVersion: "v1.36.3", excludeSuffix: true, want: "v1.36.3"},
+		{name: "eks version, suffix included", kubeletVersion: "v1.36.3-eks-cb19647", excludeSuffix: false, want: "v1.36.3-eks-cb19647"},
+		{name: "eks version, suffix excluded", kubeletVersion: "v1.36.3-eks-cb19647", excludeSuffix: true, want: "v1.36.3"},
+		{name: "gke version, suffix included", kubeletVersion: "v1.36.3-gke.1626001", excludeSuffix: false, want: "v1.36.3-gke.1626001"},
+		{name: "gke version, suffix excluded", kubeletVersion: "v1.36.3-gke.1626001", excludeSuffix: true, want: "v1.36.3"},
+		{name: "k0s version, suffix included", kubeletVersion: "v1.36.3+k0s", excludeSuffix: false, want: "v1.36.3+k0s"},
+		{name: "k0s version, suffix excluded", kubeletVersion: "v1.36.3+k0s", excludeSuffix: true, want: "v1.36.3"},
+		{name: "prerelease and build metadata, suffix excluded", kubeletVersion: "v1.36.0-rc.1+abc.def", excludeSuffix: true, want: "v1.36.0"},
+		{name: "unparsable version, suffix excluded", kubeletVersion: "foo", excludeSuffix: true, want: "foo"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+			g.Expect(MachineStatusVersion(tt.kubeletVersion, tt.excludeSuffix)).To(Equal(tt.want))
+		})
+	}
+}
 
 func TestAggregateStatusVersions(t *testing.T) {
 	t.Run("returns nil for empty versions", func(t *testing.T) {
@@ -88,7 +115,7 @@ func TestAggregateStatusVersions(t *testing.T) {
 }
 
 func TestVersionsFromMachines(t *testing.T) {
-	t.Run("returns sorted versions from machine spec versions", func(t *testing.T) {
+	t.Run("returns sorted versions from machine status and spec versions", func(t *testing.T) {
 		g := NewWithT(t)
 
 		machines := []*clusterv1.Machine{
@@ -97,8 +124,8 @@ func TestVersionsFromMachines(t *testing.T) {
 			{Spec: clusterv1.MachineSpec{Version: "v1.32.0"}},
 			{Spec: clusterv1.MachineSpec{Version: "v1.31.1"}},
 			{Spec: clusterv1.MachineSpec{Version: "v1.31.1"}},
-			{Spec: clusterv1.MachineSpec{Version: "v1.31.1"}, Status: clusterv1.MachineStatus{NodeInfo: &corev1.NodeSystemInfo{KubeletVersion: "v1.30.0"}}},
-			{Spec: clusterv1.MachineSpec{Version: "v1.31.1"}, Status: clusterv1.MachineStatus{NodeInfo: &corev1.NodeSystemInfo{KubeletVersion: "v1.31.1"}}},
+			{Spec: clusterv1.MachineSpec{Version: "v1.31.1"}, Status: clusterv1.MachineStatus{Version: "v1.30.0"}},
+			{Spec: clusterv1.MachineSpec{Version: "v1.31.1"}, Status: clusterv1.MachineStatus{Version: "v1.31.1"}},
 		}
 
 		g.Expect(VersionsFromMachines(machines)).To(Equal([]clusterv1.StatusVersion{

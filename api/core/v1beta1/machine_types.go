@@ -509,6 +509,15 @@ type MachineStatus struct {
 	// +optional
 	NodeInfo *corev1.NodeSystemInfo `json:"nodeInfo,omitempty"`
 
+	// version is the Kubernetes version of the Machine, derived from Node's status.nodeInfo.kubeletVersion field.
+	// By default, it is identical to kubeletVersion. If the Cluster API core controller is configured via the
+	// --machine-status-version-exclude-suffix flag, prerelease and build metadata are excluded, so the version
+	// is just v<major>.<minor>.<patch> (e.g. v1.36.3).
+	// +optional
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=256
+	Version string `json:"version,omitempty"`
+
 	// lastUpdated identifies when the phase of the Machine last transitioned.
 	// +optional
 	LastUpdated *metav1.Time `json:"lastUpdated,omitempty"`

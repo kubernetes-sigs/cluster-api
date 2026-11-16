@@ -61,7 +61,7 @@ type Generator interface {
 }
 
 // NewGenerator creates a new generator to generate desired state.
-func NewGenerator(client client.Client, clusterCache clustercache.ClusterCache, runtimeClient runtimeclient.Client, hookCache cache.Cache[cache.HookEntry], getUpgradePlanCache cache.Cache[GenerateUpgradePlanCacheEntry]) (Generator, error) {
+func NewGenerator(client client.Client, clusterCache clustercache.ClusterCache, runtimeClient runtimeclient.Client, hookCache cache.Cache[cache.HookEntry], getUpgradePlanCache cache.Cache[GenerateUpgradePlanCacheEntry], machineStatusVersionExcludeSuffix bool) (Generator, error) {
 	if client == nil || clusterCache == nil {
 		return nil, pkgerrors.New("Client and ClusterCache must not be nil")
 	}
@@ -71,12 +71,13 @@ func NewGenerator(client client.Client, clusterCache clustercache.ClusterCache, 
 	}
 
 	return &generator{
-		Client:              client,
-		ClusterCache:        clusterCache,
-		RuntimeClient:       runtimeClient,
-		hookCache:           hookCache,
-		getUpgradePlanCache: getUpgradePlanCache,
-		patchEngine:         patches.NewEngine(client, runtimeClient),
+		Client:                            client,
+		ClusterCache:                      clusterCache,
+		RuntimeClient:                     runtimeClient,
+		hookCache:                         hookCache,
+		getUpgradePlanCache:               getUpgradePlanCache,
+		patchEngine:                       patches.NewEngine(client, runtimeClient),
+		machineStatusVersionExcludeSuffix: machineStatusVersionExcludeSuffix,
 	}, nil
 }
 
@@ -94,6 +95,8 @@ type generator struct {
 
 	// patchEngine is used to apply patches during computeDesiredState.
 	patchEngine patches.Engine
+
+	machineStatusVersionExcludeSuffix bool
 }
 
 // Generate computes the desired state of the cluster topology.
@@ -169,7 +172,7 @@ func (g *generator) Generate(ctx context.Context, s *scope.Scope) (*scope.Cluste
 				return nil, pkgerrors.Wrap(err, "failed to check if any MachinePool is upgrading")
 			}
 			// Mark all the MachinePools that are currently upgrading.
-			mpUpgradingNames, err := s.Current.MachinePools.Upgrading(ctx, client)
+			mpUpgradingNames, err := s.Current.MachinePools.Upgrading(ctx, client, g.machineStatusVersionExcludeSuffix)
 			if err != nil {
 				return nil, pkgerrors.Wrap(err, "failed to check if any MachinePool is upgrading")
 			}

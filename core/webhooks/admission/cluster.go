@@ -46,6 +46,7 @@ import (
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/contract"
 	"sigs.k8s.io/cluster-api/internal/topology/check"
+	"sigs.k8s.io/cluster-api/internal/topology/pinning"
 	"sigs.k8s.io/cluster-api/internal/topology/variables"
 	"sigs.k8s.io/cluster-api/internal/util/taints"
 	"sigs.k8s.io/cluster-api/pkg/runtimesdk/hooks"
@@ -628,7 +629,7 @@ func validateTopologyMachineDeploymentVersions(ctx context.Context, ctrlClient c
 		// A MachineDeployment with its own version intentionally runs a different version than the
 		// Cluster topology, so compare to its own version instead.
 		desiredVersion := oldVersion
-		if pinnedVersion := machineDeploymentTopologyVersion(oldCluster.Spec.Topology, md.Labels[clusterv1.ClusterTopologyMachineDeploymentNameLabel]); pinnedVersion != "" {
+		if pinnedVersion := pinning.MachineDeploymentTopologyVersion(oldCluster.Spec.Topology, md.Labels[clusterv1.ClusterTopologyMachineDeploymentNameLabel]); pinnedVersion != "" {
 			desiredVersion, err = semver.ParseTolerant(pinnedVersion)
 			if err != nil {
 				// NOTE: this should never happen. Nevertheless, handling this for extra caution.
@@ -694,7 +695,7 @@ func validateTopologyMachinePoolVersions(ctx context.Context, ctrlClient client.
 		// A MachinePool with its own version intentionally runs a different version than the
 		// Cluster topology, so compare to its own version instead.
 		desiredVersion := oldVersion
-		if pinnedVersion := machinePoolTopologyVersion(oldCluster.Spec.Topology, mp.Labels[clusterv1.ClusterTopologyMachinePoolNameLabel]); pinnedVersion != "" {
+		if pinnedVersion := pinning.MachinePoolTopologyVersion(oldCluster.Spec.Topology, mp.Labels[clusterv1.ClusterTopologyMachinePoolNameLabel]); pinnedVersion != "" {
 			desiredVersion, err = semver.ParseTolerant(pinnedVersion)
 			if err != nil {
 				// NOTE: this should never happen. Nevertheless, handling this for extra caution.
@@ -1171,28 +1172,6 @@ func workersOutsideVersionSkew(topology clusterv1.Topology, controlPlaneVersion 
 		}
 	}
 	return workers
-}
-
-// machineDeploymentTopologyVersion returns the version set on the MachineDeploymentTopology with
-// the given name, or "" if the topology does not exist or no version is set.
-func machineDeploymentTopologyVersion(topology clusterv1.Topology, mdTopologyName string) string {
-	for _, mdTopology := range topology.Workers.MachineDeployments {
-		if mdTopology.Name == mdTopologyName {
-			return mdTopology.Version
-		}
-	}
-	return ""
-}
-
-// machinePoolTopologyVersion returns the version set on the MachinePoolTopology with the given
-// name, or "" if the topology does not exist or no version is set.
-func machinePoolTopologyVersion(topology clusterv1.Topology, mpTopologyName string) string {
-	for _, mpTopology := range topology.Workers.MachinePools {
-		if mpTopology.Name == mpTopologyName {
-			return mpTopology.Version
-		}
-	}
-	return ""
 }
 
 func getControlPlaneVersion(ctx context.Context, ctrlClient client.Reader, cluster *clusterv1.Cluster) (*semver.Version, error) {

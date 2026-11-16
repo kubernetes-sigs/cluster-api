@@ -45,7 +45,7 @@ var (
 )
 
 type GenerateCIArtifactsInjectedTemplateForDebianInput struct {
-	// ArtifactsDirectory is where conformance suite output will go. Defaults to _artifacts
+	// ArtifactsDirectory is where conformance suite output will go. Defaults to _output/artifacts
 	ArtifactsDirectory string
 	// SourceTemplate is an input YAML clusterctl template which is to have
 	// the CI artifact script injection

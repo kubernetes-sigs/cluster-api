@@ -245,7 +245,7 @@ Create a new run configuration and fill in:
 * Package path: `sigs.k8s.io/cluster-api/test/e2e`
 * Pattern: `^\QTestE2E\E$`
 * Working directory: `/home/user/code/src/sigs.k8s.io/cluster-api/test/e2e`
-* Environment: `ARTIFACTS=/home/user/code/src/sigs.k8s.io/cluster-api/_artifacts`
+* Environment: `ARTIFACTS=/home/user/code/src/sigs.k8s.io/cluster-api/_output/artifacts`
 * Program arguments: `-e2e.config=/home/user/code/src/sigs.k8s.io/cluster-api/test/e2e/config/docker.yaml -ginkgo.focus="\[PR-Blocking\]"`
 
 #### VS Code
@@ -262,7 +262,7 @@ Add the launch.json file in the .vscode folder in your repo:
             "mode": "test",
             "program": "${workspaceRoot}/test/e2e/e2e_suite_test.go",
             "env": {
-                "ARTIFACTS":"${workspaceRoot}/_artifacts"
+                "ARTIFACTS":"${workspaceRoot}/_output/artifacts"
             },
             "args": [
                 "-e2e.config=${workspaceRoot}/test/e2e/config/docker.yaml",
@@ -326,7 +326,7 @@ The following env variables can be set to customize the test execution:
 - `GINKGO_LABEL_FILTER` to set ginkgo label filter (default empty - all tests)
 - `GINKGO_NODES` to set the number of ginkgo parallel nodes (default to 1)
 - `E2E_CONF_FILE` to set the e2e test config file (default to ${REPO_ROOT}/test/e2e/config/docker.yaml)
-- `ARTIFACTS` to set the folder where test artifact will be stored (default to ${REPO_ROOT}/_artifacts)
+- `ARTIFACTS` to set the folder where test artifact will be stored (default to ${REPO_ROOT}/_output/artifacts)
 - `SKIP_RESOURCE_CLEANUP` to skip resource cleanup at the end of the test (useful for problem investigation) (default to false)
 - `USE_EXISTING_CLUSTER` to use an existing management cluster instead of creating a new one for each test run (default to false)
 - `GINKGO_NOCOLOR` to turn off the ginkgo colored output (default to false)
@@ -353,7 +353,7 @@ analyzing them via Grafana.
    Examples for log paths:
     * ProwJob URL: `https://prow.k8s.io/view/gs/kubernetes-jenkins/pr-logs/pull/kubernetes-sigs_cluster-api/6189/pull-cluster-api-e2e-main/1496954690603061248`
     * GCS path: `gs://kubernetes-jenkins/pr-logs/pull/kubernetes-sigs_cluster-api/6189/pull-cluster-api-e2e-main/1496954690603061248`
-    * Local folder: `./_artifacts`
+    * Local folder: `./_output/artifacts`
 4. Now the logs are available:
     * via [Grafana](http://localhost:3000/explore)
     * via [Loki logcli](https://grafana.com/docs/loki/latest/query/logcli/getting-started/)

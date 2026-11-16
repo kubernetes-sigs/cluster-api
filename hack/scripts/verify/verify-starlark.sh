@@ -72,7 +72,7 @@ cleanup() {
 }
 trap cleanup EXIT
 
-BUILDIFIER="${ROOT_PATH}/hack/tools/bin/buildifier/${VERSION}/buildifier"
+BUILDIFIER="${ROOT_PATH}/_output/tools/buildifier/${VERSION}/buildifier"
 
 if [ ! -f "$BUILDIFIER" ]; then
   # install buildifier
@@ -82,7 +82,7 @@ if [ ! -f "$BUILDIFIER" ]; then
   download_and_verify "https://github.com/bazelbuild/buildtools/releases/download/${VERSION}/${BINARY}" "${BUILDIFIER_SHA256}" "${TMP_DIR}/buildifier"
   chmod +x "${TMP_DIR}/buildifier"
   cd "${ROOT_PATH}"
-  mkdir -p "${ROOT_PATH}/hack/tools/bin/buildifier/${VERSION}"
+  mkdir -p "${ROOT_PATH}/_output/tools/buildifier/${VERSION}"
   mv "${TMP_DIR}/buildifier" "$BUILDIFIER"
 fi
 

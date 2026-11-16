@@ -586,7 +586,7 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 
 			clusterctlUpgradeBinaryPath := ""
 			// TODO: While it is generally fine to use this clusterctl config for upgrades as well,
-			// it is not ideal because it points to the latest repositories (e.g. _artifacts/repository/cluster-api/latest/components.yaml)
+			// it is not ideal because it points to the latest repositories (e.g. _output/artifacts/repository/cluster-api/latest/components.yaml)
 			// For example this means if we upgrade to v1.5 the upgrade won't use the metadata.yaml from v1.5 it will use the one from latest.
 			clusterctlUpgradeConfigPath := input.ClusterctlConfigPath
 			if upgrade.WithBinary != "" {

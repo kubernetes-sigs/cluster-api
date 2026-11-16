@@ -65,7 +65,7 @@ Example call for tilt up:
 */
 
 const (
-	kustomizePath = "./hack/tools/bin/kustomize"
+	kustomizePath = "./_output/tools/kustomize"
 )
 
 var (
@@ -153,7 +153,8 @@ func init() {
 		klog.Fatalf("failed to get project root folder: %s: %v)", stderr.String(), err)
 	}
 	rootPath = strings.Trim(stdout.String(), "\n")
-	tiltBuildPath = filepath.Join(rootPath, ".tiltbuild")
+	// Note: This should be kept in sync with tilt_build_dir in the Tiltfile.
+	tiltBuildPath = filepath.Join(rootPath, "_output", "tilt")
 
 	_ = clusterctlv1.AddToScheme(scheme.Scheme)
 }

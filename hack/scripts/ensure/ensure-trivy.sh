@@ -47,7 +47,7 @@ fi
 # shellcheck source=./hack/scripts/ensure/ensure-utils.sh
 source "$(dirname "$0")/ensure-utils.sh"
 
-TOOL_BIN=hack/tools/bin
+TOOL_BIN=_output/tools
 mkdir -p ${TOOL_BIN}
 
 TRIVY="${TOOL_BIN}/trivy/${VERSION}/trivy"

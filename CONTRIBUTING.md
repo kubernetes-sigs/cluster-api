@@ -113,7 +113,7 @@ http://localhost:3000; the preview auto-updates when changes are detected.
 
 Note: you don't need to have [mdBook][] installed, `make serve-book` will ensure
 appropriate binaries for mdBook and any used plugins are downloaded into
-`hack/tools/bin/` directory.
+`_output/tools/` directory.
 
 When submitting the PR remember to label it with the 📖 (:book:) icon.
 

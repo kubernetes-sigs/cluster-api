@@ -27,7 +27,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
-	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 )
 
 // OwnerGraph contains a graph with all the objects considered by clusterctl move as nodes and the OwnerReference relationship
@@ -108,25 +107,6 @@ func discoverOwnerGraph(ctx context.Context, namespace string, o *objectGraph, f
 			return nil, err
 		}
 
-		// if we are discovering Secrets, also secrets from the providers namespace should be included.
-		if discoveryType.typeMeta.GetObjectKind().GroupVersionKind().GroupKind() == corev1.SchemeGroupVersion.WithKind("Secret").GroupKind() {
-			providers, err := o.providerInventory.List(ctx)
-			if err != nil {
-				return nil, err
-			}
-			for _, p := range providers.Items {
-				if p.Type == string(clusterctlv1.InfrastructureProviderType) {
-					providerNamespaceSelector := []client.ListOption{client.InNamespace(p.Namespace)}
-					providerNamespaceSecretList := new(unstructured.UnstructuredList)
-					if err := retryWithExponentialBackoff(ctx, discoveryBackoff, func(ctx context.Context) error {
-						return getObjList(ctx, o.proxy, &typeMeta, providerNamespaceSelector, providerNamespaceSecretList)
-					}); err != nil {
-						return nil, err
-					}
-					objList.Items = append(objList.Items, providerNamespaceSecretList.Items...)
-				}
-			}
-		}
 		for _, obj := range objList.Items {
 			// Exclude the objects via the filter function.
 			if filterFn != nil && !filterFn(obj) {

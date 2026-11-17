@@ -28,3 +28,8 @@ CVE-2026-78660
 # Also see .govuln_exclude.
 CVE-2026-78661
 CVE-2026-97045
+
+# This go.opentelemetry.io/otel/sdk (and sdk/log, trace) vulnerability
+# (GHSA-q7gw-24fr-5p69) is fixed in v1.47.0, but that requires go 1.26.0.
+# govulncheck does not flag it for CAPI.
+CVE-2026-128085

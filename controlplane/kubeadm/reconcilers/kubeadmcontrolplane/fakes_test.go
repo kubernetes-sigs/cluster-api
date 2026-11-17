@@ -79,6 +79,10 @@ type fakeWorkloadCluster struct {
 	APIServerCertificateExpiry    *time.Time
 	OverrideForwardEtcdLeadership func(context.Context, string, string) error
 
+	// updatedClusterConfiguration accumulates the mutators received by UpdateClusterConfiguration, like the
+	// kubeadm config map does in a real workload cluster.
+	updatedClusterConfiguration bootstrapv1.ClusterConfiguration
+
 	forwardEtcdLeadershipCalled int
 	removeEtcdMemberCalled      int
 }
@@ -108,7 +112,13 @@ func (f *fakeWorkloadCluster) RemoveEtcdMember(_ context.Context, _ *etcd.Member
 	return nil
 }
 
-func (f *fakeWorkloadCluster) UpdateClusterConfiguration(context.Context, semver.Version, ...func(*bootstrapv1.ClusterConfiguration)) error {
+func (f *fakeWorkloadCluster) UpdateClusterConfiguration(_ context.Context, _ semver.Version, mutators ...func(*bootstrapv1.ClusterConfiguration)) error {
+	for _, mutator := range mutators {
+		// Note: Some fake mutators, e.g. UpdateEtcdLocalInKubeadmConfigMap, are nil.
+		if mutator != nil {
+			mutator(&f.updatedClusterConfiguration)
+		}
+	}
 	return nil
 }
 

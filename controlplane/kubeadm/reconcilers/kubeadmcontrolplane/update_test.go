@@ -98,10 +98,19 @@ func TestKubeadmControlPlaneReconciler_RolloutStrategy_ScaleUp(t *testing.T) {
 	cluster.Status.Initialization.InfrastructureProvisioned = ptr.To(true)
 	kcp.UID = types.UID(util.RandomString(10))
 	kcp.Spec.Replicas = ptr.To[int32](1)
+	kcp.Spec.KubeadmConfigSpec.ClusterConfiguration.DNS = bootstrapv1.DNS{
+		ImageRepository: "registry.example.org/coredns",
+		ImageTag:        "v1.12.1",
+	}
 	setKCPHealthy(kcp)
 
 	fc := capicontrollerutil.NewFakeController()
 
+	fakeWorkload := &fakeWorkloadCluster{
+		Workload: &pkg.Workload{
+			Client: env,
+		},
+	}
 	r := &Reconciler{
 		Client:              env,
 		SecretCachingClient: secretCachingClient,
@@ -110,11 +119,7 @@ func TestKubeadmControlPlaneReconciler_RolloutStrategy_ScaleUp(t *testing.T) {
 		recorder:            record.NewFakeRecorder(32),
 		managementCluster: &fakeManagementCluster{
 			Management: &pkg.Management{Client: env},
-			Workload: &fakeWorkloadCluster{
-				Workload: &pkg.Workload{
-					Client: env,
-				},
-			},
+			Workload:   fakeWorkload,
 		},
 		ssaCache: ssa.NewCache("test-controller"),
 	}
@@ -159,6 +164,8 @@ func TestKubeadmControlPlaneReconciler_RolloutStrategy_ScaleUp(t *testing.T) {
 	result, err = r.updateControlPlane(ctx, controlPlane, needingUpgrade, machinesUpToDateResults)
 	g.Expect(result.IsZero()).To(BeTrue())
 	g.Expect(err).ToNot(HaveOccurred())
+	// The DNS image info must be in the kubeadm config map, so that new Machines do not join using a stale CoreDNS image repository.
+	g.Expect(fakeWorkload.updatedClusterConfiguration.DNS).To(BeComparableTo(kcp.Spec.KubeadmConfigSpec.ClusterConfiguration.DNS))
 	bothMachines := &clusterv1.MachineList{}
 	g.Eventually(func(g Gomega) {
 		g.Expect(env.List(ctx, bothMachines, client.InNamespace(cluster.Namespace))).To(Succeed())

@@ -1808,7 +1808,7 @@ func TestReconcileMachinePoolMachines(t *testing.T) {
 				Status: metav1.ConditionFalse,
 				Reason: clusterv1.WaitingForRemediationV1Beta1Reason,
 			})
-			g.Expect(err).ShouldNot(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(patchHelper.Patch(ctx, &machines[1], patch.WithStatusObservedGeneration{}, patch.WithOwnedConditions{Conditions: []string{
 				clusterv1.MachineHealthCheckSucceededCondition,
 				clusterv1.MachineOwnerRemediatedCondition,
@@ -1825,7 +1825,7 @@ func TestReconcileMachinePoolMachines(t *testing.T) {
 				Status: metav1.ConditionTrue,
 				Reason: clusterv1.MachineHealthCheckSucceededReason,
 			})
-			g.Expect(err).ShouldNot(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(patchHelper.Patch(ctx, &machines[2], patch.WithStatusObservedGeneration{}, patch.WithOwnedConditions{Conditions: []string{
 				clusterv1.MachineHealthCheckSucceededCondition,
 				clusterv1.MachineOwnerRemediatedCondition,

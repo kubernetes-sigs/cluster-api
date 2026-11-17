@@ -100,8 +100,8 @@ func TestSortMachinesToRemediate(t *testing.T) {
 	t.Run("remediation machines with annotation should be prioritised over other machines", func(t *testing.T) {
 		g := NewWithT(t)
 
-		machines := make([]*clusterv1.Machine, len(unhealthyMachines))
-		copy(machines, unhealthyMachines)
+		machines := make([]*clusterv1.Machine, 0, len(unhealthyMachines)+len(unhealthyMachinesWithAnnotations))
+		machines = append(machines, unhealthyMachines...)
 		machines = append(machines, unhealthyMachinesWithAnnotations...)
 		SortMachinesToRemediate(machines)
 

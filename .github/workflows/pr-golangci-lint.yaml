@@ -57,3 +57,4 @@ jobs:
           # The prebuilt binary might be built with a newer Go version, which can format code differently (e.g. gci/gofmt).
           install-mode: goinstall
           working-directory: ${{matrix.working-directory}}
+          args: --config=${{ github.workspace }}/hack/config/golangci.yml

@@ -1,5 +1,6 @@
 version: "2"
 run:
+  relative-path-mode: gitroot
   timeout: 10m
   go: "1.26"
   build-tags:

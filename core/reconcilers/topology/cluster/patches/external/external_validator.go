@@ -26,8 +26,8 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
 	"sigs.k8s.io/cluster-api/core/reconcilers/topology/cluster/patches/api"
-	runtimeclient "sigs.k8s.io/cluster-api/exp/runtime/client"
-	"sigs.k8s.io/cluster-api/feature"
+	"sigs.k8s.io/cluster-api/pkg/features"
+	runtimeclient "sigs.k8s.io/cluster-api/pkg/runtimesdk/client"
 )
 
 // externalValidator validates templates.
@@ -45,7 +45,7 @@ func NewValidator(runtimeClient runtimeclient.Client, patch *clusterv1.ClusterCl
 }
 
 func (e externalValidator) Validate(ctx context.Context, forObject client.Object, req *runtimehooksv1.ValidateTopologyRequest) (*runtimehooksv1.ValidateTopologyResponse, error) {
-	if !feature.Gates.Enabled(feature.RuntimeSDK) {
+	if !features.Gates.Enabled(features.RuntimeSDK) {
 		return nil, pkgerrors.Errorf("can not use external patch %q if RuntimeSDK feature flag is disabled", e.patch.External.ValidateTopologyExtension)
 	}
 

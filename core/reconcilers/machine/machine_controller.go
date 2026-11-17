@@ -34,7 +34,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
@@ -51,10 +50,10 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/controllers/noderefutil"
 	"sigs.k8s.io/cluster-api/core/reconcilers/machine/drain"
-	runtimeclient "sigs.k8s.io/cluster-api/exp/runtime/client"
-	"sigs.k8s.io/cluster-api/feature"
 	contractapi "sigs.k8s.io/cluster-api/internal/contract/api"
 	"sigs.k8s.io/cluster-api/pkg/dynamiccache"
+	"sigs.k8s.io/cluster-api/pkg/features"
+	runtimeclient "sigs.k8s.io/cluster-api/pkg/runtimesdk/client"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/cache"
@@ -64,7 +63,7 @@ import (
 	capicontrollerutil "sigs.k8s.io/cluster-api/util/controller"
 	"sigs.k8s.io/cluster-api/util/finalizers"
 	"sigs.k8s.io/cluster-api/util/index"
-	clog "sigs.k8s.io/cluster-api/util/log"
+	logutil "sigs.k8s.io/cluster-api/util/log"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/paused"
 	"sigs.k8s.io/cluster-api/util/predicates"
@@ -73,6 +72,9 @@ import (
 const (
 	drainRetryInterval               = time.Duration(20) * time.Second
 	waitForVolumeDetachRetryInterval = time.Duration(20) * time.Second
+
+	// logRateLimitInterval is the interval at which log lines repeated on every reconcile while waiting for something are logged.
+	logRateLimitInterval = time.Minute
 )
 
 var (
@@ -109,17 +111,16 @@ type Reconciler struct {
 	AdditionalSyncMachineLabels      []*regexp.Regexp
 	AdditionalSyncMachineAnnotations []*regexp.Regexp
 
-	controller capicontrollerutil.Controller
-	recorder   record.EventRecorder
+	controller     capicontrollerutil.Controller
+	recorder       record.EventRecorder
+	logRateLimiter *logutil.Limiter
 
-	// nodeDeletionRetryTimeout determines how long the controller will retry deleting a node
-	// during a single reconciliation.
-	nodeDeletionRetryTimeout time.Duration
-
-	hookCache            cache.Cache[cache.HookEntry]
+	updateMachineCache   cache.Cache[UpdateMachineCacheEntry]
 	externalObjectsCache cache.Cache[externalObjectsCacheEntry]
 
 	predicateLog *logr.Logger
+
+	overrideNowFunc func() time.Time
 }
 
 // SetupWithManager sets up the reconciler with the Manager.
@@ -131,7 +132,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 		// to have some buffer.
 		return pkgerrors.New("Client, APIReader and ClusterCache must not be nil and RemoteConditionsGracePeriod must not be < 2m")
 	}
-	if feature.Gates.Enabled(feature.InPlaceUpdates) && r.RuntimeClient == nil {
+	if features.Gates.Enabled(features.InPlaceUpdates) && r.RuntimeClient == nil {
 		return pkgerrors.New("RuntimeClient must not be nil when InPlaceUpdates feature gate is enabled")
 	}
 
@@ -147,10 +148,6 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 	mdToMachines, err := util.MachineDeploymentToObjectsMapper(mgr.GetClient(), &clusterv1.MachineList{}, mgr.GetScheme())
 	if err != nil {
 		return err
-	}
-
-	if r.nodeDeletionRetryTimeout.Nanoseconds() == 0 {
-		r.nodeDeletionRetryTimeout = 10 * time.Second
 	}
 
 	c, err := capicontrollerutil.NewControllerManagedBy(mgr, *r.predicateLog).
@@ -178,7 +175,8 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 		return pkgerrors.Wrap(err, "failed setting up with a controller manager")
 	}
 
-	r.hookCache = cache.New[cache.HookEntry](ctx, cache.HookCacheDefaultTTL)
+	r.logRateLimiter = logutil.New(ctx)
+	r.updateMachineCache = cache.New[UpdateMachineCacheEntry](ctx, 30*time.Minute)
 	r.externalObjectsCache = cache.New[externalObjectsCacheEntry](ctx, 1*time.Hour)
 	r.controller = c
 	r.recorder = mgr.GetEventRecorderFor("machine-controller")
@@ -204,7 +202,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (retres ct
 
 	// AddOwners adds the owners of Machine as k/v pairs to the logger.
 	// Specifically, it will add KubeadmControlPlane, MachineSet and MachineDeployment.
-	ctx, _, err := clog.AddOwners(ctx, r.Client, m)
+	ctx, _, err := logutil.AddOwners(ctx, r.Client, m)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -487,11 +485,6 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (ctrl.Result
 	if err != nil {
 		switch err {
 		case errNoControlPlaneNodes, errLastControlPlaneNode, errNilNodeRef, errClusterIsBeingDeleted, errControlPlaneIsBeingDeleted:
-			nodeName := ""
-			if m.Status.NodeRef.IsDefined() {
-				nodeName = m.Status.NodeRef.Name
-			}
-			log.Info("Skipping deletion of Kubernetes Node associated with Machine as it is not allowed", "Node", klog.KRef("", nodeName), "cause", err.Error())
 		default:
 			s.deletingReason = clusterv1.MachineDeletingInternalErrorReason
 			s.deletingMessage = "Please check controller logs for errors" //nolint:goconst // Not making this a constant for now
@@ -538,6 +531,7 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (ctrl.Result
 				m.Status.Deletion = &clusterv1.MachineDeletionStatus{}
 			}
 			if m.Status.Deletion.NodeDrainStartTime.IsZero() {
+				log.Info("Draining Node")
 				m.Status.Deletion.NodeDrainStartTime = metav1.Now()
 			}
 
@@ -635,11 +629,12 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (ctrl.Result
 		return ctrl.Result{}, err
 	}
 	if !infrastructureDeleted {
-		log.Info("Waiting for infrastructure to be deleted", m.Spec.InfrastructureRef.Kind, klog.KRef(m.Namespace, m.Spec.InfrastructureRef.Name))
+		r.logRateLimiter.InfoAtMostEvery(log, logRateLimitInterval, waitingForInfrastructureDeletionKey(m), "Waiting for infrastructure to be deleted", m.Spec.InfrastructureRef.Kind, klog.KRef(m.Namespace, m.Spec.InfrastructureRef.Name))
 		s.deletingReason = clusterv1.MachineDeletingWaitingForInfrastructureDeletionReason
 		s.deletingMessage = fmt.Sprintf("Waiting for %s to be deleted", m.Spec.InfrastructureRef.Kind)
 		return ctrl.Result{}, nil
 	}
+	r.logRateLimiter.Forget(waitingForInfrastructureDeletionKey(m))
 
 	if m.Spec.Bootstrap.ConfigRef.IsDefined() {
 		bootstrapDeleted, err := r.reconcileDeleteBootstrap(ctx, s)
@@ -649,45 +644,57 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (ctrl.Result
 			return ctrl.Result{}, err
 		}
 		if !bootstrapDeleted {
-			log.Info("Waiting for bootstrap to be deleted", m.Spec.Bootstrap.ConfigRef.Kind, klog.KRef(m.Namespace, m.Spec.Bootstrap.ConfigRef.Name))
+			r.logRateLimiter.InfoAtMostEvery(log, logRateLimitInterval, waitingForBootstrapDeletionKey(m), "Waiting for bootstrap to be deleted", m.Spec.Bootstrap.ConfigRef.Kind, klog.KRef(m.Namespace, m.Spec.Bootstrap.ConfigRef.Name))
 			s.deletingReason = clusterv1.MachineDeletingWaitingForBootstrapDeletionReason
 			s.deletingMessage = fmt.Sprintf("Waiting for %s to be deleted", m.Spec.Bootstrap.ConfigRef.Kind)
 			return ctrl.Result{}, nil
 		}
+		r.logRateLimiter.Forget(waitingForBootstrapDeletionKey(m))
 	}
 
 	// We only delete the node after the underlying infrastructure is gone.
 	// https://github.com/kubernetes-sigs/cluster-api/issues/2565
 	if isDeleteNodeAllowed {
-		log.Info("Deleting Node", "Node", klog.KRef("", m.Status.NodeRef.Name))
+		log.Info(fmt.Sprintf("Deleting Node %s", m.Status.NodeRef.Name), "Node", klog.KRef("", m.Status.NodeRef.Name))
 
-		var deleteNodeErr error
-		waitErr := wait.PollUntilContextTimeout(ctx, 2*time.Second, r.nodeDeletionRetryTimeout, true, func(ctx context.Context) (bool, error) {
-			if deleteNodeErr = r.deleteNode(ctx, cluster, m.Status.NodeRef.Name); deleteNodeErr != nil && !apierrors.IsNotFound(pkgerrors.Cause(deleteNodeErr)) {
-				return false, nil
-			}
-			return true, nil
-		})
-		if waitErr != nil {
-			log.Error(deleteNodeErr, "Timed out deleting Node", "Node", klog.KRef("", m.Status.NodeRef.Name))
+		if m.Status.Deletion == nil {
+			m.Status.Deletion = &clusterv1.MachineDeletionStatus{}
+		}
+		if m.Status.Deletion.NodeDeletionStartTime.IsZero() {
+			m.Status.Deletion.NodeDeletionStartTime = metav1.Now()
+		}
+
+		if err := r.deleteNode(ctx, cluster, m.Status.NodeRef.Name); err != nil && !apierrors.IsNotFound(pkgerrors.Cause(err)) {
 			v1beta1conditions.MarkFalse(m, clusterv1.MachineNodeHealthyV1Beta1Condition, clusterv1.DeletionFailedV1Beta1Reason, clusterv1.ConditionSeverityWarning, "")
-			r.recorder.Eventf(m, corev1.EventTypeWarning, "FailedDeleteNode", "error deleting Machine's Node: %v", deleteNodeErr)
+			r.recorder.Eventf(m, corev1.EventTypeWarning, "FailedDeleteNode", "error deleting Machine's Node: %v", err)
 
 			// If the node deletion timeout is not expired yet, requeue the Machine for reconciliation.
-			if m.Spec.Deletion.NodeDeletionTimeoutSeconds == nil || *m.Spec.Deletion.NodeDeletionTimeoutSeconds == 0 || m.DeletionTimestamp.Add(time.Duration(*m.Spec.Deletion.NodeDeletionTimeoutSeconds)*time.Second).After(time.Now()) {
+			if !r.nodeDeletionTimeoutExceeded(m) {
 				s.deletingReason = clusterv1.MachineDeletingDeletingNodeReason
 				s.deletingMessage = "Error deleting Node, please check controller logs for errors"
-				return ctrl.Result{}, deleteNodeErr
+				return ctrl.Result{}, err
 			}
-			log.Info("Node deletion timeout expired, continuing without Node deletion.")
+			log.Error(err, "Node deletion timeout expired, continuing without Node deletion", "Node", klog.KRef("", m.Status.NodeRef.Name))
 		}
 	}
 
 	s.deletingReason = clusterv1.MachineDeletingDeletionCompletedReason
 	s.deletingMessage = "Deletion completed"
 
+	// Note: The Machine is gone once the patch removing the finalizer succeeds; if the patch fails the next reconcile logs this line again.
+	if controllerutil.ContainsFinalizer(m, clusterv1.MachineFinalizer) {
+		log.Info(fmt.Sprintf("Machine %s deleted", m.Name), "duration", time.Since(m.DeletionTimestamp.Time).Truncate(time.Second/10))
+	}
 	controllerutil.RemoveFinalizer(m, clusterv1.MachineFinalizer)
 	return ctrl.Result{}, nil
+}
+
+func waitingForInfrastructureDeletionKey(m *clusterv1.Machine) logutil.Key {
+	return logutil.NewKey("WaitingForInfrastructureDeletion", logutil.WithObjects(m))
+}
+
+func waitingForBootstrapDeletionKey(m *clusterv1.Machine) logutil.Key {
+	return logutil.NewKey("WaitingForBootstrapDeletion", logutil.WithObjects(m))
 }
 
 func (r *Reconciler) isNodeDrainAllowed(m *clusterv1.Machine, infraMachine contractapi.InfraMachine) bool {
@@ -765,6 +772,25 @@ func (r *Reconciler) nodeVolumeDetachTimeoutExceeded(machine *clusterv1.Machine)
 	now := time.Now()
 	diff := now.Sub(machine.Status.Deletion.WaitForNodeVolumeDetachStartTime.Time)
 	return diff.Seconds() >= float64(*machine.Spec.Deletion.NodeVolumeDetachTimeoutSeconds)
+}
+
+// nodeDeletionTimeoutExceeded returns False if either NodeDeletionTimeoutSeconds is set to nil or <=0 OR
+// NodeDeletionStartTime is not set on the Machine. Otherwise returns true if the timeout is expired
+// since the NodeDeletionStartTime.
+func (r *Reconciler) nodeDeletionTimeoutExceeded(machine *clusterv1.Machine) bool {
+	// if the NodeDeletionTimeoutSeconds type is not set by user
+	if machine.Status.Deletion == nil || machine.Spec.Deletion.NodeDeletionTimeoutSeconds == nil || *machine.Spec.Deletion.NodeDeletionTimeoutSeconds <= 0 {
+		return false
+	}
+
+	// if the NodeDeletionStartTime does not exist
+	if machine.Status.Deletion.NodeDeletionStartTime.IsZero() {
+		return false
+	}
+
+	now := time.Now()
+	diff := now.Sub(machine.Status.Deletion.NodeDeletionStartTime.Time)
+	return diff.Seconds() >= float64(*machine.Spec.Deletion.NodeDeletionTimeoutSeconds)
 }
 
 // isDeleteNodeAllowed returns nil only if the Machine's NodeRef is not nil
@@ -922,17 +948,16 @@ func (r *Reconciler) drainNode(ctx context.Context, s *scope) (ctrl.Result, erro
 	}
 
 	podsToBeDrained := podDeleteList.Pods()
+	drainDuration := time.Since(machine.Status.Deletion.NodeDrainStartTime.Time).Truncate(time.Second / 10)
 	if len(podsToBeDrained) == 0 {
-		log.Info("Drain completed")
+		log.Info("Drain completed", "duration", drainDuration)
 		return ctrl.Result{}, nil
 	}
-
-	log.Info("Draining Node")
 
 	evictionResult := drainer.EvictPods(ctx, podDeleteList)
 
 	if evictionResult.DrainCompleted() {
-		log.Info("Drain completed, remaining Pods on the Node have been evicted")
+		log.Info("Drain completed, remaining Pods on the Node have been evicted", "duration", drainDuration)
 		return ctrl.Result{}, nil
 	}
 
@@ -1303,22 +1328,22 @@ func (a *attachedVolumeInformation) logKeys() []any {
 	logKeys := []any{}
 	if len(a.persistentVolumeClaims) > 0 {
 		slices.Sort(a.persistentVolumeClaims)
-		logKeys = append(logKeys, "PersistentVolumeClaims", clog.StringListToString(a.persistentVolumeClaims))
+		logKeys = append(logKeys, "PersistentVolumeClaims", logutil.StringListToString(a.persistentVolumeClaims))
 	}
 
 	if len(a.persistentVolumesWithoutPVCClaimRef) > 0 {
 		slices.Sort(a.persistentVolumesWithoutPVCClaimRef)
-		logKeys = append(logKeys, "PersistentVolumesWithoutPVCClaimRef", clog.StringListToString(a.persistentVolumesWithoutPVCClaimRef))
+		logKeys = append(logKeys, "PersistentVolumesWithoutPVCClaimRef", logutil.StringListToString(a.persistentVolumesWithoutPVCClaimRef))
 	}
 
 	if len(a.nodeStatusVolumeNamesWithoutPV) > 0 {
 		slices.Sort(a.nodeStatusVolumeNamesWithoutPV)
-		logKeys = append(logKeys, "NodeStatusVolumeNamesWithoutPV", clog.StringListToString(a.nodeStatusVolumeNamesWithoutPV))
+		logKeys = append(logKeys, "NodeStatusVolumeNamesWithoutPV", logutil.StringListToString(a.nodeStatusVolumeNamesWithoutPV))
 	}
 
 	if len(a.persistentVolumeNamesWithoutPV) > 0 {
 		slices.Sort(a.persistentVolumeNamesWithoutPV)
-		logKeys = append(logKeys, "PersistentVolumeNamesWithoutPV", clog.StringListToString(a.persistentVolumeNamesWithoutPV))
+		logKeys = append(logKeys, "PersistentVolumeNamesWithoutPV", logutil.StringListToString(a.persistentVolumeNamesWithoutPV))
 	}
 
 	return logKeys
@@ -1329,26 +1354,26 @@ func (a *attachedVolumeInformation) conditionMessage(machine *clusterv1.Machine)
 		return ""
 	}
 
-	conditionMessage := fmt.Sprintf("Waiting for Node volumes to be detached (started at %s)", machine.Status.Deletion.WaitForNodeVolumeDetachStartTime.Format(time.RFC3339))
+	conditionMessage := fmt.Sprintf("Waiting for Node volumes to be detached (started at %s):", machine.Status.Deletion.WaitForNodeVolumeDetachStartTime.Format(time.RFC3339))
 
 	if len(a.persistentVolumeClaims) > 0 {
 		slices.Sort(a.persistentVolumeClaims)
-		conditionMessage = fmt.Sprintf("%s\n* PersistentVolumeClaims: %s", conditionMessage, clog.StringListToString(a.persistentVolumeClaims))
+		conditionMessage = fmt.Sprintf("%s\n* PersistentVolumeClaims: %s", conditionMessage, logutil.StringListToString(a.persistentVolumeClaims))
 	}
 
 	if len(a.persistentVolumesWithoutPVCClaimRef) > 0 {
 		slices.Sort(a.persistentVolumesWithoutPVCClaimRef)
-		conditionMessage = fmt.Sprintf("%s\n* PersistentVolumes without a .spec.claimRef to a PersistentVolumeClaim: %s", conditionMessage, clog.StringListToString(a.persistentVolumesWithoutPVCClaimRef))
+		conditionMessage = fmt.Sprintf("%s\n* PersistentVolumes without a .spec.claimRef to a PersistentVolumeClaim: %s", conditionMessage, logutil.StringListToString(a.persistentVolumesWithoutPVCClaimRef))
 	}
 
 	if len(a.nodeStatusVolumeNamesWithoutPV) > 0 {
 		slices.Sort(a.nodeStatusVolumeNamesWithoutPV)
-		conditionMessage = fmt.Sprintf("%s\n* Node with .status.volumesAttached entries not matching a PersistentVolume: %s", conditionMessage, clog.StringListToString(a.nodeStatusVolumeNamesWithoutPV))
+		conditionMessage = fmt.Sprintf("%s\n* Node with .status.volumesAttached entries not matching a PersistentVolume: %s", conditionMessage, logutil.StringListToString(a.nodeStatusVolumeNamesWithoutPV))
 	}
 
 	if len(a.persistentVolumeNamesWithoutPV) > 0 {
 		slices.Sort(a.persistentVolumeNamesWithoutPV)
-		conditionMessage = fmt.Sprintf("%s\n* VolumeAttachment with .spec.source.persistentVolumeName not matching a PersistentVolume: %s", conditionMessage, clog.StringListToString(a.persistentVolumeNamesWithoutPV))
+		conditionMessage = fmt.Sprintf("%s\n* VolumeAttachment with .spec.source.persistentVolumeName not matching a PersistentVolume: %s", conditionMessage, logutil.StringListToString(a.persistentVolumeNamesWithoutPV))
 	}
 
 	return conditionMessage
@@ -1422,4 +1447,12 @@ func getPersistentVolumesWaitingForDetach(ctx context.Context, c client.Client, 
 		nodeStatusVolumeNamesWithoutPV:      attachedNodeVolumeNames.Difference(foundAttachedNodeVolumeNames).UnsortedList(),
 		persistentVolumeNamesWithoutPV:      attachedPVNames.Difference(foundAttachedPVNames).UnsortedList(),
 	}, nil
+}
+
+// now returns the current time. It can be overridden for unit tests via overrideNowFunc.
+func (r *Reconciler) now() time.Time {
+	if r.overrideNowFunc != nil {
+		return r.overrideNowFunc()
+	}
+	return time.Now()
 }

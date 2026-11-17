@@ -598,15 +598,19 @@ func getObjList(ctx context.Context, proxy Proxy, typeMeta *metav1.TypeMeta, sel
 		return err
 	}
 
+	gvk := objList.GetObjectKind().GroupVersionKind()
 	if typeMeta != nil {
-		objList.GetObjectKind().SetGroupVersionKind(typeMeta.GroupVersionKind())
+		gvk = typeMeta.GroupVersionKind()
+		// The "List" suffix is removed from the Kind of an unstructured list by controller-runtime;
+		// so add the "List" suffix in order to preserve kinds that end with "List".
+		objList.GetObjectKind().SetGroupVersionKind(gvk.GroupVersion().WithKind(gvk.Kind + "List"))
 	}
 
 	if err := c.List(ctx, objList, selectors...); err != nil {
 		if apierrors.IsNotFound(err) {
 			return nil
 		}
-		return pkgerrors.Wrapf(err, "failed to list %q resources", objList.GetObjectKind().GroupVersionKind())
+		return pkgerrors.Wrapf(err, "failed to list %q resources", gvk)
 	}
 	return nil
 }
@@ -644,7 +648,7 @@ func (o *objectGraph) getClusterResourceSetBinding() []*node {
 	return crs
 }
 
-// getClusters returns the list of Secrets existing in the object graph.
+// getSecrets returns the list of Secrets existing in the object graph.
 func (o *objectGraph) getSecrets() []*node {
 	secrets := []*node{}
 	for _, node := range o.uidToNode {
@@ -794,7 +798,7 @@ func (o *objectGraph) checkVirtualNode() {
 	}
 }
 
-// Ensure objects which are referenced across namespaces are not deleted.
+// setShouldNotDelete ensures objects which are referenced across namespaces are not deleted.
 func (o *objectGraph) setShouldNotDelete(ctx context.Context, namespace string) error {
 	if namespace == "" {
 		return nil

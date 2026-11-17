@@ -203,7 +203,11 @@ func RegenerateSecret(ctx context.Context, c client.Client, configSecret *corev1
 	if err != nil {
 		return pkgerrors.Wrap(err, "failed to convert kubeconfig Secret into a clientcmdapi.Config")
 	}
-	endpoint := config.Clusters[clusterName].Server
+	cluster, ok := config.Clusters[clusterName]
+	if !ok || cluster == nil {
+		return pkgerrors.Errorf("failed to find cluster %q in kubeconfig Secret", clusterName)
+	}
+	endpoint := cluster.Server
 	key := client.ObjectKey{Name: clusterName, Namespace: configSecret.Namespace}
 	out, err := generateKubeconfig(ctx, c, key, endpoint, options...)
 	if err != nil {

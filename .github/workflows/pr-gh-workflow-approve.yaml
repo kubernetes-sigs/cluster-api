@@ -1,6 +1,10 @@
 name: PR approve GH Workflows
 
 on:
+  # pull_request_target is required because:
+  # * we want to run this action as defined on the main branch, not as defined on the fork / PR
+  # * we need access to a GITHUB_TOKEN with permissions on the cluster-api repo not the fork
+  # Note: This action is not checking out any code (from the PR) so it cannot be influenced by the PR content.
   pull_request_target:
     types:
       - edited

@@ -39,7 +39,7 @@ import (
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/collections"
 	"sigs.k8s.io/cluster-api/util/conditions"
-	clog "sigs.k8s.io/cluster-api/util/log"
+	logutil "sigs.k8s.io/cluster-api/util/log"
 )
 
 func (r *Reconciler) updateStatus(ctx context.Context, s *scope) error {
@@ -78,7 +78,7 @@ func (r *Reconciler) updateStatus(ctx context.Context, s *scope) error {
 	setRemoteConnectionProbeCondition(ctx, s.cluster, healthCheckingState, r.RemoteConnectionGracePeriod)
 	setInfrastructureReadyCondition(ctx, s.cluster, s.infraCluster, s.infraClusterIsNotFound)
 	setControlPlaneAvailableCondition(ctx, s.cluster, s.controlPlane, s.controlPlaneIsNotFound)
-	setControlPlaneInitializedCondition(ctx, s.cluster, s.controlPlane, controlPlaneContractVersion, s.descendants.controlPlaneMachines, s.infraClusterIsNotFound, s.getDescendantsSucceeded)
+	setControlPlaneInitializedCondition(ctx, s.cluster, s.controlPlane, controlPlaneContractVersion, s.descendants.controlPlaneMachines, s.controlPlaneIsNotFound, s.getDescendantsSucceeded)
 	setWorkersAvailableCondition(ctx, s.cluster, clusterv1.MachinePoolList{}, s.descendants.machineDeployments, s.getDescendantsSucceeded)
 	setControlPlaneMachinesReadyCondition(ctx, s.cluster, controlPlaneMachines, s.getDescendantsSucceeded)
 	setWorkerMachinesReadyCondition(ctx, s.cluster, workerMachines, s.getDescendantsSucceeded)
@@ -1262,7 +1262,7 @@ func aggregateUnhealthyMachines(machines collections.Machines) string {
 	}
 
 	sort.Strings(machineNames)
-	message += " " + clog.ListToString(machineNames, func(s string) string { return s }, 3)
+	message += " " + logutil.ListToString(machineNames, func(s string) string { return s }, 3)
 
 	if len(machineNames) == 1 {
 		message += " is "

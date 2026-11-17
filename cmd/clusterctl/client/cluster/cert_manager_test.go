@@ -19,6 +19,7 @@ package cluster
 import (
 	"context"
 	"fmt"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -474,9 +475,7 @@ func Test_shouldUpgrade(t *testing.T) {
 			// just append an empty unstructured object at the end to make them different.
 			installObjs := tt.args.objs
 			if tt.hasDiffInstallObjs {
-				installObjs = make([]unstructured.Unstructured, len(tt.args.objs))
-				copy(installObjs, tt.args.objs)
-				installObjs = append(installObjs, unstructured.Unstructured{})
+				installObjs = append(slices.Clone(tt.args.objs), unstructured.Unstructured{})
 			}
 			if tt.installObjs != nil {
 				installObjs = tt.installObjs

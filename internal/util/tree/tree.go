@@ -839,7 +839,7 @@ func conditionInfo(c metav1.Condition, positivePolarity bool) (color *color.Colo
 	age = duration.HumanDuration(time.Since(c.LastTransitionTime.Time))
 	message = formatParagraph(c.Message, 100)
 
-	return
+	return color, status, age, reason, message
 }
 
 var re = regexp.MustCompile(`[\s]+`)

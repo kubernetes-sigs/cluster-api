@@ -318,6 +318,16 @@ type ControlPlaneClassHealthCheckChecks struct {
 	// +kubebuilder:validation:MinItems=1
 	// +kubebuilder:validation:MaxItems=100
 	UnhealthyMachineConditions []UnhealthyMachineCondition `json:"unhealthyMachineConditions,omitempty"`
+
+	// unhealthyExpressions contains a list of CEL expressions that determine whether a
+	// Machine is considered unhealthy. The expressions are combined in a
+	// logical OR, i.e. if any of the expressions evaluates to true, the machine is unhealthy.
+	//
+	// +optional
+	// +listType=atomic
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=10
+	UnhealthyExpressions []UnhealthyExpression `json:"unhealthyExpressions,omitempty"`
 }
 
 // ControlPlaneClassHealthCheckRemediation configures if and how remediations are triggered if a control plane Machine is unhealthy.
@@ -381,7 +391,7 @@ type ControlPlaneClassMachineDeletionSpec struct {
 	NodeVolumeDetachTimeoutSeconds *int32 `json:"nodeVolumeDetachTimeoutSeconds,omitempty"`
 
 	// nodeDeletionTimeoutSeconds defines how long the controller will attempt to delete the Node that the Machine
-	// hosts after the Machine is marked for deletion. A duration of 0 will retry deletion indefinitely.
+	// hosts, measured from when the deletion of the Node started. A duration of 0 will retry deletion indefinitely.
 	// Defaults to 10 seconds.
 	// NOTE: This value can be overridden while defining a Cluster.Topology.
 	// +optional
@@ -606,6 +616,16 @@ type MachineDeploymentClassHealthCheckChecks struct {
 	// +kubebuilder:validation:MinItems=1
 	// +kubebuilder:validation:MaxItems=100
 	UnhealthyMachineConditions []UnhealthyMachineCondition `json:"unhealthyMachineConditions,omitempty"`
+
+	// unhealthyExpressions contains a list of CEL expressions that determine whether a
+	// Machine is considered unhealthy. The expressions are combined in a
+	// logical OR, i.e. if any of the expressions evaluates to true, the machine is unhealthy.
+	//
+	// +optional
+	// +listType=atomic
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=10
+	UnhealthyExpressions []UnhealthyExpression `json:"unhealthyExpressions,omitempty"`
 }
 
 // MachineDeploymentClassHealthCheckRemediation configures if and how remediations are triggered if a MachineDeployment Machine is unhealthy.
@@ -692,7 +712,7 @@ type MachineDeploymentClassMachineDeletionSpec struct {
 	NodeVolumeDetachTimeoutSeconds *int32 `json:"nodeVolumeDetachTimeoutSeconds,omitempty"`
 
 	// nodeDeletionTimeoutSeconds defines how long the controller will attempt to delete the Node that the Machine
-	// hosts after the Machine is marked for deletion. A duration of 0 will retry deletion indefinitely.
+	// hosts, measured from when the deletion of the Node started. A duration of 0 will retry deletion indefinitely.
 	// Defaults to 10 seconds.
 	// NOTE: This value can be overridden while defining a Cluster.Topology using this MachineDeploymentClass.
 	// +optional
@@ -728,6 +748,7 @@ type MachineDeploymentClassRolloutSpec struct {
 // MachineDeploymentClassRolloutStrategy describes how to replace existing machines
 // with new ones.
 // +kubebuilder:validation:MinProperties=1
+// +kubebuilder:validation:XValidation:rule="(oldSelf.hasValue() && self == oldSelf.value()) || !has(self.rollingUpdate) || self.type == 'RollingUpdate'",optionalOldSelf=true,message="rollingUpdate can only be set if type is RollingUpdate"
 type MachineDeploymentClassRolloutStrategy struct {
 	// type of rollout. Allowed values are RollingUpdate and OnDelete.
 	// Default is RollingUpdate.

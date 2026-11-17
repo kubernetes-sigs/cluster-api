@@ -1,5 +1,4 @@
 //go:build tools
-// +build tools
 
 /*
 Copyright 2021 The Kubernetes Authors.
@@ -66,14 +65,14 @@ Example call for tilt up:
 */
 
 const (
-	kustomizePath = "./hack/tools/bin/kustomize"
+	kustomizePath = "./_output/tools/kustomize"
 )
 
 var (
-	// Defines the default version to be used for the provider CR if no version is specified in the tilt-provider.yaml|json file.
+	// defaultProviderVersion defines the default version to be used for the provider CR if no version is specified in the tilt-provider.yaml|json file.
 	defaultProviderVersion = "v1.15.99"
 
-	// This data struct mirrors a subset of info from the providers struct in the tilt file
+	// providers is a data struct that mirrors a subset of info from the providers struct in the tilt file
 	// which is containing "hard-coded" tilt-provider.yaml files for the providers managed in the Cluster API repository.
 	providers = map[string]tiltProviderConfig{
 		"core": {
@@ -154,12 +153,13 @@ func init() {
 		klog.Fatalf("failed to get project root folder: %s: %v)", stderr.String(), err)
 	}
 	rootPath = strings.Trim(stdout.String(), "\n")
-	tiltBuildPath = filepath.Join(rootPath, ".tiltbuild")
+	// Note: This should be kept in sync with tilt_build_dir in the Tiltfile.
+	tiltBuildPath = filepath.Join(rootPath, "_output", "tilt")
 
 	_ = clusterctlv1.AddToScheme(scheme.Scheme)
 }
 
-// This tool aims to speed up tilt startup time by running in parallel a set of task
+// main is the entrypoint of this tool, which aims to speed up tilt startup time by running in parallel a set of task
 // preparing everything is required for tilt up.
 func main() {
 	// Set clusterctl logger with a log level of 5.
@@ -483,7 +483,7 @@ func runTaskGroup(ctx context.Context, name string, tasks map[string]taskFunctio
 	// Wait until either WaitGroup is done or an error is received through the error channel.
 	select {
 	case <-wgDone:
-		break
+		// All tasks completed successfully.
 	case err := <-errors:
 		// cancel all the running tasks
 		cancel(err)

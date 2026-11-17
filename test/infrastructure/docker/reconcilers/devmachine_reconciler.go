@@ -42,7 +42,7 @@ import (
 	"sigs.k8s.io/cluster-api/util"
 	capicontrollerutil "sigs.k8s.io/cluster-api/util/controller"
 	"sigs.k8s.io/cluster-api/util/finalizers"
-	clog "sigs.k8s.io/cluster-api/util/log"
+	logutil "sigs.k8s.io/cluster-api/util/log"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/paused"
 	"sigs.k8s.io/cluster-api/util/predicates"
@@ -125,7 +125,7 @@ func (r *DevMachine) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 
 	// AddOwners adds the owners of DevMachine as k/v pairs to the logger.
 	// Specifically, it will add KubeadmControlPlane, MachineSet and MachineDeployment.
-	ctx, log, err := clog.AddOwners(ctx, r.Client, devMachine)
+	ctx, log, err := logutil.AddOwners(ctx, r.Client, devMachine)
 	if err != nil {
 		return ctrl.Result{}, err
 	}

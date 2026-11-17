@@ -74,12 +74,6 @@ var etcdMandatoryMachineReadinessGates = []clusterv1.MachineReadinessGate{
 	{ConditionType: controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyCondition},
 }
 
-// kubeadmClusterConfigurationAnnotation is an annotation that was set in Cluster API <= v1.11.
-// Starting with Cluster API v1.12 we remove it from existing Machines.
-//
-// Deprecated: This constant and corresponding cleanup code can be removed once we don't support upgrades from Cluster API v1.12 anymore.
-const kubeadmClusterConfigurationAnnotation = "controlplane.cluster.x-k8s.io/kubeadm-cluster-configuration"
-
 // ComputeDesiredMachine computes the desired Machine.
 // This Machine will be used during reconciliation to:
 // * create a new Machine
@@ -120,9 +114,6 @@ func ComputeDesiredMachine(kcp *controlplanev1.KubeadmControlPlane, cluster *clu
 		machineName = existingMachine.Name
 		machineUID = existingMachine.UID
 		version = existingMachine.Spec.Version
-
-		// Cleanup the KubeadmClusterConfigurationAnnotation annotation that was set in Cluster API <= v1.11.
-		delete(annotations, kubeadmClusterConfigurationAnnotation)
 
 		// If the machine already has remediation data then preserve it.
 		// NOTE: This is required in order to track remediation retries.

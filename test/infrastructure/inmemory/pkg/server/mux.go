@@ -208,7 +208,7 @@ func (m *WorkloadClustersMux) mixedHandler() http.Handler {
 	// Creates the mixed handler combining the two above depending on
 	// the type of request being processed
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.ProtoMajor == 2 && strings.HasPrefix(r.Header.Get("content-type"), "application/grpc") {
+		if r.ProtoMajor == 2 && strings.HasPrefix(r.Header.Get("Content-Type"), "application/grpc") {
 			etcdHandler.ServeHTTP(w, r)
 			return
 		}

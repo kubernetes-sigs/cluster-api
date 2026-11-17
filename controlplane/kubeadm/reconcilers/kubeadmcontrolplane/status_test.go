@@ -270,10 +270,13 @@ func Test_setRollingOutCondition(t *testing.T) {
 	}
 
 	tests := []struct {
-		name            string
-		kcp             *controlplanev1.KubeadmControlPlane
-		machines        []*clusterv1.Machine
-		expectCondition metav1.Condition
+		name                    string
+		cluster                 *clusterv1.Cluster
+		kcp                     *controlplanev1.KubeadmControlPlane
+		machines                []*clusterv1.Machine
+		preflightChecks         pkg.PreflightCheckResults
+		canUpdateMachineResults pkg.CanUpdateMachineResults
+		expectCondition         metav1.Condition
 	}{
 		{
 			name:     "no machines",
@@ -332,10 +335,104 @@ func Test_setRollingOutCondition(t *testing.T) {
 				Type:   controlplanev1.KubeadmControlPlaneRollingOutCondition,
 				Status: metav1.ConditionTrue,
 				Reason: controlplanev1.KubeadmControlPlaneRollingOutReason,
-				Message: "Rolling out 2 not up-to-date replicas\n" +
+				Message: "Rolling out 2 not up-to-date replicas:\n" +
 					"* Version v1.25.0, v1.26.0 required\n" +
 					"* Failure domain failure-domain1, failure-domain2 required\n" +
 					"* InfrastructureMachine is not up-to-date",
+			},
+		},
+		{
+			name: "waiting for the rollout decision of the CanUpdateMachine hook",
+			kcp:  &controlplanev1.KubeadmControlPlane{},
+			machines: []*clusterv1.Machine{
+				{ObjectMeta: metav1.ObjectMeta{Name: "m1"}, Status: clusterv1.MachineStatus{Conditions: []metav1.Condition{
+					{
+						Type:    clusterv1.MachineUpToDateCondition,
+						Status:  metav1.ConditionFalse,
+						Reason:  clusterv1.MachineNotUpToDateReason,
+						Message: "* Version v1.25.0, v1.26.0 required",
+					},
+				}}},
+			},
+			canUpdateMachineResults: pkg.CanUpdateMachineResults{
+				WaitingForDecisionMessage: "Blocked by CanUpdateMachine hook for Machine m1: detailed message",
+			},
+			expectCondition: metav1.Condition{
+				Type:   controlplanev1.KubeadmControlPlaneRollingOutCondition,
+				Status: metav1.ConditionTrue,
+				Reason: controlplanev1.KubeadmControlPlaneRollingOutWaitingForRolloutDecisionReason,
+				Message: "Rolling out 1 not up-to-date replicas:\n" +
+					"* Blocked by CanUpdateMachine hook for Machine m1: detailed message\n" +
+					"* Version v1.25.0, v1.26.0 required",
+			},
+		},
+		{
+			name: "rollout blocked by the CanUpdateMachine hook",
+			kcp:  &controlplanev1.KubeadmControlPlane{},
+			machines: []*clusterv1.Machine{
+				{ObjectMeta: metav1.ObjectMeta{Name: "m1"}, Status: clusterv1.MachineStatus{Conditions: []metav1.Condition{
+					{
+						Type:    clusterv1.MachineUpToDateCondition,
+						Status:  metav1.ConditionFalse,
+						Reason:  clusterv1.MachineNotUpToDateReason,
+						Message: "* Version v1.25.0, v1.26.0 required",
+					},
+				}}},
+			},
+			canUpdateMachineResults: pkg.CanUpdateMachineResults{
+				RolloutBlockedMessage: "Blocked by CanUpdateMachine hook for Machine m1: preflight check failed",
+			},
+			expectCondition: metav1.Condition{
+				Type:   controlplanev1.KubeadmControlPlaneRollingOutCondition,
+				Status: metav1.ConditionTrue,
+				Reason: controlplanev1.KubeadmControlPlaneRollingOutRolloutBlockedReason,
+				Message: "Rolling out 1 not up-to-date replicas:\n" +
+					"* Blocked by CanUpdateMachine hook for Machine m1: preflight check failed\n" +
+					"* Version v1.25.0, v1.26.0 required",
+			},
+		},
+		{
+			name: "CanUpdateMachine hook returned an error",
+			cluster: &clusterv1.Cluster{
+				Spec: clusterv1.ClusterSpec{
+					Topology: clusterv1.Topology{
+						Version: "v1.32.0",
+					},
+				},
+			},
+			kcp: &controlplanev1.KubeadmControlPlane{},
+			machines: []*clusterv1.Machine{
+				{ObjectMeta: metav1.ObjectMeta{Name: "m1"}, Status: clusterv1.MachineStatus{Conditions: []metav1.Condition{
+					{
+						Type:    clusterv1.MachineUpToDateCondition,
+						Status:  metav1.ConditionFalse,
+						Reason:  clusterv1.MachineNotUpToDateReason,
+						Message: "* Version v1.25.0, v1.26.0 required",
+					},
+				}}},
+			},
+			preflightChecks: pkg.PreflightCheckResults{
+				HasDeletingMachine:               true,
+				CertificateMissing:               true,
+				ControlPlaneComponentsNotHealthy: true,
+				EtcdClusterNotHealthy:            true,
+				TopologyVersionMismatch:          true,
+			},
+			canUpdateMachineResults: pkg.CanUpdateMachineResults{
+				InternalErrorMessage: "Blocked by CanUpdateMachine hook for Machine m1: extension failed",
+			},
+			expectCondition: metav1.Condition{
+				Type:   controlplanev1.KubeadmControlPlaneRollingOutCondition,
+				Status: metav1.ConditionTrue,
+				Reason: controlplanev1.KubeadmControlPlaneRollingOutInternalErrorReason,
+				Message: "Rolling out 1 not up-to-date replicas:\n" +
+					"* Waiting for a version upgrade to v1.32.0 to be propagated\n" +
+					"* Waiting for a control plane Machine to complete deletion\n" +
+					"* Blocked because cluster certificates are missing or unknown\n" +
+					"* Waiting for control plane components to become healthy\n" +
+					"* Waiting for etcd cluster to become healthy\n" +
+					"* Blocked by CanUpdateMachine hook for Machine m1: extension failed\n" +
+					"* Version v1.25.0, v1.26.0 required",
 			},
 		},
 	}
@@ -347,7 +444,11 @@ func Test_setRollingOutCondition(t *testing.T) {
 			if tt.machines != nil {
 				machines = collections.FromMachines(tt.machines...)
 			}
-			setRollingOutCondition(ctx, tt.kcp, machines)
+			cluster := tt.cluster
+			if cluster == nil {
+				cluster = &clusterv1.Cluster{}
+			}
+			setRollingOutCondition(ctx, cluster, tt.kcp, machines, tt.preflightChecks, tt.canUpdateMachineResults)
 
 			condition := conditions.Get(tt.kcp, controlplanev1.KubeadmControlPlaneRollingOutCondition)
 			g.Expect(condition).ToNot(BeNil())
@@ -490,8 +591,8 @@ func Test_setScalingUpCondition(t *testing.T) {
 				Type:   controlplanev1.KubeadmControlPlaneScalingUpCondition,
 				Status: metav1.ConditionTrue,
 				Reason: controlplanev1.KubeadmControlPlaneScalingUpReason,
-				Message: "Scaling up from 3 to 5 replicas is blocked because:\n" +
-					"* AWSTemplate does not exist",
+				Message: "Scaling up from 3 to 5 replicas:\n" +
+					"* Blocked because AWSTemplate does not exist",
 			},
 		},
 		{
@@ -525,12 +626,12 @@ func Test_setScalingUpCondition(t *testing.T) {
 				Type:   controlplanev1.KubeadmControlPlaneScalingUpCondition,
 				Status: metav1.ConditionTrue,
 				Reason: controlplanev1.KubeadmControlPlaneScalingUpReason,
-				Message: "Scaling up from 3 to 5 replicas is blocked because:\n" +
-					"* waiting for a version upgrade to v1.32.0 to be propagated\n" +
-					"* waiting for a control plane Machine to complete deletion\n" +
-					"* cluster certificates are missing or unknown\n" +
-					"* waiting for control plane components to become healthy\n" +
-					"* waiting for etcd cluster to become healthy",
+				Message: "Scaling up from 3 to 5 replicas:\n" +
+					"* Waiting for a version upgrade to v1.32.0 to be propagated\n" +
+					"* Waiting for a control plane Machine to complete deletion\n" +
+					"* Blocked because cluster certificates are missing or unknown\n" +
+					"* Waiting for control plane components to become healthy\n" +
+					"* Waiting for etcd cluster to become healthy",
 			},
 		},
 	}
@@ -665,8 +766,8 @@ After above Pods have been removed from the Node, the following Pods will be evi
 				Type:   controlplanev1.KubeadmControlPlaneScalingDownCondition,
 				Status: metav1.ConditionTrue,
 				Reason: controlplanev1.KubeadmControlPlaneScalingDownReason,
-				Message: "Scaling down from 3 to 1 replicas is blocked because:\n" +
-					"* Machine m1 is in deletion since more than 15m, delay likely due to PodDisruptionBudgets, Pods not terminating, Pod eviction errors, Pods not completed yet",
+				Message: "Scaling down from 3 to 1 replicas:\n" +
+					"* Blocked because Machine m1 is in deletion since more than 15m, delay likely due to PodDisruptionBudgets, Pods not terminating, Pod eviction errors, Pods not completed yet",
 			},
 		},
 		{
@@ -686,8 +787,8 @@ After above Pods have been removed from the Node, the following Pods will be evi
 				Type:   controlplanev1.KubeadmControlPlaneScalingDownCondition,
 				Status: metav1.ConditionTrue,
 				Reason: controlplanev1.KubeadmControlPlaneScalingDownReason,
-				Message: "Scaling down from 3 to 1 replicas is blocked because:\n" +
-					"* Machines m1, m2 are in deletion since more than 15m",
+				Message: "Scaling down from 3 to 1 replicas:\n" +
+					"* Blocked because Machines m1, m2 are in deletion since more than 15m",
 			},
 		},
 		{
@@ -720,11 +821,11 @@ After above Pods have been removed from the Node, the following Pods will be evi
 				Type:   controlplanev1.KubeadmControlPlaneScalingDownCondition,
 				Status: metav1.ConditionTrue,
 				Reason: controlplanev1.KubeadmControlPlaneScalingDownReason,
-				Message: "Scaling down from 3 to 1 replicas is blocked because:\n" +
-					"* waiting for a version upgrade to v1.32.0 to be propagated\n" +
-					"* waiting for a control plane Machine to complete deletion\n" +
-					"* waiting for control plane components to become healthy\n" +
-					"* waiting for etcd cluster to become healthy",
+				Message: "Scaling down from 3 to 1 replicas:\n" +
+					"* Waiting for a version upgrade to v1.32.0 to be propagated\n" +
+					"* Waiting for a control plane Machine to complete deletion\n" +
+					"* Waiting for control plane components to become healthy\n" +
+					"* Waiting for etcd cluster to become healthy",
 			},
 		},
 	}

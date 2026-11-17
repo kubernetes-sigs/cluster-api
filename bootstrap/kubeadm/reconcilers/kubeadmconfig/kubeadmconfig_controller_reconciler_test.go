@@ -61,7 +61,7 @@ func TestKubeadmConfigReconciler(t *testing.T) {
 					Name:      "my-machine-config",
 				},
 			})
-			g.Expect(err).To(Succeed())
+			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(result.RequeueAfter).To(Equal(time.Duration(0)))
 		})
 	})

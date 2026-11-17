@@ -56,4 +56,4 @@ type Cluster struct {
 A detailed guide on the purpose of each of these tags is [here](https://book.kubebuilder.io/reference/markers/webhook.html).
 
 <!-- links -->
-[the Cluster webhook]: https://github.com/kubernetes-sigs/cluster-api/blob/main/internal/webhooks/cluster.go
+[the Cluster webhook]: https://github.com/kubernetes-sigs/cluster-api/blob/main/core/webhooks/admission/cluster.go

@@ -17,6 +17,7 @@ limitations under the License.
 package machinehealthcheck
 
 import (
+	"errors"
 	"fmt"
 
 	. "github.com/onsi/gomega"
@@ -40,7 +41,7 @@ type machineHealthCheckStatusMatcher struct {
 func (m machineHealthCheckStatusMatcher) Match(actual interface{}) (success bool, err error) {
 	actualStatus, ok := actual.(*clusterv1.MachineHealthCheckStatus)
 	if !ok {
-		return false, fmt.Errorf("actual should be of type MachineHealthCheckStatus")
+		return false, errors.New("actual should be of type MachineHealthCheckStatus")
 	}
 
 	ok, err = Equal(m.expected.CurrentHealthy).Match(actualStatus.CurrentHealthy)

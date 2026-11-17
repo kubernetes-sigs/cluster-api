@@ -924,7 +924,7 @@ func TestDefaultFeatureGates(t *testing.T) {
 			g := NewWithT(t)
 
 			DefaultFeatureGates(tt.kubeadmConfigSpec, tt.kubernetesVersion)
-			g.Expect(tt.wantKubeadmConfigSpec).Should(BeComparableTo(tt.kubeadmConfigSpec))
+			g.Expect(tt.wantKubeadmConfigSpec).To(BeComparableTo(tt.kubeadmConfigSpec))
 		})
 	}
 }

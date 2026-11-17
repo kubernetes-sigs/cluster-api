@@ -17,6 +17,7 @@ limitations under the License.
 package cluster
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -24,7 +25,10 @@ import (
 	"time"
 
 	. "github.com/onsi/gomega"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/client-go/rest"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/internal/test"
 	"sigs.k8s.io/cluster-api/version"
@@ -257,6 +261,98 @@ func TestProxyCurrentNamespace(t *testing.T) {
 			}
 			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(ns).To(Equal(tt.expectedNamespace))
+		})
+	}
+}
+
+func TestListObjByGVK(t *testing.T) {
+	tests := []struct {
+		name          string
+		groupVersion  string
+		kind          string
+		objs          []client.Object
+		expectedNames []string
+	}{
+		{
+			name:         "return objects of a kind ending in List",
+			groupVersion: "ec2.aws.m.upbound.io/v1beta1",
+			kind:         "ManagedPrefixList",
+			objs: []client.Object{
+				&unstructured.Unstructured{
+					Object: map[string]interface{}{
+						"apiVersion": "ec2.aws.m.upbound.io/v1beta1",
+						"kind":       "ManagedPrefixList",
+						"metadata": map[string]interface{}{
+							"name":      "labelled",
+							"namespace": "ns1",
+							"labels":    map[string]interface{}{"cluster.x-k8s.io/provider": "infrastructure-foo"},
+						},
+					},
+				},
+				&unstructured.Unstructured{
+					Object: map[string]interface{}{
+						"apiVersion": "ec2.aws.m.upbound.io/v1beta1",
+						"kind":       "ManagedPrefixList",
+						"metadata": map[string]interface{}{
+							"name":      "not-labelled",
+							"namespace": "ns1",
+						},
+					},
+				},
+			},
+			expectedNames: []string{"labelled"},
+		},
+		{
+			name:          "return no objects of a kind ending in List",
+			groupVersion:  "ec2.aws.m.upbound.io/v1beta1",
+			kind:          "ManagedPrefixList",
+			expectedNames: []string{},
+		},
+		{
+			name:         "return objects of a kind not ending in List",
+			groupVersion: "v1",
+			kind:         "ConfigMap",
+			objs: []client.Object{
+				&unstructured.Unstructured{
+					Object: map[string]interface{}{
+						"apiVersion": "v1",
+						"kind":       "ConfigMap",
+						"metadata": map[string]interface{}{
+							"name":      "labelled",
+							"namespace": "ns1",
+							"labels":    map[string]interface{}{"cluster.x-k8s.io/provider": "infrastructure-foo"},
+						},
+					},
+				},
+				&unstructured.Unstructured{
+					Object: map[string]interface{}{
+						"apiVersion": "v1",
+						"kind":       "ConfigMap",
+						"metadata": map[string]interface{}{
+							"name":      "not-labelled",
+							"namespace": "ns1",
+						},
+					},
+				},
+			},
+			expectedNames: []string{"labelled"},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			c := fake.NewClientBuilder().WithObjects(tt.objs...).Build()
+
+			objList, err := listObjByGVK(context.Background(), c, tt.groupVersion, tt.kind, []client.ListOption{client.MatchingLabels{"cluster.x-k8s.io/provider": "infrastructure-foo"}})
+			g.Expect(err).ToNot(HaveOccurred())
+
+			names := []string{}
+			for _, obj := range objList.Items {
+				g.Expect(obj.GetKind()).To(Equal(tt.kind))
+				names = append(names, obj.GetName())
+			}
+			g.Expect(names).To(ConsistOf(tt.expectedNames))
 		})
 	}
 }

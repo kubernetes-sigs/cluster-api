@@ -41,6 +41,7 @@ type PatchHelper interface {
 	PatchData() string
 
 	// Diff return the diff between original and modified.
+	// Note: The diff is computed only if the logger in the context used to create the helper has verbosity >= 4.
 	Diff() string
 
 	// Patch patches the given obj in the Kubernetes cluster.

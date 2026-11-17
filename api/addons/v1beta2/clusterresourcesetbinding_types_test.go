@@ -37,7 +37,7 @@ func TestIsResourceApplied(t *testing.T) {
 		Name: "notExist",
 		Kind: "Secret",
 	}
-	CRSBinding := &ResourceSetBinding{
+	crsBinding := &ResourceSetBinding{
 		ClusterResourceSetName: "test-clusterResourceSet",
 		Resources: []ResourceBinding{
 			{
@@ -63,19 +63,19 @@ func TestIsResourceApplied(t *testing.T) {
 	}{
 		{
 			name:               "should return true if the resource is applied successfully",
-			resourceSetBinding: CRSBinding,
+			resourceSetBinding: crsBinding,
 			resourceRef:        resourceRefApplySucceeded,
 			isApplied:          true,
 		},
 		{
 			name:               "should return false if the resource apply failed",
-			resourceSetBinding: CRSBinding,
+			resourceSetBinding: crsBinding,
 			resourceRef:        resourceRefApplyFailed,
 			isApplied:          false,
 		},
 		{
 			name:               "should return false if the resource does not exist",
-			resourceSetBinding: CRSBinding,
+			resourceSetBinding: crsBinding,
 			resourceRef:        resourceRefNotExist,
 			isApplied:          false,
 		},
@@ -157,7 +157,7 @@ func TestSetResourceBinding(t *testing.T) {
 		Kind: "Secret",
 	}
 
-	CRSBinding := &ResourceSetBinding{
+	cRSBinding := &ResourceSetBinding{
 		ClusterResourceSetName: "test-clusterResourceSet",
 		Resources: []ResourceBinding{
 			{
@@ -192,12 +192,12 @@ func TestSetResourceBinding(t *testing.T) {
 	}{
 		{
 			name:               "should update resourceSetBinding with new resource binding if not exist",
-			resourceSetBinding: CRSBinding,
+			resourceSetBinding: cRSBinding,
 			resourceBinding:    newResourceBinding,
 		},
 		{
 			name:               "should update Applied if resource failed before",
-			resourceSetBinding: CRSBinding,
+			resourceSetBinding: cRSBinding,
 			resourceBinding:    updateFailedResourceBinding,
 		},
 	}
@@ -208,8 +208,8 @@ func TestSetResourceBinding(t *testing.T) {
 			exist := false
 			for _, b := range tt.resourceSetBinding.Resources {
 				if b.ResourceRef == tt.resourceBinding.ResourceRef {
-					if tt.resourceBinding.Applied != b.Applied {
-						t.Fatalf("Expected %d to equal %d", tt.resourceBinding.Applied, b.Applied)
+					if deref(tt.resourceBinding.Applied, false) != deref(b.Applied, false) {
+						t.Fatalf("Expected %t to equal %t", deref(tt.resourceBinding.Applied, false), deref(b.Applied, false))
 					}
 					exist = true
 				}

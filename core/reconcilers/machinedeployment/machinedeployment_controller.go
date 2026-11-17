@@ -19,8 +19,8 @@ package machinedeployment
 import (
 	"context"
 	"fmt"
-	"sort"
 	"strings"
+	"time"
 
 	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -40,16 +40,18 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/external"
-	runtimeclient "sigs.k8s.io/cluster-api/exp/runtime/client"
-	"sigs.k8s.io/cluster-api/feature"
+	"sigs.k8s.io/cluster-api/core/reconcilers/machinedeployment/mdutil"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
+	"sigs.k8s.io/cluster-api/pkg/features"
+	runtimeclient "sigs.k8s.io/cluster-api/pkg/runtimesdk/client"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/cache"
 	"sigs.k8s.io/cluster-api/util/collections"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 	capicontrollerutil "sigs.k8s.io/cluster-api/util/controller"
 	"sigs.k8s.io/cluster-api/util/finalizers"
-	clog "sigs.k8s.io/cluster-api/util/log"
+	utillabels "sigs.k8s.io/cluster-api/util/labels"
+	logutil "sigs.k8s.io/cluster-api/util/log"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/paused"
 	"sigs.k8s.io/cluster-api/util/predicates"
@@ -69,6 +71,9 @@ var (
 // in the MachineDeployment controller.
 const machineDeploymentManagerName = "capi-machinedeployment"
 
+// logRateLimitInterval is the interval at which log lines repeated on every reconcile while waiting for something are logged.
+const logRateLimitInterval = time.Minute
+
 // Update permissions on /finalizers subresrouce is required on management clusters with 'OwnerReferencesPermissionEnforcement' plugin enabled.
 // See: https://kubernetes.io/docs/reference/access-authn-authz/admission-controllers/#ownerreferencespermissionenforcement
 //
@@ -76,6 +81,7 @@ const machineDeploymentManagerName = "capi-machinedeployment"
 // +kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io;bootstrap.cluster.x-k8s.io,resources=*,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machinedeployments;machinedeployments/status;machinedeployments/finalizers,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machinehealthchecks,verbs=get;list;watch;delete
 
 // Reconciler reconciles a MachineDeployment object.
 type Reconciler struct {
@@ -92,6 +98,7 @@ type Reconciler struct {
 
 	canUpdateMachineSetCache   cache.Cache[CanUpdateMachineSetCacheEntry]
 	msClientWithDeleteResponse capicontrollerutil.ClientWithDeleteResponse
+	logRateLimiter             *logutil.Limiter
 }
 
 // SetupWithManager sets up the reconciler with the Manager.
@@ -99,7 +106,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 	if r.Client == nil || r.APIReader == nil {
 		return pkgerrors.New("Client and APIReader must not be nil")
 	}
-	if feature.Gates.Enabled(feature.InPlaceUpdates) && r.RuntimeClient == nil {
+	if features.Gates.Enabled(features.InPlaceUpdates) && r.RuntimeClient == nil {
 		return pkgerrors.New("RuntimeClient must not be nil when InPlaceUpdates feature gate is enabled")
 	}
 
@@ -134,6 +141,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 	if err != nil {
 		return pkgerrors.Wrap(err, "failed setting up with a controller manager")
 	}
+	r.logRateLimiter = logutil.New(ctx)
 	r.canUpdateMachineSetCache = cache.New[CanUpdateMachineSetCacheEntry](ctx, cache.HookCacheDefaultTTL)
 	r.controller = c
 	r.recorder = mgr.GetEventRecorderFor("machinedeployment-controller")
@@ -143,6 +151,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 
 // Reconcile reconciles the passed in object.
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (retres ctrl.Result, reterr error) {
+	reconcileStartTime := metav1.Now()
 	log := ctrl.LoggerFrom(ctx)
 
 	// Fetch the MachineDeployment instance.
@@ -218,7 +227,15 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (retres ct
 		return ctrl.Result{}, r.reconcileDelete(ctx, s)
 	}
 
-	return ctrl.Result{}, r.reconcile(ctx, s)
+	// Remove the finalizer which was previously used by the topology/machinedeployment controller, which
+	// has been merged into this controller. The cleanup it was responsible for now happens in reconcileDelete.
+	// Note: This is intentionally only done here and not for deleting MachineDeployments as the legacy finalizer must
+	// only be removed together with the finalizer of this controller once the cleanup has been done to avoid
+	// issues when CAPI is upgraded while the MachineDeployment only has MachineDeploymentTopologyFinalizer set.
+	// Note: This code can be removed with Cluster API v1.18.
+	controllerutil.RemoveFinalizer(deployment, clusterv1.MachineDeploymentTopologyFinalizer) //nolint:staticcheck // Intentionally used to clean up the legacy finalizer.
+
+	return r.reconcile(ctx, reconcileStartTime, s)
 }
 
 type scope struct {
@@ -231,6 +248,9 @@ type scope struct {
 	infrastructureTemplateNotFound               bool
 	infrastructureTemplateExists                 bool
 	getAndAdoptMachineSetsForDeploymentSucceeded bool
+	canUpdateMachineSetResults                   canUpdateMachineSetResults
+	// rolloutReconciled is set when the reconcile reached the rollout/sync step, so canUpdateMachineSetResults are known.
+	rolloutReconciled bool
 }
 
 func patchMachineDeployment(ctx context.Context, patchHelper *patch.Helper, md *clusterv1.MachineDeployment, options ...patch.Option) error {
@@ -262,7 +282,7 @@ func patchMachineDeployment(ctx context.Context, patchHelper *patch.Helper, md *
 	return patchHelper.Patch(ctx, md, options...)
 }
 
-func (r *Reconciler) reconcile(ctx context.Context, s *scope) error {
+func (r *Reconciler) reconcile(ctx context.Context, reconcileStartTime metav1.Time, s *scope) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
 	log.V(4).Info("Reconcile MachineDeployment")
 
@@ -291,23 +311,23 @@ func (r *Reconciler) reconcile(ctx context.Context, s *scope) error {
 	}))
 
 	if err := r.getTemplatesAndSetOwner(ctx, s); err != nil {
-		return err
+		return ctrl.Result{}, err
 	}
 
 	if err := r.getAndAdoptMachineSetsForDeployment(ctx, s); err != nil {
-		return err
+		return ctrl.Result{}, err
 	}
 
 	var anyManagedFieldIssueMitigated bool
 	for _, ms := range s.machineSets {
 		managedFieldIssueMitigated, err := ssa.MitigateManagedFieldsIssue(ctx, r.Client, ms, machineDeploymentManagerName)
 		if err != nil {
-			return err
+			return ctrl.Result{}, err
 		}
 		anyManagedFieldIssueMitigated = anyManagedFieldIssueMitigated || managedFieldIssueMitigated
 	}
 	if anyManagedFieldIssueMitigated {
-		return nil // No requeue needed, changes will trigger another reconcile.
+		return ctrl.Result{}, nil // No requeue needed, changes will trigger another reconcile.
 	}
 
 	// If not already present, add a label specifying the MachineDeployment name to MachineSets.
@@ -324,25 +344,27 @@ func (r *Reconciler) reconcile(ctx context.Context, s *scope) error {
 		original := machineSet.DeepCopy()
 		machineSet.Labels[clusterv1.MachineDeploymentNameLabel] = md.Name
 		if err := r.Client.Patch(ctx, machineSet, client.MergeFrom(original)); err != nil {
-			return pkgerrors.Wrapf(err, "failed to apply %s label to MachineSet %q", clusterv1.MachineDeploymentNameLabel, machineSet.Name)
+			return ctrl.Result{}, pkgerrors.Wrapf(err, "failed to apply %s label to MachineSet %q", clusterv1.MachineDeploymentNameLabel, machineSet.Name)
 		}
 	}
 
 	templateExists := s.infrastructureTemplateExists && (!md.Spec.Template.Spec.Bootstrap.ConfigRef.IsDefined() || s.bootstrapTemplateExists)
 
+	s.rolloutReconciled = true
+
 	if ptr.Deref(md.Spec.Paused, false) {
-		return r.sync(ctx, md, s.machineSets, s.machines, templateExists)
+		return ctrl.Result{}, r.sync(ctx, reconcileStartTime, md, s.machineSets, s.machines, templateExists)
 	}
 
 	if md.Spec.Rollout.Strategy.Type == clusterv1.RollingUpdateMachineDeploymentStrategyType {
-		return r.rolloutRollingUpdate(ctx, md, s.machineSets, s.machines, templateExists)
+		return r.rolloutRollingUpdate(ctx, reconcileStartTime, s, templateExists)
 	}
 
 	if md.Spec.Rollout.Strategy.Type == clusterv1.OnDeleteMachineDeploymentStrategyType {
-		return r.rolloutOnDelete(ctx, md, s.machineSets, s.machines, templateExists)
+		return ctrl.Result{}, r.rolloutOnDelete(ctx, reconcileStartTime, md, s.machineSets, s.machines, templateExists)
 	}
 
-	return pkgerrors.Errorf("unexpected deployment strategy type: %s", md.Spec.Rollout.Strategy.Type)
+	return ctrl.Result{}, pkgerrors.Errorf("unexpected deployment strategy type: %s", md.Spec.Rollout.Strategy.Type)
 }
 
 // createOrUpdateMachineSetsAndSyncMachineDeploymentRevision applies changes identified by the rolloutPlanner to both newMS and oldMSs.
@@ -380,6 +402,8 @@ func (r *Reconciler) createOrUpdateMachineSetsAndSyncMachineDeploymentRevision(c
 	}
 
 	// Apply changes to MachineSets.
+	// Note: Keeping a reference to the logger without the MachineSet key to log about old MachineSets while creating the new one.
+	mdLog := log
 	for _, ms := range allMSs {
 		log := log.WithValues("MachineSet", klog.KObj(ms))
 		ctx := ctrl.LoggerInto(ctx, log)
@@ -399,12 +423,13 @@ func (r *Reconciler) createOrUpdateMachineSetsAndSyncMachineDeploymentRevision(c
 				return pkgerrors.Wrapf(err, "failed to create MachineSet %s", klog.KObj(ms))
 			}
 			r.controller.DeferNextReconcileUntilCacheUpToDate(p.md, capicontrollerutil.StructuredObject(clusterv1.GroupVersion, "MachineSet"), ms.ResourceVersion)
-			if len(p.oldMSs) > 0 {
-				log.Info(fmt.Sprintf("MachineSets need rollout: %s", strings.Join(machineSetNames(p.oldMSs), ", ")), "reason", p.createReason)
+			// Note: Logging once for each old MachineSet, keyed on it, so the reason shows up when following the MachineSet that is being replaced.
+			for _, oldMS := range p.oldMSs {
+				mdLog.Info(fmt.Sprintf("MachineSet %s needs rollout", oldMS.Name), "MachineSet", klog.KObj(oldMS), "machineSets", machineSetsSummary, "reason", p.createReason)
 			}
-			log.Info(fmt.Sprintf("MachineSet %s created, it is now the current MachineSet", klog.KObj(ms)))
+			log.Info(fmt.Sprintf("MachineSet %s created, it is now the current MachineSet", ms.Name), "reason", p.createReason)
 			if diff.DesiredReplicas > 0 {
-				log.Info(fmt.Sprintf("Scaled up current MachineSet %s from 0 to %d replicas (+%[2]d)", klog.KObj(ms), diff.DesiredReplicas))
+				log.Info(fmt.Sprintf("Scaled up current MachineSet %s from 0 to %d replicas (+%[2]d)", ms.Name, diff.DesiredReplicas), "reason", p.createReason, "replicas", diff.DesiredReplicas, "oldReplicas", 0)
 			}
 			r.recorder.Eventf(p.md, corev1.EventTypeNormal, "SuccessfulCreate", "Created MachineSet %s with %d replicas", klog.KObj(ms), diff.DesiredReplicas)
 
@@ -417,8 +442,8 @@ func (r *Reconciler) createOrUpdateMachineSetsAndSyncMachineDeploymentRevision(c
 			"reason", diff.Reason,
 			"diff", diff.OtherChanges,
 		}
-		if len(p.acknowledgedMachineNames) > 0 {
-			statusToLogKeyAndValues = append(statusToLogKeyAndValues, "acknowledgedMachines", sortAndJoin(p.acknowledgedMachineNames))
+		if len(p.acknowledgedMachineNames[ms.Name]) > 0 {
+			statusToLogKeyAndValues = append(statusToLogKeyAndValues, "acknowledgedMachines", sortAndJoin(p.acknowledgedMachineNames[ms.Name]))
 		}
 		if len(p.updatingMachineNames) > 0 {
 			statusToLogKeyAndValues = append(statusToLogKeyAndValues, "updatingMachines", sortAndJoin(p.updatingMachineNames))
@@ -442,15 +467,15 @@ func (r *Reconciler) createOrUpdateMachineSetsAndSyncMachineDeploymentRevision(c
 		}
 
 		if diff.DesiredReplicas < diff.OriginalReplicas {
-			log.Info(fmt.Sprintf("Scaled down %s MachineSet %s from %d to %d replicas (-%d)", diff.Type, klog.KObj(ms), diff.OriginalReplicas, diff.DesiredReplicas, diff.OriginalReplicas-diff.DesiredReplicas))
+			log.Info(fmt.Sprintf("Scaled down %s MachineSet %s from %d to %d replicas (-%d)", diff.Type, ms.Name, diff.OriginalReplicas, diff.DesiredReplicas, diff.OriginalReplicas-diff.DesiredReplicas), "replicas", diff.DesiredReplicas, "oldReplicas", diff.OriginalReplicas)
 			r.recorder.Eventf(p.md, corev1.EventTypeNormal, "SuccessfulScale", "Scaled down MachineSet %v: %d -> %d", ms.Name, diff.OriginalReplicas, diff.DesiredReplicas)
 		}
 		if diff.DesiredReplicas > diff.OriginalReplicas {
-			log.Info(fmt.Sprintf("Scaled up %s MachineSet %s from %d to %d replicas (+%d)", diff.Type, klog.KObj(ms), diff.OriginalReplicas, diff.DesiredReplicas, diff.DesiredReplicas-diff.OriginalReplicas))
+			log.Info(fmt.Sprintf("Scaled up %s MachineSet %s from %d to %d replicas (+%d)", diff.Type, ms.Name, diff.OriginalReplicas, diff.DesiredReplicas, diff.DesiredReplicas-diff.OriginalReplicas), "replicas", diff.DesiredReplicas, "oldReplicas", diff.OriginalReplicas)
 			r.recorder.Eventf(p.md, corev1.EventTypeNormal, "SuccessfulScale", "Scaled up MachineSet %v: %d -> %d", ms.Name, diff.OriginalReplicas, diff.DesiredReplicas)
 		}
 		if diff.DesiredReplicas == diff.OriginalReplicas && diff.OtherChanges != "" {
-			log.Info(fmt.Sprintf("Updated %s MachineSet %s", diff.Type, klog.KObj(ms)))
+			log.Info(fmt.Sprintf("Updated %s MachineSet %s", diff.Type, ms.Name))
 		}
 	}
 
@@ -465,41 +490,120 @@ func (r *Reconciler) createOrUpdateMachineSetsAndSyncMachineDeploymentRevision(c
 	return nil
 }
 
-func machineSetNames(machineSets []*clusterv1.MachineSet) []string {
-	names := make([]string, 0, len(machineSets))
-	for _, ms := range machineSets {
-		names = append(names, ms.Name)
-	}
-	sort.Strings(names)
-	return names
-}
-
 func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) error {
 	log := ctrl.LoggerFrom(ctx)
+
+	// If the MachineDeployment is topology-owned, delete the MachineHealthCheck of the MachineDeployment.
+	// Note: The MachineHealthCheck is deleted as soon as the MachineDeployment is deleting to avoid that it
+	// keeps remediating Machines while the MachineDeployment is going away.
+	// Note: The MachineHealthCheck always has the same name and namespace as the MachineDeployment it was created for.
+	if utillabels.IsTopologyOwned(s.machineDeployment) {
+		mhc := &clusterv1.MachineHealthCheck{}
+		mhc.SetName(s.machineDeployment.Name)
+		mhc.SetNamespace(s.machineDeployment.Namespace)
+		if err := r.Client.Delete(ctx, mhc); err != nil && !apierrors.IsNotFound(err) {
+			return pkgerrors.Wrapf(err, "failed to delete MachineHealthCheck %s", klog.KObj(mhc))
+		}
+	}
+
 	if err := r.getAndAdoptMachineSetsForDeployment(ctx, s); err != nil {
 		return err
 	}
 
 	// If all the descendant machinesets are deleted, then remove the machinedeployment's finalizer.
 	if len(s.machineSets) == 0 {
+		// If the MachineDeployment is topology-owned, delete the referenced templates if they are not used anymore.
+		if utillabels.IsTopologyOwned(s.machineDeployment) {
+			if err := r.deleteUnusedTemplates(ctx, s.machineDeployment); err != nil {
+				return err
+			}
+		}
+
+		// Note: The MachineDeployment is gone once the patch removing the finalizers succeeds; if the patch fails the next reconcile logs this line again.
+		if controllerutil.ContainsFinalizer(s.machineDeployment, clusterv1.MachineDeploymentFinalizer) {
+			log.Info(fmt.Sprintf("MachineDeployment %s deleted", s.machineDeployment.Name), "duration", time.Since(s.machineDeployment.DeletionTimestamp.Time).Truncate(time.Second/10))
+		}
+		r.logRateLimiter.Forget(waitingForMachineSetsDeletionKey(s.machineDeployment))
 		r.controller.ClearConsistencyStore(client.ObjectKeyFromObject(s.machineDeployment), s.machineDeployment.UID)
 		controllerutil.RemoveFinalizer(s.machineDeployment, clusterv1.MachineDeploymentFinalizer)
+		// Also remove the legacy finalizer of the topology/machinedeployment controller if it is still set,
+		// e.g. because the MachineDeployment was already deleting when the controllers were merged.
+		controllerutil.RemoveFinalizer(s.machineDeployment, clusterv1.MachineDeploymentTopologyFinalizer) //nolint:staticcheck // Intentionally used to clean up the legacy finalizer.
 		return nil
 	}
 
 	// else delete owned machinesets.
 	for _, ms := range s.machineSets {
-		if ms.DeletionTimestamp.IsZero() {
-			if err := r.Client.Delete(ctx, ms); err != nil && !apierrors.IsNotFound(err) {
-				return pkgerrors.Wrapf(err, "failed to delete MachineSet %s (MachineDeployment deleting)", klog.KObj(ms))
-			}
-			// Note: We intentionally log after Delete because we want this log line to show up only after DeletionTimestamp has been set.
-			// Also, setting DeletionTimestamp doesn't mean the MachineSet is actually deleted (deletion takes some time).
-			log.Info(fmt.Sprintf("MachineSet %s deleting (MachineDeployment deleting)", klog.KObj(ms)), "MachineSet", klog.KObj(ms))
+		// Propagate the subset of fields that impact tearing down Machines (e.g. nodeDrainTimeoutSeconds),
+		// so that changes to the MachineDeployment still take effect while it is deleting.
+		// Note: The MachineSet controller then propagates these fields to its deleting Machines.
+		if err := syncDeletingMachineSet(ctx, r.Client, s.machineDeployment, ms); err != nil {
+			return err
 		}
+
+		if !ms.DeletionTimestamp.IsZero() {
+			continue
+		}
+
+		if err := r.Client.Delete(ctx, ms); err != nil && !apierrors.IsNotFound(err) {
+			return pkgerrors.Wrapf(err, "failed to delete MachineSet %s (MachineDeployment deleting)", klog.KObj(ms))
+		}
+		// Note: We intentionally log after Delete because we want this log line to show up only after DeletionTimestamp has been set.
+		// Also, setting DeletionTimestamp doesn't mean the MachineSet is actually deleted (deletion takes some time).
+		log.Info(fmt.Sprintf("MachineSet %s deleting (MachineDeployment deleting)", ms.Name), "MachineSet", klog.KObj(ms), "reason", "MachineDeploymentDeleted")
 	}
 
-	log.Info("Waiting for MachineSets to be deleted", "MachineSets", clog.ObjNamesString(s.machineSets))
+	r.logRateLimiter.InfoAtMostEvery(log, logRateLimitInterval, waitingForMachineSetsDeletionKey(s.machineDeployment), "Waiting for MachineSets to be deleted", "MachineSets", logutil.ObjNamesString(s.machineSets))
+	return nil
+}
+
+// syncDeletingMachineSet propagates the subset of in-place mutable fields that impact tearing down Machines
+// from the MachineDeployment to a MachineSet that is deleting or about to be deleted.
+// Note: These MachineSets are patched with a merge patch instead of SSA, so we only touch the fields that matter
+// for tearing down Machines (e.g. nodeDrainTimeoutSeconds), which allows users to unblock a stuck deletion.
+func syncDeletingMachineSet(ctx context.Context, c client.Client, md *clusterv1.MachineDeployment, ms *clusterv1.MachineSet) error {
+	original := ms.DeepCopy()
+
+	ms.Spec.Template.Spec.Deletion.NodeDrainTimeoutSeconds = md.Spec.Template.Spec.Deletion.NodeDrainTimeoutSeconds
+	ms.Spec.Template.Spec.Deletion.NodeDeletionTimeoutSeconds = md.Spec.Template.Spec.Deletion.NodeDeletionTimeoutSeconds
+	ms.Spec.Template.Spec.Deletion.NodeVolumeDetachTimeoutSeconds = md.Spec.Template.Spec.Deletion.NodeVolumeDetachTimeoutSeconds
+
+	if err := c.Patch(ctx, ms, client.MergeFrom(original)); err != nil {
+		return pkgerrors.Wrapf(err, "failed to patch deleting MachineSet %s", klog.KObj(ms))
+	}
+	return nil
+}
+
+func waitingForMachineSetsDeletionKey(md *clusterv1.MachineDeployment) logutil.Key {
+	return logutil.NewKey("WaitingForMachineSetsDeletion", logutil.WithObjects(md))
+}
+
+// deleteUnusedTemplates deletes the templates referenced in a topology-owned MachineDeployment if they are not used anymore.
+// Note: We assume templates are not reused by different MachineDeployments, which is (only) true for topology-owned
+// MachineDeployments. Otherwise the templates would be orphaned after the MachineDeployment deletion completes.
+// Note: MachineSets are listed via APIReader to avoid race conditions caused by an outdated cache.
+func (r *Reconciler) deleteUnusedTemplates(ctx context.Context, md *clusterv1.MachineDeployment) error {
+	// Get the corresponding MachineSets.
+	msList, err := mdutil.GetMachineSetsForDeployment(ctx, r.APIReader, client.ObjectKeyFromObject(md))
+	if err != nil {
+		return err
+	}
+
+	// Calculate which templates are still in use by MachineDeployments or MachineSets which are not in deleting state.
+	templatesInUse, err := mdutil.CalculateTemplatesInUse(md, msList)
+	if err != nil {
+		return err
+	}
+
+	// Delete unused templates.
+	ref := md.Spec.Template.Spec.Bootstrap.ConfigRef
+	if err := mdutil.DeleteTemplateIfUnused(ctx, r.Client, templatesInUse, ref, md.Namespace); err != nil {
+		return pkgerrors.Wrapf(err, "failed to delete %s %s for MachineDeployment %s", ref.Kind, klog.KRef(md.Namespace, ref.Name), klog.KObj(md))
+	}
+	ref = md.Spec.Template.Spec.InfrastructureRef
+	if err := mdutil.DeleteTemplateIfUnused(ctx, r.Client, templatesInUse, ref, md.Namespace); err != nil {
+		return pkgerrors.Wrapf(err, "failed to delete %s %s for MachineDeployment %s", ref.Kind, klog.KRef(md.Namespace, ref.Name), klog.KObj(md))
+	}
 	return nil
 }
 

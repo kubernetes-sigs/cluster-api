@@ -19,7 +19,9 @@ package machineset
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"maps"
 	"sort"
 	"strings"
 	"testing"
@@ -54,12 +56,12 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/core/reconcilers/machinedeployment/mdutil"
 	"sigs.k8s.io/cluster-api/core/setup"
-	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/contract"
 	contractv1 "sigs.k8s.io/cluster-api/internal/contract/api/v1beta2"
-	"sigs.k8s.io/cluster-api/internal/hooks"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
 	"sigs.k8s.io/cluster-api/pkg/dynamiccache"
+	"sigs.k8s.io/cluster-api/pkg/features"
+	"sigs.k8s.io/cluster-api/pkg/runtimesdk/hooks"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
@@ -74,7 +76,7 @@ func TestMachineSetReconciler(t *testing.T) {
 	setup := func(t *testing.T, g *WithT) (*corev1.Namespace, *clusterv1.Cluster) {
 		t.Helper()
 
-		utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.MachineTaintPropagation, true)
+		utilfeature.SetFeatureGateDuringTest(t, features.Gates, features.MachineTaintPropagation, true)
 
 		t.Log("Creating the namespace")
 		ns, err := env.CreateNamespace(ctx, "test-machine-set-reconciler")
@@ -207,6 +209,9 @@ func TestMachineSetReconciler(t *testing.T) {
 						UID:        machineDeployment.UID,
 					},
 				},
+				// Set the legacy finalizer of the topology/machineset controller (which has been merged
+				// into this controller) to verify it is removed during normal reconciliation.
+				Finalizers: []string{clusterv1.MachineSetTopologyFinalizer}, //nolint:staticcheck // Intentionally used to test the cleanup of the legacy finalizer.
 			},
 			Spec: clusterv1.MachineSetSpec{
 				ClusterName: testCluster.Name,
@@ -283,6 +288,13 @@ func TestMachineSetReconciler(t *testing.T) {
 		defer func() {
 			g.Expect(env.Delete(ctx, instance)).To(Succeed())
 		}()
+
+		t.Log("Verifying the legacy topology finalizer is removed and the MachineSet finalizer is set")
+		g.Eventually(func(g Gomega) {
+			g.Expect(env.Get(ctx, client.ObjectKeyFromObject(instance), instance)).To(Succeed())
+			g.Expect(instance.Finalizers).To(ContainElement(clusterv1.MachineSetFinalizer))
+			g.Expect(instance.Finalizers).ToNot(ContainElement(clusterv1.MachineSetTopologyFinalizer)) //nolint:staticcheck // Intentionally used to test the cleanup of the legacy finalizer.
+		}, timeout).Should(Succeed())
 
 		t.Log("Verifying the linked bootstrap template has a cluster owner reference")
 		g.Eventually(func() bool {
@@ -492,7 +504,7 @@ func TestMachineSetReconciler(t *testing.T) {
 			Propagation: clusterv1.MachineTaintPropagationAlways,
 		}
 		instance.Spec.Template.Spec.Taints = []clusterv1.MachineTaint{additionalTaint}
-		g.Expect(patchHelper.Patch(ctx, instance)).Should(Succeed())
+		g.Expect(patchHelper.Patch(ctx, instance)).To(Succeed())
 
 		t.Log("Verifying new NodeDrainTimeoutSeconds value is set on Machines")
 		g.Eventually(func() bool {
@@ -539,7 +551,7 @@ func TestMachineSetReconciler(t *testing.T) {
 				}
 				ready++
 			}
-			return
+			return ready
 		}, timeout*3).Should(BeEquivalentTo(replicas))
 
 		// Verify that each machine has the desired kubelet version,
@@ -607,7 +619,7 @@ func TestMachineSetReconciler(t *testing.T) {
 			clusterv1.RevisionAnnotation: "9",
 		})
 		instance.Spec.Replicas = ptr.To(int32(1))
-		g.Expect(patchHelper.Patch(ctx, instance)).Should(Succeed())
+		g.Expect(patchHelper.Patch(ctx, instance)).To(Succeed())
 
 		// Verify that we have 1 replicas.
 		g.Eventually(func() (ready int) {
@@ -620,7 +632,7 @@ func TestMachineSetReconciler(t *testing.T) {
 				}
 				ready++
 			}
-			return
+			return ready
 		}, timeout*3).Should(BeEquivalentTo(1))
 	})
 }
@@ -1229,9 +1241,10 @@ func TestMachineSetReconciler_updateStatusResizedCondition(t *testing.T) {
 				recorder: record.NewFakeRecorder(32),
 			}
 			s := &scope{
-				cluster:    cluster,
-				machineSet: tc.machineSet,
-				machines:   tc.machines,
+				cluster:            cluster,
+				machineSet:         tc.machineSet,
+				machines:           tc.machines,
+				reconcileStartTime: metav1.Now(),
 				getAndAdoptMachinesForMachineSetSucceeded: true,
 			}
 			setReplicas(ctx, s.machineSet, s.machines, tc.machines != nil)
@@ -1246,7 +1259,7 @@ func TestMachineSetReconciler_updateStatusResizedCondition(t *testing.T) {
 }
 
 func TestMachineSetReconciler_syncMachines(t *testing.T) {
-	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.MachineTaintPropagation, true)
+	utilfeature.SetFeatureGateDuringTest(t, features.Gates, features.MachineTaintPropagation, true)
 
 	teardown := func(t *testing.T, g *WithT, ns *corev1.Namespace, cluster *clusterv1.Cluster) {
 		t.Helper()
@@ -1618,30 +1631,30 @@ func TestMachineSetReconciler_syncMachines(t *testing.T) {
 	// Verify in-place mutable fields are updated on the Machine.
 	updatedInPlaceMutatingMachine = inPlaceMutatingMachine.DeepCopy()
 	g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(updatedInPlaceMutatingMachine), updatedInPlaceMutatingMachine)).To(Succeed())
-	g.Expect(updatedInPlaceMutatingMachine.Labels).Should(Equal(expectedLabels))
-	g.Expect(updatedInPlaceMutatingMachine.Annotations).Should(Equal(ms.Spec.Template.Annotations))
-	g.Expect(updatedInPlaceMutatingMachine.Spec.Deletion.NodeDrainTimeoutSeconds).Should(Equal(ms.Spec.Template.Spec.Deletion.NodeDrainTimeoutSeconds))
-	g.Expect(updatedInPlaceMutatingMachine.Spec.Deletion.NodeDeletionTimeoutSeconds).Should(Equal(ms.Spec.Template.Spec.Deletion.NodeDeletionTimeoutSeconds))
-	g.Expect(updatedInPlaceMutatingMachine.Spec.Deletion.NodeVolumeDetachTimeoutSeconds).Should(Equal(ms.Spec.Template.Spec.Deletion.NodeVolumeDetachTimeoutSeconds))
-	g.Expect(updatedInPlaceMutatingMachine.Spec.MinReadySeconds).Should(Equal(ms.Spec.Template.Spec.MinReadySeconds))
-	g.Expect(updatedInPlaceMutatingMachine.Spec.ReadinessGates).Should(Equal(readinessGates))
-	g.Expect(updatedInPlaceMutatingMachine.Spec.Taints).Should(Equal(machineTaints))
+	g.Expect(updatedInPlaceMutatingMachine.Labels).To(Equal(expectedLabels))
+	g.Expect(updatedInPlaceMutatingMachine.Annotations).To(Equal(ms.Spec.Template.Annotations))
+	g.Expect(updatedInPlaceMutatingMachine.Spec.Deletion.NodeDrainTimeoutSeconds).To(Equal(ms.Spec.Template.Spec.Deletion.NodeDrainTimeoutSeconds))
+	g.Expect(updatedInPlaceMutatingMachine.Spec.Deletion.NodeDeletionTimeoutSeconds).To(Equal(ms.Spec.Template.Spec.Deletion.NodeDeletionTimeoutSeconds))
+	g.Expect(updatedInPlaceMutatingMachine.Spec.Deletion.NodeVolumeDetachTimeoutSeconds).To(Equal(ms.Spec.Template.Spec.Deletion.NodeVolumeDetachTimeoutSeconds))
+	g.Expect(updatedInPlaceMutatingMachine.Spec.MinReadySeconds).To(Equal(ms.Spec.Template.Spec.MinReadySeconds))
+	g.Expect(updatedInPlaceMutatingMachine.Spec.ReadinessGates).To(Equal(readinessGates))
+	g.Expect(updatedInPlaceMutatingMachine.Spec.Taints).To(Equal(machineTaints))
 
 	// Verify in-place mutable fields are updated on InfrastructureMachine
 	updatedInfraMachine = infraMachine.DeepCopy()
 	g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(updatedInfraMachine), updatedInfraMachine)).To(Succeed())
-	g.Expect(updatedInfraMachine.GetLabels()).Should(Equal(expectedLabels))
-	g.Expect(updatedInfraMachine.GetAnnotations()).Should(Equal(ms.Spec.Template.Annotations))
+	g.Expect(updatedInfraMachine.GetLabels()).To(Equal(expectedLabels))
+	g.Expect(updatedInfraMachine.GetAnnotations()).To(Equal(ms.Spec.Template.Annotations))
 	// Verify spec remains the same
-	g.Expect(updatedInfraMachine.Object).Should(HaveKeyWithValue("spec", infraMachineSpec))
+	g.Expect(updatedInfraMachine.Object).To(HaveKeyWithValue("spec", infraMachineSpec))
 
 	// Verify in-place mutable fields are updated on the BootstrapConfig.
 	updatedBootstrapConfig = bootstrapConfig.DeepCopy()
 	g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(updatedBootstrapConfig), updatedBootstrapConfig)).To(Succeed())
-	g.Expect(updatedBootstrapConfig.GetLabels()).Should(Equal(expectedLabels))
-	g.Expect(updatedBootstrapConfig.GetAnnotations()).Should(Equal(ms.Spec.Template.Annotations))
+	g.Expect(updatedBootstrapConfig.GetLabels()).To(Equal(expectedLabels))
+	g.Expect(updatedBootstrapConfig.GetAnnotations()).To(Equal(ms.Spec.Template.Annotations))
 	// Verify spec remains the same
-	g.Expect(updatedBootstrapConfig.Object).Should(HaveKeyWithValue("spec", bootstrapConfigSpec))
+	g.Expect(updatedBootstrapConfig.Object).To(HaveKeyWithValue("spec", bootstrapConfigSpec))
 
 	// Verify ManagedFields
 	g.Eventually(func(g Gomega) {
@@ -1660,7 +1673,7 @@ func TestMachineSetReconciler_syncMachines(t *testing.T) {
 			Manager:    "manager",
 			Operation:  metav1.ManagedFieldsOperationUpdate,
 			APIVersion: clusterv1.GroupVersion.String(),
-			FieldsV1:   "{\"f:spec\":{\"f:deletion\":{\"f:nodeDrainTimeoutSeconds\":{},\"f:nodeVolumeDetachTimeoutSeconds\":{}},\"f:minReadySeconds\":{},\"f:readinessGates\":{\".\":{},\"k:{\\\"conditionType\\\":\\\"foo\\\"}\":{\".\":{},\"f:conditionType\":{}}},\"f:taints\":{\".\":{},\"k:{\\\"effect\\\":\\\"NoSchedule\\\",\\\"key\\\":\\\"taint-key\\\"}\":{\".\":{},\"f:effect\":{},\"f:key\":{},\"f:propagation\":{},\"f:value\":{}}}}}",
+			FieldsV1:   "{\"f:spec\":{\"f:deletion\":{\"f:nodeDrainTimeoutSeconds\":{},\"f:nodeVolumeDetachTimeoutSeconds\":{}}}}",
 		}, {
 			// manager owns status.
 			Manager:    "manager",
@@ -1675,22 +1688,20 @@ func TestMachineSetReconciler_syncMachines(t *testing.T) {
 	// Verify in-place mutable fields are updated on the deleting Machine.
 	updatedDeletingMachine := deletingMachine.DeepCopy()
 	g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(updatedDeletingMachine), updatedDeletingMachine)).To(Succeed())
-	g.Expect(updatedDeletingMachine.Labels).Should(Equal(deletingMachine.Labels))           // Not propagated to a deleting Machine
-	g.Expect(updatedDeletingMachine.Annotations).Should(Equal(deletingMachine.Annotations)) // Not propagated to a deleting Machine
-	g.Expect(updatedDeletingMachine.Spec.Deletion.NodeDrainTimeoutSeconds).Should(Equal(ms.Spec.Template.Spec.Deletion.NodeDrainTimeoutSeconds))
-	g.Expect(updatedDeletingMachine.Spec.Deletion.NodeDeletionTimeoutSeconds).Should(Equal(ms.Spec.Template.Spec.Deletion.NodeDeletionTimeoutSeconds))
-	g.Expect(updatedDeletingMachine.Spec.Deletion.NodeVolumeDetachTimeoutSeconds).Should(Equal(ms.Spec.Template.Spec.Deletion.NodeVolumeDetachTimeoutSeconds))
-	g.Expect(updatedDeletingMachine.Spec.MinReadySeconds).Should(Equal(ms.Spec.Template.Spec.MinReadySeconds))
-	g.Expect(updatedDeletingMachine.Spec.ReadinessGates).Should(Equal(readinessGates))
-	g.Expect(updatedDeletingMachine.Spec.Taints).Should(Equal(machineTaints))
+	g.Expect(updatedDeletingMachine.Labels).To(Equal(deletingMachine.Labels))           // Not propagated to a deleting Machine
+	g.Expect(updatedDeletingMachine.Annotations).To(Equal(deletingMachine.Annotations)) // Not propagated to a deleting Machine
+	g.Expect(updatedDeletingMachine.Spec.Deletion.NodeDrainTimeoutSeconds).To(Equal(ms.Spec.Template.Spec.Deletion.NodeDrainTimeoutSeconds))
+	g.Expect(updatedDeletingMachine.Spec.Deletion.NodeDeletionTimeoutSeconds).To(Equal(ms.Spec.Template.Spec.Deletion.NodeDeletionTimeoutSeconds))
+	g.Expect(updatedDeletingMachine.Spec.Deletion.NodeVolumeDetachTimeoutSeconds).To(Equal(ms.Spec.Template.Spec.Deletion.NodeVolumeDetachTimeoutSeconds))
+	// Not propagated to a deleting Machine, only the fields that impact tearing down the Machine (the deletion timeouts) are.
+	g.Expect(updatedDeletingMachine.Spec.MinReadySeconds).To(Equal(deletingMachine.Spec.MinReadySeconds))
+	g.Expect(updatedDeletingMachine.Spec.ReadinessGates).To(Equal(deletingMachine.Spec.ReadinessGates))
+	g.Expect(updatedDeletingMachine.Spec.Taints).To(Equal(deletingMachine.Spec.Taints))
 	// Verify the machine spec is otherwise unchanged.
 	deletingMachine.Spec.Deletion.NodeDrainTimeoutSeconds = ms.Spec.Template.Spec.Deletion.NodeDrainTimeoutSeconds
 	deletingMachine.Spec.Deletion.NodeDeletionTimeoutSeconds = ms.Spec.Template.Spec.Deletion.NodeDeletionTimeoutSeconds
 	deletingMachine.Spec.Deletion.NodeVolumeDetachTimeoutSeconds = ms.Spec.Template.Spec.Deletion.NodeVolumeDetachTimeoutSeconds
-	deletingMachine.Spec.MinReadySeconds = ms.Spec.Template.Spec.MinReadySeconds
-	deletingMachine.Spec.ReadinessGates = ms.Spec.Template.Spec.ReadinessGates
-	deletingMachine.Spec.Taints = machineTaints
-	g.Expect(updatedDeletingMachine.Spec).Should(BeComparableTo(deletingMachine.Spec))
+	g.Expect(updatedDeletingMachine.Spec).To(BeComparableTo(deletingMachine.Spec))
 
 	//
 	// Verify managedField mitigation (purge managedFields and verify they are re-added)
@@ -1849,7 +1860,7 @@ func TestMachineSetReconciler_reconcileUnhealthyMachines(t *testing.T) {
 
 		// Verify the healthy machine is not deleted and does not have the OwnerRemediated condition.
 		m = &clusterv1.Machine{}
-		g.Expect(r.Client.Get(ctx, client.ObjectKeyFromObject(healthyMachine), m)).Should(Succeed())
+		g.Expect(r.Client.Get(ctx, client.ObjectKeyFromObject(healthyMachine), m)).To(Succeed())
 		g.Expect(m.DeletionTimestamp.IsZero()).To(BeTrue())
 		g.Expect(v1beta1conditions.Has(m, clusterv1.MachineOwnerRemediatedV1Beta1Condition)).To(BeFalse())
 		g.Expect(conditions.Has(m, clusterv1.MachineOwnerRemediatedCondition)).To(BeFalse())
@@ -2038,7 +2049,7 @@ func TestMachineSetReconciler_reconcileUnhealthyMachines(t *testing.T) {
 			Type:    clusterv1.MachineOwnerRemediatedCondition,
 			Status:  metav1.ConditionFalse,
 			Reason:  clusterv1.MachineSetMachineRemediationDeferredReason,
-			Message: "* GenericControlPlane default/cp1 is upgrading (\"ControlPlaneIsStable\" preflight check failed)",
+			Message: "* GenericControlPlane cp1 is upgrading (\"ControlPlaneIsStable\" preflight check failed)",
 		}, conditions.IgnoreLastTransitionTime(true)))
 
 		// Verify the healthy machine is not deleted and does not have the OwnerRemediated condition.
@@ -2178,7 +2189,7 @@ func TestMachineSetReconciler_reconcileUnhealthyMachines(t *testing.T) {
 		// Verify that no action was taken on the Machine: MachineOwnerRemediated should be false
 		// and the Machine wasn't deleted.
 		g.Expect(r.Client.Get(ctx, client.ObjectKeyFromObject(unhealthyMachine), m)).To(Succeed())
-		g.Expect(unhealthyMachine.DeletionTimestamp).Should(BeZero())
+		g.Expect(unhealthyMachine.DeletionTimestamp).To(BeZero())
 		c := conditions.Get(m, clusterv1.MachineOwnerRemediatedCondition)
 		g.Expect(c).ToNot(BeNil())
 		g.Expect(*c).To(conditions.MatchCondition(metav1.Condition{
@@ -2404,7 +2415,7 @@ func TestMachineSetReconciler_reconcileUnhealthyMachines(t *testing.T) {
 				m := &machineList.Items[i]
 				res = append(res, m)
 			}
-			return
+			return res
 		}
 
 		s = &scope{
@@ -2798,7 +2809,7 @@ func TestMachineSetReconciler_cleanupOrphanedBootstrapConfigsInfraMachines(t *te
 			if clientObject.GetObjectKind().GroupVersionKind().Kind == "Machine" {
 				applyCounter++
 				if applyCounter == 2 { // Note: fail for the second create machine only
-					return fmt.Errorf("inject error for create Machine")
+					return errors.New("inject error for create Machine")
 				}
 			}
 			return c.Apply(ctx, obj, opts...)
@@ -3066,7 +3077,7 @@ func TestMachineSetReconciler_createMachines(t *testing.T) {
 						if clientObject.GetObjectKind().GroupVersionKind().Kind == "Machine" {
 							*i++
 							if *i == 2 { // Note: fail for the second machine only (there should not be call for following machines)
-								return fmt.Errorf("inject error for create Machine")
+								return errors.New("inject error for create Machine")
 							}
 						}
 						return c.Apply(ctx, obj, opts...)
@@ -3226,7 +3237,7 @@ func TestMachineSetReconciler_deleteMachines(t *testing.T) {
 			interceptorFuncs: interceptor.Funcs{
 				Delete: func(ctx context.Context, client client.WithWatch, obj client.Object, opts ...client.DeleteOption) error {
 					if obj.GetName() == "m1" {
-						return fmt.Errorf("error when deleting m1")
+						return errors.New("error when deleting m1")
 					}
 					return client.Delete(ctx, obj, opts...)
 				},
@@ -3252,8 +3263,9 @@ func TestMachineSetReconciler_deleteMachines(t *testing.T) {
 				recorder:                        record.NewFakeRecorder(32),
 			}
 			s := &scope{
-				machineSet: tt.ms,
-				machines:   tt.machines,
+				reconcileStartTime: metav1.Now(),
+				machineSet:         tt.ms,
+				machines:           tt.machines,
 			}
 			res, err := r.deleteMachines(ctx, s, tt.machinesToDelete)
 			if tt.wantErr {
@@ -3265,7 +3277,7 @@ func TestMachineSetReconciler_deleteMachines(t *testing.T) {
 			g.Expect(res.IsZero()).To(BeTrue(), "unexpected non zero result when deleting machines")
 
 			machines := &clusterv1.MachineList{}
-			g.Expect(fakeClient.List(ctx, machines)).ToNot(HaveOccurred(), "unexpected error when listing machines")
+			g.Expect(fakeClient.List(ctx, machines)).To(Succeed(), "unexpected error when listing machines")
 
 			machineNames := []string{}
 			for i := range machines.Items {
@@ -3549,7 +3561,7 @@ func TestMachineSetReconciler_startMoveMachines(t *testing.T) {
 			interceptorFuncs: interceptor.Funcs{
 				Patch: func(ctx context.Context, client client.WithWatch, obj client.Object, patch client.Patch, opts ...client.PatchOption) error {
 					if obj.GetName() == "m1" {
-						return fmt.Errorf("error when moving m1")
+						return errors.New("error when moving m1")
 					}
 					return client.Patch(ctx, obj, patch, opts...)
 				},
@@ -3580,8 +3592,9 @@ func TestMachineSetReconciler_startMoveMachines(t *testing.T) {
 				recorder:                        record.NewFakeRecorder(32),
 			}
 			s := &scope{
-				machineSet: tt.ms,
-				machines:   tt.machines,
+				reconcileStartTime: metav1.Now(),
+				machineSet:         tt.ms,
+				machines:           tt.machines,
 			}
 
 			moveMachinesToMachineSetAnnotationValue := tt.ms.Annotations[clusterv1.MachineSetMoveMachinesToMachineSetAnnotation]
@@ -3600,7 +3613,7 @@ func TestMachineSetReconciler_startMoveMachines(t *testing.T) {
 			g.Expect(res.IsZero()).To(BeTrue(), "unexpected non zero result when moving machines")
 
 			machines := &clusterv1.MachineList{}
-			g.Expect(fakeClient.List(ctx, machines)).ToNot(HaveOccurred(), "unexpected error when listing machines")
+			g.Expect(fakeClient.List(ctx, machines)).To(Succeed(), "unexpected error when listing machines")
 			g.Expect(machinesByMachineSet(machines, tt.ms)).To(ConsistOf(tt.wantMachinesNotMoved))
 
 			movedMachines := machinesByMachineSet(machines, tt.targetMS)
@@ -3911,8 +3924,18 @@ func TestMachineSetReconciler_triggerInPlaceUpdate(t *testing.T) {
 			wantErr:                     false,
 		},
 		{
-			name: "Trigger in-place when ms is not accepting anymore moved replicas, machine is still pending acknowledge",
+			name: "No op when ms is not accepting anymore moved replicas, machine is still pending acknowledge",
 			ms:   newMachineSet("ms1", "cluster1", 1),
+			machines: []*clusterv1.Machine{
+				fakeMachine("m1", withMachineAnnotations(map[string]string{clusterv1.UpdateInProgressAnnotation: "", clusterv1.PendingAcknowledgeMoveAnnotation: ""})),
+			},
+			interceptorFuncs:               interceptor.Funcs{},
+			wantMachinesNotInPlaceUpdating: []string{"m1"},
+			wantErr:                        false,
+		},
+		{
+			name: "Trigger in-place when ms is not accepting anymore moved replicas, machine is still pending acknowledge, machine is acknowledged",
+			ms:   newMachineSet("ms1", "cluster1", 1, withMachineSetAnnotations(map[string]string{clusterv1.AcknowledgedMoveAnnotation: "m1"})),
 			machines: []*clusterv1.Machine{
 				fakeMachine("m1", withMachineAnnotations(map[string]string{clusterv1.UpdateInProgressAnnotation: "", clusterv1.PendingAcknowledgeMoveAnnotation: ""})),
 			},
@@ -3922,7 +3945,7 @@ func TestMachineSetReconciler_triggerInPlaceUpdate(t *testing.T) {
 		},
 		{
 			name: "Keeps triggering in-place when one machine fails",
-			ms:   newMachineSet("ms1", "cluster1", 1),
+			ms:   newMachineSet("ms1", "cluster1", 1, withMachineSetAnnotations(map[string]string{clusterv1.AcknowledgedMoveAnnotation: "m1,m2,m3"})),
 			machines: []*clusterv1.Machine{
 				fakeMachine("m1", withMachineAnnotations(map[string]string{clusterv1.UpdateInProgressAnnotation: "", clusterv1.PendingAcknowledgeMoveAnnotation: ""})),
 				fakeMachine("m2", withMachineAnnotations(map[string]string{clusterv1.UpdateInProgressAnnotation: "", clusterv1.PendingAcknowledgeMoveAnnotation: ""})),
@@ -3943,7 +3966,7 @@ func TestMachineSetReconciler_triggerInPlaceUpdate(t *testing.T) {
 		},
 		{
 			name: "Trigger in-place for machines without bootstrap config",
-			ms:   newMachineSet("ms1", "cluster1", 1),
+			ms:   newMachineSet("ms1", "cluster1", 1, withMachineSetAnnotations(map[string]string{clusterv1.AcknowledgedMoveAnnotation: "m1"})),
 			machines: []*clusterv1.Machine{
 				fakeMachine("m1", withMachineAnnotations(map[string]string{clusterv1.UpdateInProgressAnnotation: "", clusterv1.PendingAcknowledgeMoveAnnotation: ""})),
 			},
@@ -4047,7 +4070,7 @@ func TestMachineSetReconciler_triggerInPlaceUpdate(t *testing.T) {
 			g.Expect(res.IsZero()).To(BeTrue(), "unexpected non zero result when triggering in-place update")
 
 			machines := &clusterv1.MachineList{}
-			g.Expect(fakeClient.List(ctx, machines)).ToNot(HaveOccurred(), "unexpected error when listing machines")
+			g.Expect(fakeClient.List(ctx, machines)).To(Succeed(), "unexpected error when listing machines")
 			g.Expect(machinesNotInPlaceUpdating(machines)).To(ConsistOf(tt.wantMachinesNotInPlaceUpdating))
 
 			updatingMachines := machinesInPlaceUpdating(machines)
@@ -4381,27 +4404,27 @@ func assertMachine(g *WithT, actualMachine *clusterv1.Machine, expectedMachine *
 		}
 	}
 	if expectedMachine.Name != "" {
-		g.Expect(actualMachine.Name).Should(Equal(expectedMachine.Name))
+		g.Expect(actualMachine.Name).To(Equal(expectedMachine.Name))
 	}
 	// Check UID
 	if expectedMachine.UID != "" {
-		g.Expect(actualMachine.UID).Should(Equal(expectedMachine.UID))
+		g.Expect(actualMachine.UID).To(Equal(expectedMachine.UID))
 	}
 	// Check Namespace
-	g.Expect(actualMachine.Namespace).Should(Equal(expectedMachine.Namespace))
+	g.Expect(actualMachine.Namespace).To(Equal(expectedMachine.Namespace))
 	// Check Labels
 	for k, v := range expectedMachine.Labels {
-		g.Expect(actualMachine.Labels).Should(HaveKeyWithValue(k, v))
+		g.Expect(actualMachine.Labels).To(HaveKeyWithValue(k, v))
 	}
 	// Check Annotations
 	for k, v := range expectedMachine.Annotations {
-		g.Expect(actualMachine.Annotations).Should(HaveKeyWithValue(k, v))
+		g.Expect(actualMachine.Annotations).To(HaveKeyWithValue(k, v))
 	}
 	// Check Spec
-	g.Expect(actualMachine.Spec).Should(BeComparableTo(expectedMachine.Spec))
+	g.Expect(actualMachine.Spec).To(BeComparableTo(expectedMachine.Spec))
 	// Check Finalizer
 	if expectedMachine.Finalizers != nil {
-		g.Expect(actualMachine.Finalizers).Should(Equal(expectedMachine.Finalizers))
+		g.Expect(actualMachine.Finalizers).To(Equal(expectedMachine.Finalizers))
 	}
 }
 
@@ -4417,8 +4440,46 @@ func TestReconciler_reconcileDelete(t *testing.T) {
 	ms.Spec.Selector = metav1.LabelSelector{
 		MatchLabels: labels,
 	}
+	ms.Spec.Template.Spec.Deletion = clusterv1.MachineDeletionSpec{
+		NodeDrainTimeoutSeconds:        ptr.To(int32(10)),
+		NodeVolumeDetachTimeoutSeconds: ptr.To(int32(20)),
+		NodeDeletionTimeoutSeconds:     ptr.To(int32(30)),
+	}
+	ms.Spec.Template.Spec.MinReadySeconds = ptr.To(int32(40))
+	ms.Spec.Template.Spec.ReadinessGates = []clusterv1.MachineReadinessGate{{ConditionType: "foo"}}
+	ms.Spec.Template.Spec.Taints = []clusterv1.MachineTaint{{
+		Key:         "taint-key",
+		Value:       "taint-value",
+		Effect:      corev1.TaintEffectNoSchedule,
+		Propagation: clusterv1.MachineTaintPropagationAlways,
+	}}
 	msWithoutFinalizer := ms.DeepCopy()
 	msWithoutFinalizer.Finalizers = []string{}
+
+	// Machines with outdated values for the fields that impact tearing down a Machine.
+	// Note: The Machines have a finalizer, so they still exist after deletion has been triggered.
+	// Note: Cloning labels because the builder adds the cluster name label to the map, which is shared with the MachineSet selector.
+	deletingMachine := builder.Machine("default", "m0-deleting").WithClusterName("test").WithLabels(maps.Clone(labels)).Build()
+	deletingMachine.SetOwnerReferences([]metav1.OwnerReference{*metav1.NewControllerRef(ms, machineSetKind)})
+	deletingMachine.Finalizers = []string{"block-deletion"}
+	deletingMachine.DeletionTimestamp = ptr.To(metav1.Now())
+	deletingMachine.Spec.Deletion = clusterv1.MachineDeletionSpec{
+		NodeDrainTimeoutSeconds:        ptr.To(int32(1)),
+		NodeVolumeDetachTimeoutSeconds: ptr.To(int32(2)),
+		NodeDeletionTimeoutSeconds:     ptr.To(int32(3)),
+	}
+	notDeletingMachine := deletingMachine.DeepCopy()
+	notDeletingMachine.Name = "m1-not-deleting"
+	notDeletingMachine.DeletionTimestamp = nil
+	// Expected state of the Machines after reconcileDelete: fields have been propagated, deletion has been triggered.
+	wantDeletingMachine := deletingMachine.DeepCopy()
+	// Note: Only the fields that impact tearing down Machines (the deletion timeouts) are propagated, minReadySeconds,
+	// readinessGates and taints (which are set on the MachineSet above) are intentionally not.
+	wantDeletingMachine.Spec.Deletion = ms.Spec.Template.Spec.Deletion
+	wantDeletingMachine.DeletionTimestamp = &metav1.Time{} // see normalization of DeletionTimestamp below.
+	wantNotDeletingMachine := wantDeletingMachine.DeepCopy()
+	wantNotDeletingMachine.Name = notDeletingMachine.Name
+
 	tests := []struct {
 		name         string
 		machineSet   *clusterv1.MachineSet
@@ -4459,6 +4520,22 @@ func TestReconciler_reconcileDelete(t *testing.T) {
 			},
 			expectError: false,
 		},
+		{
+			name:       "Should propagate fields that impact tearing down Machines to descendant Machines and trigger deletion for Machines that are not deleting yet",
+			machineSet: ms.DeepCopy(),
+			want:       ms.DeepCopy(),
+			objs: []client.Object{
+				deletingMachine.DeepCopy(),
+				notDeletingMachine.DeepCopy(),
+				builder.Machine("default", "m2-not-part-of-ms").WithClusterName("test").Build(),
+			},
+			wantMachines: []clusterv1.Machine{
+				*wantDeletingMachine.DeepCopy(),
+				*wantNotDeletingMachine.DeepCopy(),
+				*builder.Machine("default", "m2-not-part-of-ms").WithClusterName("test").Build(),
+			},
+			expectError: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -4489,11 +4566,15 @@ func TestReconciler_reconcileDelete(t *testing.T) {
 			g.Expect(tt.machineSet).To(BeComparableTo(tt.want))
 
 			machineList := &clusterv1.MachineList{}
-			g.Expect(c.List(ctx, machineList, client.InNamespace("default"))).ToNot(HaveOccurred())
+			g.Expect(c.List(ctx, machineList, client.InNamespace("default"))).To(Succeed())
 
 			// Remove ResourceVersion so we can actually compare.
+			// Also normalize DeletionTimestamp to only compare whether it is set.
 			for i := range machineList.Items {
 				machineList.Items[i].ResourceVersion = ""
+				if machineList.Items[i].DeletionTimestamp != nil {
+					machineList.Items[i].DeletionTimestamp = &metav1.Time{}
+				}
 			}
 
 			g.Expect(machineList.Items).To(ConsistOf(tt.wantMachines))
@@ -4705,4 +4786,234 @@ func TestReconciler_completeMoveMachine(t *testing.T) {
 	g.Expect(fakeClient.Get(ctx, client.ObjectKeyFromObject(machine), machine)).To(Succeed())
 	g.Expect(machine.Spec.Version).To(Equal(machineSet.Spec.Template.Spec.Version))
 	g.Expect(machine.Spec.FailureDomain).To(Equal(machineSet.Spec.Template.Spec.FailureDomain))
+}
+
+func TestReconciler_reconcileDelete_TopologyOwned(t *testing.T) {
+	deletionTimeStamp := metav1.Now()
+
+	mdName := "md"
+
+	msBT := builder.BootstrapTemplate(metav1.NamespaceDefault, "msBT").Build()
+	msIMT := builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "msIMT").Build()
+	ms := builder.MachineSet(metav1.NamespaceDefault, "ms").
+		WithBootstrapTemplate(msBT).
+		WithInfrastructureTemplate(msIMT).
+		WithLabels(map[string]string{
+			clusterv1.MachineDeploymentNameLabel: mdName,
+			clusterv1.ClusterTopologyOwnedLabel:  "",
+		}).
+		Build()
+	ms.SetDeletionTimestamp(&deletionTimeStamp)
+	ms.SetFinalizers([]string{clusterv1.MachineSetFinalizer})
+	ms.SetOwnerReferences([]metav1.OwnerReference{
+		{
+			Kind:       "MachineDeployment",
+			APIVersion: clusterv1.GroupVersion.String(),
+			Name:       "md",
+		},
+	})
+
+	t.Run("Should delete templates of a MachineSet and remove its finalizers", func(t *testing.T) {
+		g := NewWithT(t)
+
+		// Copying the MS so changes made by reconcileDelete do not affect other tests.
+		ms := ms.DeepCopy()
+		ms.SetFinalizers([]string{clusterv1.MachineSetFinalizer, clusterv1.MachineSetTopologyFinalizer}) //nolint:staticcheck // Intentionally used to test the cleanup of the legacy finalizer.
+
+		fakeClient := fake.NewClientBuilder().
+			WithScheme(fakeScheme).
+			WithObjects(ms, msBT, msIMT, builder.GenericBootstrapConfigTemplateCRD, builder.GenericInfrastructureMachineTemplateCRD).
+			Build()
+
+		r := &Reconciler{
+			Client:     fakeClient,
+			APIReader:  fakeClient,
+			controller: capicontrollerutil.NewFakeController(),
+		}
+		_, err := r.reconcileDelete(ctx, &scope{machineSet: ms})
+		g.Expect(err).ToNot(HaveOccurred())
+
+		g.Expect(ms.Finalizers).To(BeEmpty())
+		g.Expect(templateExists(fakeClient, msBT)).To(BeFalse())
+		g.Expect(templateExists(fakeClient, msIMT)).To(BeFalse())
+	})
+
+	t.Run("Should delete infra template of a MachineSet without a bootstrap template", func(t *testing.T) {
+		g := NewWithT(t)
+
+		msWithoutBootstrapTemplateIMT := builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "msWithoutBootstrapTemplateIMT").Build()
+		msWithoutBootstrapTemplate := builder.MachineSet(metav1.NamespaceDefault, "msWithoutBootstrapTemplate").
+			WithInfrastructureTemplate(msWithoutBootstrapTemplateIMT).
+			WithLabels(map[string]string{
+				clusterv1.MachineDeploymentNameLabel: mdName,
+				clusterv1.ClusterTopologyOwnedLabel:  "",
+			}).
+			Build()
+		msWithoutBootstrapTemplate.SetDeletionTimestamp(&deletionTimeStamp)
+		msWithoutBootstrapTemplate.SetFinalizers([]string{clusterv1.MachineSetFinalizer})
+		msWithoutBootstrapTemplate.SetOwnerReferences([]metav1.OwnerReference{
+			{
+				Kind:       "MachineDeployment",
+				APIVersion: clusterv1.GroupVersion.String(),
+				Name:       "md",
+			},
+		})
+
+		fakeClient := fake.NewClientBuilder().
+			WithScheme(fakeScheme).
+			WithObjects(msWithoutBootstrapTemplate, msWithoutBootstrapTemplateIMT, builder.GenericBootstrapConfigTemplateCRD, builder.GenericInfrastructureMachineTemplateCRD).
+			Build()
+
+		r := &Reconciler{
+			Client:     fakeClient,
+			APIReader:  fakeClient,
+			controller: capicontrollerutil.NewFakeController(),
+		}
+		_, err := r.reconcileDelete(ctx, &scope{machineSet: msWithoutBootstrapTemplate})
+		g.Expect(err).ToNot(HaveOccurred())
+
+		g.Expect(controllerutil.ContainsFinalizer(msWithoutBootstrapTemplate, clusterv1.MachineSetFinalizer)).To(BeFalse())
+		g.Expect(templateExists(fakeClient, msWithoutBootstrapTemplateIMT)).To(BeFalse())
+	})
+
+	t.Run("Should not delete templates of a MachineSet when they are still in use in a MachineDeployment", func(t *testing.T) {
+		g := NewWithT(t)
+
+		// Copying the MS so changes made by reconcileDelete do not affect other tests.
+		ms := ms.DeepCopy()
+
+		md := builder.MachineDeployment(metav1.NamespaceDefault, "md").
+			WithBootstrapTemplate(msBT).
+			WithInfrastructureTemplate(msIMT).
+			Build()
+
+		fakeClient := fake.NewClientBuilder().
+			WithScheme(fakeScheme).
+			WithObjects(md, ms, msBT, msIMT).
+			Build()
+
+		r := &Reconciler{
+			Client:     fakeClient,
+			APIReader:  fakeClient,
+			controller: capicontrollerutil.NewFakeController(),
+		}
+		_, err := r.reconcileDelete(ctx, &scope{machineSet: ms})
+		g.Expect(err).ToNot(HaveOccurred())
+
+		g.Expect(controllerutil.ContainsFinalizer(ms, clusterv1.MachineSetFinalizer)).To(BeFalse())
+		g.Expect(templateExists(fakeClient, msBT)).To(BeTrue())
+		g.Expect(templateExists(fakeClient, msIMT)).To(BeTrue())
+	})
+
+	t.Run("Should not delete templates of a MachineSet when they are still in use in another MachineSet", func(t *testing.T) {
+		g := NewWithT(t)
+
+		// Copying the MS so changes made by reconcileDelete do not affect other tests.
+		ms := ms.DeepCopy()
+
+		md := builder.MachineDeployment(metav1.NamespaceDefault, "md").
+			WithBootstrapTemplate(msBT).
+			WithInfrastructureTemplate(msIMT).
+			Build()
+		md.SetDeletionTimestamp(&deletionTimeStamp)
+		md.SetFinalizers([]string{clusterv1.MachineDeploymentFinalizer})
+
+		// anotherMS is another MachineSet of the same MachineDeployment using the same templates.
+		// Because anotherMS is not in deleting, reconcileDelete should not delete the templates.
+		anotherMS := builder.MachineSet(metav1.NamespaceDefault, "anotherMS").
+			WithBootstrapTemplate(msBT).
+			WithInfrastructureTemplate(msIMT).
+			WithLabels(map[string]string{
+				clusterv1.MachineDeploymentNameLabel: mdName,
+			}).
+			Build()
+		anotherMS.SetOwnerReferences([]metav1.OwnerReference{
+			{
+				Kind:       "MachineDeployment",
+				APIVersion: clusterv1.GroupVersion.String(),
+				Name:       "md",
+			},
+		})
+
+		fakeClient := fake.NewClientBuilder().
+			WithScheme(fakeScheme).
+			WithObjects(md, anotherMS, ms, msBT, msIMT).
+			Build()
+
+		r := &Reconciler{
+			Client:     fakeClient,
+			APIReader:  fakeClient,
+			controller: capicontrollerutil.NewFakeController(),
+		}
+		_, err := r.reconcileDelete(ctx, &scope{machineSet: ms})
+		g.Expect(err).ToNot(HaveOccurred())
+
+		g.Expect(controllerutil.ContainsFinalizer(ms, clusterv1.MachineSetFinalizer)).To(BeFalse())
+		g.Expect(templateExists(fakeClient, msBT)).To(BeTrue())
+		g.Expect(templateExists(fakeClient, msIMT)).To(BeTrue())
+	})
+
+	t.Run("Should not delete templates and keep finalizers of a MachineSet while Machines exist", func(t *testing.T) {
+		g := NewWithT(t)
+
+		// Copying the MS so changes made by reconcileDelete do not affect other tests.
+		ms := ms.DeepCopy()
+		ms.SetFinalizers([]string{clusterv1.MachineSetFinalizer, clusterv1.MachineSetTopologyFinalizer}) //nolint:staticcheck // Intentionally used to test the cleanup of the legacy finalizer.
+
+		machine := builder.Machine(metav1.NamespaceDefault, "m0").WithClusterName("test").Build()
+
+		fakeClient := fake.NewClientBuilder().
+			WithScheme(fakeScheme).
+			WithObjects(ms, machine, msBT, msIMT).
+			Build()
+
+		r := &Reconciler{
+			Client:     fakeClient,
+			APIReader:  fakeClient,
+			controller: capicontrollerutil.NewFakeController(),
+		}
+		_, err := r.reconcileDelete(ctx, &scope{machineSet: ms, machines: []*clusterv1.Machine{machine}})
+		g.Expect(err).ToNot(HaveOccurred())
+
+		g.Expect(ms.Finalizers).To(ConsistOf(clusterv1.MachineSetFinalizer, clusterv1.MachineSetTopologyFinalizer)) //nolint:staticcheck // Intentionally used to test the cleanup of the legacy finalizer.
+		g.Expect(templateExists(fakeClient, msBT)).To(BeTrue())
+		g.Expect(templateExists(fakeClient, msIMT)).To(BeTrue())
+	})
+
+	t.Run("Should not delete templates of a MachineSet which is not topology-owned", func(t *testing.T) {
+		g := NewWithT(t)
+
+		// Copying the MS so changes made by reconcileDelete do not affect other tests.
+		ms := ms.DeepCopy()
+		delete(ms.Labels, clusterv1.ClusterTopologyOwnedLabel)
+
+		fakeClient := fake.NewClientBuilder().
+			WithScheme(fakeScheme).
+			WithObjects(ms, msBT, msIMT).
+			Build()
+
+		r := &Reconciler{
+			Client:     fakeClient,
+			APIReader:  fakeClient,
+			controller: capicontrollerutil.NewFakeController(),
+		}
+		_, err := r.reconcileDelete(ctx, &scope{machineSet: ms})
+		g.Expect(err).ToNot(HaveOccurred())
+
+		g.Expect(controllerutil.ContainsFinalizer(ms, clusterv1.MachineSetFinalizer)).To(BeFalse())
+		g.Expect(templateExists(fakeClient, msBT)).To(BeTrue())
+		g.Expect(templateExists(fakeClient, msIMT)).To(BeTrue())
+	})
+}
+
+func templateExists(c client.Reader, template *unstructured.Unstructured) bool {
+	obj := &unstructured.Unstructured{}
+	obj.SetKind(template.GetKind())
+	obj.SetAPIVersion(template.GetAPIVersion())
+
+	err := c.Get(ctx, client.ObjectKeyFromObject(template), obj)
+	if err != nil && !apierrors.IsNotFound(err) {
+		panic(pkgerrors.Wrapf(err, "failed to get %s/%s", template.GetKind(), template.GetName()))
+	}
+	return err == nil
 }

@@ -156,6 +156,11 @@ func (od ObjectTree) Add(parent, obj client.Object, opts ...AddObjectOption) (ad
 		for i := range siblings {
 			s := siblings[i]
 
+			// Machines running a different version should not be grouped together, even if they have the same conditions.
+			if getVersion(s) != getVersion(obj) {
+				continue
+			}
+
 			var sReadyV1Beta1 *clusterv1.Condition
 			var sAvailable, sReady, sUpToDate *metav1.Condition
 			switch od.options.V1Beta1 {
@@ -183,11 +188,13 @@ func (od ObjectTree) Add(parent, obj client.Object, opts ...AddObjectOption) (ad
 				// Check to see if the group object kind matches the object, i.e. group is MachineGroup and object is Machine.
 				// If so, upgrade it with the current object.
 				if s.GetObjectKind().GroupVersionKind().Kind == obj.GetObjectKind().GroupVersionKind().Kind+"Group" {
+					// Note: Group objects are always NodeObjects, because they are created by createGroupNode/createV1Beta1GroupNode.
+					groupNode := s.(*NodeObject)
 					switch od.options.V1Beta1 {
 					case true:
-						updateV1Beta1GroupNode(s, sReadyV1Beta1, obj, objReadyV1Beta1)
+						updateV1Beta1GroupNode(groupNode, sReadyV1Beta1, obj, objReadyV1Beta1)
 					default:
-						updateGroupNode(s, sReady, obj, objAvailable, objReady, objUpToDate)
+						updateGroupNode(groupNode, sReady, obj, objAvailable, objReady, objUpToDate)
 					}
 
 					return true, false
@@ -323,11 +330,9 @@ func createGroupNode(sibling client.Object, siblingReady *metav1.Condition, obj 
 	// NB. The group nodes gets a unique ID to avoid conflicts.
 	groupNode := VirtualObject(obj.GetNamespace(), kind, readyStatusReasonUID(obj))
 	addAnnotation(groupNode, GroupObjectAnnotation, "True")
+	addAnnotation(groupNode, GroupItemsVersionAnnotation, getVersion(obj))
 
-	// Update the list of items included in the group and store it in the GroupItemsAnnotation.
-	items := []string{obj.GetName(), sibling.GetName()}
-	sort.Strings(items)
-	addAnnotation(groupNode, GroupItemsAnnotation, strings.Join(items, GroupItemsSeparator))
+	setGroupItems(groupNode, obj, sibling)
 
 	// Update the group's available condition and counter.
 	addAnnotation(groupNode, GroupItemsAvailableCounter, "0")
@@ -403,11 +408,9 @@ func createV1Beta1GroupNode(sibling client.Object, siblingReady *clusterv1.Condi
 	// NB. The group nodes gets a unique ID to avoid conflicts.
 	groupNode := VirtualObject(obj.GetNamespace(), kind, readyStatusSeverityAndReasonUID(obj))
 	addAnnotation(groupNode, GroupObjectAnnotation, "True")
+	addAnnotation(groupNode, GroupItemsVersionAnnotation, getVersion(obj))
 
-	// Update the list of items included in the group and store it in the GroupItemsAnnotation.
-	items := []string{obj.GetName(), sibling.GetName()}
-	sort.Strings(items)
-	addAnnotation(groupNode, GroupItemsAnnotation, strings.Join(items, GroupItemsSeparator))
+	setGroupItems(groupNode, obj, sibling)
 
 	// Update the group's ready condition.
 	if objReady != nil {
@@ -442,12 +445,8 @@ func minLastTransitionTimeV1Beta1(a, b *clusterv1.Condition) metav1.Time {
 	return a.LastTransitionTime
 }
 
-func updateGroupNode(groupObj client.Object, groupReady *metav1.Condition, obj client.Object, objAvailable, objReady, objUpToDate *metav1.Condition) {
-	// Update the list of items included in the group and store it in the GroupItemsAnnotation.
-	items := strings.Split(GetGroupItems(groupObj), GroupItemsSeparator)
-	items = append(items, obj.GetName())
-	sort.Strings(items)
-	addAnnotation(groupObj, GroupItemsAnnotation, strings.Join(items, GroupItemsSeparator))
+func updateGroupNode(groupObj *NodeObject, groupReady *metav1.Condition, obj client.Object, objAvailable, objReady, objUpToDate *metav1.Condition) {
+	setGroupItems(groupObj, append(groupObj.Items, obj)...)
 
 	// Update the group's available counter.
 	if objAvailable != nil {
@@ -478,12 +477,8 @@ func updateGroupNode(groupObj client.Object, groupReady *metav1.Condition, obj c
 	}
 }
 
-func updateV1Beta1GroupNode(groupObj client.Object, groupReady *clusterv1.Condition, obj client.Object, objReady *clusterv1.Condition) {
-	// Update the list of items included in the group and store it in the GroupItemsAnnotation.
-	items := strings.Split(GetGroupItems(groupObj), GroupItemsSeparator)
-	items = append(items, obj.GetName())
-	sort.Strings(items)
-	addAnnotation(groupObj, GroupItemsAnnotation, strings.Join(items, GroupItemsSeparator))
+func updateV1Beta1GroupNode(groupObj *NodeObject, groupReady *clusterv1.Condition, obj client.Object, objReady *clusterv1.Condition) {
+	setGroupItems(groupObj, append(groupObj.Items, obj)...)
 
 	// Update the group's ready condition.
 	if groupReady != nil {
@@ -491,6 +486,35 @@ func updateV1Beta1GroupNode(groupObj client.Object, groupReady *clusterv1.Condit
 		groupReady.Message = ""
 		setReadyV1Beta1Condition(groupObj, groupReady)
 	}
+}
+
+// setGroupItems stores the objects included in the group, sorted by name.
+// Note: The GroupItemsAnnotation is kept in sync with Items for backward compatibility.
+func setGroupItems(groupNode *NodeObject, items ...client.Object) {
+	sort.Slice(items, func(i, j int) bool {
+		return items[i].GetName() < items[j].GetName()
+	})
+	groupNode.Items = items
+
+	names := make([]string, 0, len(items))
+	for _, item := range items {
+		names = append(names, item.GetName())
+	}
+	addAnnotation(groupNode, GroupItemsAnnotation, strings.Join(names, GroupItemsSeparator))
+}
+
+// getVersion returns the Kubernetes version of a Machine, or of the Machines in a group.
+// Note: Objects other than Machines have no version, so they always compare as equal.
+func getVersion(obj client.Object) string {
+	switch o := obj.(type) {
+	case *clusterv1.Machine:
+		return o.Spec.Version
+	case *NodeObject:
+		if len(o.Items) > 0 {
+			return getVersion(o.Items[0])
+		}
+	}
+	return ""
 }
 
 func showConditions(obj client.Object, showOtherConditions string) ConditionFilterType {

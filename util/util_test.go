@@ -230,6 +230,82 @@ func TestClusterToInfrastructureMapFunc(t *testing.T) {
 	}
 }
 
+func TestClusterToControlPlaneMapFunc(t *testing.T) {
+	gk := schema.GroupKind{Group: "controlplane.cluster.x-k8s.io", Kind: "TestControlPlane"}
+
+	testcases := []struct {
+		name   string
+		object client.Object
+		output []reconcile.Request
+	}{
+		{
+			name: "should reconcile the control plane",
+			object: &clusterv1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Name: "test-1"},
+				Spec: clusterv1.ClusterSpec{
+					ControlPlaneRef: clusterv1.ContractVersionedObjectReference{
+						APIGroup: "controlplane.cluster.x-k8s.io",
+						Kind:     "TestControlPlane",
+						Name:     "cp-1",
+					},
+				},
+			},
+			output: []reconcile.Request{
+				{NamespacedName: client.ObjectKey{Namespace: metav1.NamespaceDefault, Name: "cp-1"}},
+			},
+		},
+		{
+			name: "should return nil if controlPlaneRef is not defined",
+			object: &clusterv1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Name: "test-1"},
+			},
+			output: nil,
+		},
+		{
+			name: "should return nil if controlPlaneRef has a different kind",
+			object: &clusterv1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Name: "test-1"},
+				Spec: clusterv1.ClusterSpec{
+					ControlPlaneRef: clusterv1.ContractVersionedObjectReference{
+						APIGroup: "controlplane.cluster.x-k8s.io",
+						Kind:     "OtherControlPlane",
+						Name:     "cp-1",
+					},
+				},
+			},
+			output: nil,
+		},
+		{
+			name: "should return nil if controlPlaneRef has a different group",
+			object: &clusterv1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Name: "test-1"},
+				Spec: clusterv1.ClusterSpec{
+					ControlPlaneRef: clusterv1.ContractVersionedObjectReference{
+						APIGroup: "other.cluster.x-k8s.io",
+						Kind:     "TestControlPlane",
+						Name:     "cp-1",
+					},
+				},
+			},
+			output: nil,
+		},
+		{
+			name:   "should return nil if the object is not a Cluster",
+			object: &clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Name: "test-1"}},
+			output: nil,
+		},
+	}
+
+	for _, tc := range testcases {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			fn := ClusterToControlPlaneMapFunc(gk)
+			g.Expect(fn(context.Background(), tc.object)).To(BeComparableTo(tc.output))
+		})
+	}
+}
+
 func TestHasOwner(t *testing.T) {
 	g := NewWithT(t)
 
@@ -546,7 +622,7 @@ func TestIsExternalManagedControlPlane(t *testing.T) {
 			},
 		}
 		result := IsExternalManagedControlPlane(controlPlane)
-		g.Expect(result).Should(BeTrue())
+		g.Expect(result).To(BeTrue())
 	})
 
 	t.Run("should return false if control plane status externalManagedControlPlane is false", func(*testing.T) {
@@ -558,7 +634,7 @@ func TestIsExternalManagedControlPlane(t *testing.T) {
 			},
 		}
 		result := IsExternalManagedControlPlane(controlPlane)
-		g.Expect(result).Should(BeFalse())
+		g.Expect(result).To(BeFalse())
 	})
 
 	t.Run("should return false if control plane status externalManagedControlPlane is not set", func(*testing.T) {
@@ -570,7 +646,7 @@ func TestIsExternalManagedControlPlane(t *testing.T) {
 			},
 		}
 		result := IsExternalManagedControlPlane(controlPlane)
-		g.Expect(result).Should(BeFalse())
+		g.Expect(result).To(BeFalse())
 	})
 }
 
@@ -585,7 +661,7 @@ func TestEnsureOwnerRef(t *testing.T) {
 			Name:       "test-cluster",
 		}
 		obj.OwnerReferences = EnsureOwnerRef(obj.OwnerReferences, ref)
-		g.Expect(obj.OwnerReferences).Should(ContainElement(ref))
+		g.Expect(obj.OwnerReferences).To(ContainElement(ref))
 	})
 
 	t.Run("should not duplicate owner references", func(*testing.T) {
@@ -606,8 +682,8 @@ func TestEnsureOwnerRef(t *testing.T) {
 			Name:       "test-cluster",
 		}
 		obj.OwnerReferences = EnsureOwnerRef(obj.OwnerReferences, ref)
-		g.Expect(obj.OwnerReferences).Should(ContainElement(ref))
-		g.Expect(obj.OwnerReferences).Should(HaveLen(1))
+		g.Expect(obj.OwnerReferences).To(ContainElement(ref))
+		g.Expect(obj.OwnerReferences).To(HaveLen(1))
 	})
 
 	t.Run("should update the APIVersion if duplicate", func(*testing.T) {
@@ -632,8 +708,8 @@ func TestEnsureOwnerRef(t *testing.T) {
 			Name:       "test-cluster",
 		}
 		obj.OwnerReferences = EnsureOwnerRef(obj.OwnerReferences, ref)
-		g.Expect(obj.OwnerReferences).Should(ContainElement(ref))
-		g.Expect(obj.OwnerReferences).Should(HaveLen(1))
+		g.Expect(obj.OwnerReferences).To(ContainElement(ref))
+		g.Expect(obj.OwnerReferences).To(HaveLen(1))
 	})
 }
 
@@ -1142,7 +1218,7 @@ func TestGetMachinePoolByLabels(t *testing.T) {
 		{
 			name:          "missing required key",
 			labels:        map[string]string{},
-			expectedError: fmt.Sprintf("labels missing required key `%s`", clusterv1.MachinePoolNameLabel),
+			expectedError: fmt.Sprintf("labels missing required key %#q", clusterv1.MachinePoolNameLabel),
 		},
 		{
 			name: "returns nil when no machine pool matches",

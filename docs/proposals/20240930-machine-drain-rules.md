@@ -49,7 +49,7 @@ status: implementable
 Today, when Cluster API deletes a Machine it drains the corresponding Node to ensure all Pods running on the Node have
 been gracefully terminated before deleting the corresponding infrastructure. The current drain implementation has
 hard-coded rules to decide which Pods should be evicted. This implementation is aligned to `kubectl drain` (see
-[Machine deletion process](https://main.cluster-api.sigs.k8s.io/tasks/automated-machine-management/machine_deletions)
+[Machine deletion process](../book/src/user/guide/lifecycle/machine_deletions.md)
 for more details).
 
 With recent changes in Cluster API, we can now have finer control on the drain process, and thus we propose a new

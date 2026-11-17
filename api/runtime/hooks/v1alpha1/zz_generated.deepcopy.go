@@ -618,7 +618,7 @@ func (in *CanUpdateMachineRequestObjects) DeepCopy() *CanUpdateMachineRequestObj
 func (in *CanUpdateMachineResponse) DeepCopyInto(out *CanUpdateMachineResponse) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	out.CommonResponse = in.CommonResponse
+	out.CommonRetryResponse = in.CommonRetryResponse
 	in.MachinePatch.DeepCopyInto(&out.MachinePatch)
 	in.InfrastructureMachinePatch.DeepCopyInto(&out.InfrastructureMachinePatch)
 	in.BootstrapConfigPatch.DeepCopyInto(&out.BootstrapConfigPatch)
@@ -626,6 +626,15 @@ func (in *CanUpdateMachineResponse) DeepCopyInto(out *CanUpdateMachineResponse) 
 		in, out := &in.AffectsAvailability, &out.AffectsAvailability
 		*out = new(bool)
 		**out = **in
+	}
+	if in.AllowedOperations != nil {
+		in, out := &in.AllowedOperations, &out.AllowedOperations
+		*out = new([]MachineUpdateOperation)
+		if **in != nil {
+			in, out := *in, *out
+			*out = make([]MachineUpdateOperation, len(*in))
+			copy(*out, *in)
+		}
 	}
 }
 
@@ -696,7 +705,7 @@ func (in *CanUpdateMachineSetRequestObjects) DeepCopy() *CanUpdateMachineSetRequ
 func (in *CanUpdateMachineSetResponse) DeepCopyInto(out *CanUpdateMachineSetResponse) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	out.CommonResponse = in.CommonResponse
+	out.CommonRetryResponse = in.CommonRetryResponse
 	in.MachineSetPatch.DeepCopyInto(&out.MachineSetPatch)
 	in.InfrastructureMachineTemplatePatch.DeepCopyInto(&out.InfrastructureMachineTemplatePatch)
 	in.BootstrapConfigTemplatePatch.DeepCopyInto(&out.BootstrapConfigTemplatePatch)
@@ -704,6 +713,15 @@ func (in *CanUpdateMachineSetResponse) DeepCopyInto(out *CanUpdateMachineSetResp
 		in, out := &in.AffectsAvailability, &out.AffectsAvailability
 		*out = new(bool)
 		**out = **in
+	}
+	if in.AllowedOperations != nil {
+		in, out := &in.AllowedOperations, &out.AllowedOperations
+		*out = new([]MachineUpdateOperation)
+		if **in != nil {
+			in, out := *in, *out
+			*out = make([]MachineUpdateOperation, len(*in))
+			copy(*out, *in)
+		}
 	}
 }
 

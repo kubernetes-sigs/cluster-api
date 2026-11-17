@@ -25,8 +25,8 @@ import (
 	"k8s.io/component-base/featuregate"
 	ctrl "sigs.k8s.io/controller-runtime"
 
-	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/test/envtest"
+	"sigs.k8s.io/cluster-api/pkg/features"
 )
 
 var (
@@ -36,8 +36,8 @@ var (
 
 func TestMain(m *testing.M) {
 	// Enable all feature gates that are off per default to avoid webhook validation errors when trying to create objects.
-	for _, fg := range []featuregate.Feature{feature.ClusterTopology, feature.KubeadmBootstrapFormatIgnition, feature.RuntimeSDK, feature.InPlaceUpdates, feature.MachineTaintPropagation} {
-		if err := feature.Gates.(featuregate.MutableFeatureGate).Set(fmt.Sprintf("%s=%v", fg, true)); err != nil {
+	for _, fg := range []featuregate.Feature{features.KubeadmBootstrapFormatIgnition, features.RuntimeSDK, features.InPlaceUpdates} {
+		if err := features.Gates.(featuregate.MutableFeatureGate).Set(fmt.Sprintf("%s=%v", fg, true)); err != nil {
 			panic(fmt.Sprintf("unable to set %s feature gate: %v", fg, err))
 		}
 	}

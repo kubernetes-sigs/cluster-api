@@ -56,15 +56,15 @@ type CanUpdateMachineRequestObjects struct {
 	BootstrapConfig runtime.RawExtension `json:"bootstrapConfig,omitempty,omitzero"`
 }
 
-var _ ResponseObject = &CanUpdateMachineResponse{}
+var _ RetryResponseObject = &CanUpdateMachineResponse{}
 
 // CanUpdateMachineResponse is the response of the CanUpdateMachine hook.
 // +kubebuilder:object:root=true
 type CanUpdateMachineResponse struct {
 	metav1.TypeMeta `json:",inline"`
 
-	// CommonResponse contains Status and Message fields common to all response types.
-	CommonResponse `json:",inline"`
+	// CommonRetryResponse contains Status, Message and RetryAfterSeconds fields.
+	CommonRetryResponse `json:",inline"`
 
 	// machinePatch when applied to the current Machine spec, indicates changes handled in-place.
 	// Only fields in spec have to be covered by the patch.
@@ -85,6 +85,33 @@ type CanUpdateMachineResponse struct {
 	// Default is true.
 	// +optional
 	AffectsAvailability *bool `json:"affectsAvailability,omitempty"`
+
+	// allowedOperations defines the operations Cluster API is allowed to use to roll out changes to the Machines.
+	// If not set, both UpdateInPlace and Replace are allowed.
+	// If set to an empty list, no operation is allowed and the rollout is blocked.
+	// Note: allowedOperations is orthogonal to the patches, e.g. if the patches cover the entire diff but only
+	// Replace is allowed, changes are rolled out by replacing Machines.
+	// +optional
+	AllowedOperations *[]MachineUpdateOperation `json:"allowedOperations,omitempty"`
+}
+
+// MachineUpdateOperation defines an operation that can be used to roll out changes to a Machine.
+// +kubebuilder:validation:Enum=UpdateInPlace;Replace
+type MachineUpdateOperation string
+
+const (
+	// MachineUpdateOperationUpdateInPlace identifies the operation of updating a Machine in-place.
+	MachineUpdateOperationUpdateInPlace MachineUpdateOperation = "UpdateInPlace"
+
+	// MachineUpdateOperationReplace identifies the operation of replacing a Machine
+	// (i.e. creating a new Machine and deleting the old one).
+	MachineUpdateOperationReplace MachineUpdateOperation = "Replace"
+)
+
+// AllMachineUpdateOperations are all MachineUpdateOperations known by this version of CAPI.
+var AllMachineUpdateOperations = []MachineUpdateOperation{
+	MachineUpdateOperationUpdateInPlace,
+	MachineUpdateOperationReplace,
 }
 
 // Patch is a single patch (JSONPatch or JSONMergePatch) which can include multiple operations.
@@ -142,15 +169,15 @@ type CanUpdateMachineSetRequestObjects struct {
 	BootstrapConfigTemplate runtime.RawExtension `json:"bootstrapConfigTemplate,omitempty,omitzero"`
 }
 
-var _ ResponseObject = &CanUpdateMachineSetResponse{}
+var _ RetryResponseObject = &CanUpdateMachineSetResponse{}
 
 // CanUpdateMachineSetResponse is the response of the CanUpdateMachineSet hook.
 // +kubebuilder:object:root=true
 type CanUpdateMachineSetResponse struct {
 	metav1.TypeMeta `json:",inline"`
 
-	// CommonResponse contains Status and Message fields common to all response types.
-	CommonResponse `json:",inline"`
+	// CommonRetryResponse contains Status, Message and RetryAfterSeconds fields.
+	CommonRetryResponse `json:",inline"`
 
 	// machineSetPatch when applied to the current MachineSet spec, indicates changes handled in-place.
 	// +optional
@@ -169,6 +196,14 @@ type CanUpdateMachineSetResponse struct {
 	// Default is true.
 	// +optional
 	AffectsAvailability *bool `json:"affectsAvailability,omitempty"`
+
+	// allowedOperations defines the operations Cluster API is allowed to use to roll out changes to the Machines.
+	// If not set, both UpdateInPlace and Replace are allowed.
+	// If set to an empty list, no operation is allowed and the rollout is blocked.
+	// Note: allowedOperations is orthogonal to the patches, e.g. if the patches cover the entire diff but only
+	// Replace is allowed, changes are rolled out by replacing Machines.
+	// +optional
+	AllowedOperations *[]MachineUpdateOperation `json:"allowedOperations,omitempty"`
 }
 
 // CanUpdateMachineSet is the hook that will be called to determine if an extension
@@ -206,21 +241,58 @@ type UpdateMachineRequestObjects struct {
 var _ RetryResponseObject = &UpdateMachineResponse{}
 
 // UpdateMachineResponse is the response of the UpdateMachine hook.
-// The status of the update operation is determined by the CommonRetryResponse fields:
-// - Status=Success + RetryAfterSeconds > 0: update is in progress
-// - Status=Success + RetryAfterSeconds = 0: update completed successfully
-// - Status=Failure: update failed
+// The outcome of the update operation is determined by the Status and UpdateStatus fields:
+//   - Status=Failure: unexpected error while handling the call, the hook is called again with exponential backoff
+//   - Status=Success + UpdateStatus=InProgress: update is in progress, the hook is called again after RetryAfterSeconds
+//   - Status=Success + UpdateStatus=Failed: update failed, the hook is called again after RetryAfterSeconds
+//   - Status=Success + UpdateStatus=Blocked: update blocked, the hook is called again after RetryAfterSeconds
+//   - Status=Success + UpdateStatus=Completed: update completed successfully
+//   - Status=Success + UpdateStatus=CompletedButDirty: update completed, but the Machine is dirty
+//
+// If UpdateStatus is not set, it is defaulted to InProgress if RetryAfterSeconds > 0 and to Completed otherwise.
+// If RetryAfterSeconds is 0 with UpdateStatus InProgress, Failed or Blocked a default of 5 minutes is used.
 // +kubebuilder:object:root=true
 type UpdateMachineResponse struct {
 	metav1.TypeMeta `json:",inline"`
 
 	// CommonRetryResponse contains Status, Message and RetryAfterSeconds fields.
 	CommonRetryResponse `json:",inline"`
+
+	// updateStatus is the status of the in-place update. It is only considered if status is Success.
+	// +optional
+	UpdateStatus MachineUpdateStatus `json:"updateStatus,omitempty"`
 }
+
+// MachineUpdateStatus represents the status of an in-place update as reported by the UpdateMachine hook.
+// +kubebuilder:validation:Enum=InProgress;Failed;Blocked;Completed;CompletedButDirty
+// +enum
+type MachineUpdateStatus string
+
+const (
+	// MachineUpdateStatusInProgress signals that the in-place update is in progress.
+	// The hook is called again after retryAfterSeconds (defaulted to 5m).
+	MachineUpdateStatusInProgress MachineUpdateStatus = "InProgress"
+
+	// MachineUpdateStatusFailed signals that the in-place update failed.
+	// The hook is called again after retryAfterSeconds (defaulted to 5m).
+	MachineUpdateStatusFailed MachineUpdateStatus = "Failed"
+
+	// MachineUpdateStatusBlocked signals that the in-place update is blocked.
+	// The hook is called again after retryAfterSeconds (defaulted to 5m).
+	MachineUpdateStatusBlocked MachineUpdateStatus = "Blocked"
+
+	// MachineUpdateStatusCompleted signals that the in-place update completed successfully.
+	MachineUpdateStatusCompleted MachineUpdateStatus = "Completed"
+
+	// MachineUpdateStatusCompletedButDirty signals that the in-place update is completed,
+	// but the Machine is left in a dirty state. The Machine is tracked as dirty until the
+	// next in-place update of this Machine completes with updateStatus Completed.
+	MachineUpdateStatusCompletedButDirty MachineUpdateStatus = "CompletedButDirty"
+)
 
 // UpdateMachine is the hook that will be called to perform in-place updates on a machine.
 // This hook should be idempotent and can be called multiple times for the same machine
-// until it reports Done or Failed status.
+// until it reports updateStatus Completed or CompletedButDirty.
 func UpdateMachine(*UpdateMachineRequest, *UpdateMachineResponse) {}
 
 func init() {
@@ -235,7 +307,9 @@ func init() {
 			"- This hook is called during the planning phase of updates\n" +
 			"- Only spec is provided, status fields are not included\n" +
 			"- If no extension can cover the required changes, CAPI will fallback to rolling updates\n" +
-			"- Only fields in Machine/InfraMachine/BootstrapConfig spec have to be covered by patches\n",
+			"- Only fields in Machine/InfraMachine/BootstrapConfig spec have to be covered by patches\n" +
+			"- Extensions can use allowedOperations to express which operations (UpdateInPlace, Replace) are allowed to roll out the changes, " +
+			"e.g. to block the rollout by returning an empty list\n",
 	})
 
 	catalogBuilder.RegisterHook(CanUpdateMachineSet, &runtimecatalog.HookMeta{
@@ -248,8 +322,11 @@ func init() {
 			"Notes:\n" +
 			"- This hook is called during the planning phase of updates\n" +
 			"- Only spec is provided, status fields are not included\n" +
-			"- If no extension can cover the required changes, CAPI will fallback to rolling updates\n" +
-			"- Only fields in MachineSet/InfraMachineTemplate/BootstrapConfigTemplate spec.template.spec have to be covered by patches\n",
+			"- If no extension can cover the required changes, CAPI will fallback to rolling updates, unless allowedOperations does not allow it\n" +
+			"- Only fields in MachineSet/InfraMachineTemplate/BootstrapConfigTemplate spec.template.spec have to be covered by patches\n" +
+			"- Extensions can use allowedOperations to express which operations (UpdateInPlace, Replace) are allowed to roll out the changes, " +
+			"e.g. to block the rollout by returning an empty list\n" +
+			"- retryAfterSeconds > 0 can be used to signal that the decision is still in progress; the rollout is paused until the hook is called again\n",
 	})
 
 	catalogBuilder.RegisterHook(UpdateMachine, &runtimecatalog.HookMeta{
@@ -257,9 +334,12 @@ func init() {
 		Summary: "Cluster API Runtime will call this hook to perform in-place updates on a Machine",
 		Description: "Cluster API Runtime will call this hook to perform the actual in-place update on a Machine. " +
 			"The request contains the desired state for Machine, InfraMachine and optionally BootstrapConfig. " +
-			"The hook will be called repeatedly until it reports Done or Failed status.\n" +
+			"The hook will be called repeatedly until it reports updateStatus Completed or CompletedButDirty.\n" +
 			"\n" +
 			"Notes:\n" +
-			"- This hook must be idempotent - it can be called multiple times for the same Machine\n",
+			"- This hook must be idempotent - it can be called multiple times for the same Machine\n" +
+			"- updateStatus InProgress, Failed and Blocked are retried after retryAfterSeconds (a default of 5 minutes is used if retryAfterSeconds is 0)\n" +
+			"- updateStatus CompletedButDirty completes the update, but the Machine is tracked as dirty until the next in-place update completes\n" +
+			"- status Failure is considered an unexpected error and retried with exponential backoff\n",
 	})
 }

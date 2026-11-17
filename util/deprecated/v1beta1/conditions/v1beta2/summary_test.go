@@ -33,7 +33,7 @@ func TestSummary(t *testing.T) {
 		for i := range in {
 			out[i] = strings.ToLower(in[i])
 		}
-		return
+		return out
 	}
 	tests := []struct {
 		name          string

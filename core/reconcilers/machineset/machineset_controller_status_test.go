@@ -416,8 +416,8 @@ func Test_setScalingUpCondition(t *testing.T) {
 				Type:   clusterv1.MachineSetScalingUpCondition,
 				Status: metav1.ConditionTrue,
 				Reason: clusterv1.MachineSetScalingUpReason,
-				Message: "Scaling up from 0 to 3 replicas is blocked because:\n" +
-					"* KubeadmBootstrapTemplate does not exist",
+				Message: "Scaling up from 0 to 3 replicas:\n" +
+					"* Blocked because KubeadmBootstrapTemplate does not exist",
 			},
 		},
 		{
@@ -430,8 +430,8 @@ func Test_setScalingUpCondition(t *testing.T) {
 				Type:   clusterv1.MachineSetScalingUpCondition,
 				Status: metav1.ConditionTrue,
 				Reason: clusterv1.MachineSetScalingUpReason,
-				Message: "Scaling up from 0 to 3 replicas is blocked because:\n" +
-					"* DockerMachineTemplate does not exist",
+				Message: "Scaling up from 0 to 3 replicas:\n" +
+					"* Blocked because DockerMachineTemplate does not exist",
 			},
 		},
 		{
@@ -447,9 +447,9 @@ func Test_setScalingUpCondition(t *testing.T) {
 				Type:   clusterv1.MachineSetScalingUpCondition,
 				Status: metav1.ConditionTrue,
 				Reason: clusterv1.MachineSetScalingUpReason,
-				Message: "Scaling up from 0 to 3 replicas is blocked because:\n" +
-					"* MachineSet version (1.25.5) and ControlPlane version (1.26.2) do not conform to kubeadm version skew policy as kubeadm only supports joining with the same major+minor version as the control plane (\"KubeadmVersionSkew\" preflight check failed)\n" +
-					"* KubeadmBootstrapTemplate and DockerMachineTemplate do not exist",
+				Message: "Scaling up from 0 to 3 replicas:\n" +
+					"* Blocked because MachineSet version (1.25.5) and ControlPlane version (1.26.2) do not conform to kubeadm version skew policy as kubeadm only supports joining with the same major+minor version as the control plane (\"KubeadmVersionSkew\" preflight check failed)\n" +
+					"* Blocked because KubeadmBootstrapTemplate and DockerMachineTemplate do not exist",
 			},
 		},
 		{
@@ -579,8 +579,8 @@ After above Pods have been removed from the Node, the following Pods will be evi
 				Type:   clusterv1.MachineSetScalingDownCondition,
 				Status: metav1.ConditionTrue,
 				Reason: clusterv1.MachineSetScalingDownReason,
-				Message: "Scaling down from 2 to 1 replicas\n" +
-					"* Machine stale-machine-1 is in deletion since more than 15m, delay likely due to PodDisruptionBudgets, Pods not terminating, Pod eviction errors, Pods not completed yet",
+				Message: "Scaling down from 2 to 1 replicas:\n" +
+					"* Blocked because Machine stale-machine-1 is in deletion since more than 15m, delay likely due to PodDisruptionBudgets, Pods not terminating, Pod eviction errors, Pods not completed yet",
 			},
 		},
 		{
@@ -597,8 +597,8 @@ After above Pods have been removed from the Node, the following Pods will be evi
 				Type:   clusterv1.MachineSetScalingDownCondition,
 				Status: metav1.ConditionTrue,
 				Reason: clusterv1.MachineSetScalingDownReason,
-				Message: "Scaling down from 4 to 1 replicas\n" +
-					"* Machines stale-machine-1, stale-machine-2, stale-machine-3 are in deletion since more than 15m",
+				Message: "Scaling down from 4 to 1 replicas:\n" +
+					"* Blocked because Machines stale-machine-1, stale-machine-2, stale-machine-3 are in deletion since more than 15m",
 			},
 		},
 		{
@@ -617,8 +617,8 @@ After above Pods have been removed from the Node, the following Pods will be evi
 				Type:   clusterv1.MachineSetScalingDownCondition,
 				Status: metav1.ConditionTrue,
 				Reason: clusterv1.MachineSetScalingDownReason,
-				Message: "Scaling down from 6 to 1 replicas\n" +
-					"* Machines stale-machine-1, stale-machine-2, stale-machine-3, ... (2 more) are in deletion since more than 15m",
+				Message: "Scaling down from 6 to 1 replicas:\n" +
+					"* Blocked because Machines stale-machine-1, stale-machine-2, stale-machine-3, ... (2 more) are in deletion since more than 15m",
 			},
 		},
 		{
@@ -651,7 +651,7 @@ After above Pods have been removed from the Node, the following Pods will be evi
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			setScalingDownCondition(ctx, tt.ms, tt.machines, tt.getAndAdoptMachinesForMachineSetSucceeded)
+			setScalingDownCondition(ctx, metav1.Now(), tt.ms, tt.machines, tt.getAndAdoptMachinesForMachineSetSucceeded)
 
 			condition := conditions.Get(tt.ms, clusterv1.MachineSetScalingDownCondition)
 			g.Expect(condition).ToNot(BeNil())
@@ -937,7 +937,7 @@ func Test_setMachinesUpToDateCondition(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			setMachinesUpToDateCondition(ctx, tt.machineSet, tt.machines, tt.getAndAdoptMachinesForMachineSetSucceeded)
+			setMachinesUpToDateCondition(ctx, metav1.Now(), tt.machineSet, tt.machines, tt.getAndAdoptMachinesForMachineSetSucceeded)
 
 			condition := conditions.Get(tt.machineSet, clusterv1.MachineSetMachinesUpToDateCondition)
 			g.Expect(condition).ToNot(BeNil())
@@ -1129,7 +1129,7 @@ func Test_setDeletingCondition(t *testing.T) {
 				Type:   clusterv1.MachineSetDeletingCondition,
 				Status: metav1.ConditionTrue,
 				Reason: clusterv1.MachineSetDeletingReason,
-				Message: "Deleting 3 Machines\n" +
+				Message: "Deleting 3 Machines:\n" +
 					"* Machines m1, m2 are in deletion since more than 15m",
 			},
 		},
@@ -1138,7 +1138,7 @@ func Test_setDeletingCondition(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			setDeletingCondition(ctx, tt.machineSet, tt.machines, tt.getAndAdoptMachinesForMachineSetSucceeded)
+			setDeletingCondition(ctx, metav1.Now(), tt.machineSet, tt.machines, tt.getAndAdoptMachinesForMachineSetSucceeded)
 
 			condition := conditions.Get(tt.machineSet, clusterv1.MachineSetDeletingCondition)
 			g.Expect(condition).ToNot(BeNil())
@@ -1249,7 +1249,7 @@ After above Pods have been removed from the Node, the following Pods will be evi
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			got := aggregateStaleMachines(tt.machines)
+			got := aggregateStaleMachines(metav1.Now(), tt.machines)
 			g.Expect(got).To(Equal(tt.expectMessage))
 		})
 	}

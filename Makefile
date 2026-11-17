@@ -23,7 +23,7 @@ SHELL:=/usr/bin/env bash
 #
 # Go.
 #
-GO_VERSION ?= 1.26.6
+GO_VERSION ?= 1.26.10
 GO_DIRECTIVE_VERSION ?= 1.26.0
 GO_CONTAINER_IMAGE ?= docker.io/library/golang:$(GO_VERSION)
 
@@ -59,10 +59,12 @@ TRACE ?= 0
 #
 # Full directory of where the Makefile resides
 ROOT_DIR:=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
-BIN_DIR := bin
+OUTPUT_DIR := _output
+# Note: BIN_DIR is for the binaries we build and ship (controllers, clusterctl); TOOLS_BIN_DIR is for dev, CI and release tooling.
+BIN_DIR := $(OUTPUT_DIR)/bin
 TEST_DIR := test
 TOOLS_DIR := hack/tools
-TOOLS_BIN_DIR := $(abspath $(TOOLS_DIR)/$(BIN_DIR))
+TOOLS_BIN_DIR := $(abspath $(OUTPUT_DIR)/tools)
 DOCS_DIR := docs
 E2E_FRAMEWORK_DIR := $(TEST_DIR)/framework
 CAPD_DIR := $(TEST_DIR)/infrastructure/docker
@@ -118,7 +120,7 @@ get_go_version = $(shell go list -m $1 | awk '{print $$2}')
 # Binaries.
 #
 # Note: Need to use abspath so we can invoke these from subdirectories
-KUSTOMIZE_VER := v5.7.0
+KUSTOMIZE_VER := v5.8.2
 KUSTOMIZE_BIN := kustomize
 KUSTOMIZE := $(abspath $(TOOLS_BIN_DIR)/$(KUSTOMIZE_BIN)-$(KUSTOMIZE_VER))
 KUSTOMIZE_PKG := sigs.k8s.io/kustomize/kustomize/v5
@@ -128,7 +130,7 @@ SETUP_ENVTEST_BIN := setup-envtest
 SETUP_ENVTEST := $(abspath $(TOOLS_BIN_DIR)/$(SETUP_ENVTEST_BIN)-$(SETUP_ENVTEST_VER))
 SETUP_ENVTEST_PKG := sigs.k8s.io/controller-runtime/tools/setup-envtest
 
-CONTROLLER_GEN_VER := v0.22.0
+CONTROLLER_GEN_VER := v0.23.0
 CONTROLLER_GEN_BIN := controller-gen
 CONTROLLER_GEN := $(abspath $(TOOLS_BIN_DIR)/$(CONTROLLER_GEN_BIN)-$(CONTROLLER_GEN_VER))
 CONTROLLER_GEN_PKG := sigs.k8s.io/controller-tools/cmd/controller-gen
@@ -157,7 +159,7 @@ SHELLCHECK_VER := v0.10.0
 
 TRIVY_VER := 0.69.2
 
-KPROMO_VER := 5ab0dbc74b0228c22a93d240596dff77464aee8f
+KPROMO_VER := v4.8.1
 KPROMO_BIN := kpromo
 KPROMO :=  $(abspath $(TOOLS_BIN_DIR)/$(KPROMO_BIN)-$(KPROMO_VER))
 # KPROMO_PKG may have to be changed if KPROMO_VER increases its major version.
@@ -188,7 +190,7 @@ GOVULNCHECK_BIN := govulncheck
 GOVULNCHECK_VER := v1.3.0
 GOVULNCHECK := $(abspath $(TOOLS_BIN_DIR)/$(GOVULNCHECK_BIN))
 GOVULNCHECK_DIR := hack/tools/govulncheck
-GOVULNCHECK_TMP_DIR ?= $(GOVULNCHECK_DIR)/govulncheck.tmp
+GOVULNCHECK_TMP_DIR ?= $(OUTPUT_DIR)/tmp/govulncheck
 
 CRANE_BIN := crane
 CRANE_VER := v0.20.7
@@ -203,7 +205,8 @@ CRD_REF_DOCS_PKG := github.com/elastic/crd-ref-docs
 TRIAGE_PARTY_IMAGE_NAME ?= extra/triage-party
 TRIAGE_PARTY_CONTROLLER_IMG ?= $(STAGING_REGISTRY)/$(TRIAGE_PARTY_IMAGE_NAME)
 TRIAGE_PARTY_DIR := hack/tools/triage
-TRIAGE_PARTY_TMP_DIR ?= $(TRIAGE_PARTY_DIR)/triage-party.tmp
+TRIAGE_PARTY_TMP_DIR ?= $(OUTPUT_DIR)/tmp/triage-party
+TRIAGE_PARTY_CACHE_DIR ?= $(OUTPUT_DIR)/triage-party-cache
 TRIAGE_PARTY_VERSION ?= v1.6.0
 
 CONVERSION_VERIFIER_BIN := conversion-verifier
@@ -307,7 +310,7 @@ generate-manifests-core: $(CONTROLLER_GEN) $(KUSTOMIZE) ## Generate manifests e.
 		paths=./core \
 		paths=./core/reconcilers/... \
 		paths=./core/webhooks/... \
-		crd:crdVersions=v1 \
+		crd:omitToolVersion=true \
 		rbac:roleName=manager-role \
 		output:crd:dir=./core/config/crd/bases \
 		output:rbac:dir=./core/config/rbac \
@@ -315,40 +318,40 @@ generate-manifests-core: $(CONTROLLER_GEN) $(KUSTOMIZE) ## Generate manifests e.
 		webhook
 	$(CONTROLLER_GEN) \
 		paths=./cmd/clusterctl/api/... \
-		crd:crdVersions=v1 \
+		crd:omitToolVersion=true \
 		output:crd:dir=./cmd/clusterctl/config/crd/bases
 	$(KUSTOMIZE) build $(CLUSTERCTL_MANIFEST_DIR)/crd > $(CLUSTERCTL_MANIFEST_DIR)/manifest/clusterctl-api.yaml
 	$(CONTROLLER_GEN) \
 		paths=./util/test/builder/... \
-		crd:crdVersions=v1 \
+		crd:omitToolVersion=true \
 		output:crd:dir=./util/test/builder/crd
 	$(CONTROLLER_GEN) \
 		paths=./internal/topology/upgrade/test/t1/... \
-		crd:crdVersions=v1 \
+		crd:omitToolVersion=true \
 		output:crd:dir=./internal/topology/upgrade/test/t1/crd
 	$(CONTROLLER_GEN) \
 		paths=./internal/topology/upgrade/test/t2/... \
-		crd:crdVersions=v1 \
+		crd:omitToolVersion=true \
 		output:crd:dir=./internal/topology/upgrade/test/t2/crd
 	$(CONTROLLER_GEN) \
 		paths=./controllers/crdmigrator/test/t1/... \
-		crd:crdVersions=v1 \
+		crd:omitToolVersion=true \
 		output:crd:dir=./controllers/crdmigrator/test/t1/crd
 	$(CONTROLLER_GEN) \
 		paths=./controllers/crdmigrator/test/t2/... \
-		crd:crdVersions=v1 \
+		crd:omitToolVersion=true \
 		output:crd:dir=./controllers/crdmigrator/test/t2/crd
 	$(CONTROLLER_GEN) \
 		paths=./controllers/crdmigrator/test/t3/... \
-		crd:crdVersions=v1 \
+		crd:omitToolVersion=true \
 		output:crd:dir=./controllers/crdmigrator/test/t3/crd
 	$(CONTROLLER_GEN) \
 		paths=./controllers/crdmigrator/test/t4/... \
-		crd:crdVersions=v1 \
+		crd:omitToolVersion=true \
 		output:crd:dir=./controllers/crdmigrator/test/t4/crd
 	$(CONTROLLER_GEN) \
 		paths=./util/deprecated/v1beta1/test/builder/... \
-		crd:crdVersions=v1 \
+		crd:omitToolVersion=true \
 		output:crd:dir=./util/deprecated/v1beta1/test/builder/crd
 
 .PHONY: generate-manifests-kubeadm-bootstrap
@@ -359,7 +362,7 @@ generate-manifests-kubeadm-bootstrap: $(CONTROLLER_GEN) ## Generate manifests e.
 		paths=./bootstrap/kubeadm \
 		paths=./bootstrap/kubeadm/reconcilers/... \
 		paths=./bootstrap/kubeadm/webhooks/... \
-		crd:crdVersions=v1 \
+		crd:omitToolVersion=true \
 		rbac:roleName=manager-role \
 		output:crd:dir=./bootstrap/kubeadm/config/crd/bases \
 		output:rbac:dir=./bootstrap/kubeadm/config/rbac \
@@ -374,7 +377,7 @@ generate-manifests-kubeadm-control-plane: $(CONTROLLER_GEN) ## Generate manifest
 		paths=./controlplane/kubeadm \
 		paths=./controlplane/kubeadm/reconcilers/... \
 		paths=./controlplane/kubeadm/webhooks/... \
-		crd:crdVersions=v1 \
+		crd:omitToolVersion=true \
 		rbac:roleName=manager-role \
 		output:crd:dir=./controlplane/kubeadm/config/crd/bases \
 		output:rbac:dir=./controlplane/kubeadm/config/rbac \
@@ -389,7 +392,7 @@ generate-manifests-docker-infrastructure: $(CONTROLLER_GEN) ## Generate manifest
 		paths=./api/... \
 		paths=./reconcilers/... \
 		paths=./webhooks/... \
-		crd:crdVersions=v1 \
+		crd:omitToolVersion=true \
 		rbac:roleName=manager-role \
 		output:crd:dir=./config/crd/bases \
 		output:webhook:dir=./config/webhook \
@@ -419,7 +422,7 @@ generate-go-deepcopy-core: $(CONTROLLER_GEN) ## Generate deepcopy go code for co
 		paths=./cmd/clusterctl/... \
 		paths=./controllers/crdmigrator/test/... \
 		paths=./internal/contract/api/... \
-		paths=./internal/runtime/test/... \
+		paths=./pkg/runtimesdk/test/... \
 		paths=./internal/topology/upgrade/test/... \
 		paths=./util/test/builder/... \
 		paths=./util/deprecated/v1beta1/test/builder/...
@@ -498,12 +501,12 @@ generate-go-conversions-core-ipam: $(CONVERSION_GEN) ## Generate conversions go 
 
 .PHONY: generate-go-conversions-core-runtime
 generate-go-conversions-core-runtime: $(CONVERSION_GEN) ## Generate conversions go code for core runtime
-	$(MAKE) clean-generated-conversions SRC_DIRS="./internal/runtime/test/v1alpha1,./internal/runtime/test/v1alpha2"
+	$(MAKE) clean-generated-conversions SRC_DIRS="./pkg/runtimesdk/test/v1alpha1,./pkg/runtimesdk/test/v1alpha2"
 	$(CONVERSION_GEN) \
 		--output-file=zz_generated.conversion.go \
 		--go-header-file=./hack/scripts/verify/boilerplate/boilerplate.generatego.txt \
-		./internal/runtime/test/v1alpha1 \
-		./internal/runtime/test/v1alpha2
+		./pkg/runtimesdk/test/v1alpha1 \
+		./pkg/runtimesdk/test/v1alpha2
 	$(MAKE) clean-generated-conversions SRC_DIRS="./api/runtime/v1alpha1"
 	cd api; $(CONVERSION_GEN) \
 		--output-file=zz_generated.conversion.go \
@@ -561,6 +564,7 @@ generate-go-openapi: $(OPENAPI_GEN) ## Generate openapi go code for runtime SDK
 generate-modules: ## Run go mod tidy to ensure modules are up to date
 	go mod tidy
 	cd api; go mod tidy
+	cd utils; go mod tidy
 	cd $(TOOLS_DIR); go mod tidy
 	cd $(TEST_DIR); go mod tidy
 
@@ -650,6 +654,7 @@ generate-test-infra-prowjobs: $(PROWJOB_GEN) ## Generates the prowjob configurat
 lint: $(GOLANGCI_LINT) $(GOLANGCI_LINT_KAL) ## Lint the codebase
 	$(GOLANGCI_LINT) run -v $(GOLANGCI_LINT_EXTRA_ARGS)
 	cd api; $(GOLANGCI_LINT) run --config $(ROOT_DIR)/.golangci.yml -v $(GOLANGCI_LINT_EXTRA_ARGS)
+	cd utils; $(GOLANGCI_LINT) run --config $(ROOT_DIR)/.golangci.yml -v $(GOLANGCI_LINT_EXTRA_ARGS)
 	cd $(TEST_DIR); $(GOLANGCI_LINT) run --config $(ROOT_DIR)/.golangci.yml -v $(GOLANGCI_LINT_EXTRA_ARGS)
 	cd $(TOOLS_DIR); $(GOLANGCI_LINT) run --config $(ROOT_DIR)/.golangci.yml -v $(GOLANGCI_LINT_EXTRA_ARGS)
 	./hack/scripts/verify/verify-dockerfiles.sh $(HADOLINT_VER) $(HADOLINT_FAILURE_THRESHOLD)
@@ -692,7 +697,7 @@ verify-go-directive:
 
 .PHONY: verify-modules
 verify-modules: generate-modules  ## Verify go modules are up to date
-	@if !(git diff --quiet HEAD -- go.sum go.mod api/go.mod api/go.sum $(TOOLS_DIR)/go.mod $(TOOLS_DIR)/go.sum $(TEST_DIR)/go.mod $(TEST_DIR)/go.sum); then \
+	@if !(git diff --quiet HEAD -- go.sum go.mod api/go.mod api/go.sum utils/go.mod utils/go.sum $(TOOLS_DIR)/go.mod $(TOOLS_DIR)/go.sum $(TEST_DIR)/go.mod $(TEST_DIR)/go.sum); then \
 		git diff; \
 		echo "go module files are out of date"; exit 1; \
 	fi
@@ -755,9 +760,10 @@ verify-licenses: ## Verify licenses
 verify-govulncheck: $(GOVULNCHECK) ## Verify code for vulnerabilities
 	$(GOVULNCHECK) ./... && R1=$$? || R1=$$?; \
 	$(GOVULNCHECK) -C "api" ./... && R2=$$? || R2=$$?; \
-	$(GOVULNCHECK) -C "$(TOOLS_DIR)" ./... && R3=$$? || R3=$$?; \
-	$(GOVULNCHECK) -C "$(TEST_DIR)" ./... && R4=$$? || R4=$$?; \
-	if [ "$$R1" -ne "0" ] || [ "$$R2" -ne "0" ] || [ "$$R3" -ne "0" ] || [ "$$R4" -ne "0" ]; then \
+	$(GOVULNCHECK) -C "utils" ./... && R3=$$? || R3=$$?; \
+	$(GOVULNCHECK) -C "$(TOOLS_DIR)" ./... && R4=$$? || R4=$$?; \
+	$(GOVULNCHECK) -C "$(TEST_DIR)" ./... && R5=$$? || R5=$$?; \
+	if [ "$$R1" -ne "0" ] || [ "$$R2" -ne "0" ] || [ "$$R3" -ne "0" ] || [ "$$R4" -ne "0" ] || [ "$$R5" -ne "0" ]; then \
 		exit 1; \
 	fi
 
@@ -889,7 +895,7 @@ build-book: ## Build the book
 
 ##@ test:
 
-ARTIFACTS ?= ${ROOT_DIR}/_artifacts
+ARTIFACTS ?= ${ROOT_DIR}/$(OUTPUT_DIR)/artifacts
 
 KUBEBUILDER_ASSETS ?= $(shell $(SETUP_ENVTEST) use --use-env -p path $(KUBEBUILDER_ENVTEST_KUBERNETES_VERSION))
 
@@ -900,6 +906,7 @@ setup-envtest: $(SETUP_ENVTEST) ## Set up envtest (download kubebuilder assets)
 .PHONY: test-no-race
 test-no-race: $(SETUP_ENVTEST) ## Run unit and integration tests
 	cd api; KUBEBUILDER_ASSETS="$(KUBEBUILDER_ASSETS)" go test ./... $(TEST_ARGS)
+	cd utils; KUBEBUILDER_ASSETS="$(KUBEBUILDER_ASSETS)" go test ./... $(TEST_ARGS)
 	KUBEBUILDER_ASSETS="$(KUBEBUILDER_ASSETS)" go test ./... $(TEST_ARGS)
 
 .PHONY: test
@@ -908,6 +915,7 @@ test: $(SETUP_ENVTEST) ## Run unit and integration tests with race detector
 	# To achieve that, all files with fuzz tests have the "!race" build tag, to still run fuzz tests
 	# we have an additional `go test` run that focuses on "TestFuzzyConversion".
 	cd api; KUBEBUILDER_ASSETS="$(KUBEBUILDER_ASSETS)" go test -race ./... $(TEST_ARGS)
+	cd utils; KUBEBUILDER_ASSETS="$(KUBEBUILDER_ASSETS)" go test -race ./... $(TEST_ARGS)
 	KUBEBUILDER_ASSETS="$(KUBEBUILDER_ASSETS)" go test -race ./... $(TEST_ARGS)
 	$(MAKE) test-conversions TEST_ARGS="$(TEST_ARGS)"
 
@@ -927,6 +935,9 @@ test-junit: $(SETUP_ENVTEST) $(GOTESTSUM) ## Run unit and integration tests with
 	cd api; set +o errexit; (KUBEBUILDER_ASSETS="$(KUBEBUILDER_ASSETS)" go test -race -json ./... $(TEST_ARGS); echo $$? > $(ARTIFACTS)/junit-api.exitcode) | tee $(ARTIFACTS)/junit-api.stdout
 	$(GOTESTSUM) --junitfile $(ARTIFACTS)/junit-api.xml --raw-command cat $(ARTIFACTS)/junit-api.stdout
 	exit $$(cat $(ARTIFACTS)/junit-api.exitcode)
+	cd utils; set +o errexit; (KUBEBUILDER_ASSETS="$(KUBEBUILDER_ASSETS)" go test -race -json ./... $(TEST_ARGS); echo $$? > $(ARTIFACTS)/junit-utils.exitcode) | tee $(ARTIFACTS)/junit-utils.stdout
+	$(GOTESTSUM) --junitfile $(ARTIFACTS)/junit-utils.xml --raw-command cat $(ARTIFACTS)/junit-utils.stdout
+	exit $$(cat $(ARTIFACTS)/junit-utils.exitcode)
 	set +o errexit; (KUBEBUILDER_ASSETS="$(KUBEBUILDER_ASSETS)" go test -run "^TestFuzzyConversion$$" -json ./... $(TEST_ARGS); echo $$? > $(ARTIFACTS)/junit-fuzz.exitcode) | tee $(ARTIFACTS)/junit-fuzz.stdout
 	$(GOTESTSUM) --junitfile $(ARTIFACTS)/junit-fuzz.xml --raw-command cat $(ARTIFACTS)/junit-fuzz.stdout
 	exit $$(cat $(ARTIFACTS)/junit-fuzz.exitcode)
@@ -938,6 +949,8 @@ test-cover: ## Run unit and integration tests and generate a coverage report
 	go tool cover -html=coverage.out -o coverage.html
 	go tool cover -func=api/coverage.out -o coverage-api.txt
 	go tool cover -html=api/coverage.out -o coverage-api.html
+	go tool cover -func=utils/coverage.out -o coverage-utils.txt
+	go tool cover -html=utils/coverage.out -o coverage-utils.html
 
 .PHONY: test-infrastructure
 test-infrastructure: $(SETUP_ENVTEST) ## Run unit and integration tests with race detector for docker infrastructure provider
@@ -1037,7 +1050,7 @@ serve-book: ## Build and serve the book (with live-reload)
 RELEASE_TAG ?= $(shell git describe --abbrev=0 2>/dev/null)
 ## set by Prow, ref name of the base branch, e.g., main
 RELEASE_ALIAS_TAG := $(PULL_BASE_REF)
-RELEASE_DIR := out
+RELEASE_DIR := $(OUTPUT_DIR)/release
 RELEASE_NOTES_DIR := CHANGELOG
 USER_FORK ?= $(shell git config --get remote.origin.url | cut -d/ -f4) # only works on https://github.com/<username>/cluster-api.git style URLs
 ifeq ($(USER_FORK),)
@@ -1201,11 +1214,11 @@ release-alias-tag: ## Add the release alias tag to the last build tag
 
 .PHONY: release-notes-tool
 release-notes-tool:
-	go build -C hack/tools -o $(ROOT_DIR)/bin/notes -tags tools sigs.k8s.io/cluster-api/hack/tools/release/notes
+	go build -C hack/tools -o $(TOOLS_BIN_DIR)/notes -tags tools sigs.k8s.io/cluster-api/hack/tools/release/notes
 
 .PHONY: release-notes
 release-notes: release-notes-tool
-	./bin/notes --release $(RELEASE_TAG) --previous-release-version "$(PREVIOUS_RELEASE_TAG)" > CHANGELOG/$(RELEASE_TAG).md
+	$(TOOLS_BIN_DIR)/notes --release $(RELEASE_TAG) --previous-release-version "$(PREVIOUS_RELEASE_TAG)" > CHANGELOG/$(RELEASE_TAG).md
 
 .PHONY: test-release-notes-tool
 test-release-notes-tool:
@@ -1217,7 +1230,7 @@ release-provider-issues-tool: # Creates GitHub issues in a pre-defined list of C
 
 .PHONY: release-weekly-update-tool
 release-weekly-update-tool:
-	go build -C hack/tools -o $(ROOT_DIR)/bin/weekly -tags tools sigs.k8s.io/cluster-api/hack/tools/release/weekly
+	go build -C hack/tools -o $(TOOLS_BIN_DIR)/weekly -tags tools sigs.k8s.io/cluster-api/hack/tools/release/weekly
 
 .PHONY: promote-images
 promote-images: $(KPROMO)
@@ -1345,10 +1358,7 @@ clean-bin: ## Remove all generated binaries
 
 .PHONY: clean-tilt
 clean-tilt: clean-charts clean-kind ## Remove all files generated by Tilt
-	rm -rf ./.tiltbuild
-	rm -rf ./controlplane/kubeadm/.tiltbuild
-	rm -rf ./bootstrap/kubeadm/.tiltbuild
-	rm -rf ./test/infrastructure/docker/.tiltbuild
+	rm -rf $(OUTPUT_DIR)/tilt
 
 .PHONY: clean-charts
 clean-charts: ## Remove all local copies of Helm charts in ./hack/observability
@@ -1457,7 +1467,7 @@ $(CONVERSION_GEN): # Build conversion-gen from tools folder.
 	GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) $(CONVERSION_GEN_PKG) $(CONVERSION_GEN_BIN) $(CONVERSION_GEN_VER)
 
 $(CONVERSION_VERIFIER): $(TOOLS_DIR)/go.mod # Build conversion-verifier from tools folder.
-	cd $(TOOLS_DIR); go build -tags=tools -o $(BIN_DIR)/$(CONVERSION_VERIFIER_BIN) sigs.k8s.io/cluster-api/hack/tools/conversion-verifier
+	cd $(TOOLS_DIR); go build -tags=tools -o $(TOOLS_BIN_DIR)/$(CONVERSION_VERIFIER_BIN) sigs.k8s.io/cluster-api/hack/tools/conversion-verifier
 
 .PHONY: $(OPENAPI_GEN)
 $(OPENAPI_GEN): # Build openapi-gen from tools folder.
@@ -1466,11 +1476,11 @@ $(OPENAPI_GEN): # Build openapi-gen from tools folder.
 ## We are forcing a rebuilt of runtime-openapi-gen via PHONY so that we're always using an up-to-date version.
 .PHONY: $(RUNTIME_OPENAPI_GEN)
 $(RUNTIME_OPENAPI_GEN): $(TOOLS_DIR)/go.mod # Build openapi-gen from tools folder.
-	cd $(TOOLS_DIR); go build -tags=tools -o $(BIN_DIR)/$(RUNTIME_OPENAPI_GEN_BIN) sigs.k8s.io/cluster-api/hack/tools/runtime-openapi-gen
+	cd $(TOOLS_DIR); go build -tags=tools -o $(TOOLS_BIN_DIR)/$(RUNTIME_OPENAPI_GEN_BIN) sigs.k8s.io/cluster-api/hack/tools/runtime-openapi-gen
 
 .PHONY: $(PROWJOB_GEN)
 $(PROWJOB_GEN): $(TOOLS_DIR)/go.mod # Build prowjob-gen from tools folder.
-	cd $(TOOLS_DIR); go build -tags=tools -o $(BIN_DIR)/$(PROWJOB_GEN_BIN) sigs.k8s.io/cluster-api/hack/tools/prowjob-gen
+	cd $(TOOLS_DIR); go build -tags=tools -o $(TOOLS_BIN_DIR)/$(PROWJOB_GEN_BIN) sigs.k8s.io/cluster-api/hack/tools/prowjob-gen
 
 $(GOTESTSUM): # Build gotestsum from tools folder.
 	GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) $(GOTESTSUM_PKG) $(GOTESTSUM_BIN) $(GOTESTSUM_VER)
@@ -1485,10 +1495,10 @@ $(SETUP_ENVTEST): # Build setup-envtest from tools folder.
 	GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) $(SETUP_ENVTEST_PKG) $(SETUP_ENVTEST_BIN) $(SETUP_ENVTEST_VER)
 
 $(TILT_PREPARE): $(TOOLS_DIR)/go.mod # Build tilt-prepare from tools folder.
-	cd $(TOOLS_DIR); go build -tags=tools -o $(BIN_DIR)/tilt-prepare sigs.k8s.io/cluster-api/hack/tools/internal/tilt-prepare
+	cd $(TOOLS_DIR); go build -tags=tools -o $(TOOLS_BIN_DIR)/tilt-prepare sigs.k8s.io/cluster-api/hack/tools/internal/tilt-prepare
 
 $(KPROMO):
-	GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) $(KPROMO_PKG) $(KPROMO_BIN) ${KPROMO_VER}
+	GOTOOLCHAIN=auto GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) $(KPROMO_PKG) $(KPROMO_BIN) ${KPROMO_VER}
 
 $(YQ):
 	GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) $(YQ_PKG) $(YQ_BIN) ${YQ_VER}
@@ -1580,7 +1590,7 @@ triage-party: ## Start a local instance of triage party
 		-e GITHUB_TOKEN \
 		-e "PERSIST_BACKEND=disk" \
 		-e "PERSIST_PATH=/app/.cache" \
-		-v "$(ROOT_DIR)/$(TRIAGE_PARTY_DIR)/.cache:/app/.cache" \
+		-v "$(ROOT_DIR)/$(TRIAGE_PARTY_CACHE_DIR):/app/.cache" \
 		-v "$(ROOT_DIR)/$(TRIAGE_PARTY_DIR)/config.yaml:/app/config/config.yaml" \
 		-p 8080:8080 \
 		$(TRIAGE_PARTY_CONTROLLER_IMG):$(TRIAGE_PARTY_VERSION)

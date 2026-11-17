@@ -95,7 +95,7 @@ func init() {
 	register()
 }
 
-// Register registers FIFO metrics and sets the metrics provider.
+// register registers FIFO metrics and sets the metrics provider.
 func register() {
 	registerOnce.Do(func() {
 		metrics.Registry.MustRegister(fifoQueuedItems)

@@ -31,9 +31,9 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	bootstrapadmission "sigs.k8s.io/cluster-api/bootstrap/kubeadm/webhooks/admission"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/webhooks/conversion"
-	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/util/compare"
 	"sigs.k8s.io/cluster-api/internal/util/taints"
+	"sigs.k8s.io/cluster-api/pkg/features"
 )
 
 // SetupWebhookWithManager sets up the webhook with the Manager.
@@ -55,7 +55,7 @@ var _ admission.Validator[*controlplanev1.KubeadmControlPlaneTemplate] = &Kubead
 func (webhook *KubeadmControlPlaneTemplate) ValidateCreate(_ context.Context, k *controlplanev1.KubeadmControlPlaneTemplate) (admission.Warnings, error) {
 	// NOTE: KubeadmControlPlaneTemplate is behind ClusterTopology feature gate flag; the web hook
 	// must prevent creating new objects in case the feature flag is disabled.
-	if !feature.Gates.Enabled(feature.ClusterTopology) {
+	if !features.Gates.Enabled(features.ClusterTopology) {
 		return nil, field.Forbidden(
 			field.NewPath("spec"),
 			"can be set only if the ClusterTopology feature flag is enabled",

@@ -508,11 +508,8 @@ func (c *E2EConfig) AbsPaths(basePath string) {
 		provider := &c.Providers[i]
 		for j := range provider.Versions {
 			version := &provider.Versions[j]
-			if version.Type != URLSource && version.Value != "" {
-				if !filepath.IsAbs(version.Value) {
-					version.Value = filepath.Join(basePath, version.Value)
-				}
-			} else if version.Type == URLSource && version.Value != "" {
+			// Make relative paths and file:// URLs absolute, whatever the Type; keep other URLs as is.
+			if version.Value != "" {
 				// Skip error, will be checked later when loading contents from URL
 				u, _ := url.Parse(version.Value)
 
@@ -743,13 +740,13 @@ func (c *E2EConfig) AddonProviders() []string {
 }
 
 func (c *E2EConfig) getProviders(t clusterctlv1.ProviderType) []string {
-	InfraProviders := []string{}
+	infraProviders := []string{}
 	for _, provider := range c.Providers {
 		if provider.Type == string(t) {
-			InfraProviders = append(InfraProviders, provider.Name)
+			infraProviders = append(infraProviders, provider.Name)
 		}
 	}
-	return InfraProviders
+	return infraProviders
 }
 
 func (c *E2EConfig) HasDockerProvider() bool {

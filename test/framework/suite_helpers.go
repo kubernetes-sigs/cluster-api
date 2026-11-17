@@ -54,7 +54,7 @@ func GatherJUnitReports(srcDir string, destDir string) error {
 }
 
 // ResolveArtifactsDirectory attempts to resolve a directory to store test
-// outputs, using either that provided by Prow, or defaulting to _artifacts.
+// outputs, using either that provided by Prow, or defaulting to _output/artifacts.
 func ResolveArtifactsDirectory(input string) string {
 	if input != "" {
 		return input
@@ -66,11 +66,11 @@ func ResolveArtifactsDirectory(input string) string {
 	findRootCmd := exec.CommandContext(context.Background(), "git", "rev-parse", "--show-toplevel")
 	out, err := findRootCmd.Output()
 	if err != nil {
-		return "_artifacts"
+		return path.Join("_output", "artifacts")
 	}
 	rootDir := strings.TrimSpace(string(out))
 
-	return path.Join(rootDir, "_artifacts")
+	return path.Join(rootDir, "_output", "artifacts")
 }
 
 // CompleteCommand prints a command before running it. Acts as a helper function.

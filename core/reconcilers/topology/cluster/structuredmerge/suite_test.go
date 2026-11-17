@@ -21,6 +21,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/go-logr/logr/funcr"
 	. "github.com/onsi/gomega"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -34,7 +35,9 @@ import (
 )
 
 var (
-	ctx        = ctrl.SetupSignalHandler()
+	ctx = ctrl.SetupSignalHandler()
+	// ctxV4 has a logger with verbosity 4, which is required for the patch helper to compute the diff.
+	ctxV4      = ctrl.LoggerInto(ctx, funcr.New(func(_, _ string) {}, funcr.Options{Verbosity: 4}))
 	fakeScheme = runtime.NewScheme()
 	env        *envtest.Environment
 )

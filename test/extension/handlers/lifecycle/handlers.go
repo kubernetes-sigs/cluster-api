@@ -276,12 +276,12 @@ func (m *ExtensionHandlers) DoBeforeClusterDelete(ctx context.Context, request *
 
 func (m *ExtensionHandlers) readResponseFromConfigMap(ctx context.Context, cluster *clusterv1.Cluster, hook runtimecatalog.Hook, attributes []string, settings map[string]string, response runtimehooksv1.ResponseObject) error {
 	hookName := computeHookName(hook, attributes)
-	configMap := &corev1.ConfigMap{}
 	if _, ok := settings[extensionConfigNameKey]; !ok {
-		return pkgerrors.New(extensionConfigNameKey + " mest be set in settings")
+		return pkgerrors.New(extensionConfigNameKey + " must be set in settings")
 	}
 	configMapName := configMapName(cluster.Name, settings[extensionConfigNameKey])
 	log := ctrl.LoggerFrom(ctx)
+	configMap := &corev1.ConfigMap{}
 	if err := m.client.Get(ctx, client.ObjectKey{Namespace: cluster.Namespace, Name: configMapName}, configMap); err != nil {
 		if apierrors.IsNotFound(err) {
 			// A ConfigMap of responses does not exist. Create one now.
@@ -334,10 +334,9 @@ func (m *ExtensionHandlers) readResponseFromConfigMap(ctx context.Context, clust
 	}
 
 	if err := yaml.Unmarshal([]byte(data), response); err != nil {
-		return pkgerrors.Wrapf(err, "failed to read %q response information from ConfigMap", hook)
+		return pkgerrors.Wrapf(err, "failed to read %q response information from ConfigMap", hookName)
 	}
 	if r, ok := response.(runtimehooksv1.RetryResponseObject); ok {
-		log := ctrl.LoggerFrom(ctx)
 		log.Info(fmt.Sprintf("%s response is %s. retry: %v", hookName, r.GetStatus(), r.GetRetryAfterSeconds()))
 	}
 	return nil

@@ -357,7 +357,7 @@ func addFinalizer(ctx context.Context, c client.Client, finalizer string, objs .
 			continue
 		}
 
-		Expect(helper.Patch(ctx, obj)).ToNot(HaveOccurred(), fmt.Sprintf("Failed to add finalizer to %s %s", obj.GetObjectKind().GroupVersionKind().Kind, klog.KObj(obj)))
+		Expect(helper.Patch(ctx, obj)).To(Succeed(), fmt.Sprintf("Failed to add finalizer to %s %s", obj.GetObjectKind().GroupVersionKind().Kind, klog.KObj(obj)))
 	}
 }
 
@@ -377,7 +377,7 @@ func removeFinalizer(ctx context.Context, c client.Client, finalizer string, obj
 			continue
 		}
 
-		Expect(helper.Patch(ctx, obj)).ToNot(HaveOccurred(), fmt.Sprintf("Failed to remove finalizer from %s %s", obj.GetObjectKind().GroupVersionKind().Kind, klog.KObj(obj)))
+		Expect(helper.Patch(ctx, obj)).To(Succeed(), fmt.Sprintf("Failed to remove finalizer from %s %s", obj.GetObjectKind().GroupVersionKind().Kind, klog.KObj(obj)))
 	}
 }
 

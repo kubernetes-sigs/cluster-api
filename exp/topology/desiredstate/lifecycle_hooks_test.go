@@ -42,8 +42,8 @@ import (
 	runtimev1 "sigs.k8s.io/cluster-api/api/runtime/v1beta2"
 	"sigs.k8s.io/cluster-api/core/webhooks/conversion"
 	"sigs.k8s.io/cluster-api/exp/topology/scope"
-	"sigs.k8s.io/cluster-api/feature"
-	fakeruntimeclient "sigs.k8s.io/cluster-api/internal/runtime/client/fake"
+	"sigs.k8s.io/cluster-api/pkg/features"
+	fakeruntimeclient "sigs.k8s.io/cluster-api/pkg/runtimesdk/client/fake"
 	"sigs.k8s.io/cluster-api/util/cache"
 	conversionutil "sigs.k8s.io/cluster-api/util/conversion"
 	"sigs.k8s.io/cluster-api/util/test/builder"
@@ -70,7 +70,7 @@ func TestComputeControlPlaneVersion_LifecycleHooksSequences(t *testing.T) {
 		return "", pkgerrors.Errorf("unknown GroupVersionKind: %v", gk)
 	}))
 
-	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.RuntimeSDK, true)
+	utilfeature.SetFeatureGateDuringTest(t, features.Gates, features.RuntimeSDK, true)
 
 	clusterForCacheEntry := &clusterv1.Cluster{
 		ObjectMeta: metav1.ObjectMeta{

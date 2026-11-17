@@ -55,7 +55,7 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	"sigs.k8s.io/cluster-api/controllers/crdmigrator"
 	"sigs.k8s.io/cluster-api/controllers/remote"
-	"sigs.k8s.io/cluster-api/feature"
+	"sigs.k8s.io/cluster-api/pkg/features"
 	"sigs.k8s.io/cluster-api/test/infrastructure/container"
 	infrav1beta1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta1"
 	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta2"
@@ -75,6 +75,7 @@ var (
 	controllerName = "cluster-api-docker-controller-manager"
 
 	// flags.
+
 	enableLeaderElection        bool
 	leaderElectionLeaseDuration time.Duration
 	leaderElectionRenewDeadline time.Duration
@@ -96,6 +97,7 @@ var (
 	managerOptions              = flags.ManagerOptions{}
 	logOptions                  = logs.NewOptions()
 	// CAPD specific flags.
+
 	devMachineConcurrency         int
 	devClusterConcurrency         int
 	devMachineTemplateConcurrency int
@@ -199,7 +201,7 @@ func InitFlags(fs *pflag.FlagSet) {
 
 	flags.AddManagerOptions(fs, &managerOptions)
 
-	feature.MutableGates.AddFlag(fs)
+	features.MutableGates.AddFlag(fs)
 }
 
 // Add RBAC for the authorized diagnostics endpoint.
@@ -269,7 +271,7 @@ func main() {
 
 	ctrlOptions := ctrl.Options{
 		Controller: config.Controller{
-			UsePriorityQueue: ptr.To[bool](feature.Gates.Enabled(feature.PriorityQueue)),
+			UsePriorityQueue: ptr.To[bool](features.Gates.Enabled(features.PriorityQueue)),
 			// Give the manager more time to sync the caches during startup. This is required
 			// in high scale environments when they are more objects in the system (default is 3m).
 			CacheSyncTimeout: 5 * time.Minute,
@@ -400,7 +402,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 		&infrav1.DevMachine{}:         {UseCache: false, UseStatusForStorageVersionMigration: true},
 		&infrav1.DevMachineTemplate{}: {UseCache: false},
 	}
-	if feature.Gates.Enabled(feature.MachinePool) {
+	if features.Gates.Enabled(features.MachinePool) {
 		crdMigratorConfig[&infrav1.DevMachinePool{}] = crdmigrator.ByObjectConfig{UseCache: false}
 		crdMigratorConfig[&infrav1.DevMachinePoolTemplate{}] = crdmigrator.ByObjectConfig{UseCache: false}
 	}
@@ -474,7 +476,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 		os.Exit(1)
 	}
 
-	if feature.Gates.Enabled(feature.MachinePool) {
+	if features.Gates.Enabled(features.MachinePool) {
 		if err := (&reconcilers.DevMachinePool{
 			Client:           mgr.GetClient(),
 			ContainerRuntime: runtimeClient,

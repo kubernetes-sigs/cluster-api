@@ -41,16 +41,16 @@ type unstructuredWrapper struct {
 	*unstructured.Unstructured
 }
 
-// GetConditions returns the list of conditions from an Unstructured object.
+// GetV1Beta1Conditions returns the list of conditions from an Unstructured object.
 //
-// NOTE: GetConditions supports retrieving conditions from objects at different stages of the transition from
+// NOTE: GetV1Beta1Conditions supports retrieving conditions from objects at different stages of the transition from
 // clusterv1.conditions to the metav1.Condition type:
 //   - Objects with clusterv1.Condition in status.deprecated.v1beta1.conditions
 //   - Objects with clusterv1.Condition in status.conditions
 //   - Objects with metav1.Conditions in status.conditions; in this case a best effort conversion
 //     to metav1.Condition is performed, just enough to allow surfacing a condition from a provider object with Mirror
 //
-// NOTE: GetConditions supports retrieving conditions from non-CAPI objects like Pods, Nodes.
+// NOTE: GetV1Beta1Conditions supports retrieving conditions from non-CAPI objects like Pods, Nodes.
 //
 // NOTE: Due to the constraints of JSON-unmarshal, this operation is to be considered best effort.
 // In more details:
@@ -74,7 +74,7 @@ func (c *unstructuredWrapper) GetV1Beta1Conditions() clusterv1.Conditions {
 	return nil
 }
 
-// SetConditions set the conditions into an Unstructured object.
+// SetV1Beta1Conditions sets the conditions into an Unstructured object.
 //
 // NOTE: Due to the constraints of JSON-unmarshal, this operation is to be considered best effort.
 // In more details:

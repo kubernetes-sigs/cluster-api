@@ -33,14 +33,16 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	"sigs.k8s.io/cluster-api/core/reconcilers/machinehealthcheck/cel"
 	"sigs.k8s.io/cluster-api/core/webhooks/conversion"
-	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/topology/check"
 	topologynames "sigs.k8s.io/cluster-api/internal/topology/names"
 	"sigs.k8s.io/cluster-api/internal/topology/variables"
 	"sigs.k8s.io/cluster-api/internal/util/taints"
+	"sigs.k8s.io/cluster-api/pkg/features"
+	"sigs.k8s.io/cluster-api/util/cache"
 	"sigs.k8s.io/cluster-api/util/index"
-	clog "sigs.k8s.io/cluster-api/util/log"
+	logutil "sigs.k8s.io/cluster-api/util/log"
 	"sigs.k8s.io/cluster-api/util/version"
 )
 
@@ -56,7 +58,8 @@ func (webhook *ClusterClass) SetupWebhookWithManager(mgr ctrl.Manager) error {
 
 // ClusterClass implements a validation and defaulting webhook for ClusterClass.
 type ClusterClass struct {
-	Client client.Reader
+	Client          client.Reader
+	MHCProgramCache cache.Cache[cel.ProgramEntry]
 }
 
 var _ admission.Validator[*clusterv1.ClusterClass] = &ClusterClass{}
@@ -79,7 +82,7 @@ func (webhook *ClusterClass) ValidateDelete(ctx context.Context, clusterClass *c
 	}
 
 	if len(clusters) > 0 {
-		clustersList := clog.ListToString(clusters, func(cluster clusterv1.Cluster) string {
+		clustersList := logutil.ListToString(clusters, func(cluster clusterv1.Cluster) string {
 			return klog.KObj(&cluster).String()
 		}, 3)
 		return nil, apierrors.NewForbidden(clusterv1.GroupVersion.WithResource("ClusterClass").GroupResource(), clusterClass.Name,
@@ -91,13 +94,13 @@ func (webhook *ClusterClass) ValidateDelete(ctx context.Context, clusterClass *c
 func (webhook *ClusterClass) validate(ctx context.Context, oldClusterClass, newClusterClass *clusterv1.ClusterClass) error {
 	// NOTE: ClusterClass and managed topologies are behind ClusterTopology feature gate flag; the web hook
 	// must prevent creating new objects when the feature flag is disabled.
-	if !feature.Gates.Enabled(feature.ClusterTopology) {
+	if !features.Gates.Enabled(features.ClusterTopology) {
 		return field.Forbidden(
 			field.NewPath("spec"),
 			"can be set only if the ClusterTopology feature flag is enabled",
 		)
 	}
-	if !feature.Gates.Enabled(feature.ClusterClassInlineTemplates) && anyInlineTemplateIsSet(newClusterClass) {
+	if !features.Gates.Enabled(features.ClusterClassInlineTemplates) && anyInlineTemplateIsSet(newClusterClass) {
 		return field.Forbidden(
 			field.NewPath("spec"),
 			"inline templates can only be set if the ClusterClassInlineTemplates feature flag is enabled",
@@ -117,8 +120,10 @@ func (webhook *ClusterClass) validate(ctx context.Context, oldClusterClass, newC
 
 	allErrs = append(allErrs, validateClusterClassRollout(newClusterClass)...)
 
+	allErrs = append(allErrs, validateMachinePoolsFeatureGate(newClusterClass.Spec.Workers.MachinePools, field.NewPath("spec", "workers", "machinePools"))...)
+
 	// Ensure MachineHealthChecks are valid.
-	allErrs = append(allErrs, validateMachineHealthCheckClasses(newClusterClass)...)
+	allErrs = append(allErrs, validateMachineHealthCheckClasses(webhook.MHCProgramCache, newClusterClass)...)
 
 	// Ensure NamingStrategies are valid.
 	allErrs = append(allErrs, validateNamingStrategies(newClusterClass)...)
@@ -265,6 +270,26 @@ func (webhook *ClusterClass) validateKubernetesVersionsOfClusters(clusters []clu
 					c.Spec.Topology.Version, c.Name),
 			))
 		}
+
+		// Same for the versions used by MachineDeployments/MachinePools. Without this a version
+		// could be removed here, and from then on every update to that Cluster would be rejected
+		// by ValidateClusterForClusterClass.
+		for _, md := range c.Spec.Topology.Workers.MachineDeployments {
+			if md.Version != "" && !kubernetesVersions.Has(md.Version) {
+				allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "kubernetesVersions"),
+					fmt.Sprintf("Kubernetes Version %s is used by MachineDeployment %s of Cluster %q but not set in ClusterClass",
+						md.Version, md.Name, c.Name),
+				))
+			}
+		}
+		for _, mp := range c.Spec.Topology.Workers.MachinePools {
+			if mp.Version != "" && !kubernetesVersions.Has(mp.Version) {
+				allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "kubernetesVersions"),
+					fmt.Sprintf("Kubernetes Version %s is used by MachinePool %s of Cluster %q but not set in ClusterClass",
+						mp.Version, mp.Name, c.Name),
+				))
+			}
+		}
 	}
 
 	return allErrs
@@ -396,7 +421,7 @@ func validateClusterClassRollout(clusterClass *clusterv1.ClusterClass) field.Err
 	return allErrs
 }
 
-func validateMachineHealthCheckClasses(clusterClass *clusterv1.ClusterClass) field.ErrorList {
+func validateMachineHealthCheckClasses(mhcProgramCache cache.Cache[cel.ProgramEntry], clusterClass *clusterv1.ClusterClass) field.ErrorList {
 	var allErrs field.ErrorList
 
 	// Validate ControlPlane MachineHealthCheck if defined.
@@ -404,6 +429,7 @@ func validateMachineHealthCheckClasses(clusterClass *clusterv1.ClusterClass) fie
 		fldPath := field.NewPath("spec", "controlPlane", "healthCheck")
 
 		allErrs = append(allErrs, validateMachineHealthCheckNodeStartupTimeoutSeconds(fldPath, clusterClass.Spec.ControlPlane.HealthCheck.Checks.NodeStartupTimeoutSeconds)...)
+		allErrs = append(allErrs, validateMachineHealthCheckUnhealthyExpressions(mhcProgramCache, fldPath, clusterClass.Spec.ControlPlane.HealthCheck.Checks.UnhealthyExpressions)...)
 		allErrs = append(allErrs, validateMachineHealthCheckUnhealthyLessThanOrEqualTo(fldPath, clusterClass.Spec.ControlPlane.HealthCheck.Remediation.TriggerIf.UnhealthyLessThanOrEqualTo)...)
 
 		// Ensure ControlPlane does not define a MachineHealthCheck if it does not define MachineInfrastructure.
@@ -423,6 +449,7 @@ func validateMachineHealthCheckClasses(clusterClass *clusterv1.ClusterClass) fie
 		fldPath := field.NewPath("spec", "workers", "machineDeployments").Key(md.Class).Child("healthCheck")
 
 		allErrs = append(allErrs, validateMachineHealthCheckNodeStartupTimeoutSeconds(fldPath, md.HealthCheck.Checks.NodeStartupTimeoutSeconds)...)
+		allErrs = append(allErrs, validateMachineHealthCheckUnhealthyExpressions(mhcProgramCache, fldPath, md.HealthCheck.Checks.UnhealthyExpressions)...)
 		allErrs = append(allErrs, validateMachineHealthCheckUnhealthyLessThanOrEqualTo(fldPath, md.HealthCheck.Remediation.TriggerIf.UnhealthyLessThanOrEqualTo)...)
 		allErrs = append(allErrs, validateRemediationMaxInFlight(fldPath.Child("remediation"), md.HealthCheck.Remediation.MaxInFlight)...)
 	}
@@ -529,11 +556,12 @@ func validateTaints(clusterClass *clusterv1.ClusterClass) field.ErrorList {
 	for _, md := range clusterClass.Spec.Workers.MachineDeployments {
 		fldPath := field.NewPath("spec", "workers", "machineDeployments").Key(md.Class).Child("taints")
 		allErrs = append(allErrs, taints.ValidateMachineTaints(md.Taints, fldPath)...)
+		allErrs = append(allErrs, validateMachineTaintsForWorkers(md.Taints, nil, fldPath)...)
 	}
 
 	for _, mp := range clusterClass.Spec.Workers.MachinePools {
 		fldPath := field.NewPath("spec", "workers", "machinePools").Key(mp.Class).Child("taints")
-		allErrs = append(allErrs, taints.ValidateMachineTaints(mp.Taints, fldPath)...)
+		allErrs = append(allErrs, validateMachinePoolTaints(mp.Taints, fldPath)...)
 	}
 
 	return allErrs

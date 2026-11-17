@@ -87,10 +87,9 @@ Here's an example of how to do this for the `v1.11` release cycle. That means `v
        2. Remove providers that are not used anymore in clusterctl upgrade tests.
        3. Change `v1.10.99` to `v1.11.99`.
    3. Adjust `metadata.yaml`'s:
-      1. Create a new `v1.10` `metadata.yaml` (`test/e2e/data/shared/v1.10/metadata.yaml`) by copying the `test/e2e/data/shared/main` folder and renaming it to `v1.10`.
-      2. Add the new release, `v1.11`, to the main `metadata.yaml` (`test/e2e/data/shared/main/metadata.yaml`).
-      3. Add the new release, `v1.11`, to the root level `metadata.yaml`.
-      4. Remove old `metadata.yaml`'s that are not used anymore in clusterctl upgrade tests, the `test/e2e/data/shared/v1.7` folder in this example.
+      1. Create a new `v1.10` `metadata.yaml` (`test/e2e/data/shared/v1.10/metadata.yaml`) by copying the root level `metadata.yaml`.
+      2. Add the new release, `v1.11`, to the root level `metadata.yaml`.
+      3. Remove old `metadata.yaml`'s that are not used anymore in clusterctl upgrade tests, the `test/e2e/data/shared/v1.7` folder in this example.
    4. Adjust cluster templates in `test/e2e/data/infrastructure-docker`:
       1. Create a new `v1.10` folder. It should be created based on the `main` folder and only contain the files we use in the clusterctl upgrade tests (as of today `cluster-template-in-memory-topology.yaml` and `clusterclass-in-memory.yaml`).
       2. Remove old folders that are not used anymore in clusterctl upgrade tests, `test/e2e/data/infrastructure-docker/v1.7` in this example.
@@ -146,7 +145,7 @@ Once release branch is created by GitHub Automation, the goal of this task would
 applier that applies milestones accordingly and to update GitHub actions to work with new release version.
 From this point forward changes which should land in the release have to be cherry-picked into the release branch.
 
-1. Update the [milestone applier config](https://github.com/kubernetes/test-infra/blob/0b17ef5ffd6c7aa7d8ca1372d837acfb85f7bec6/config/prow/plugins.yaml#L371) accordingly (e.g. `release-1.5: v1.5` and `main: v1.6`)
+1. Update the [milestone applier config](https://github.com/kubernetes/test-infra/blob/master/config/prow/plugins/kubernetes-sigs/cluster-api/cluster-api_pluginconfig.yaml) accordingly (e.g. `release-1.5: v1.5` and `main: v1.6`)
    <br>Prior art: [cluster-api: update milestone applier config for v1.5](https://github.com/kubernetes/test-infra/pull/30058)
 
 2. Update the GitHub Actions to work with the new release version.

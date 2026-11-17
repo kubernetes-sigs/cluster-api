@@ -49,13 +49,13 @@ func WaitForClusterMachineNodeRefs(ctx context.Context, input WaitForClusterMach
 			machine := &clusterv1.Machine{}
 			err = input.GetLister.Get(ctx, client.ObjectKey{Namespace: m.Namespace, Name: m.Name}, machine)
 			if err != nil {
-				return
+				return count, err
 			}
 			if machine.Status.NodeRef.IsDefined() {
 				count++
 			}
 		}
-		return
+		return count, err
 	}, intervals...).Should(Equal(len(machines.Items)), "Timed out waiting for %d nodes to exist", len(machines.Items))
 }
 
@@ -77,7 +77,7 @@ func WaitForClusterMachinesReady(ctx context.Context, input WaitForClusterMachin
 			machine := &clusterv1.Machine{}
 			err = input.GetLister.Get(ctx, client.ObjectKey{Namespace: m.Namespace, Name: m.Name}, machine)
 			if err != nil {
-				return
+				return count, err
 			}
 			if !machine.Status.NodeRef.IsDefined() {
 				continue
@@ -85,13 +85,13 @@ func WaitForClusterMachinesReady(ctx context.Context, input WaitForClusterMachin
 			node := &corev1.Node{}
 			err = input.NodeGetter.Get(ctx, client.ObjectKey{Name: machine.Status.NodeRef.Name}, node)
 			if err != nil {
-				return
+				return count, err
 			}
 			if util.IsNodeReady(node) {
 				count++
 			}
 		}
-		return
+		return count, err
 	}, intervals...).Should(Equal(len(machines.Items)), "Timed out waiting for %d nodes to be ready", len(machines.Items))
 }
 

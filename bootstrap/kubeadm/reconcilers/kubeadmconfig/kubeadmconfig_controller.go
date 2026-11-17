@@ -18,7 +18,9 @@ package kubeadmconfig
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"slices"
 	"strconv"
 	"time"
 
@@ -51,14 +53,14 @@ import (
 	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/pkg/types/upstream"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	"sigs.k8s.io/cluster-api/controllers/external"
-	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/contract"
 	"sigs.k8s.io/cluster-api/internal/util/taints"
+	"sigs.k8s.io/cluster-api/pkg/features"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 	capicontrollerutil "sigs.k8s.io/cluster-api/util/controller"
-	clog "sigs.k8s.io/cluster-api/util/log"
+	logutil "sigs.k8s.io/cluster-api/util/log"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/paused"
 	"sigs.k8s.io/cluster-api/util/predicates"
@@ -132,7 +134,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 			handler.EnqueueRequestsFromMapFunc(r.MachineToBootstrapMapFunc),
 		).WithEventFilter(predicates.ResourceHasFilterLabel(mgr.GetScheme(), predicateLog, r.WatchFilterValue))
 
-	if feature.Gates.Enabled(feature.MachinePool) {
+	if features.Gates.Enabled(features.MachinePool) {
 		b = b.Watches(
 			&clusterv1.MachinePool{},
 			handler.EnqueueRequestsFromMapFunc(r.MachinePoolToBootstrapMapFunc),
@@ -186,7 +188,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (retRes ct
 	if configOwner.GetKind() == "Machine" {
 		// AddOwners adds the owners of Machine as k/v pairs to the logger.
 		// Specifically, it will add KubeadmControlPlane, MachineSet and MachineDeployment.
-		ctx, log, err = clog.AddOwners(ctx, r.Client, configOwner)
+		ctx, log, err = logutil.AddOwners(ctx, r.Client, configOwner)
 		if err != nil {
 			return ctrl.Result{}, err
 		}
@@ -1021,6 +1023,25 @@ func (r *Reconciler) joinControlplane(ctx context.Context, scope *Scope) (ctrl.R
 // or the referenced object does not expose spec.version; authors of contentFormat "Template" files are
 // responsible for handling that case (e.g. with {{ if .controlPlane }}).
 func (r *Reconciler) resolveFiles(ctx context.Context, cfg *bootstrapv1.KubeadmConfig, cluster *clusterv1.Cluster) ([]bootstrapv1.File, error) {
+	collected := make([]bootstrapv1.File, 0, len(cfg.Spec.Files))
+	for i := range cfg.Spec.Files {
+		in := cfg.Spec.Files[i]
+		if in.ContentFrom.IsDefined() {
+			data, err := r.resolveSecretFileContent(ctx, cfg.Namespace, in)
+			if err != nil {
+				return nil, pkgerrors.Wrapf(err, "failed to resolve file source")
+			}
+			in.ContentFrom = bootstrapv1.FileSource{}
+			in.Content = string(data)
+		}
+		collected = append(collected, in)
+	}
+
+	// Only templates need the control plane version, and CABPK's RBAC can read only KubeadmControlPlane objects.
+	if !slices.ContainsFunc(collected, func(f bootstrapv1.File) bool { return f.ContentFormat == bootstrapv1.FileContentFormatTemplate }) {
+		return collected, nil
+	}
+
 	cpVersion, err := r.getControlPlaneVersion(ctx, cluster)
 	if err != nil {
 		return nil, err
@@ -1034,20 +1055,6 @@ func (r *Reconciler) resolveFiles(ctx context.Context, cfg *bootstrapv1.KubeadmC
 			return nil, pkgerrors.Wrapf(perr, "failed to parse control plane version %q for template data", cpVersion)
 		}
 		cpVersion = "v" + parsed.String()
-	}
-
-	collected := make([]bootstrapv1.File, 0, len(cfg.Spec.Files))
-	for i := range cfg.Spec.Files {
-		in := cfg.Spec.Files[i]
-		if in.ContentFrom.IsDefined() {
-			data, err := r.resolveSecretFileContent(ctx, cfg.Namespace, in)
-			if err != nil {
-				return nil, pkgerrors.Wrapf(err, "failed to resolve file source")
-			}
-			in.ContentFrom = bootstrapv1.FileSource{}
-			in.Content = string(data)
-		}
-		collected = append(collected, in)
 	}
 
 	rendered, err := renderTemplates(collected, templateData(cpVersion))
@@ -1154,7 +1161,7 @@ func (r *Reconciler) resolveDiscoveryKubeConfig(cfg bootstrapv1.FileDiscovery) (
 	}, nil
 }
 
-// resolveSecretUserContent returns passwd fetched from a referenced secret object.
+// resolveSecretPasswordContent returns passwd fetched from a referenced secret object.
 func (r *Reconciler) resolveSecretPasswordContent(ctx context.Context, ns string, source bootstrapv1.User) ([]byte, error) {
 	secret := &corev1.Secret{}
 	key := types.NamespacedName{Namespace: ns, Name: source.PasswdFrom.Secret.Name}
@@ -1222,7 +1229,7 @@ func (r *Reconciler) ClusterToKubeadmConfigs(ctx context.Context, o client.Objec
 		}
 	}
 
-	if feature.Gates.Enabled(feature.MachinePool) {
+	if features.Gates.Enabled(features.MachinePool) {
 		machinePoolList := &clusterv1.MachinePoolList{}
 		if err := r.Client.List(ctx, machinePoolList, selectors...); err != nil {
 			return nil
@@ -1305,7 +1312,7 @@ func (r *Reconciler) reconcileDiscovery(ctx context.Context, cluster *clusterv1.
 	if len(config.Spec.JoinConfiguration.Discovery.BootstrapToken.CACertHashes) == 0 {
 		clusterCACertificate := certificates.GetByPurpose(secret.ClusterCA)
 		if clusterCACertificate == nil {
-			return ctrl.Result{}, fmt.Errorf("failed to generate Cluster CA certificate hashes: failed to get cluster CA")
+			return ctrl.Result{}, errors.New("failed to generate Cluster CA certificate hashes: failed to get cluster CA")
 		}
 		hashes, err := clusterCACertificate.Hashes()
 		if err != nil {
@@ -1382,7 +1389,7 @@ func (r *Reconciler) reconcileDiscoveryFile(ctx context.Context, cluster *cluste
 	if len(cfg.Cluster.CertificateAuthorityData) == 0 {
 		clusterCA := certificates.GetByPurpose(secret.ClusterCA)
 		if clusterCA == nil || clusterCA.KeyPair == nil {
-			err := fmt.Errorf("failed to retrieve Cluster CA")
+			err := errors.New("failed to retrieve Cluster CA")
 			log.Error(err, "Unable to set Cluster CA for Discovery.File.KubeConfig")
 			return ctrl.Result{}, err
 		}
@@ -1490,7 +1497,7 @@ func (r *Reconciler) storeBootstrapData(ctx context.Context, scope *Scope, data 
 	return nil
 }
 
-// Ensure the bootstrap secret has the KubeadmConfig as a controller OwnerReference.
+// ensureBootstrapSecretOwnersRef ensures the bootstrap secret has the KubeadmConfig as a controller OwnerReference.
 func (r *Reconciler) ensureBootstrapSecretOwnersRef(ctx context.Context, scope *Scope) error {
 	secret := &corev1.Secret{}
 	err := r.SecretCachingClient.Get(ctx, client.ObjectKey{Namespace: scope.Config.Namespace, Name: scope.Config.Name}, secret)

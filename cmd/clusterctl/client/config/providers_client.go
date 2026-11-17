@@ -44,7 +44,9 @@ const (
 	CloudStackProviderName = "cloudstack"
 	DockerProviderName     = "docker"
 	DOProviderName         = "digitalocean"
+	ExoscaleProviderName   = "exoscale"
 	GCPProviderName        = "gcp"
+	// HarvesterProviderName is the name of the harvester provider.
 	// Note: harvester is currently on rancher-sandbox, but the plan is to move it on the harvester GitHub org (also owned by Rancher).
 	HarvesterProviderName      = "harvester-harvester"
 	HetznerProviderName        = "hetzner"
@@ -206,6 +208,11 @@ func (p *providersClient) defaults() []Provider {
 		&provider{
 			name:         DOProviderName,
 			url:          "https://github.com/kubernetes-sigs/cluster-api-provider-digitalocean/releases/latest/infrastructure-components.yaml",
+			providerType: clusterctlv1.InfrastructureProviderType,
+		},
+		&provider{
+			name:         ExoscaleProviderName,
+			url:          "https://github.com/exoscale/cluster-api-provider-exoscale/releases/latest/infrastructure-components.yaml",
 			providerType: clusterctlv1.InfrastructureProviderType,
 		},
 		&provider{
@@ -613,7 +620,7 @@ func validateProvider(r Provider) error {
 		clusterctlv1.IPAMProviderType,
 		clusterctlv1.RuntimeExtensionProviderType,
 		clusterctlv1.AddonProviderType:
-		break
+		// Valid provider type.
 	default:
 		return pkgerrors.Errorf("invalid provider type. Allowed values are [%s, %s, %s, %s, %s, %s, %s]",
 			clusterctlv1.CoreProviderType,

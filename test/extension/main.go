@@ -48,13 +48,13 @@ import (
 	runtimecatalog "sigs.k8s.io/cluster-api/api/runtime/catalog"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
 	"sigs.k8s.io/cluster-api/controllers/remote"
-	"sigs.k8s.io/cluster-api/exp/runtime/server"
-	"sigs.k8s.io/cluster-api/feature"
+	"sigs.k8s.io/cluster-api/pkg/features"
 	"sigs.k8s.io/cluster-api/test/extension/handlers/inplaceupdate"
 	"sigs.k8s.io/cluster-api/test/extension/handlers/lifecycle"
 	"sigs.k8s.io/cluster-api/test/extension/handlers/topologymutation"
 	"sigs.k8s.io/cluster-api/test/extension/handlers/upgradeplan"
 	"sigs.k8s.io/cluster-api/util/flags"
+	"sigs.k8s.io/cluster-api/utils/runtimesdk/server"
 	"sigs.k8s.io/cluster-api/version"
 )
 
@@ -66,13 +66,14 @@ var (
 	// NOTE: it is not mandatory to use scheme in custom RuntimeExtension, but working with typed API objects makes code
 	// easier to read and less error-prone than using unstructured or working with raw json/yaml.
 	scheme = runtime.NewScheme()
-	// Creates a logger to be used during the main func using controller runtime utilities
+	// setupLog is a logger to be used during the main func using controller runtime utilities.
 	// NOTE: it is not mandatory to use controller runtime utilities in custom RuntimeExtension, but it is recommended
 	// because it makes log from those components similar to log from controllers.
 	setupLog       = ctrl.Log.WithName("setup")
 	controllerName = "cluster-api-test-extension-manager"
 
 	// flags.
+
 	enableLeaderElection        bool
 	leaderElectionLeaseDuration time.Duration
 	leaderElectionRenewDeadline time.Duration
@@ -151,7 +152,7 @@ func InitFlags(fs *pflag.FlagSet) {
 
 	flags.AddManagerOptions(fs, &managerOptions)
 
-	feature.MutableGates.AddFlag(fs)
+	features.MutableGates.AddFlag(fs)
 
 	// Add test-extension specific flags
 	// NOTE: it is not mandatory to use the same flag names in all RuntimeExtension, but it is recommended when
@@ -226,7 +227,7 @@ func main() {
 
 	ctrlOptions := ctrl.Options{
 		Controller: config.Controller{
-			UsePriorityQueue: ptr.To[bool](feature.Gates.Enabled(feature.PriorityQueue)),
+			UsePriorityQueue: ptr.To[bool](features.Gates.Enabled(features.PriorityQueue)),
 		},
 		Scheme:                     scheme,
 		LeaderElection:             enableLeaderElection,

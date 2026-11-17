@@ -67,12 +67,12 @@ func ManagerCacheOptions(scheme *runtime.Scheme, controllerName, watchNamespace 
 		SyncPeriod:        &syncPeriod,
 		DefaultTransform:  ctrlcache.TransformStripManagedFields(),
 		ByObject: map[client.Object]ctrlcache.ByObject{
-			// Note: Only Secrets with the cluster name label are cached.
-			// The default client of the manager won't use the cache for secrets at all (see Client.Cache.DisableFor).
-			// The cached secrets will only be used by the secretCachingClient we create below.
+			// mgr.GetClient() (that is configured via ManagerClientOptions) will never read secrets from the cache.
+			// secretCachingClient (that is configured via CreateSecretCachingClient) will read secrets from the cache.
 			&corev1.Secret{}: {
+				// We only cache secrets that have the cluster-name label
 				Label: clusterSecretCacheSelector,
-				// Drop data of secrets that we don't use.
+				// We cache we are only keeping the data for secrets with -kubeconfig suffix
 				Transform: func(in any) (any, error) {
 					if s, ok := in.(*corev1.Secret); ok {
 						s.SetManagedFields(nil)
@@ -84,25 +84,25 @@ func ManagerCacheOptions(scheme *runtime.Scheme, controllerName, watchNamespace 
 				},
 			},
 			&clusterv1.Machine{}: {
-				// Drop data of worker Machines.
-				// Note: There are code paths that check if there are worker Machines, so it's not possible to only
-				// cache CP Machines.
+				// We cannot use a label selector to only cache CP Machines, because there are code paths that
+				// check if there are worker Machines.
+				// We are dropping data of worker Machines.
+				// Intentionally keeping the managedFields for CP Machines for ssa.MitigateManagedFieldsIssue/MigrateManagedFields.
 				Transform: func(in any) (any, error) {
 					if m, ok := in.(*clusterv1.Machine); ok && !util.IsControlPlaneMachine(m) {
 						m.SetManagedFields(nil)
 						m.Spec = clusterv1.MachineSpec{}
 						m.Status = clusterv1.MachineStatus{}
 					}
-					// Note: Intentionally keeping the managedFields for CP Machines for ssa.MitigateManagedFieldsIssue/MigrateManagedFields.
 					return in, nil
 				},
 			},
 			&bootstrapv1.KubeadmConfig{}: {
-				// Only cache CP Machine KubeadmConfigs.
+				// We only cache CP KubeadmConfigs.
 				Label: controlPlaneMachineSelector,
+				// Intentionally keeping the managedFields for CP KubeadmConfigs for ssa.MitigateManagedFieldsIssue/MigrateManagedFields.
+				// This Transform configuration is needed to overwrite the DefaultTransform from ctrlcache.Options.DefaultTransform.
 				Transform: func(in any) (any, error) {
-					// Note: Intentionally keeping the managedFields for CP Machine KubeadmConfigs for ssa.MitigateManagedFieldsIssue/MigrateManagedFields.
-					// This Transform here is needed to overwrite the DefaultTransform above.
 					return in, nil
 				},
 			},
@@ -119,10 +119,8 @@ func ManagerClientOptions() client.Options {
 				&corev1.ConfigMap{},
 				&corev1.Secret{},
 			},
-			// This config ensures that the default client uses the cache for all Unstructured get/list calls.
-			// KCP is only using Unstructured to retrieve InfraMachines and InfraMachineTemplates.
-			// As the cache should be used in those cases, caching is configured globally instead of
-			// creating a separate client that caches Unstructured.
+			// Use the cache for all Unstructured get/list calls that are done with this client.
+			// Some Unstructured get/list calls are done via the dynamic cache created via NewDynamicCache.
 			Unstructured: true,
 		},
 	}
@@ -144,13 +142,14 @@ func ClusterCacheCacheOptions() clustercache.CacheOptions {
 
 	return clustercache.CacheOptions{
 		DefaultTransform: ctrlcache.TransformStripManagedFields(),
-		// Only cache kubeadm static pods
 		ByObject: map[client.Object]ctrlcache.ByObject{
 			&corev1.Pod{}: {
 				Namespaces: map[string]ctrlcache.Config{
 					metav1.NamespaceSystem: {
+						// We only cache kubeadm static pods for Kubernetes control plane components.
 						LabelSelector: podSelector,
-						// Note: This must be aligned to TransformPod in controlplane/kubeadm/pkg/clustercache_utils.go
+						// We are dropping managedFields and spec.
+						// This must be aligned to TransformPod in controlplane/kubeadm/pkg/clustercache_utils.go
 						Transform: func(in any) (any, error) {
 							if p, ok := in.(*corev1.Pod); ok {
 								p.SetManagedFields(nil)
@@ -162,7 +161,10 @@ func ClusterCacheCacheOptions() clustercache.CacheOptions {
 				},
 			},
 			&corev1.Node{}: {
-				// Note: This must be aligned to TransformNode in controlplane/kubeadm/pkg/clustercache_utils.go
+				// We cannot use a label selector to only cache CP Nodes, because we have to cover cases
+				// where the `node-role.kubernetes.io/control-plane` label has been removed.
+				// We are dropping all the fields that we are not reading.
+				// This must be aligned to TransformNode in controlplane/kubeadm/pkg/clustercache_utils.go
 				Transform: func(in any) (any, error) {
 					if n, ok := in.(*corev1.Node); ok {
 						n.SetManagedFields(nil)
@@ -189,6 +191,7 @@ func ClusterCacheClientOptions(controllerName string, qps float32, burst int) cl
 		UserAgent: remote.DefaultClusterAPIUserAgent(controllerName),
 		Cache: clustercache.ClientCacheOptions{
 			DisableFor: []client.Object{
+				// Don't cache ConfigMaps & Secrets.
 				&corev1.ConfigMap{},
 				&corev1.Secret{},
 				&appsv1.Deployment{},
@@ -199,7 +202,8 @@ func ClusterCacheClientOptions(controllerName string, qps float32, burst int) cl
 }
 
 // CreateSecretCachingClient creates a secret caching client that should be used when accessing cached
-// clients on the management cluster.
+// secrets on the management cluster.
+// The backing cache is configured in ManagerCacheOptions and only a subset of the secrets is cached.
 func CreateSecretCachingClient(mgr ctrl.Manager) (client.Client, error) {
 	return client.New(mgr.GetConfig(), client.Options{
 		HTTPClient: mgr.GetHTTPClient(),
@@ -228,12 +232,17 @@ func DynamicCacheOptions() map[dynamiccache.ObjectType]dynamiccache.ByObjectType
 	return map[dynamiccache.ObjectType]dynamiccache.ByObjectTypeOptions{
 		DynamicCacheInfraMachineObjectType: {
 			IsUnstructured: new(true),
-			// Only cache CP Machine InfraMachines.
+			// We only cache CP InfraMachines.
 			Label: controlPlaneMachineSelector,
-			// Note: Intentionally keeping the managedFields for CP Machine InfraMachines for ssa.MitigateManagedFieldsIssue/MigrateManagedFields.
+			// Intentionally keeping the managedFields for CP InfraMachines for ssa.MitigateManagedFieldsIssue/MigrateManagedFields.
 		},
 		DynamicCacheInfraMachineTemplateObjectType: {
 			IsUnstructured: new(true),
+			// We cannot use a label selector to only cache CP InfraMachineTemplates, because there is
+			// no way to identify them via label.
+			// We are dropping all data from worker InfraMachineTemplates because we don't use them.
+			// This only works for Clusters with ClusterClass because only they have a label which
+			// allows us to identify worker InfraMachineTemplates.
 			Transform: func(in any) (any, error) {
 				if imt, ok := in.(*unstructured.Unstructured); ok {
 					imt.SetManagedFields(nil)

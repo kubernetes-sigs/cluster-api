@@ -18,6 +18,7 @@ package cache
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"sync"
@@ -132,11 +133,11 @@ func (c *cache) Start(ctx context.Context) error {
 	log := ctrl.LoggerFrom(ctx)
 
 	if ctx == nil {
-		return fmt.Errorf("context cannot be nil")
+		return errors.New("context cannot be nil")
 	}
 
 	if c.started {
-		return fmt.Errorf("cache started more than once")
+		return errors.New("cache started more than once")
 	}
 
 	log.Info("Starting cache")

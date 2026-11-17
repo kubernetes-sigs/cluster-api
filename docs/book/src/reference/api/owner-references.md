@@ -45,7 +45,7 @@ CAPI Providers can take advantage of the e2e test framework to ensure their owne
 | Machine             | KubeadmControlPlane | yes        | When created by KCP        |
 | MachineHealthChecks | Cluster             | no         |                            |
 
-## Experimental types
+## Addon types
 | type                       | Owner              | Controller | Note                     |
 |----------------------------|--------------------|------------|--------------------------|
 | ClusterResourcesSet        | None               |            |                          |

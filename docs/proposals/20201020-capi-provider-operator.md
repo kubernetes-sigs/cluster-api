@@ -13,7 +13,7 @@ creation-date: 2020-09-14
 last-updated: 2021-01-20
 status: implementable
 see-also:
-https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20191016-clusterctl-redesign.md
+  - "https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20191016-clusterctl-redesign.md"
 ---
 
 # CAPI Provider operator
@@ -920,7 +920,7 @@ Some of the actions are described below:
 
 The operator will be written with unit and integration tests using envtest and
 existing patterns as defined under the [Developer
-Guide/Testing](https://cluster-api.sigs.k8s.io/developer/core/testing.html) section
+Guide/Testing](../book/src/developer/core/testing.md) section
 in the Cluster API book.
 
 Existing E2E tests will verify that existing clusterctl commands such as `init`

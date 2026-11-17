@@ -18,6 +18,7 @@ package clustercache
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -198,7 +199,7 @@ type HealthCheckingState struct {
 
 // ErrClusterNotConnected is returned by the ClusterCache when e.g. a Client cannot be returned
 // because there is no connection to the workload cluster.
-var ErrClusterNotConnected = fmt.Errorf("connection to the workload cluster is down")
+var ErrClusterNotConnected = errors.New("connection to the workload cluster is down")
 
 // Watcher is an interface that can start a Watch.
 type Watcher interface {
@@ -535,7 +536,7 @@ func (cc *clusterCache) Reconcile(ctx context.Context, req reconcile.Request) (r
 
 				// Store that disconnect was done.
 				didDisconnect = true
-				connected = false //nolint:ineffassign // connected is *currently* not used below, let's update it anyway
+				connected = false //nolint:ineffassign,wastedassign // connected is *currently* not used below, let's update it anyway
 			}
 			switch {
 			case unauthorizedErrorOccurred:

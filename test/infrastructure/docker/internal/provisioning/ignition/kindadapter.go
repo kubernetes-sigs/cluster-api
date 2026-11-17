@@ -119,7 +119,7 @@ func getActions(userData []byte) ([]provisioning.Cmd, error) {
 	return commands, nil
 }
 
-// Add `--ignore-preflight-errors=all` to `kubeadm init` and `kubeadm join`.
+// hackKubeadmIgnoreErrors adds `--ignore-preflight-errors=all` to `kubeadm init` and `kubeadm join`.
 func hackKubeadmIgnoreErrors(s string) string {
 	lines := strings.Split(s, "\n")
 

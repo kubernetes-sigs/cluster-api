@@ -18,6 +18,7 @@ package etcd
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -64,7 +65,7 @@ func NewEtcdServerHandler(manager inmemoryruntime.Manager, log logr.Logger, reso
 	return svr
 }
 
-// clusterServerServer implements the MaintenanceServer grpc server.
+// maintenanceServer implements the MaintenanceServer grpc server.
 type maintenanceServer struct {
 	*baseServer
 	pb.UnimplementedMaintenanceServer
@@ -114,19 +115,19 @@ func (m *maintenanceServer) Status(ctx context.Context, _ *pb.StatusRequest) (*p
 }
 
 func (m *maintenanceServer) Defragment(_ context.Context, _ *pb.DefragmentRequest) (*pb.DefragmentResponse, error) {
-	return nil, fmt.Errorf("not implemented: Defragment")
+	return nil, errors.New("not implemented: Defragment")
 }
 
 func (m *maintenanceServer) Hash(_ context.Context, _ *pb.HashRequest) (*pb.HashResponse, error) {
-	return nil, fmt.Errorf("not implemented: Hash")
+	return nil, errors.New("not implemented: Hash")
 }
 
 func (m *maintenanceServer) HashKV(_ context.Context, _ *pb.HashKVRequest) (*pb.HashKVResponse, error) {
-	return nil, fmt.Errorf("not implemented: HashKV")
+	return nil, errors.New("not implemented: HashKV")
 }
 
 func (m *maintenanceServer) Snapshot(_ *pb.SnapshotRequest, _ pb.Maintenance_SnapshotServer) error {
-	return fmt.Errorf("not implemented: Snapshot")
+	return errors.New("not implemented: Snapshot")
 }
 
 func (m *maintenanceServer) MoveLeader(ctx context.Context, req *pb.MoveLeaderRequest) (*pb.MoveLeaderResponse, error) {
@@ -181,7 +182,7 @@ func (m *maintenanceServer) MoveLeader(ctx context.Context, req *pb.MoveLeaderRe
 }
 
 func (m *maintenanceServer) Downgrade(_ context.Context, _ *pb.DowngradeRequest) (*pb.DowngradeResponse, error) {
-	return nil, fmt.Errorf("not implemented: Downgrade")
+	return nil, errors.New("not implemented: Downgrade")
 }
 
 // clusterServerServer implements the ClusterServer grpc server.
@@ -191,7 +192,7 @@ type clusterServerServer struct {
 }
 
 func (c *clusterServerServer) MemberAdd(_ context.Context, _ *pb.MemberAddRequest) (*pb.MemberAddResponse, error) {
-	return nil, fmt.Errorf("not implemented: MemberAdd")
+	return nil, errors.New("not implemented: MemberAdd")
 }
 
 func (c *clusterServerServer) MemberRemove(ctx context.Context, req *pb.MemberRemoveRequest) (*pb.MemberRemoveResponse, error) {
@@ -237,7 +238,7 @@ func (c *clusterServerServer) MemberRemove(ctx context.Context, req *pb.MemberRe
 }
 
 func (c *clusterServerServer) MemberUpdate(_ context.Context, _ *pb.MemberUpdateRequest) (*pb.MemberUpdateResponse, error) {
-	return nil, fmt.Errorf("not implemented: MemberUpdate")
+	return nil, errors.New("not implemented: MemberUpdate")
 }
 
 func (c *clusterServerServer) MemberList(ctx context.Context, _ *pb.MemberListRequest) (*pb.MemberListResponse, error) {
@@ -265,7 +266,7 @@ func (c *clusterServerServer) MemberList(ctx context.Context, _ *pb.MemberListRe
 }
 
 func (c *clusterServerServer) MemberPromote(_ context.Context, _ *pb.MemberPromoteRequest) (*pb.MemberPromoteResponse, error) {
-	return nil, fmt.Errorf("not implemented: MemberPromote")
+	return nil, errors.New("not implemented: MemberPromote")
 }
 
 type baseServer struct {
@@ -287,7 +288,7 @@ func (b *baseServer) getResourceGroupAndMember(ctx context.Context) (resourceGro
 	}
 	// Calculate the etcd member name by trimming the "etcd-" prefix from ":authority" metadata.
 	etcdMember = strings.TrimPrefix(strings.Join(md.Get(":authority"), ","), "etcd-")
-	return
+	return resourceGroup, etcdMember, nil
 }
 
 func (b *baseServer) inspectEtcd(ctx context.Context, inmemoryClient inmemoryruntime.Client, etcdMember string) (*pb.MemberListResponse, *pb.StatusResponse, error) {

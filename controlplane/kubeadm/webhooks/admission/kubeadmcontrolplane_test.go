@@ -33,7 +33,7 @@ import (
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/core/webhooks/admission/testutil"
-	"sigs.k8s.io/cluster-api/feature"
+	"sigs.k8s.io/cluster-api/pkg/features"
 )
 
 var (
@@ -307,7 +307,7 @@ func TestKubeadmControlPlaneValidateCreate(t *testing.T) {
 			if tt.enableIgnitionFeature {
 				// NOTE: KubeadmBootstrapFormatIgnition feature flag is disabled by default.
 				// Enabling the feature flag temporarily for this test.
-				utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.KubeadmBootstrapFormatIgnition, true)
+				utilfeature.SetFeatureGateDuringTest(t, features.Gates, features.KubeadmBootstrapFormatIgnition, true)
 			}
 
 			g := NewWithT(t)
@@ -1172,13 +1172,9 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 			if tt.enableIgnitionFeature {
 				// NOTE: KubeadmBootstrapFormatIgnition feature flag is disabled by default.
 				// Enabling the feature flag temporarily for this test.
-				utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.KubeadmBootstrapFormatIgnition, true)
+				utilfeature.SetFeatureGateDuringTest(t, features.Gates, features.KubeadmBootstrapFormatIgnition, true)
 			}
-			if tt.enableTaintsFeature {
-				// NOTE: MachineTaintPropagation feature flag is disabled by default.
-				// Enabling the feature flag temporarily for this test.
-				utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.MachineTaintPropagation, true)
-			}
+			utilfeature.SetFeatureGateDuringTest(t, features.Gates, features.MachineTaintPropagation, tt.enableTaintsFeature)
 
 			g := NewWithT(t)
 
@@ -1188,7 +1184,7 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 			if tt.expectErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {
-				g.Expect(err).To(Succeed())
+				g.Expect(err).ToNot(HaveOccurred())
 			}
 			g.Expect(warnings).To(BeEmpty())
 		})
@@ -1332,7 +1328,7 @@ func TestKubeadmControlPlaneValidateUpdateAfterDefaulting(t *testing.T) {
 			if tt.expectErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {
-				g.Expect(err).To(Succeed())
+				g.Expect(err).ToNot(HaveOccurred())
 				g.Expect(tt.kcp.Spec.Version).To(Equal("v1.19.0"))
 				g.Expect(tt.kcp.Spec.Rollout.Strategy.Type).To(Equal(controlplanev1.RollingUpdateStrategyType))
 				g.Expect(tt.kcp.Spec.Rollout.Strategy.RollingUpdate.MaxSurge.IntVal).To(Equal(int32(1)))

@@ -1,5 +1,4 @@
 //go:build tools
-// +build tools
 
 /*
 Copyright 2022 The Kubernetes Authors.
@@ -415,7 +414,7 @@ func pushStreamToLoki(ctx context.Context, lokiURL, lokiOrgID string, body []byt
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Content-Encoding", "gzip")
-	req.Header.Set("X-Scope-OrgID", lokiOrgID)
+	req.Header.Set("X-Scope-Orgid", lokiOrgID)
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {

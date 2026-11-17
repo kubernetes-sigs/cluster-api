@@ -64,12 +64,12 @@ func ManagerCacheOptions(scheme *runtime.Scheme, controllerName, watchNamespace 
 		DefaultNamespaces: watchNamespaces,
 		SyncPeriod:        &syncPeriod,
 		ByObject: map[client.Object]ctrlcache.ByObject{
-			// Note: Only Secrets with the cluster name label are cached.
-			// The default client of the manager won't use the cache for secrets at all (see Client.Cache.DisableFor).
-			// The cached secrets will only be used by the secretCachingClient we create below.
+			// mgr.GetClient() (that is configured via ManagerClientOptions) will never read secrets from the cache.
+			// secretCachingClient (that is configured via CreateSecretCachingClient) will read secrets from the cache.
 			&corev1.Secret{}: {
+				// We only cache secrets that have the cluster-name label
 				Label: clusterSecretCacheSelector,
-				// Drop data of secrets that we don't use.
+				// We cache we are only keeping the data for secrets with -kubeconfig suffix
 				Transform: func(in any) (any, error) {
 					if s, ok := in.(*corev1.Secret); ok {
 						s.SetManagedFields(nil)
@@ -93,7 +93,8 @@ func ManagerClientOptions() client.Options {
 				&corev1.ConfigMap{},
 				&corev1.Secret{},
 			},
-			// Use the cache for all Unstructured get/list calls.
+			// Use the cache for all Unstructured get/list calls that are done with this client.
+			// Some Unstructured get/list calls are done via the dynamic cache created via NewDynamicCache.
 			Unstructured: true,
 		},
 	}
@@ -130,7 +131,8 @@ func ClusterCacheClientOptions(controllerName string, qps float32, burst int) cl
 }
 
 // CreateSecretCachingClient creates a secret caching client that should be used when accessing cached
-// clients on the management cluster.
+// secrets on the management cluster.
+// The backing cache is configured in ManagerCacheOptions and only a subset of the secrets is cached.
 func CreateSecretCachingClient(mgr ctrl.Manager) (client.Client, error) {
 	return client.New(mgr.GetConfig(), client.Options{
 		HTTPClient: mgr.GetHTTPClient(),

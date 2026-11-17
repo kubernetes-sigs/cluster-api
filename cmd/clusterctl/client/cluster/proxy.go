@@ -124,7 +124,12 @@ func (k *proxy) ValidateKubernetesVersion() error {
 	}
 
 	minVer := version.MinimumKubernetesVersion
-	if clusterTopologyFeatureGate, _ := strconv.ParseBool(os.Getenv("CLUSTER_TOPOLOGY")); clusterTopologyFeatureGate {
+	// Note: The ClusterTopology feature gate is enabled by default, so it is only considered disabled if explicitly set to a false value.
+	clusterTopologyFeatureGate := true
+	if v, ok := os.LookupEnv("CLUSTER_TOPOLOGY"); ok {
+		clusterTopologyFeatureGate, _ = strconv.ParseBool(v)
+	}
+	if clusterTopologyFeatureGate {
 		minVer = version.MinimumKubernetesVersionClusterTopology
 	}
 
@@ -352,13 +357,13 @@ func (k *proxy) GetResourceNames(ctx context.Context, groupVersion, kind string,
 func listObjByGVK(ctx context.Context, c client.Client, groupVersion, kind string, options []client.ListOption) (*unstructured.UnstructuredList, error) {
 	objList := new(unstructured.UnstructuredList)
 	objList.SetAPIVersion(groupVersion)
-	objList.SetKind(kind)
+	objList.SetKind(kind + "List")
 
 	resourceListBackoff := newReadBackoff()
 	if err := retryWithExponentialBackoff(ctx, resourceListBackoff, func(ctx context.Context) error {
 		return c.List(ctx, objList, options...)
 	}); err != nil {
-		return nil, pkgerrors.Wrapf(err, "failed to list objects for the %q GroupVersionKind", objList.GroupVersionKind())
+		return nil, pkgerrors.Wrapf(err, "failed to list objects for the %q GroupVersionKind", schema.FromAPIVersionAndKind(groupVersion, kind))
 	}
 
 	return objList, nil

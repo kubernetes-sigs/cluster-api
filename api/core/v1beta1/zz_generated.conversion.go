@@ -519,6 +519,16 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
+	if err := s.AddGeneratedConversionFunc((*UnhealthyExpression)(nil), (*v1beta2.UnhealthyExpression)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta1_UnhealthyExpression_To_v1beta2_UnhealthyExpression(a.(*UnhealthyExpression), b.(*v1beta2.UnhealthyExpression), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*v1beta2.UnhealthyExpression)(nil), (*UnhealthyExpression)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_UnhealthyExpression_To_v1beta1_UnhealthyExpression(a.(*v1beta2.UnhealthyExpression), b.(*UnhealthyExpression), scope)
+	}); err != nil {
+		return err
+	}
 	if err := s.AddGeneratedConversionFunc((*ValidationRule)(nil), (*v1beta2.ValidationRule)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta1_ValidationRule_To_v1beta2_ValidationRule(a.(*ValidationRule), b.(*v1beta2.ValidationRule), scope)
 	}); err != nil {
@@ -2202,6 +2212,7 @@ func autoConvert_v1beta1_MachineDeletionStatus_To_v1beta2_MachineDeletionStatus(
 	// WARNING: in.WaitForNodeVolumeDetachStartTime requires manual conversion: inconvertible types (*k8s.io/apimachinery/pkg/apis/meta/v1.Time vs k8s.io/apimachinery/pkg/apis/meta/v1.Time)
 	// WARNING: in.WaitForPreDrainHookStartTime requires manual conversion: inconvertible types (*k8s.io/apimachinery/pkg/apis/meta/v1.Time vs k8s.io/apimachinery/pkg/apis/meta/v1.Time)
 	// WARNING: in.WaitForPreTerminateHookStartTime requires manual conversion: inconvertible types (*k8s.io/apimachinery/pkg/apis/meta/v1.Time vs k8s.io/apimachinery/pkg/apis/meta/v1.Time)
+	// WARNING: in.NodeDeletionStartTime requires manual conversion: inconvertible types (*k8s.io/apimachinery/pkg/apis/meta/v1.Time vs k8s.io/apimachinery/pkg/apis/meta/v1.Time)
 	return nil
 }
 
@@ -2210,6 +2221,7 @@ func autoConvert_v1beta2_MachineDeletionStatus_To_v1beta1_MachineDeletionStatus(
 	// WARNING: in.WaitForNodeVolumeDetachStartTime requires manual conversion: inconvertible types (k8s.io/apimachinery/pkg/apis/meta/v1.Time vs *k8s.io/apimachinery/pkg/apis/meta/v1.Time)
 	// WARNING: in.WaitForPreDrainHookStartTime requires manual conversion: inconvertible types (k8s.io/apimachinery/pkg/apis/meta/v1.Time vs *k8s.io/apimachinery/pkg/apis/meta/v1.Time)
 	// WARNING: in.WaitForPreTerminateHookStartTime requires manual conversion: inconvertible types (k8s.io/apimachinery/pkg/apis/meta/v1.Time vs *k8s.io/apimachinery/pkg/apis/meta/v1.Time)
+	// WARNING: in.NodeDeletionStartTime requires manual conversion: inconvertible types (k8s.io/apimachinery/pkg/apis/meta/v1.Time vs *k8s.io/apimachinery/pkg/apis/meta/v1.Time)
 	return nil
 }
 
@@ -2426,6 +2438,7 @@ func autoConvert_v1beta1_MachineDeploymentTopology_To_v1beta2_MachineDeploymentT
 	}
 	out.Class = in.Class
 	out.Name = in.Name
+	out.Version = in.Version
 	if err := v1.Convert_Pointer_string_To_string(&in.FailureDomain, &out.FailureDomain, s); err != nil {
 		return err
 	}
@@ -2451,6 +2464,7 @@ func autoConvert_v1beta2_MachineDeploymentTopology_To_v1beta1_MachineDeploymentT
 	}
 	out.Class = in.Class
 	out.Name = in.Name
+	out.Version = in.Version
 	if err := v1.Convert_string_To_Pointer_string(&in.FailureDomain, &out.FailureDomain, s); err != nil {
 		return err
 	}
@@ -2730,6 +2744,7 @@ func autoConvert_v1beta1_MachineHealthCheckSpec_To_v1beta2_MachineHealthCheckSpe
 	out.Selector = in.Selector
 	// WARNING: in.UnhealthyConditions requires manual conversion: does not exist in peer-type
 	// WARNING: in.UnhealthyMachineConditions requires manual conversion: does not exist in peer-type
+	// WARNING: in.UnhealthyExpressions requires manual conversion: does not exist in peer-type
 	// WARNING: in.MaxUnhealthy requires manual conversion: does not exist in peer-type
 	// WARNING: in.UnhealthyRange requires manual conversion: does not exist in peer-type
 	// WARNING: in.NodeStartupTimeout requires manual conversion: does not exist in peer-type
@@ -3036,6 +3051,7 @@ func autoConvert_v1beta1_MachinePoolTopology_To_v1beta2_MachinePoolTopology(in *
 	}
 	out.Class = in.Class
 	out.Name = in.Name
+	out.Version = in.Version
 	out.FailureDomains = *(*[]string)(unsafe.Pointer(&in.FailureDomains))
 	// WARNING: in.NodeDrainTimeout requires manual conversion: does not exist in peer-type
 	// WARNING: in.NodeVolumeDetachTimeout requires manual conversion: does not exist in peer-type
@@ -3053,6 +3069,7 @@ func autoConvert_v1beta2_MachinePoolTopology_To_v1beta1_MachinePoolTopology(in *
 	}
 	out.Class = in.Class
 	out.Name = in.Name
+	out.Version = in.Version
 	out.FailureDomains = *(*[]string)(unsafe.Pointer(&in.FailureDomains))
 	// WARNING: in.Deletion requires manual conversion: does not exist in peer-type
 	out.Taints = *(*[]MachineTaint)(unsafe.Pointer(&in.Taints))
@@ -3720,6 +3737,26 @@ func autoConvert_v1beta2_Topology_To_v1beta1_Topology(in *v1beta2.Topology, out 
 		out.Variables = nil
 	}
 	return nil
+}
+
+func autoConvert_v1beta1_UnhealthyExpression_To_v1beta2_UnhealthyExpression(in *UnhealthyExpression, out *v1beta2.UnhealthyExpression, s conversion.Scope) error {
+	*out = *(*v1beta2.UnhealthyExpression)(unsafe.Pointer(in))
+	return nil
+}
+
+// Convert_v1beta1_UnhealthyExpression_To_v1beta2_UnhealthyExpression is an autogenerated conversion function.
+func Convert_v1beta1_UnhealthyExpression_To_v1beta2_UnhealthyExpression(in *UnhealthyExpression, out *v1beta2.UnhealthyExpression, s conversion.Scope) error {
+	return autoConvert_v1beta1_UnhealthyExpression_To_v1beta2_UnhealthyExpression(in, out, s)
+}
+
+func autoConvert_v1beta2_UnhealthyExpression_To_v1beta1_UnhealthyExpression(in *v1beta2.UnhealthyExpression, out *UnhealthyExpression, s conversion.Scope) error {
+	*out = *(*UnhealthyExpression)(unsafe.Pointer(in))
+	return nil
+}
+
+// Convert_v1beta2_UnhealthyExpression_To_v1beta1_UnhealthyExpression is an autogenerated conversion function.
+func Convert_v1beta2_UnhealthyExpression_To_v1beta1_UnhealthyExpression(in *v1beta2.UnhealthyExpression, out *UnhealthyExpression, s conversion.Scope) error {
+	return autoConvert_v1beta2_UnhealthyExpression_To_v1beta1_UnhealthyExpression(in, out, s)
 }
 
 func autoConvert_v1beta1_UnhealthyMachineCondition_To_v1beta2_UnhealthyMachineCondition(in *UnhealthyMachineCondition, out *v1beta2.UnhealthyMachineCondition, s conversion.Scope) error {

@@ -6,11 +6,8 @@ The IPAM provider is responsible for handling the IP addresses for the machines 
 
 IPAM providers are optional when using Cluster API. Infrastructure providers need to [implement explicit support](#infrastructure-provider) to be usable in conjunction with IPAM providers.
 
-<aside class="note">
-
-Note that the IPAM contract is single-stack. If you need both v4 and v6 addresses, two pools and two IPAddressClaims are necessary.
-
-</aside>
+> [!NOTE]
+> Note that the IPAM contract is single-stack. If you need both v4 and v6 addresses, two pools and two IPAddressClaims are necessary.
 
 ## Data Types
 
@@ -64,11 +61,8 @@ In order for Pools to be moved alongside clusters, they need to have a `cluster.
 
 In order to consume IP addresses from an IP address pool, an IPAddressClaim resource needs to be created, which will then be fulfilled with an IPAddress resource. Since the IPAddressClaim needs to reference an IP pool, you'll need to add a property to your infrastructure Machine that allows to specify the pool.
 
-<aside class="note">
-
-Note that the IPAM contract is single-stack. If you need both v4 and v6 addresses, two pools and two IPAddressClaims are necessary.
-
-</aside>
+> [!NOTE]
+> Note that the IPAM contract is single-stack. If you need both v4 and v6 addresses, two pools and two IPAddressClaims are necessary.
 
 1. Create an IPAddressClaim
    1. The `spec.poolRef` must reference the pool you want to use

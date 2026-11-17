@@ -41,15 +41,15 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/core/reconcilers/topology/cluster/patches"
 	coreadmission "sigs.k8s.io/cluster-api/core/webhooks/admission"
-	runtimeclient "sigs.k8s.io/cluster-api/exp/runtime/client"
 	"sigs.k8s.io/cluster-api/exp/topology/scope"
-	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/contract"
-	"sigs.k8s.io/cluster-api/internal/hooks"
 	"sigs.k8s.io/cluster-api/internal/topology/clustershim"
 	topologynames "sigs.k8s.io/cluster-api/internal/topology/names"
 	"sigs.k8s.io/cluster-api/internal/topology/ownerrefs"
 	"sigs.k8s.io/cluster-api/internal/topology/selectors"
+	"sigs.k8s.io/cluster-api/pkg/features"
+	runtimeclient "sigs.k8s.io/cluster-api/pkg/runtimesdk/client"
+	"sigs.k8s.io/cluster-api/pkg/runtimesdk/hooks"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/cache"
 	conversionutil "sigs.k8s.io/cluster-api/util/conversion"
@@ -66,7 +66,7 @@ func NewGenerator(client client.Client, clusterCache clustercache.ClusterCache, 
 		return nil, pkgerrors.New("Client and ClusterCache must not be nil")
 	}
 
-	if feature.Gates.Enabled(feature.RuntimeSDK) && runtimeClient == nil {
+	if features.Gates.Enabled(features.RuntimeSDK) && runtimeClient == nil {
 		return nil, pkgerrors.New("RuntimeClient must not be nil")
 	}
 
@@ -596,7 +596,7 @@ func (g *generator) computeControlPlaneVersion(ctx context.Context, s *scope.Sco
 		s.UpgradeTracker.ControlPlane.IsUpgrading = true
 
 		// Recovery code in case control plane version was changed, but it failed to apply the list of pending hooks.
-		if feature.Gates.Enabled(feature.RuntimeSDK) {
+		if features.Gates.Enabled(features.RuntimeSDK) {
 			if !hooks.IsPending(runtimehooksv1.AfterControlPlaneUpgrade, s.Current.Cluster) {
 				hooksToMarkPending := getHooksToMarkPending(s, *currentVersion)
 				if err := hooks.MarkAsPending(ctx, g.Client, s.Current.Cluster, false, hooksToMarkPending...); err != nil {
@@ -609,7 +609,7 @@ func (g *generator) computeControlPlaneVersion(ctx context.Context, s *scope.Sco
 
 	// if the control plane is not upgrading, before making further considerations about if to pick up another version,
 	// we should call the AfterControlPlaneUpgrade and the BeforeWorkersUpgrade hooks if not already done.
-	if feature.Gates.Enabled(feature.RuntimeSDK) {
+	if features.Gates.Enabled(features.RuntimeSDK) {
 		// Note: calling the AfterControlPlaneUpgrade is the final step of a control plane upgrade.
 		hookCompleted, err := g.callAfterControlPlaneUpgradeHook(ctx, s, currentVersion)
 		if err != nil {
@@ -659,7 +659,7 @@ func (g *generator) computeControlPlaneVersion(ctx context.Context, s *scope.Sco
 
 	// If not already done, call the AfterWorkersUpgrade hook before picking up the desired version.
 	// (this is the last step of the previous upgrade).
-	if feature.Gates.Enabled(feature.RuntimeSDK) {
+	if features.Gates.Enabled(features.RuntimeSDK) {
 		// Note: calling the AfterWorkersUpgrade is the last step of workers upgrade.
 		// The call to this hook is implemented in this function in order to ensure that AfterWorkersUpgrade
 		// can block the control plane upgrade to proceed in the upgrade plan.
@@ -682,7 +682,7 @@ func (g *generator) computeControlPlaneVersion(ctx context.Context, s *scope.Sco
 	}
 
 	// If not already done, call the BeforeClusterUpgrade hook before picking up the desired version.
-	if feature.Gates.Enabled(feature.RuntimeSDK) {
+	if features.Gates.Enabled(features.RuntimeSDK) {
 		// Note: calling the BeforeClusterUpgrade is the first step of an upgrade plan;
 		// this operation is a no-op for intermediate steps of an upgrade plan.
 		hookCompleted, err := g.callBeforeClusterUpgradeHook(ctx, s, currentVersion, topologyVersion)
@@ -710,7 +710,7 @@ func (g *generator) computeControlPlaneVersion(ctx context.Context, s *scope.Sco
 	}
 	nextVersion := s.UpgradeTracker.ControlPlane.UpgradePlan[0]
 
-	if feature.Gates.Enabled(feature.RuntimeSDK) {
+	if features.Gates.Enabled(features.RuntimeSDK) {
 		// Note: calling the BeforeControlPlaneUpgrade is the first step of a control plan upgrade step from the upgrade plan.
 		hookCompleted, err := g.callBeforeControlPlaneUpgradeHook(ctx, s, currentVersion, nextVersion)
 		if err != nil {
@@ -736,9 +736,7 @@ func (g *generator) computeControlPlaneVersion(ctx context.Context, s *scope.Sco
 	s.UpgradeTracker.ControlPlane.IsStartingUpgrade = true
 	s.UpgradeTracker.ControlPlane.IsPendingUpgrade = false
 
-	log.Info(fmt.Sprintf("Control plane %s upgraded from version %s to version %s", klog.KObj(s.Current.ControlPlane.Object), *currentVersion, nextVersion),
-		"ControlPlaneUpgrades", toUpgradeStep(s.UpgradeTracker.ControlPlane.UpgradePlan),
-		"WorkersUpgrades", toUpgradeStep(s.UpgradeTracker.MachineDeployments.UpgradePlan, s.UpgradeTracker.MachinePools.UpgradePlan),
+	log.WithValues(upgradePlansLogValues(s.UpgradeTracker)...).Info(fmt.Sprintf("Control plane %s upgraded from version %s to version %s", s.Current.ControlPlane.Object.GetName(), *currentVersion, nextVersion),
 		s.Current.ControlPlane.Object.GetKind(), klog.KObj(s.Current.ControlPlane.Object),
 	)
 	return nextVersion, nil
@@ -784,8 +782,8 @@ func computeCluster(_ context.Context, s *scope.Scope, infrastructureCluster, co
 	if cluster.Annotations == nil {
 		cluster.Annotations = map[string]string{}
 	}
-	if (feature.Gates.Enabled(feature.RuntimeSDK) && hooks.IsPending(runtimehooksv1.AfterClusterUpgrade, s.Current.Cluster)) ||
-		(!feature.Gates.Enabled(feature.RuntimeSDK) && (len(s.UpgradeTracker.ControlPlane.UpgradePlan) > 0 || len(s.UpgradeTracker.MachineDeployments.UpgradePlan) > 0 || len(s.UpgradeTracker.MachinePools.UpgradePlan) > 0)) {
+	if (features.Gates.Enabled(features.RuntimeSDK) && hooks.IsPending(runtimehooksv1.AfterClusterUpgrade, s.Current.Cluster)) ||
+		(!features.Gates.Enabled(features.RuntimeSDK) && (len(s.UpgradeTracker.ControlPlane.UpgradePlan) > 0 || len(s.UpgradeTracker.MachineDeployments.UpgradePlan) > 0 || len(s.UpgradeTracker.MachinePools.UpgradePlan) > 0)) {
 		controlPlaneVersion, err := contract.ControlPlane().Version().Get(controlPlane)
 		if err != nil {
 			return nil, pkgerrors.Wrap(err, "error getting control plane version")
@@ -941,27 +939,26 @@ func (g *generator) computeMachineDeployment(ctx context.Context, s *scope.Scope
 		minReadySeconds = machineDeploymentTopology.MinReadySeconds
 	}
 
-	var rollout clusterv1.MachineDeploymentRolloutSpec
-	if !reflect.DeepEqual(machineDeploymentClass.Rollout, clusterv1.MachineDeploymentRolloutSpec{}) {
-		rollout = clusterv1.MachineDeploymentRolloutSpec{
-			Strategy: clusterv1.MachineDeploymentRolloutStrategy{
-				Type: machineDeploymentClass.Rollout.Strategy.Type,
-				RollingUpdate: clusterv1.MachineDeploymentRolloutStrategyRollingUpdate{
-					MaxUnavailable: machineDeploymentClass.Rollout.Strategy.RollingUpdate.MaxUnavailable,
-					MaxSurge:       machineDeploymentClass.Rollout.Strategy.RollingUpdate.MaxSurge,
-				},
+	// Note: after and strategy are handled independently, i.e. strategy from the topology overrides
+	// strategy from the class, while after is only set from the topology.
+	rollout := clusterv1.MachineDeploymentRolloutSpec{
+		After: machineDeploymentTopology.Rollout.After,
+	}
+	if !reflect.DeepEqual(machineDeploymentClass.Rollout.Strategy, clusterv1.MachineDeploymentClassRolloutStrategy{}) {
+		rollout.Strategy = clusterv1.MachineDeploymentRolloutStrategy{
+			Type: machineDeploymentClass.Rollout.Strategy.Type,
+			RollingUpdate: clusterv1.MachineDeploymentRolloutStrategyRollingUpdate{
+				MaxUnavailable: machineDeploymentClass.Rollout.Strategy.RollingUpdate.MaxUnavailable,
+				MaxSurge:       machineDeploymentClass.Rollout.Strategy.RollingUpdate.MaxSurge,
 			},
 		}
 	}
-	if !reflect.DeepEqual(machineDeploymentTopology.Rollout, clusterv1.MachineDeploymentTopologyRolloutSpec{}) {
-		rollout = clusterv1.MachineDeploymentRolloutSpec{
-			After: machineDeploymentTopology.Rollout.After,
-			Strategy: clusterv1.MachineDeploymentRolloutStrategy{
-				Type: machineDeploymentTopology.Rollout.Strategy.Type,
-				RollingUpdate: clusterv1.MachineDeploymentRolloutStrategyRollingUpdate{
-					MaxUnavailable: machineDeploymentTopology.Rollout.Strategy.RollingUpdate.MaxUnavailable,
-					MaxSurge:       machineDeploymentTopology.Rollout.Strategy.RollingUpdate.MaxSurge,
-				},
+	if !reflect.DeepEqual(machineDeploymentTopology.Rollout.Strategy, clusterv1.MachineDeploymentTopologyRolloutStrategy{}) {
+		rollout.Strategy = clusterv1.MachineDeploymentRolloutStrategy{
+			Type: machineDeploymentTopology.Rollout.Strategy.Type,
+			RollingUpdate: clusterv1.MachineDeploymentRolloutStrategyRollingUpdate{
+				MaxUnavailable: machineDeploymentTopology.Rollout.Strategy.RollingUpdate.MaxUnavailable,
+				MaxSurge:       machineDeploymentTopology.Rollout.Strategy.RollingUpdate.MaxSurge,
 			},
 		}
 	}
@@ -1190,9 +1187,7 @@ func (g *generator) computeMachineDeploymentVersion(ctx context.Context, s *scop
 
 	nextVersion := s.UpgradeTracker.MachineDeployments.UpgradePlan[0]
 
-	log.Info(fmt.Sprintf("MachineDeployment %s upgraded from version %s to version %s", klog.KObj(currentMDState.Object), currentVersion, nextVersion),
-		"ControlPlaneUpgrades", toUpgradeStep(s.UpgradeTracker.ControlPlane.UpgradePlan),
-		"WorkersUpgrades", toUpgradeStep(s.UpgradeTracker.MachineDeployments.UpgradePlan, s.UpgradeTracker.MachinePools.UpgradePlan),
+	log.WithValues(upgradePlansLogValues(s.UpgradeTracker)...).Info(fmt.Sprintf("MachineDeployment %s upgraded from version %s to version %s", currentMDState.Object.Name, currentVersion, nextVersion),
 		"MachineDeployment", klog.KObj(currentMDState.Object),
 	)
 	return nextVersion, nil
@@ -1530,9 +1525,7 @@ func (g *generator) computeMachinePoolVersion(ctx context.Context, s *scope.Scop
 
 	nextVersion := s.UpgradeTracker.MachinePools.UpgradePlan[0]
 
-	log.Info(fmt.Sprintf("MachinePool %s upgraded from version %s to version %s", klog.KObj(currentMPState.Object), currentVersion, nextVersion),
-		"ControlPlaneUpgrades", toUpgradeStep(s.UpgradeTracker.ControlPlane.UpgradePlan),
-		"WorkersUpgrades", toUpgradeStep(s.UpgradeTracker.MachineDeployments.UpgradePlan, s.UpgradeTracker.MachinePools.UpgradePlan),
+	log.WithValues(upgradePlansLogValues(s.UpgradeTracker)...).Info(fmt.Sprintf("MachinePool %s upgraded from version %s to version %s", currentMPState.Object.Name, currentVersion, nextVersion),
 		"MachinePool", klog.KObj(currentMPState.Object),
 	)
 	return nextVersion, nil

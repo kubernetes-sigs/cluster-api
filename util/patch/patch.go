@@ -416,7 +416,7 @@ func (h *Helper) shouldPatch(focus patchType) bool {
 	return h.changes.Has(string(focus))
 }
 
-// calculate changes tries to build a patch from the before/after objects we have
+// calculateChanges tries to build a patch from the before/after objects we have
 // and store in a map which top-level fields (e.g. `metadata`, `spec`, `status`, etc.) have changed.
 func (h *Helper) calculateChanges(after client.Object) (sets.Set[string], error) {
 	// Calculate patch data.

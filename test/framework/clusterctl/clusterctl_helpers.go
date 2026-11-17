@@ -47,6 +47,7 @@ type InitManagementClusterAndWatchControllerLogsInput struct {
 	AddonProviders            []string
 	LogFolder                 string
 	DisableMetricsCollection  bool
+	CheckForPodRestarts       bool
 	ClusterctlBinaryPath      string
 }
 
@@ -125,6 +126,13 @@ func InitManagementClusterAndWatchControllerLogs(ctx context.Context, input Init
 				ClientSet:   input.ClusterProxy.GetClientSet(),
 				Deployment:  deployment,
 				MetricsPath: filepath.Join(input.LogFolder, "metrics", deployment.GetNamespace()),
+			})
+		}
+
+		if input.CheckForPodRestarts {
+			framework.WatchPodRestarts(ctx, framework.WatchPodRestartsInput{
+				GetLister:  client,
+				Deployment: deployment,
 			})
 		}
 	}
@@ -428,9 +436,9 @@ func ApplyCustomClusterTemplateAndWait(ctx context.Context, input ApplyCustomClu
 		workloadCluster := input.ClusterProxy.GetWorkloadCluster(ctx, result.Cluster.Namespace, result.Cluster.Name)
 
 		cniYaml, err := os.ReadFile(input.CNIManifestPath)
-		Expect(err).ShouldNot(HaveOccurred())
+		Expect(err).ToNot(HaveOccurred())
 
-		Expect(workloadCluster.CreateOrUpdate(ctx, cniYaml)).ShouldNot(HaveOccurred())
+		Expect(workloadCluster.CreateOrUpdate(ctx, cniYaml)).To(Succeed())
 	}
 
 	log.Logf("Waiting for control plane of cluster %s to be ready", klog.KRef(input.Namespace, input.ClusterName))

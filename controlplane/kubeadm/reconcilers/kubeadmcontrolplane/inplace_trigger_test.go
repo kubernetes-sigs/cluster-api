@@ -159,6 +159,7 @@ func Test_triggerInPlaceUpdate(t *testing.T) {
 		name                                        string
 		currentMachine                              *clusterv1.Machine
 		createMachineWithUpdateInProgressAnnotation bool
+		createMachineWithRemediationForAnnotation   bool
 		currentInfraMachine                         *unstructured.Unstructured
 		currentKubeadmConfig                        *bootstrapv1.KubeadmConfig
 		createKubeadmConfigLikeWithCAPI1_11         bool
@@ -200,6 +201,17 @@ func Test_triggerInPlaceUpdate(t *testing.T) {
 			desiredKubeadmConfig: desiredKubeadmConfig,
 		},
 		{
+			name:           "Trigger in-place update should stop remediation sequence",
+			currentMachine: currentMachine,
+			createMachineWithRemediationForAnnotation: true,
+			currentInfraMachine:                       currentInfraMachine,
+			currentKubeadmConfig:                      currentKubeadmConfig,
+			desiredMachine:                            desiredMachine,
+			desiredInfraMachine:                       desiredInfraMachine,
+			desiredKubeadmConfig:                      desiredKubeadmConfig,
+		},
+
+		{
 			name:           "Trigger in-place update (Machine already has UpdateInProgressAnnotation)",
 			currentMachine: currentMachine,
 			createMachineWithUpdateInProgressAnnotation: true,
@@ -237,6 +249,11 @@ func Test_triggerInPlaceUpdate(t *testing.T) {
 				currentMachineForPatch.Annotations[clusterv1.UpdateInProgressAnnotation] = "{\"affectsAvailability\":true}"
 				g.Expect(env.Client.Patch(ctx, currentMachineForPatch, client.MergeFrom(orig), client.FieldOwner("manager"))).To(Succeed())
 			}
+			if tt.createMachineWithRemediationForAnnotation {
+				orig := currentMachineForPatch.DeepCopy()
+				currentMachineForPatch.Annotations[controlplanev1.RemediationForAnnotation] = "..."
+				g.Expect(env.Client.Patch(ctx, currentMachineForPatch, client.MergeFrom(orig))).To(Succeed())
+			}
 
 			// Create InfraMachine (same as in createInfraMachine)
 			currentInfraMachineForPatch := tt.currentInfraMachine.DeepCopy()
@@ -261,7 +278,7 @@ func Test_triggerInPlaceUpdate(t *testing.T) {
 				updatedObject.SetAnnotations(currentMachineForPatch.GetAnnotations())
 				g.Expect(ssa.Patch(ctx, env.Client, kcpManagerName, updatedObject)).To(Succeed())
 				// Now migrate the managedFields like CAPI >= v1.12 does.
-				g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(currentKubeadmConfigForPatch), currentKubeadmConfigForPatch)).Should(Succeed())
+				g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(currentKubeadmConfigForPatch), currentKubeadmConfigForPatch)).To(Succeed())
 				g.Expect(ssa.MigrateManagedFields(ctx, env.Client, currentKubeadmConfigForPatch, kcpManagerName, kcpMetadataManagerName)).To(Succeed())
 				// Note: At this point spec is not owned by anyone (orphaned). This requires the code path to remove initConfiguration for CAPI v1.11 objects.
 			} else {

@@ -18,6 +18,7 @@ package manager
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"k8s.io/apimachinery/pkg/runtime"
@@ -85,11 +86,11 @@ func (m *manager) Start(ctx context.Context) error {
 	log := ctrl.LoggerFrom(ctx)
 
 	if ctx == nil {
-		return fmt.Errorf("context cannot be nil")
+		return errors.New("context cannot be nil")
 	}
 
 	if m.started {
-		return fmt.Errorf("manager started more than once")
+		return errors.New("manager started more than once")
 	}
 
 	if err := m.cache.Start(ctx); err != nil {

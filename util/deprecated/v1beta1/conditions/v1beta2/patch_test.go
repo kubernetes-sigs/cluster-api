@@ -123,7 +123,7 @@ func TestNewPatch(t *testing.T) {
 				g.Expect(err).To(HaveOccurred())
 				return
 			}
-			g.Expect(err).To(Not(HaveOccurred()))
+			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(got).To(BeComparableTo(tt.want))
 		})
 	}

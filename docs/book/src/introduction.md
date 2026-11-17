@@ -12,18 +12,15 @@ Started by the Kubernetes Special Interest Group (SIG) [Cluster Lifecycle](https
 * [Contributing](./CONTRIBUTING.md)
 * [Videos explaining Cluster API architecture](./developer/getting-started.md#videos-explaining-capi-architecture-and-code-walkthroughs)
 
-<aside class="note">
-
-<h1>ClusterAPI documentation versions</h1>
-
-This book documents ClusterAPI v1.14. For other Cluster API versions please see the corresponding documentation:
-* [main.cluster-api.sigs.k8s.io](https://main.cluster-api.sigs.k8s.io)
-* [release-1-13.cluster-api.sigs.k8s.io](https://release-1-13.cluster-api.sigs.k8s.io)
-* [release-1-12.cluster-api.sigs.k8s.io](https://release-1-12.cluster-api.sigs.k8s.io)
-* [release-1-11.cluster-api.sigs.k8s.io](https://release-1-11.cluster-api.sigs.k8s.io)
-* older version are available at similar urls by replacing minor-version numbers
-
-</aside>
+> [!NOTE]
+> **ClusterAPI documentation versions**
+>
+> This book documents ClusterAPI v1.14. For other Cluster API versions please see the corresponding documentation:
+> * [main.cluster-api.sigs.k8s.io](https://main.cluster-api.sigs.k8s.io)
+> * [release-1-13.cluster-api.sigs.k8s.io](https://release-1-13.cluster-api.sigs.k8s.io)
+> * [release-1-12.cluster-api.sigs.k8s.io](https://release-1-12.cluster-api.sigs.k8s.io)
+> * [release-1-11.cluster-api.sigs.k8s.io](https://release-1-11.cluster-api.sigs.k8s.io)
+> * older version are available at similar urls by replacing minor-version numbers
 
 ## Why build Cluster API?
 

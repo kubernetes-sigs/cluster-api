@@ -18,6 +18,7 @@ package machine
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"testing"
 	"time"
@@ -141,13 +142,13 @@ func TestWatches(t *testing.T) {
 
 	// Patch infra machine ready
 	patchHelper, err := patch.NewHelper(infraMachine, env)
-	g.Expect(err).ShouldNot(HaveOccurred())
+	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(unstructured.SetNestedField(infraMachine.Object, true, "status", "initialization", "provisioned")).To(Succeed())
 	g.Expect(patchHelper.Patch(ctx, infraMachine, patch.WithStatusObservedGeneration{})).To(Succeed())
 
 	// Patch bootstrap ready
 	patchHelper, err = patch.NewHelper(defaultBootstrap, env)
-	g.Expect(err).ShouldNot(HaveOccurred())
+	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(unstructured.SetNestedField(defaultBootstrap.Object, true, "status", "initialization", "dataSecretCreated")).To(Succeed())
 	g.Expect(unstructured.SetNestedField(defaultBootstrap.Object, "secretData", "status", "dataSecretName")).To(Succeed())
 	g.Expect(patchHelper.Patch(ctx, defaultBootstrap, patch.WithStatusObservedGeneration{})).To(Succeed())
@@ -285,13 +286,13 @@ func TestWatchesDelete(t *testing.T) {
 
 	// Patch infra machine ready
 	patchHelper, err := patch.NewHelper(infraMachine, env)
-	g.Expect(err).ShouldNot(HaveOccurred())
+	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(unstructured.SetNestedField(infraMachine.Object, true, "status", "initialization", "provisioned")).To(Succeed())
 	g.Expect(patchHelper.Patch(ctx, infraMachine, patch.WithStatusObservedGeneration{})).To(Succeed())
 
 	// Patch bootstrap ready
 	patchHelper, err = patch.NewHelper(defaultBootstrap, env)
-	g.Expect(err).ShouldNot(HaveOccurred())
+	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(unstructured.SetNestedField(defaultBootstrap.Object, true, "status", "initialization", "dataSecretCreated")).To(Succeed())
 	g.Expect(unstructured.SetNestedField(defaultBootstrap.Object, "secretData", "status", "dataSecretName")).To(Succeed())
 	g.Expect(patchHelper.Patch(ctx, defaultBootstrap, patch.WithStatusObservedGeneration{})).To(Succeed())
@@ -496,7 +497,7 @@ func TestMachine_Reconcile(t *testing.T) {
 
 	// Set bootstrap ready.
 	bootstrapPatch := client.MergeFrom(defaultBootstrap.DeepCopy())
-	g.Expect(unstructured.SetNestedField(defaultBootstrap.Object, true, "status", "initialization", "dataSecretCreated")).ToNot(HaveOccurred())
+	g.Expect(unstructured.SetNestedField(defaultBootstrap.Object, true, "status", "initialization", "dataSecretCreated")).To(Succeed())
 	g.Expect(env.Status().Patch(ctx, defaultBootstrap, bootstrapPatch)).To(Succeed())
 
 	// Set infrastructure ready.
@@ -516,7 +517,7 @@ func TestMachine_Reconcile(t *testing.T) {
 		return readyCondition.Status == metav1.ConditionTrue
 	}, timeout).Should(BeTrue())
 
-	g.Expect(env.Delete(ctx, machine)).ToNot(HaveOccurred())
+	g.Expect(env.Delete(ctx, machine)).To(Succeed())
 	// Wait for Machine to be deleted.
 	g.Eventually(func() bool {
 		if err := env.Get(ctx, key, machine); err != nil {
@@ -1342,7 +1343,7 @@ func TestMachineV1Beta1Conditions(t *testing.T) {
 			}
 
 			m = &clusterv1.Machine{}
-			g.Expect(r.Client.Get(ctx, client.ObjectKeyFromObject(&machine), m)).ToNot(HaveOccurred())
+			g.Expect(r.Client.Get(ctx, client.ObjectKeyFromObject(&machine), m)).To(Succeed())
 
 			assertConditions(t, m, tt.conditionsToAssert...)
 			assertV1Beta1Conditions(t, m, tt.v1beta1ConditionsToAssert...)
@@ -1862,10 +1863,12 @@ func TestDrainNode(t *testing.T) {
 			testMachine.Status.NodeRef = clusterv1.MachineNodeReference{
 				Name: tt.nodeName,
 			}
-			if !tt.nodeDrainStartTime.IsZero() {
-				testMachine.Status.Deletion = &clusterv1.MachineDeletionStatus{
-					NodeDrainStartTime: tt.nodeDrainStartTime,
-				}
+			// Note: reconcileDelete always sets NodeDrainStartTime before calling drainNode.
+			testMachine.Status.Deletion = &clusterv1.MachineDeletionStatus{
+				NodeDrainStartTime: tt.nodeDrainStartTime,
+			}
+			if tt.nodeDrainStartTime.IsZero() {
+				testMachine.Status.Deletion.NodeDrainStartTime = metav1.Now()
 			}
 
 			s := &scope{
@@ -2340,7 +2343,7 @@ func TestShouldWaitForNodeVolumes(t *testing.T) {
 			},
 			expected:               ctrl.Result{RequeueAfter: waitForVolumeDetachRetryInterval},
 			expectedDeletingReason: clusterv1.MachineDeletingWaitingForVolumeDetachReason,
-			expectedDeletingMessage: `Waiting for Node volumes to be detached (started at 2024-10-09T16:13:59Z)
+			expectedDeletingMessage: `Waiting for Node volumes to be detached (started at 2024-10-09T16:13:59Z):
 * PersistentVolumeClaims: default/test-pvc`,
 			expectDeferNextReconcile: waitForVolumeDetachRetryInterval,
 		},
@@ -2365,7 +2368,7 @@ func TestShouldWaitForNodeVolumes(t *testing.T) {
 			},
 			expected:               ctrl.Result{RequeueAfter: waitForVolumeDetachRetryInterval},
 			expectedDeletingReason: clusterv1.MachineDeletingWaitingForVolumeDetachReason,
-			expectedDeletingMessage: `Waiting for Node volumes to be detached (started at 2024-10-09T16:13:59Z)
+			expectedDeletingMessage: `Waiting for Node volumes to be detached (started at 2024-10-09T16:13:59Z):
 * PersistentVolumes without a .spec.claimRef to a PersistentVolumeClaim: test-pv`,
 			expectDeferNextReconcile: waitForVolumeDetachRetryInterval,
 		},
@@ -2388,7 +2391,7 @@ func TestShouldWaitForNodeVolumes(t *testing.T) {
 			remoteObjects:          []client.Object{},
 			expected:               ctrl.Result{RequeueAfter: waitForVolumeDetachRetryInterval},
 			expectedDeletingReason: clusterv1.MachineDeletingWaitingForVolumeDetachReason,
-			expectedDeletingMessage: `Waiting for Node volumes to be detached (started at 2024-10-09T16:13:59Z)
+			expectedDeletingMessage: `Waiting for Node volumes to be detached (started at 2024-10-09T16:13:59Z):
 * Node with .status.volumesAttached entries not matching a PersistentVolume: kubernetes.io/csi/dummy^foo`,
 			expectDeferNextReconcile: waitForVolumeDetachRetryInterval,
 		},
@@ -2466,7 +2469,7 @@ func TestShouldWaitForNodeVolumes(t *testing.T) {
 			},
 			expected:               ctrl.Result{RequeueAfter: waitForVolumeDetachRetryInterval},
 			expectedDeletingReason: clusterv1.MachineDeletingWaitingForVolumeDetachReason,
-			expectedDeletingMessage: `Waiting for Node volumes to be detached (started at 2024-10-09T16:13:59Z)
+			expectedDeletingMessage: `Waiting for Node volumes to be detached (started at 2024-10-09T16:13:59Z):
 * PersistentVolumeClaims: default/test-pvc`,
 			expectDeferNextReconcile: waitForVolumeDetachRetryInterval,
 		},
@@ -2490,7 +2493,7 @@ func TestShouldWaitForNodeVolumes(t *testing.T) {
 			},
 			expected:               ctrl.Result{RequeueAfter: waitForVolumeDetachRetryInterval},
 			expectedDeletingReason: clusterv1.MachineDeletingWaitingForVolumeDetachReason,
-			expectedDeletingMessage: `Waiting for Node volumes to be detached (started at 2024-10-09T16:13:59Z)
+			expectedDeletingMessage: `Waiting for Node volumes to be detached (started at 2024-10-09T16:13:59Z):
 * VolumeAttachment with .spec.source.persistentVolumeName not matching a PersistentVolume: test-pv`,
 			expectDeferNextReconcile: waitForVolumeDetachRetryInterval,
 		},
@@ -2592,7 +2595,7 @@ func TestShouldWaitForNodeVolumes(t *testing.T) {
 			},
 			expected:               ctrl.Result{RequeueAfter: waitForVolumeDetachRetryInterval},
 			expectedDeletingReason: clusterv1.MachineDeletingWaitingForVolumeDetachReason,
-			expectedDeletingMessage: `Waiting for Node volumes to be detached (started at 2024-10-09T16:13:59Z)
+			expectedDeletingMessage: `Waiting for Node volumes to be detached (started at 2024-10-09T16:13:59Z):
 * PersistentVolumeClaims: default/test-pvc`,
 			expectDeferNextReconcile: waitForVolumeDetachRetryInterval,
 		},
@@ -3239,19 +3242,19 @@ func TestNodeToMachine(t *testing.T) {
 
 	// Patch infra expectedMachine ready
 	patchHelper, err := patch.NewHelper(infraMachine, env)
-	g.Expect(err).ShouldNot(HaveOccurred())
+	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(unstructured.SetNestedField(infraMachine.Object, true, "status", "initialization", "provisioned")).To(Succeed())
 	g.Expect(patchHelper.Patch(ctx, infraMachine, patch.WithStatusObservedGeneration{})).To(Succeed())
 
 	// Patch infra randomMachine ready
 	patchHelper, err = patch.NewHelper(infraMachine2, env)
-	g.Expect(err).ShouldNot(HaveOccurred())
+	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(unstructured.SetNestedField(infraMachine2.Object, true, "status", "initialization", "provisioned")).To(Succeed())
 	g.Expect(patchHelper.Patch(ctx, infraMachine2, patch.WithStatusObservedGeneration{})).To(Succeed())
 
 	// Patch bootstrap ready
 	patchHelper, err = patch.NewHelper(defaultBootstrap, env)
-	g.Expect(err).ShouldNot(HaveOccurred())
+	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(unstructured.SetNestedField(defaultBootstrap.Object, true, "status", "initialization", "dataSecretCreated")).To(Succeed())
 	g.Expect(unstructured.SetNestedField(defaultBootstrap.Object, "secretData", "status", "dataSecretName")).To(Succeed())
 	g.Expect(patchHelper.Patch(ctx, defaultBootstrap, patch.WithStatusObservedGeneration{})).To(Succeed())
@@ -3406,7 +3409,7 @@ type fakeClientWithNodeDeletionErr struct {
 func (fc fakeClientWithNodeDeletionErr) Delete(ctx context.Context, obj client.Object, opts ...client.DeleteOption) error {
 	gvk, err := apiutil.GVKForObject(obj, fakeScheme)
 	if err == nil && gvk.Kind == "Node" {
-		return fmt.Errorf("fake error")
+		return errors.New("fake error")
 	}
 	return fc.Client.Delete(ctx, obj, opts...)
 }
@@ -3482,9 +3485,12 @@ func TestNodeDeletion(t *testing.T) {
 	testCases := []struct {
 		name                   string
 		deletionTimeoutSeconds *int32
+		nodeDeletionStartTime  *metav1.Time
 		resultErr              bool
 		clusterDeleted         bool
 		expectNodeDeletion     bool
+		expectFinalizer        bool
+		expectStartTimeSet     bool
 		expectDeletingReason   string
 		createFakeClient       func(...client.Object) client.Client
 	}{
@@ -3493,6 +3499,7 @@ func TestNodeDeletion(t *testing.T) {
 			deletionTimeoutSeconds: ptr.To(int32(1)),
 			resultErr:              false,
 			expectNodeDeletion:     true,
+			expectStartTimeSet:     true,
 			expectDeletingReason:   clusterv1.MachineDeletingDeletionCompletedReason,
 			createFakeClient: func(initObjs ...client.Object) client.Client {
 				return fake.NewClientBuilder().
@@ -3506,6 +3513,8 @@ func TestNodeDeletion(t *testing.T) {
 			deletionTimeoutSeconds: ptr.To(int32(60 * 60)),
 			resultErr:              true,
 			expectNodeDeletion:     false,
+			expectFinalizer:        true,
+			expectStartTimeSet:     true,
 			expectDeletingReason:   clusterv1.MachineDeletingDeletingNodeReason,
 			createFakeClient: func(initObjs ...client.Object) client.Client {
 				fc := fake.NewClientBuilder().
@@ -3520,6 +3529,24 @@ func TestNodeDeletion(t *testing.T) {
 			deletionTimeoutSeconds: ptr.To(int32(0)), // should lead to infinite timeout
 			resultErr:              true,
 			expectNodeDeletion:     false,
+			expectFinalizer:        true,
+			expectStartTimeSet:     true,
+			expectDeletingReason:   clusterv1.MachineDeletingDeletingNodeReason,
+			createFakeClient: func(initObjs ...client.Object) client.Client {
+				fc := fake.NewClientBuilder().
+					WithObjects(initObjs...).
+					WithStatusSubresource(&clusterv1.Machine{}).
+					Build()
+				return fakeClientWithNodeDeletionErr{fc}
+			},
+		},
+		{
+			name:                   "should retry when the timeout has not expired since node deletion started",
+			deletionTimeoutSeconds: ptr.To(int32(1)),
+			resultErr:              true,
+			expectNodeDeletion:     false,
+			expectFinalizer:        true,
+			expectStartTimeSet:     true,
 			expectDeletingReason:   clusterv1.MachineDeletingDeletingNodeReason,
 			createFakeClient: func(initObjs ...client.Object) client.Client {
 				fc := fake.NewClientBuilder().
@@ -3532,8 +3559,10 @@ func TestNodeDeletion(t *testing.T) {
 		{
 			name:                   "should not return an error when timeout is expired and node deletion fails",
 			deletionTimeoutSeconds: ptr.To(int32(1)),
+			nodeDeletionStartTime:  &metav1.Time{Time: deletionTime},
 			resultErr:              false,
 			expectNodeDeletion:     false,
+			expectStartTimeSet:     true,
 			expectDeletingReason:   clusterv1.DeletionCompletedReason,
 			createFakeClient: func(initObjs ...client.Object) client.Client {
 				fc := fake.NewClientBuilder().
@@ -3566,14 +3595,16 @@ func TestNodeDeletion(t *testing.T) {
 
 			m := testMachine.DeepCopy()
 			m.Spec.Deletion.NodeDeletionTimeoutSeconds = tc.deletionTimeoutSeconds
+			if tc.nodeDeletionStartTime != nil {
+				m.Status.Deletion = &clusterv1.MachineDeletionStatus{NodeDeletionStartTime: *tc.nodeDeletionStartTime}
+			}
 
 			fakeClient := tc.createFakeClient(node, m, cpmachine1)
 
 			r := &Reconciler{
-				Client:                   fakeClient,
-				ClusterCache:             clustercache.NewFakeClusterCache(fakeClient, client.ObjectKeyFromObject(&testCluster)),
-				recorder:                 record.NewFakeRecorder(10),
-				nodeDeletionRetryTimeout: 10 * time.Millisecond,
+				Client:       fakeClient,
+				ClusterCache: clustercache.NewFakeClusterCache(fakeClient, client.ObjectKeyFromObject(&testCluster)),
+				recorder:     record.NewFakeRecorder(10),
 			}
 
 			cluster := testCluster.DeepCopy()
@@ -3597,6 +3628,13 @@ func TestNodeDeletion(t *testing.T) {
 					n := &corev1.Node{}
 					g.Expect(fakeClient.Get(context.Background(), client.ObjectKeyFromObject(node), n)).NotTo(Succeed())
 				}
+			}
+			g.Expect(controllerutil.ContainsFinalizer(m, clusterv1.MachineFinalizer)).To(Equal(tc.expectFinalizer))
+			if tc.expectStartTimeSet {
+				g.Expect(m.Status.Deletion).ToNot(BeNil())
+				g.Expect(m.Status.Deletion.NodeDeletionStartTime.IsZero()).To(BeFalse())
+			} else {
+				g.Expect(m.Status.Deletion == nil || m.Status.Deletion.NodeDeletionStartTime.IsZero()).To(BeTrue())
 			}
 			g.Expect(s.deletingReason).To(Equal(tc.expectDeletingReason))
 		})
@@ -3702,10 +3740,9 @@ func TestNodeDeletionWithoutNodeRefFallback(t *testing.T) {
 			fakeClient := tc.createFakeClient(node, m, cpmachine1)
 
 			r := &Reconciler{
-				Client:                   fakeClient,
-				ClusterCache:             clustercache.NewFakeClusterCache(fakeClient, client.ObjectKeyFromObject(&testCluster)),
-				recorder:                 record.NewFakeRecorder(10),
-				nodeDeletionRetryTimeout: 10 * time.Millisecond,
+				Client:       fakeClient,
+				ClusterCache: clustercache.NewFakeClusterCache(fakeClient, client.ObjectKeyFromObject(&testCluster)),
+				recorder:     record.NewFakeRecorder(10),
 			}
 
 			s := &scope{

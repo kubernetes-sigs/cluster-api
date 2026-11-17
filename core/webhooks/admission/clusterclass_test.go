@@ -19,6 +19,7 @@ package admission
 import (
 	"strings"
 	"testing"
+	"time"
 
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
@@ -34,8 +35,10 @@ import (
 
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
-	"sigs.k8s.io/cluster-api/feature"
+	"sigs.k8s.io/cluster-api/core/reconcilers/machinehealthcheck/cel"
 	"sigs.k8s.io/cluster-api/internal/topology/variables"
+	"sigs.k8s.io/cluster-api/pkg/features"
+	"sigs.k8s.io/cluster-api/util/cache"
 	"sigs.k8s.io/cluster-api/util/index"
 	"sigs.k8s.io/cluster-api/util/test/builder"
 )
@@ -51,7 +54,8 @@ func init() {
 }
 
 func TestClusterClassValidationFeatureGated(t *testing.T) {
-	// NOTE: ClusterTopology feature flag is disabled by default, thus preventing to create or update ClusterClasses.
+	// NOTE: ClusterTopology feature flag is enabled by default, thus we have to disable it explicitly to test the disabled behavior.
+	utilfeature.SetFeatureGateDuringTest(t, features.Gates, features.ClusterTopology, false)
 
 	tests := []struct {
 		name      string
@@ -156,10 +160,6 @@ func TestClusterClassValidationFeatureGated(t *testing.T) {
 }
 
 func TestClusterClassValidation(t *testing.T) {
-	// NOTE: ClusterTopology feature flag is disabled by default, thus preventing to create or update ClusterClasses.
-	// Enabling the feature flag temporarily for this test.
-	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)
-
 	ref := &clusterv1.ClusterClassTemplateReference{
 		APIVersion: "group.test.io/foo",
 		Kind:       "barTemplate",
@@ -858,6 +858,96 @@ func TestClusterClassValidation(t *testing.T) {
 									},
 								},
 								NodeStartupTimeoutSeconds: ptr.To(int32(10)),
+							},
+						}).
+						Build()).
+				Build(),
+			expectErr: true,
+		},
+		{
+			name: "create pass if ControlPlane MachineHealthCheck UnhealthyConditions has a valid CEL expression",
+			in: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(
+					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "infra1").Build()).
+				WithControlPlaneTemplate(
+					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
+						Build()).
+				WithControlPlaneInfrastructureMachineTemplate(
+					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cp-infra1").
+						Build()).
+				WithControlPlaneMachineHealthCheck(clusterv1.ControlPlaneClassHealthCheck{
+					Checks: clusterv1.ControlPlaneClassHealthCheckChecks{
+						UnhealthyExpressions: []clusterv1.UnhealthyExpression{
+							{Expression: "node.has_condition('Ready','True')"},
+						},
+					},
+				}).
+				Build(),
+		},
+		{
+			name: "create fail if ControlPlane MachineHealthCheck UnhealthyConditions has an invalid CEL expression",
+			in: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(
+					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "infra1").Build()).
+				WithControlPlaneTemplate(
+					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
+						Build()).
+				WithControlPlaneInfrastructureMachineTemplate(
+					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cp-infra1").
+						Build()).
+				WithControlPlaneMachineHealthCheck(clusterv1.ControlPlaneClassHealthCheck{
+					Checks: clusterv1.ControlPlaneClassHealthCheckChecks{
+						UnhealthyExpressions: []clusterv1.UnhealthyExpression{
+							{Expression: "node.has_condition("},
+						},
+					},
+				}).
+				Build(),
+			expectErr: true,
+		},
+		{
+			name: "create pass if MachineDeployment MachineHealthCheck UnhealthyConditions has a valid CEL expression",
+			in: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(
+					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "infra1").Build()).
+				WithControlPlaneTemplate(
+					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
+						Build()).
+				WithWorkerMachineDeploymentClasses(
+					*builder.MachineDeploymentClass("aa").
+						WithInfrastructureTemplate(
+							builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "infra1").Build()).
+						WithBootstrapTemplate(
+							builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap1").Build()).
+						WithMachineHealthCheckClass(clusterv1.MachineDeploymentClassHealthCheck{
+							Checks: clusterv1.MachineDeploymentClassHealthCheckChecks{
+								UnhealthyExpressions: []clusterv1.UnhealthyExpression{
+									{Expression: "node.has_condition('Ready','True')"},
+								},
+							},
+						}).
+						Build()).
+				Build(),
+		},
+		{
+			name: "create fail if MachineDeployment MachineHealthCheck UnhealthyConditions has an invalid CEL expression",
+			in: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(
+					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "infra1").Build()).
+				WithControlPlaneTemplate(
+					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
+						Build()).
+				WithWorkerMachineDeploymentClasses(
+					*builder.MachineDeploymentClass("aa").
+						WithInfrastructureTemplate(
+							builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "infra1").Build()).
+						WithBootstrapTemplate(
+							builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap1").Build()).
+						WithMachineHealthCheckClass(clusterv1.MachineDeploymentClassHealthCheck{
+							Checks: clusterv1.MachineDeploymentClassHealthCheckChecks{
+								UnhealthyExpressions: []clusterv1.UnhealthyExpression{
+									{Expression: "node.metadata.name == 'foo'"},
+								},
 							},
 						}).
 						Build()).
@@ -1878,11 +1968,11 @@ func TestClusterClassValidation(t *testing.T) {
 			variables.SetEnvSetVersion(version.MustParse("1.29"))
 
 			if tt.clusterClassInlineFeatureGateEnabled {
-				utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterClassInlineTemplates, true)
+				utilfeature.SetFeatureGateDuringTest(t, features.Gates, features.ClusterClassInlineTemplates, true)
 			}
 
 			// Create the webhook and add the fakeClient as its client.
-			webhook := &ClusterClass{Client: fakeClient}
+			webhook := &ClusterClass{Client: fakeClient, MHCProgramCache: cache.New[cel.ProgramEntry](ctx, 1*time.Hour)}
 			err := webhook.validate(ctx, tt.old, tt.in)
 			if tt.expectErr {
 				g.Expect(err).To(HaveOccurred())
@@ -1894,10 +1984,6 @@ func TestClusterClassValidation(t *testing.T) {
 }
 
 func TestClusterClassValidationWithClusterAwareChecks(t *testing.T) {
-	// NOTE: ClusterTopology feature flag is disabled by default, thus preventing to create or update ClusterClasses.
-	// Enabling the feature flag temporarily for this test.
-	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)
-
 	tests := []struct {
 		name            string
 		oldClusterClass *clusterv1.ClusterClass
@@ -2708,6 +2794,192 @@ func TestClusterClassValidationWithClusterAwareChecks(t *testing.T) {
 				Build(),
 			expectErr: true,
 		},
+		{
+			name: "pass if ClusterClass contains the kubernetes versions used by MachineDeployments and MachinePools",
+			clusters: []client.Object{
+				builder.Cluster(metav1.NamespaceDefault, "cluster1").
+					WithLabels(map[string]string{clusterv1.ClusterTopologyOwnedLabel: ""}).
+					WithTopology(
+						builder.ClusterTopology().
+							WithClass("class1").
+							WithVersion("v1.34.0").
+							WithMachineDeployment(
+								builder.MachineDeploymentTopology("workers1").
+									WithClass("aa").
+									WithVersion("v1.32.0").
+									Build()).
+							WithMachinePool(
+								builder.MachinePoolTopology("pool1").
+									WithClass("aa").
+									WithVersion("v1.31.0").
+									Build()).
+							Build()).
+					Build(),
+			},
+			oldClusterClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(
+					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "inf").Build()).
+				WithControlPlaneTemplate(
+					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").Build()).
+				WithWorkerMachineDeploymentClasses(
+					*builder.MachineDeploymentClass("aa").
+						WithInfrastructureTemplate(
+							builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "infra1").Build()).
+						WithBootstrapTemplate(
+							builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap1").Build()).
+						Build()).
+				WithWorkerMachinePoolClasses(
+					*builder.MachinePoolClass("aa").
+						WithInfrastructureTemplate(
+							builder.InfrastructureMachinePoolTemplate(metav1.NamespaceDefault, "infra1").Build()).
+						WithBootstrapTemplate(
+							builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap1").Build()).
+						Build()).
+				Build(),
+			newClusterClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(
+					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "inf").Build()).
+				WithControlPlaneTemplate(
+					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").Build()).
+				WithWorkerMachineDeploymentClasses(
+					*builder.MachineDeploymentClass("aa").
+						WithInfrastructureTemplate(
+							builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "infra1").Build()).
+						WithBootstrapTemplate(
+							builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap1").Build()).
+						Build()).
+				WithWorkerMachinePoolClasses(
+					*builder.MachinePoolClass("aa").
+						WithInfrastructureTemplate(
+							builder.InfrastructureMachinePoolTemplate(metav1.NamespaceDefault, "infra1").Build()).
+						WithBootstrapTemplate(
+							builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap1").Build()).
+						Build()).
+				WithVersions("v1.31.0", "v1.32.0", "v1.33.0", "v1.34.0").
+				Build(),
+			expectErr: false,
+		},
+		{
+			// Removing a version a MachineDeployment/MachinePool still uses must be rejected here, otherwise every later update to that Cluster would be rejected by ValidateClusterForClusterClass.
+			name: "fail if ClusterClass does not contain the kubernetes version used by a MachineDeployment",
+			clusters: []client.Object{
+				builder.Cluster(metav1.NamespaceDefault, "cluster1").
+					WithLabels(map[string]string{clusterv1.ClusterTopologyOwnedLabel: ""}).
+					WithTopology(
+						builder.ClusterTopology().
+							WithClass("class1").
+							WithVersion("v1.34.0").
+							WithMachineDeployment(
+								builder.MachineDeploymentTopology("workers1").
+									WithClass("aa").
+									WithVersion("v1.32.0").
+									Build()).
+							Build()).
+					Build(),
+			},
+			oldClusterClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(
+					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "inf").Build()).
+				WithControlPlaneTemplate(
+					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").Build()).
+				WithWorkerMachineDeploymentClasses(
+					*builder.MachineDeploymentClass("aa").
+						WithInfrastructureTemplate(
+							builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "infra1").Build()).
+						WithBootstrapTemplate(
+							builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap1").Build()).
+						Build()).
+				WithWorkerMachinePoolClasses(
+					*builder.MachinePoolClass("aa").
+						WithInfrastructureTemplate(
+							builder.InfrastructureMachinePoolTemplate(metav1.NamespaceDefault, "infra1").Build()).
+						WithBootstrapTemplate(
+							builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap1").Build()).
+						Build()).
+				Build(),
+			newClusterClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(
+					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "inf").Build()).
+				WithControlPlaneTemplate(
+					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").Build()).
+				WithWorkerMachineDeploymentClasses(
+					*builder.MachineDeploymentClass("aa").
+						WithInfrastructureTemplate(
+							builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "infra1").Build()).
+						WithBootstrapTemplate(
+							builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap1").Build()).
+						Build()).
+				WithWorkerMachinePoolClasses(
+					*builder.MachinePoolClass("aa").
+						WithInfrastructureTemplate(
+							builder.InfrastructureMachinePoolTemplate(metav1.NamespaceDefault, "infra1").Build()).
+						WithBootstrapTemplate(
+							builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap1").Build()).
+						Build()).
+				WithVersions("v1.33.0", "v1.34.0").
+				Build(),
+			expectErr: true,
+		},
+		{
+			name: "fail if ClusterClass does not contain the kubernetes version used by a MachinePool",
+			clusters: []client.Object{
+				builder.Cluster(metav1.NamespaceDefault, "cluster1").
+					WithLabels(map[string]string{clusterv1.ClusterTopologyOwnedLabel: ""}).
+					WithTopology(
+						builder.ClusterTopology().
+							WithClass("class1").
+							WithVersion("v1.34.0").
+							WithMachinePool(
+								builder.MachinePoolTopology("pool1").
+									WithClass("aa").
+									WithVersion("v1.31.0").
+									Build()).
+							Build()).
+					Build(),
+			},
+			oldClusterClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(
+					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "inf").Build()).
+				WithControlPlaneTemplate(
+					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").Build()).
+				WithWorkerMachineDeploymentClasses(
+					*builder.MachineDeploymentClass("aa").
+						WithInfrastructureTemplate(
+							builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "infra1").Build()).
+						WithBootstrapTemplate(
+							builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap1").Build()).
+						Build()).
+				WithWorkerMachinePoolClasses(
+					*builder.MachinePoolClass("aa").
+						WithInfrastructureTemplate(
+							builder.InfrastructureMachinePoolTemplate(metav1.NamespaceDefault, "infra1").Build()).
+						WithBootstrapTemplate(
+							builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap1").Build()).
+						Build()).
+				Build(),
+			newClusterClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(
+					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "inf").Build()).
+				WithControlPlaneTemplate(
+					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").Build()).
+				WithWorkerMachineDeploymentClasses(
+					*builder.MachineDeploymentClass("aa").
+						WithInfrastructureTemplate(
+							builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "infra1").Build()).
+						WithBootstrapTemplate(
+							builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap1").Build()).
+						Build()).
+				WithWorkerMachinePoolClasses(
+					*builder.MachinePoolClass("aa").
+						WithInfrastructureTemplate(
+							builder.InfrastructureMachinePoolTemplate(metav1.NamespaceDefault, "infra1").Build()).
+						WithBootstrapTemplate(
+							builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap1").Build()).
+						Build()).
+				WithVersions("v1.32.0", "v1.33.0", "v1.34.0").
+				Build(),
+			expectErr: true,
+		},
 	}
 
 	for _, tt := range tests {
@@ -2734,10 +3006,6 @@ func TestClusterClassValidationWithClusterAwareChecks(t *testing.T) {
 }
 
 func TestGetClustersUsingClusterClass(t *testing.T) {
-	// NOTE: ClusterTopology feature flag is disabled by default, thus preventing to create or update ClusterClasses.
-	// Enabling the feature flag temporarily for this test.
-	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)
-
 	topology := builder.ClusterTopology().WithClass("class1")
 
 	tests := []struct {

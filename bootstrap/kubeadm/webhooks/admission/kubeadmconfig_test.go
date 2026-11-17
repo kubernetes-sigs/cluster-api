@@ -26,7 +26,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
-	"sigs.k8s.io/cluster-api/feature"
+	"sigs.k8s.io/cluster-api/pkg/features"
 )
 
 var ctx = ctrl.SetupSignalHandler()
@@ -590,7 +590,7 @@ func TestKubeadmConfigValidate(t *testing.T) {
 			if tt.enableIgnitionFeature {
 				// NOTE: KubeadmBootstrapFormatIgnition feature flag is disabled by default.
 				// Enabling the feature flag temporarily for this test.
-				utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.KubeadmBootstrapFormatIgnition, true)
+				utilfeature.SetFeatureGateDuringTest(t, features.Gates, features.KubeadmBootstrapFormatIgnition, true)
 			}
 			g := NewWithT(t)
 

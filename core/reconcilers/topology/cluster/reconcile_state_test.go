@@ -37,7 +37,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	utilfeature "k8s.io/component-base/featuregate/testing"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -56,15 +55,14 @@ import (
 	"sigs.k8s.io/cluster-api/core/webhooks/conversion"
 	"sigs.k8s.io/cluster-api/exp/topology/desiredstate"
 	"sigs.k8s.io/cluster-api/exp/topology/scope"
-	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/contract"
-	"sigs.k8s.io/cluster-api/internal/hooks"
-	fakeruntimeclient "sigs.k8s.io/cluster-api/internal/runtime/client/fake"
 	"sigs.k8s.io/cluster-api/internal/topology/clustershim"
 	topologynames "sigs.k8s.io/cluster-api/internal/topology/names"
 	"sigs.k8s.io/cluster-api/internal/topology/ownerrefs"
 	"sigs.k8s.io/cluster-api/internal/topology/selectors"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
+	fakeruntimeclient "sigs.k8s.io/cluster-api/pkg/runtimesdk/client/fake"
+	"sigs.k8s.io/cluster-api/pkg/runtimesdk/hooks"
 	"sigs.k8s.io/cluster-api/util/cache"
 	capicontrollerutil "sigs.k8s.io/cluster-api/util/controller"
 	conversionutil "sigs.k8s.io/cluster-api/util/conversion"
@@ -143,7 +141,7 @@ func TestReconcileShim(t *testing.T) {
 		}
 
 		// Pre-create a shim
-		g.Expect(env.CreateAndWait(ctx, cluster1Shim.DeepCopy())).ToNot(HaveOccurred())
+		g.Expect(env.CreateAndWait(ctx, cluster1Shim.DeepCopy())).To(Succeed())
 
 		// Run reconcileClusterShim.
 		r := Reconciler{
@@ -192,7 +190,7 @@ func TestReconcileShim(t *testing.T) {
 		s.Current.ControlPlane.Object.SetOwnerReferences(ownerRefs)
 
 		// Pre-create a shim
-		g.Expect(env.CreateAndWait(ctx, cluster1Shim.DeepCopy())).ToNot(HaveOccurred())
+		g.Expect(env.CreateAndWait(ctx, cluster1Shim.DeepCopy())).To(Succeed())
 
 		// Run reconcileClusterShim.
 		r := Reconciler{
@@ -242,7 +240,7 @@ func TestReconcileShim(t *testing.T) {
 		s.Current.ControlPlane.Object.SetOwnerReferences(ownerRefs)
 
 		// Pre-create a shim
-		g.Expect(env.CreateAndWait(ctx, cluster1Shim.DeepCopy())).ToNot(HaveOccurred())
+		g.Expect(env.CreateAndWait(ctx, cluster1Shim.DeepCopy())).To(Succeed())
 
 		// Run reconcileClusterShim.
 		r := Reconciler{
@@ -1363,8 +1361,6 @@ func TestReconcile_callAfterClusterUpgrade(t *testing.T) {
 }
 
 func TestReconcileCluster(t *testing.T) {
-	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)
-
 	cluster1 := builder.Cluster(metav1.NamespaceDefault, "cluster1").
 		WithTopology(&clusterv1.Topology{
 			ClassRef: clusterv1.ClusterClassRef{
@@ -1620,8 +1616,6 @@ func TestReconcileInfrastructureCluster(t *testing.T) {
 }
 
 func TestReconcileControlPlane(t *testing.T) {
-	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)
-
 	testReconcileControlPlane(t, "v1beta1")
 	testReconcileControlPlane(t, "v1beta2")
 }
@@ -1998,7 +1992,7 @@ func testReconcileControlPlane(t *testing.T, controlPlaneContractVersion string)
 				// This check is only performed when we had an initial template that has been changed
 				if gotRotation {
 					pattern := fmt.Sprintf("%s.*", topologynames.ControlPlaneInfrastructureMachineTemplateNamePrefix(s.Current.Cluster.Name))
-					ok, err := regexp.Match(pattern, []byte(gotInfrastructureMachineRef.Name))
+					ok, err := regexp.MatchString(pattern, gotInfrastructureMachineRef.Name)
 					g.Expect(err).ToNot(HaveOccurred())
 					g.Expect(ok).To(BeTrue())
 				}
@@ -2044,7 +2038,7 @@ func testReconcileControlPlane(t *testing.T, controlPlaneContractVersion string)
 
 			// Check PendingHookAnnotation
 			gotCluster := &clusterv1.Cluster{}
-			g.Expect(env.Get(ctx, client.ObjectKeyFromObject(cluster), gotCluster)).To(Succeed())
+			g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(cluster), gotCluster)).To(Succeed())
 			if tt.wantPendingHookAnnotation != "" {
 				g.Expect(gotCluster.Annotations).To(HaveKeyWithValue(runtimev1.PendingHooksAnnotation, tt.wantPendingHookAnnotation), "Unexpected PendingHookAnnotation")
 			} else {
@@ -3835,8 +3829,6 @@ func TestReconcileMachineDeploymentMachineHealthCheck(t *testing.T) {
 }
 
 func TestReconcileState(t *testing.T) {
-	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)
-
 	ict := builder.TestInfrastructureClusterTemplate(metav1.NamespaceDefault, "infra1").Build()
 	cpt := builder.TestControlPlaneTemplate(metav1.NamespaceDefault, "cp1").Build()
 	clusterClass := builder.ClusterClass(metav1.NamespaceDefault, "class1").
@@ -4419,7 +4411,7 @@ func Test_createErrorWithoutObjectName(t *testing.T) {
 			},
 		},
 	}
-	NoCausesDetailsError := &apierrors.StatusError{
+	noCausesDetailsError := &apierrors.StatusError{
 		ErrStatus: metav1.Status{
 			Status:  metav1.StatusFailure,
 			Code:    http.StatusUnprocessableEntity,
@@ -4489,7 +4481,7 @@ func Test_createErrorWithoutObjectName(t *testing.T) {
 		},
 		{
 			name:     "Remove name from status error with details but no causes",
-			input:    NoCausesDetailsError,
+			input:    noCausesDetailsError,
 			expected: expectedNoCausesDetailsError,
 			obj:      builder.TestControlPlane("default", "cp1").Build(),
 		},

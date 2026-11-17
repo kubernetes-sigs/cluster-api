@@ -36,9 +36,8 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
 	"sigs.k8s.io/cluster-api/core/reconcilers/topology/cluster/patches/api"
-	patchvariables "sigs.k8s.io/cluster-api/core/reconcilers/topology/cluster/patches/variables"
-	"sigs.k8s.io/cluster-api/exp/runtime/topologymutation"
 	"sigs.k8s.io/cluster-api/internal/contract"
+	"sigs.k8s.io/cluster-api/pkg/runtimesdk/server/topologymutation"
 )
 
 // jsonPatchGenerator generates JSON patches for a GeneratePatchesRequest based on a ClusterClassPatch.
@@ -171,7 +170,7 @@ func matchesSelector(req *runtimehooksv1.GeneratePatchesRequestItem, templateVar
 			(req.HolderReference.FieldPath == "spec.template.spec.bootstrap.configRef" ||
 				req.HolderReference.FieldPath == "spec.template.spec.infrastructureRef") {
 			// Read the builtin.machineDeployment.class variable.
-			templateMDClassJSON, err := patchvariables.GetVariableValue(templateVariables, "builtin.machineDeployment.class")
+			templateMDClassJSON, err := topologymutation.GetVariableValue(templateVariables, "builtin.machineDeployment.class")
 
 			// If the builtin variable could be read.
 			if err == nil {
@@ -200,7 +199,7 @@ func matchesSelector(req *runtimehooksv1.GeneratePatchesRequestItem, templateVar
 			(req.HolderReference.FieldPath == "spec.template.spec.bootstrap.configRef" ||
 				req.HolderReference.FieldPath == "spec.template.spec.infrastructureRef") {
 			// Read the builtin.machinePool.class variable.
-			templateMPClassJSON, err := patchvariables.GetVariableValue(templateVariables, "builtin.machinePool.class")
+			templateMPClassJSON, err := topologymutation.GetVariableValue(templateVariables, "builtin.machinePool.class")
 
 			// If the builtin variable could be read.
 			if err == nil {
@@ -301,7 +300,7 @@ func calculateValue(patch clusterv1.JSONPatch, variables map[string]apiextension
 
 	// Return variable.
 	if patch.ValueFrom.Variable != "" {
-		value, err := patchvariables.GetVariableValue(variables, patch.ValueFrom.Variable)
+		value, err := topologymutation.GetVariableValue(variables, patch.ValueFrom.Variable)
 		if err != nil {
 			return nil, pkgerrors.Wrapf(err, "failed to calculate value")
 		}

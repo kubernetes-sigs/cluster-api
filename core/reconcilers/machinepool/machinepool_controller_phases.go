@@ -18,6 +18,7 @@ package machinepool
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math"
 	"reflect"
@@ -494,7 +495,7 @@ func (r *Reconciler) reconcileMachines(ctx context.Context, s *scope, infraMachi
 	err = meta.EachListItem(objList, func(obj runtime.Object) error {
 		infraMachineObj, ok := obj.(contractapi.InfraMachine)
 		if !ok {
-			return fmt.Errorf("unexpected object in list")
+			return errors.New("unexpected object in list")
 		}
 		infraMachineList = append(infraMachineList, infraMachineObj)
 		return nil
@@ -660,6 +661,8 @@ func (r *Reconciler) computeDesiredMachine(mp *clusterv1.MachinePool, infraMachi
 			},
 			InfrastructureRef: infraRef,
 			Version:           kubernetesVersion,
+			// The MachinePool template is the source of truth for deletion timeouts, so propagate them to the Machine.
+			Deletion: *mp.Spec.Template.Spec.Deletion.DeepCopy(),
 		},
 	}
 

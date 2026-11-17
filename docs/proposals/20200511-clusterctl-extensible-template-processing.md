@@ -1,23 +1,19 @@
 ---
 title: Extensible Templating Processing for clusterctl
 authors:
-* "@wfernandes"
+  - "@wfernandes"
 reviewers:
-* "@timothysc"
-* "@ncdc"
-* "@fabriziopandini"
-* "@vincepri"
-
-
+  - "@timothysc"
+  - "@ncdc"
+  - "@fabriziopandini"
+  - "@vincepri"
 creation-date: 2020-04-27
-last-updated:  2020-05-27
+last-updated: 2020-05-27
 status: implementable
 see-also:
-* https://github.com/kubernetes-sigs/cluster-api/issues/2339
+  - "https://github.com/kubernetes-sigs/cluster-api/issues/2339"
 replaces:
-* N/A
 superseded-by:
-* N/A
 ---
 
 
@@ -52,7 +48,7 @@ superseded-by:
 
 ## Glossary
 
-Refer to the [Cluster API Book Glossary](https://cluster-api.sigs.k8s.io/reference/glossary.html).
+Refer to the [Cluster API Book Glossary](../book/src/reference/glossary.md).
 
 SimpleYamlProcessor - This is the processor that will handle the existing
 variable substitution method of templating. This will be the default mode of

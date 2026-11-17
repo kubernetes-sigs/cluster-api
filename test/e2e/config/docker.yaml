@@ -21,11 +21,11 @@ images:
   loadBehavior: tryLoad
 - name: gcr.io/k8s-staging-cluster-api/test-extension-{ARCH}:dev
   loadBehavior: tryLoad
-- name: quay.io/jetstack/cert-manager-cainjector:v1.21.2
+- name: quay.io/jetstack/cert-manager-cainjector:v1.21.3
   loadBehavior: tryLoad
-- name: quay.io/jetstack/cert-manager-webhook:v1.21.2
+- name: quay.io/jetstack/cert-manager-webhook:v1.21.3
   loadBehavior: tryLoad
-- name: quay.io/jetstack/cert-manager-controller:v1.21.2
+- name: quay.io/jetstack/cert-manager-controller:v1.21.3
   loadBehavior: tryLoad
 
 providers:
@@ -63,7 +63,7 @@ providers:
   - name: v1.15.99 # next; use manifest from source files
     value: ../../../core/config/default
     files:
-    - sourcePath: "../data/shared/main/metadata.yaml"
+    - sourcePath: "../../../metadata.yaml"
 
 - name: kubeadm
   type: BootstrapProvider
@@ -98,7 +98,7 @@ providers:
   - name: v1.15.99 # next; use manifest from source files
     value: ../../../bootstrap/kubeadm/config/default
     files:
-    - sourcePath: "../data/shared/main/metadata.yaml"
+    - sourcePath: "../../../metadata.yaml"
 
 - name: kubeadm
   type: ControlPlaneProvider
@@ -133,7 +133,7 @@ providers:
   - name: v1.15.99 # next; use manifest from source files
     value: ../../../controlplane/kubeadm/config/default
     files:
-    - sourcePath: "../data/shared/main/metadata.yaml"
+    - sourcePath: "../../../metadata.yaml"
 
 - name: docker
   type: InfrastructureProvider
@@ -205,7 +205,7 @@ providers:
     - sourcePath: "../data/infrastructure-docker/main/clusterclass-quick-start-kcp-only.yaml"
     - sourcePath: "../data/infrastructure-docker/main/clusterclass-quick-start-runtimesdk.yaml"
     - sourcePath: "../data/infrastructure-docker/main/clusterclass-quick-start-runtimesdk-v1beta1.yaml"
-    - sourcePath: "../data/shared/main/metadata.yaml"
+    - sourcePath: "../../../metadata.yaml"
 
 - name: test-extension
   type: RuntimeExtensionProvider
@@ -213,21 +213,21 @@ providers:
     - name: v1.15.99 # next; use manifest from source files
       value: ../../../test/extension/config/default
       files:
-      - sourcePath: "../data/shared/main/metadata.yaml"
+      - sourcePath: "../../../metadata.yaml"
 
 variables:
   # Default variables for the e2e test; those values could be overridden via env variables, thus
   # allowing the same e2e config file to be re-used in different Prow jobs e.g. each one with a K8s version permutation.
   # The following Kubernetes versions should be the latest versions with already published kindest/node images.
   # This avoids building node images in the default case which improves the test duration significantly.
-  KUBERNETES_VERSION_MANAGEMENT: "v1.37.0"
-  KUBERNETES_VERSION: "v1.37.0"
-  KUBERNETES_VERSION_CHAINED_UPGRADE_FROM: "v1.33.12" # Should always be KUBERNETES_VERSION_UPGRADE_TO - 4 minor
-  KUBERNETES_VERSION_UPGRADE_FROM: "v1.36.4"
-  KUBERNETES_VERSION_UPGRADE_TO: "v1.37.0"
+  KUBERNETES_VERSION_MANAGEMENT: "v1.38.0-beta.0"
+  KUBERNETES_VERSION: "v1.38.0-beta.0"
+  KUBERNETES_VERSION_CHAINED_UPGRADE_FROM: "v1.34.11" # Should always be KUBERNETES_VERSION_UPGRADE_TO - 4 minor
+  KUBERNETES_VERSION_UPGRADE_FROM: "v1.37.0"
+  KUBERNETES_VERSION_UPGRADE_TO: "v1.38.0-beta.0"
   KUBERNETES_VERSION_LATEST_CI: "ci/latest-1.38"
-  ETCD_VERSION_UPGRADE_TO: "3.7.0-0"
-  COREDNS_VERSION_UPGRADE_TO: "v1.14.6"
+  ETCD_VERSION_UPGRADE_TO: "3.7.1-0"
+  COREDNS_VERSION_UPGRADE_TO: "v1.15.0"
   DOCKER_SERVICE_DOMAIN: "cluster.local"
   IP_FAMILY: "dual"
   DOCKER_SERVICE_CIDRS: "10.128.0.0/12"

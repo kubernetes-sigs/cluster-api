@@ -18,6 +18,7 @@ package docker
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	pkgerrors "github.com/pkg/errors"
@@ -98,7 +99,7 @@ func getLoadBalancerImage(imageRepository, imageTag string) string {
 	return fmt.Sprintf("%s/%s:%s", imageRepository, image, imageTag)
 }
 
-// ContainerName is the name of the docker container with the load balancer.
+// containerName is the name of the docker container with the load balancer.
 func (s *LoadBalancer) containerName() string {
 	return fmt.Sprintf("%s-lb", s.name)
 }
@@ -200,7 +201,7 @@ func (s *LoadBalancer) UpdateConfiguration(ctx context.Context, weights map[stri
 		return pkgerrors.WithStack(err)
 	}
 	if string(readLoadBalancerConfig) != loadBalancerConfig {
-		return fmt.Errorf("read load balancer configuration does not match written file")
+		return errors.New("read load balancer configuration does not match written file")
 	}
 
 	return pkgerrors.WithStack(s.container.Kill(ctx, "SIGHUP"))

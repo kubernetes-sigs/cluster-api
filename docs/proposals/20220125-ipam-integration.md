@@ -62,7 +62,7 @@ status: provisional
 
 ## Glossary
 
-Refer to the [Cluster API Book Glossary](https://cluster-api.sigs.k8s.io/reference/glossary.html).
+Refer to the [Cluster API Book Glossary](../book/src/reference/glossary.md).
 
 ### IPAM Provider
 
@@ -264,7 +264,7 @@ spec:
 
 #### New API Types
 
-The following API Types should be added to cluster-api. In the first iteration they will be added to the experimental API and will therefore live in the `cluster.x-k8s.io` group.
+The following API Types should be added to cluster API in the `cluster.x-k8s.io` group.
 
 ##### IPAddressClaim
 

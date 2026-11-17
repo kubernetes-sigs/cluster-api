@@ -31,6 +31,7 @@ import (
 
 const (
 	// Supported cloud config modules.
+
 	writefiles = "write_files"
 	runcmd     = "runcmd"
 )

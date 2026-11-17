@@ -2,8 +2,6 @@
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
-  annotations:
-    controller-gen.kubebuilder.io/version: v0.22.0
   name: machinedeployments.cluster.x-k8s.io
 spec:
   group: cluster.x-k8s.io
@@ -471,7 +469,7 @@ spec:
                       nodeDeletionTimeout:
                         description: |-
                           nodeDeletionTimeout defines how long the controller will attempt to delete the Node that the Machine
-                          hosts after the Machine is marked for deletion. A duration of 0 will retry deletion indefinitely.
+                          hosts, measured from when the deletion of the Node started. A duration of 0 will retry deletion indefinitely.
                           Defaults to 10 seconds.
                         type: string
                       nodeDrainTimeout:
@@ -984,7 +982,11 @@ spec:
                     type: string
                 type: object
               paused:
-                description: paused indicates that the deployment is paused.
+                description: |-
+                  paused when set to true indicates that the MachineDeployment should halt
+                  rolling out changes to its Machines.
+
+                  When only the rollout is paused, other changes such as scaling up, down or remediation are still allowed.
                 type: boolean
               remediation:
                 description: remediation controls how unhealthy Machines are remediated.
@@ -1109,6 +1111,11 @@ spec:
                     required:
                     - type
                     type: object
+                    x-kubernetes-validations:
+                    - message: rollingUpdate can only be set if type is RollingUpdate
+                      optionalOldSelf: true
+                      rule: (oldSelf.hasValue() && self == oldSelf.value()) || !has(self.rollingUpdate)
+                        || self.type == 'RollingUpdate'
                 type: object
               selector:
                 description: |-
@@ -1257,7 +1264,7 @@ spec:
                           nodeDeletionTimeoutSeconds:
                             description: |-
                               nodeDeletionTimeoutSeconds defines how long the controller will attempt to delete the Node that the Machine
-                              hosts after the Machine is marked for deletion. A duration of 0 will retry deletion indefinitely.
+                              hosts, measured from when the deletion of the Node started. A duration of 0 will retry deletion indefinitely.
                               Defaults to 10 seconds.
                             format: int32
                             minimum: 0

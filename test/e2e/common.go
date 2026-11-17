@@ -24,6 +24,7 @@ import (
 	"github.com/blang/semver/v4"
 	. "github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega/types"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 
@@ -95,7 +96,7 @@ func initScheme() *runtime.Scheme {
 	return sc
 }
 
-func dumpKindClusterLogs(ctx context.Context, artifactFolder string, clusterProxy framework.ClusterProxy) {
+func dumpKindClusterLogsAndPods(ctx context.Context, artifactFolder string, clusterProxy framework.ClusterProxy) {
 	if clusterProxy == nil {
 		return
 	}
@@ -130,4 +131,16 @@ func dumpKindClusterLogs(ctx context.Context, artifactFolder string, clusterProx
 			fmt.Printf("Failed to get logs for the cluster node %s: %v\n", nodeName, err)
 		}
 	}
+
+	// Dump all Pods across all namespaces so that provider pods that failed
+	// to start (e.g. during clusterctl init) are captured in the artifacts.
+	framework.DumpResourcesForCluster(ctx, framework.DumpResourcesForClusterInput{
+		Lister:  clusterProxy.GetClient(),
+		LogPath: filepath.Join(artifactFolder, "clusters", clusterProxy.GetName(), "resources"),
+		Resources: []framework.DumpNamespaceAndGVK{
+			{
+				GVK: corev1.SchemeGroupVersion.WithKind("Pod"),
+			},
+		},
+	})
 }

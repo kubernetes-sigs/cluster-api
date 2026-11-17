@@ -181,6 +181,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.StatusUpgradePlanVersion":                                 schema_cluster_api_api_core_v1beta2_StatusUpgradePlanVersion(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.StatusVersion":                                            schema_cluster_api_api_core_v1beta2_StatusVersion(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.Topology":                                                 schema_cluster_api_api_core_v1beta2_Topology(ref),
+		"sigs.k8s.io/cluster-api/api/core/v1beta2.UnhealthyExpression":                                      schema_cluster_api_api_core_v1beta2_UnhealthyExpression(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.UnhealthyMachineCondition":                                schema_cluster_api_api_core_v1beta2_UnhealthyMachineCondition(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.UnhealthyNodeCondition":                                   schema_cluster_api_api_core_v1beta2_UnhealthyNodeCondition(ref),
 		"sigs.k8s.io/cluster-api/api/core/v1beta2.UpdateInProgressAnnotationData":                           schema_cluster_api_api_core_v1beta2_UpdateInProgressAnnotationData(ref),
@@ -1813,11 +1814,30 @@ func schema_cluster_api_api_core_v1beta2_ControlPlaneClassHealthCheckChecks(ref 
 							},
 						},
 					},
+					"unhealthyExpressions": {
+						VendorExtensible: spec.VendorExtensible{
+							Extensions: spec.Extensions{
+								"x-kubernetes-list-type": "atomic",
+							},
+						},
+						SchemaProps: spec.SchemaProps{
+							Description: "unhealthyExpressions contains a list of CEL expressions that determine whether a Machine is considered unhealthy. The expressions are combined in a logical OR, i.e. if any of the expressions evaluates to true, the machine is unhealthy.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: map[string]interface{}{},
+										Ref:     ref("sigs.k8s.io/cluster-api/api/core/v1beta2.UnhealthyExpression"),
+									},
+								},
+							},
+						},
+					},
 				},
 			},
 		},
 		Dependencies: []string{
-			"sigs.k8s.io/cluster-api/api/core/v1beta2.UnhealthyMachineCondition", "sigs.k8s.io/cluster-api/api/core/v1beta2.UnhealthyNodeCondition"},
+			"sigs.k8s.io/cluster-api/api/core/v1beta2.UnhealthyExpression", "sigs.k8s.io/cluster-api/api/core/v1beta2.UnhealthyMachineCondition", "sigs.k8s.io/cluster-api/api/core/v1beta2.UnhealthyNodeCondition"},
 	}
 }
 
@@ -1901,7 +1921,7 @@ func schema_cluster_api_api_core_v1beta2_ControlPlaneClassMachineDeletionSpec(re
 					},
 					"nodeDeletionTimeoutSeconds": {
 						SchemaProps: spec.SchemaProps{
-							Description: "nodeDeletionTimeoutSeconds defines how long the controller will attempt to delete the Node that the Machine hosts after the Machine is marked for deletion. A duration of 0 will retry deletion indefinitely. Defaults to 10 seconds. NOTE: This value can be overridden while defining a Cluster.Topology.",
+							Description: "nodeDeletionTimeoutSeconds defines how long the controller will attempt to delete the Node that the Machine hosts, measured from when the deletion of the Node started. A duration of 0 will retry deletion indefinitely. Defaults to 10 seconds. NOTE: This value can be overridden while defining a Cluster.Topology.",
 							Type:        []string{"integer"},
 							Format:      "int32",
 						},
@@ -2151,11 +2171,30 @@ func schema_cluster_api_api_core_v1beta2_ControlPlaneTopologyHealthCheckChecks(r
 							},
 						},
 					},
+					"unhealthyExpressions": {
+						VendorExtensible: spec.VendorExtensible{
+							Extensions: spec.Extensions{
+								"x-kubernetes-list-type": "atomic",
+							},
+						},
+						SchemaProps: spec.SchemaProps{
+							Description: "unhealthyExpressions contains a list of CEL expressions that determine whether a Machine is considered unhealthy. The expressions are combined in a logical OR, i.e. if any of the expressions evaluates to true, the machine is unhealthy.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: map[string]interface{}{},
+										Ref:     ref("sigs.k8s.io/cluster-api/api/core/v1beta2.UnhealthyExpression"),
+									},
+								},
+							},
+						},
+					},
 				},
 			},
 		},
 		Dependencies: []string{
-			"sigs.k8s.io/cluster-api/api/core/v1beta2.UnhealthyMachineCondition", "sigs.k8s.io/cluster-api/api/core/v1beta2.UnhealthyNodeCondition"},
+			"sigs.k8s.io/cluster-api/api/core/v1beta2.UnhealthyExpression", "sigs.k8s.io/cluster-api/api/core/v1beta2.UnhealthyMachineCondition", "sigs.k8s.io/cluster-api/api/core/v1beta2.UnhealthyNodeCondition"},
 	}
 }
 
@@ -2239,7 +2278,7 @@ func schema_cluster_api_api_core_v1beta2_ControlPlaneTopologyMachineDeletionSpec
 					},
 					"nodeDeletionTimeoutSeconds": {
 						SchemaProps: spec.SchemaProps{
-							Description: "nodeDeletionTimeoutSeconds defines how long the controller will attempt to delete the Node that the Machine hosts after the Machine is marked for deletion. A duration of 0 will retry deletion indefinitely. Defaults to 10 seconds.",
+							Description: "nodeDeletionTimeoutSeconds defines how long the controller will attempt to delete the Node that the Machine hosts, measured from when the deletion of the Node started. A duration of 0 will retry deletion indefinitely. Defaults to 10 seconds.",
 							Type:        []string{"integer"},
 							Format:      "int32",
 						},
@@ -2917,7 +2956,7 @@ func schema_cluster_api_api_core_v1beta2_MachineDeletionSpec(ref common.Referenc
 					},
 					"nodeDeletionTimeoutSeconds": {
 						SchemaProps: spec.SchemaProps{
-							Description: "nodeDeletionTimeoutSeconds defines how long the controller will attempt to delete the Node that the Machine hosts after the Machine is marked for deletion. A duration of 0 will retry deletion indefinitely. Defaults to 10 seconds.",
+							Description: "nodeDeletionTimeoutSeconds defines how long the controller will attempt to delete the Node that the Machine hosts, measured from when the deletion of the Node started. A duration of 0 will retry deletion indefinitely. Defaults to 10 seconds.",
 							Type:        []string{"integer"},
 							Format:      "int32",
 						},
@@ -2956,6 +2995,12 @@ func schema_cluster_api_api_core_v1beta2_MachineDeletionStatus(ref common.Refere
 					"waitForPreTerminateHookStartTime": {
 						SchemaProps: spec.SchemaProps{
 							Description: "waitForPreTerminateHookStartTime is the time when waiting for pre-terminate hooks started and is used to determine if the pre-terminate hooks are taking too long. Only present when the Machine has a deletionTimestamp and waiting for pre-terminate hooks had been started.",
+							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Time"),
+						},
+					},
+					"nodeDeletionStartTime": {
+						SchemaProps: spec.SchemaProps{
+							Description: "nodeDeletionStartTime is the time when the deletion of the Node started and is used to determine if the nodeDeletionTimeoutSeconds is exceeded. Only present when the Machine has a deletionTimestamp and deleting the Node had been started.",
 							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Time"),
 						},
 					},
@@ -3259,11 +3304,30 @@ func schema_cluster_api_api_core_v1beta2_MachineDeploymentClassHealthCheckChecks
 							},
 						},
 					},
+					"unhealthyExpressions": {
+						VendorExtensible: spec.VendorExtensible{
+							Extensions: spec.Extensions{
+								"x-kubernetes-list-type": "atomic",
+							},
+						},
+						SchemaProps: spec.SchemaProps{
+							Description: "unhealthyExpressions contains a list of CEL expressions that determine whether a Machine is considered unhealthy. The expressions are combined in a logical OR, i.e. if any of the expressions evaluates to true, the machine is unhealthy.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: map[string]interface{}{},
+										Ref:     ref("sigs.k8s.io/cluster-api/api/core/v1beta2.UnhealthyExpression"),
+									},
+								},
+							},
+						},
+					},
 				},
 			},
 		},
 		Dependencies: []string{
-			"sigs.k8s.io/cluster-api/api/core/v1beta2.UnhealthyMachineCondition", "sigs.k8s.io/cluster-api/api/core/v1beta2.UnhealthyNodeCondition"},
+			"sigs.k8s.io/cluster-api/api/core/v1beta2.UnhealthyExpression", "sigs.k8s.io/cluster-api/api/core/v1beta2.UnhealthyMachineCondition", "sigs.k8s.io/cluster-api/api/core/v1beta2.UnhealthyNodeCondition"},
 	}
 }
 
@@ -3389,7 +3453,7 @@ func schema_cluster_api_api_core_v1beta2_MachineDeploymentClassMachineDeletionSp
 					},
 					"nodeDeletionTimeoutSeconds": {
 						SchemaProps: spec.SchemaProps{
-							Description: "nodeDeletionTimeoutSeconds defines how long the controller will attempt to delete the Node that the Machine hosts after the Machine is marked for deletion. A duration of 0 will retry deletion indefinitely. Defaults to 10 seconds. NOTE: This value can be overridden while defining a Cluster.Topology using this MachineDeploymentClass.",
+							Description: "nodeDeletionTimeoutSeconds defines how long the controller will attempt to delete the Node that the Machine hosts, measured from when the deletion of the Node started. A duration of 0 will retry deletion indefinitely. Defaults to 10 seconds. NOTE: This value can be overridden while defining a Cluster.Topology using this MachineDeploymentClass.",
 							Type:        []string{"integer"},
 							Format:      "int32",
 						},
@@ -3762,7 +3826,7 @@ func schema_cluster_api_api_core_v1beta2_MachineDeploymentSpec(ref common.Refere
 					},
 					"paused": {
 						SchemaProps: spec.SchemaProps{
-							Description: "paused indicates that the deployment is paused.",
+							Description: "paused when set to true indicates that the MachineDeployment should halt rolling out changes to its Machines.\n\nWhen only the rollout is paused, other changes such as scaling up, down or remediation are still allowed.",
 							Type:        []string{"boolean"},
 							Format:      "",
 						},
@@ -3914,6 +3978,13 @@ func schema_cluster_api_api_core_v1beta2_MachineDeploymentTopology(ref common.Re
 					"name": {
 						SchemaProps: spec.SchemaProps{
 							Description: "name is the unique identifier for this MachineDeploymentTopology. The value is used with other unique identifiers to create a MachineDeployment's Name (e.g. cluster's name, etc). In case the name is greater than the allowed maximum length, the values are hashed together.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"version": {
+						SchemaProps: spec.SchemaProps{
+							Description: "version is the optional Kubernetes version for this MachineDeployment. When set, it overrides Cluster.spec.topology.version for this MachineDeployment only, enabling manual version management and upgrade scheduling.\n\nIt cannot be greater than Cluster.spec.topology.version and it cannot be decreased. Skew between this version and the control plane version is enforced according to the Kubernetes version skew policy.\n\nIf unset, the MachineDeployment uses Cluster.spec.topology.version and is upgraded together with the Cluster whenever Cluster.spec.topology.version changes. Once set, the MachineDeployment is upgraded only by changing this field, and the field can be unset only if this version is equal to Cluster.spec.topology.version.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -4109,11 +4180,30 @@ func schema_cluster_api_api_core_v1beta2_MachineDeploymentTopologyHealthCheckChe
 							},
 						},
 					},
+					"unhealthyExpressions": {
+						VendorExtensible: spec.VendorExtensible{
+							Extensions: spec.Extensions{
+								"x-kubernetes-list-type": "atomic",
+							},
+						},
+						SchemaProps: spec.SchemaProps{
+							Description: "unhealthyExpressions contains a list of CEL expressions that determine whether a Machine is considered unhealthy. The expressions are combined in a logical OR, i.e. if any of the expressions evaluates to true, the machine is unhealthy.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: map[string]interface{}{},
+										Ref:     ref("sigs.k8s.io/cluster-api/api/core/v1beta2.UnhealthyExpression"),
+									},
+								},
+							},
+						},
+					},
 				},
 			},
 		},
 		Dependencies: []string{
-			"sigs.k8s.io/cluster-api/api/core/v1beta2.UnhealthyMachineCondition", "sigs.k8s.io/cluster-api/api/core/v1beta2.UnhealthyNodeCondition"},
+			"sigs.k8s.io/cluster-api/api/core/v1beta2.UnhealthyExpression", "sigs.k8s.io/cluster-api/api/core/v1beta2.UnhealthyMachineCondition", "sigs.k8s.io/cluster-api/api/core/v1beta2.UnhealthyNodeCondition"},
 	}
 }
 
@@ -4210,7 +4300,7 @@ func schema_cluster_api_api_core_v1beta2_MachineDeploymentTopologyMachineDeletio
 					},
 					"nodeDeletionTimeoutSeconds": {
 						SchemaProps: spec.SchemaProps{
-							Description: "nodeDeletionTimeoutSeconds defines how long the controller will attempt to delete the Node that the Machine hosts after the Machine is marked for deletion. A duration of 0 will retry deletion indefinitely. Defaults to 10 seconds.",
+							Description: "nodeDeletionTimeoutSeconds defines how long the controller will attempt to delete the Node that the Machine hosts, measured from when the deletion of the Node started. A duration of 0 will retry deletion indefinitely. Defaults to 10 seconds.",
 							Type:        []string{"integer"},
 							Format:      "int32",
 						},
@@ -4766,11 +4856,30 @@ func schema_cluster_api_api_core_v1beta2_MachineHealthCheckChecks(ref common.Ref
 							},
 						},
 					},
+					"unhealthyExpressions": {
+						VendorExtensible: spec.VendorExtensible{
+							Extensions: spec.Extensions{
+								"x-kubernetes-list-type": "atomic",
+							},
+						},
+						SchemaProps: spec.SchemaProps{
+							Description: "unhealthyExpressions contains a list of CEL expressions that determine whether a Machine is considered unhealthy. The expressions are combined in a logical OR, i.e. if any of the expressions evaluates to true, the machine is unhealthy.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: map[string]interface{}{},
+										Ref:     ref("sigs.k8s.io/cluster-api/api/core/v1beta2.UnhealthyExpression"),
+									},
+								},
+							},
+						},
+					},
 				},
 			},
 		},
 		Dependencies: []string{
-			"sigs.k8s.io/cluster-api/api/core/v1beta2.UnhealthyMachineCondition", "sigs.k8s.io/cluster-api/api/core/v1beta2.UnhealthyNodeCondition"},
+			"sigs.k8s.io/cluster-api/api/core/v1beta2.UnhealthyExpression", "sigs.k8s.io/cluster-api/api/core/v1beta2.UnhealthyMachineCondition", "sigs.k8s.io/cluster-api/api/core/v1beta2.UnhealthyNodeCondition"},
 	}
 }
 
@@ -5853,6 +5962,13 @@ func schema_cluster_api_api_core_v1beta2_MachinePoolTopology(ref common.Referenc
 					"name": {
 						SchemaProps: spec.SchemaProps{
 							Description: "name is the unique identifier for this MachinePoolTopology. The value is used with other unique identifiers to create a MachinePool's Name (e.g. cluster's name, etc). In case the name is greater than the allowed maximum length, the values are hashed together.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"version": {
+						SchemaProps: spec.SchemaProps{
+							Description: "version is the optional Kubernetes version for this MachinePool. When set, it overrides Cluster.spec.topology.version for this MachinePool only, enabling manual version management and upgrade scheduling.\n\nIt cannot be greater than Cluster.spec.topology.version and it cannot be decreased. Skew between this version and the control plane version is enforced according to the Kubernetes version skew policy.\n\nIf unset, the MachinePool uses Cluster.spec.topology.version and is upgraded together with the Cluster whenever Cluster.spec.topology.version changes. Once set, the MachinePool is upgraded only by changing this field, and the field can be unset only if this version is equal to Cluster.spec.topology.version.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -7228,6 +7344,34 @@ func schema_cluster_api_api_core_v1beta2_Topology(ref common.ReferenceCallback) 
 		},
 		Dependencies: []string{
 			"sigs.k8s.io/cluster-api/api/core/v1beta2.ClusterClassRef", "sigs.k8s.io/cluster-api/api/core/v1beta2.ClusterVariable", "sigs.k8s.io/cluster-api/api/core/v1beta2.ControlPlaneTopology", "sigs.k8s.io/cluster-api/api/core/v1beta2.WorkersTopology"},
+	}
+}
+
+func schema_cluster_api_api_core_v1beta2_UnhealthyExpression(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "UnhealthyExpression represents a CEL expression used to determine whether a Machine is considered unhealthy.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"expression": {
+						SchemaProps: spec.SchemaProps{
+							Description: "expression is a CEL expression that is evaluated to determine whether a Machine is unhealthy. It must evaluate to a bool; true means unhealthy.\n\nThe following variables are available: - machine: the Machine, giving access to is conditions - node: the Node hosted on the Machine, giving access to its conditions\n  If the Machine has no Node yet, expressions referencing node evaluate to false.\n\nThe following functions are available on both machine and node: - has_condition(type, status): true if a condition with the given type and\n  status (\"True\", \"False\" or \"Unknown\") exists.\n- has_condition(type, status, reason): like above, additionally requiring the given reason. - has_condition_since(type, status, duration): true if the condition has had the given status\n  for at least the given duration (Go duration format, e.g. \"5m\", \"1h\").\n- has_condition_since(type, status, reason, duration): like above, additionally requiring the given reason.\n\nIn addition, the standard CEL functions and operators can be used, e.g. to combine checks with && and ||.\n\nExamples: - machine.has_condition_since(\"Ready\", \"False\", \"5m\") - node.has_condition_since(\"Ready\", \"False\", \"5m\") && !node.has_condition(\"MaintenanceInProgress\", \"True\")",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"message": {
+						SchemaProps: spec.SchemaProps{
+							Description: "message is the message used in the HealthCheckSucceeded condition if this expression determines that the Machine is unhealthy.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+				Required: []string{"expression", "message"},
+			},
+		},
 	}
 }
 

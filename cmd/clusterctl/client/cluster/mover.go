@@ -334,7 +334,7 @@ func getMachineObj(ctx context.Context, proxy Proxy, machine *node, machineObj *
 	return nil
 }
 
-// Move moves all the Cluster API objects existing in a namespace (or from all the namespaces if empty) to a target management cluster.
+// move moves all the Cluster API objects existing in a namespace (or from all the namespaces if empty) to a target management cluster.
 func (o *objectMover) move(ctx context.Context, graph *objectGraph, toProxy Proxy, mutators ...ResourceMutatorFunc) error {
 	log := logf.Log
 
@@ -541,7 +541,7 @@ func (s *moveSequence) getGroup(i int) moveGroup {
 	return s.groups[i]
 }
 
-// Define the move sequence by processing the ownerReference chain.
+// getMoveSequence defines the move sequence by processing the ownerReference chain.
 func getMoveSequence(graph *objectGraph) *moveSequence {
 	moveSequence := &moveSequence{
 		groups:   []moveGroup{},
@@ -1206,7 +1206,7 @@ func (o *objectMover) restoreTargetObject(ctx context.Context, nodeToCreate *nod
 	return nil
 }
 
-// Recreate all the OwnerReferences using the newUID of the owner nodes.
+// buildOwnerChain recreates all the OwnerReferences using the newUID of the owner nodes.
 func (o *objectMover) buildOwnerChain(obj *unstructured.Unstructured, n *node) {
 	if len(n.owners) > 0 {
 		ownerRefs := make([]metav1.OwnerReference, 0, len(n.owners))

@@ -36,7 +36,7 @@ func TestIP(t *testing.T) {
 
 	ipv4, ipv6, err := node.IP(ctx)
 
-	g.Expect(err).ShouldNot(HaveOccurred())
+	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(ipv4).To(Equal("TestNodeIPv4"))
 	g.Expect(ipv6).To(Equal("TestNodeIPv6"))
 }
@@ -53,7 +53,7 @@ func TestDeleteContainer(t *testing.T) {
 	containerRuntime.ResetDeleteContainerCallLogs()
 	err := node.Delete(ctx)
 
-	g.Expect(err).ShouldNot(HaveOccurred())
+	g.Expect(err).ToNot(HaveOccurred())
 
 	callLog := containerRuntime.DeleteContainerCalls()
 	g.Expect(callLog).To(HaveLen(1))
@@ -72,7 +72,7 @@ func TestKillContainer(t *testing.T) {
 	containerRuntime.ResetKillContainerCallLogs()
 	err := node.Kill(ctx, "TestSignal")
 
-	g.Expect(err).ShouldNot(HaveOccurred())
+	g.Expect(err).ToNot(HaveOccurred())
 
 	callLog := containerRuntime.KillContainerCalls()
 	g.Expect(callLog).To(HaveLen(1))
@@ -89,7 +89,7 @@ func TestCommandRun(t *testing.T) {
 	cmd := GetContainerCmder("TestContainer").Command("test", "one", "two")
 	err := cmd.Run(ctx)
 
-	g.Expect(err).ShouldNot(HaveOccurred())
+	g.Expect(err).ToNot(HaveOccurred())
 
 	callLog := containerRuntime.ExecContainerCalls()
 	g.Expect(callLog).To(HaveLen(1))
@@ -107,7 +107,7 @@ func TestWriteFile(t *testing.T) {
 
 	node := NewNode("TestContainer", "TestImage", "testing")
 	err := node.WriteFile(ctx, "/tmp/test123", "testcontent")
-	g.Expect(err).ShouldNot(HaveOccurred())
+	g.Expect(err).ToNot(HaveOccurred())
 
 	callLog := containerRuntime.ExecContainerCalls()
 	g.Expect(callLog).To(HaveLen(2))
@@ -125,6 +125,6 @@ func TestWriteFile(t *testing.T) {
 	content := make([]byte, 12)
 	count, err := callLog[1].Config.InputBuffer.Read(content)
 	data := string(content[:count])
-	g.Expect(err).ShouldNot(HaveOccurred())
+	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(data).To(Equal("testcontent"))
 }

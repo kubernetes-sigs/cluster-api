@@ -116,7 +116,7 @@ func (tp *SimpleProcessor) Process(rawArtifact []byte, variablesClient func(stri
 	}
 
 	if len(missingVariables) > 0 {
-		return rawArtifact, &errMissingVariables{missingVariables}
+		return rawArtifact, &missingVariablesError{missingVariables}
 	}
 
 	tmp, err = envsubst.Eval(tmp, func(in string) string {
@@ -130,11 +130,11 @@ func (tp *SimpleProcessor) Process(rawArtifact []byte, variablesClient func(stri
 	return []byte(tmp), err
 }
 
-type errMissingVariables struct {
+type missingVariablesError struct {
 	Missing []string
 }
 
-func (e *errMissingVariables) Error() string {
+func (e *missingVariablesError) Error() string {
 	sort.Strings(e.Missing)
 	return fmt.Sprintf(
 		"value for variables [%s] is not set. Please set the value using os environment variables or the clusterctl config file",

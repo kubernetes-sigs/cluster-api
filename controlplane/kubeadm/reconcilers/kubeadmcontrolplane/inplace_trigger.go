@@ -20,6 +20,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -28,11 +29,12 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
+	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/pkg"
-	"sigs.k8s.io/cluster-api/internal/hooks"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
+	"sigs.k8s.io/cluster-api/pkg/runtimesdk/hooks"
 	capicontrollerutil "sigs.k8s.io/cluster-api/util/controller"
 )
 
@@ -42,7 +44,7 @@ func (r *Reconciler) triggerInPlaceUpdate(ctx context.Context, controlPlane *pkg
 	}
 
 	log := ctrl.LoggerFrom(ctx).WithValues("Machine", klog.KObj(machine))
-	log.Info(fmt.Sprintf("Triggering in-place update for Machine %s", klog.KObj(machine)))
+	log.Info(fmt.Sprintf("Preparing Machine %s for in-place update", machine.Name), "reason", strings.Join(machineUpToDateResult.LogMessages, ", "))
 
 	// Mark Machine for in-place update.
 	// Note: Once we write UpdateInProgressAnnotation we will always continue with the in-place update.
@@ -62,6 +64,10 @@ func (r *Reconciler) triggerInPlaceUpdate(ctx context.Context, controlPlane *pkg
 			return pkgerrors.Wrapf(err, "failed to trigger in-place update for Machine %s by setting the %s annotation: failed to Marshal data", klog.KObj(machine), clusterv1.UpdateInProgressAnnotation)
 		}
 		machine.Annotations[clusterv1.UpdateInProgressAnnotation] = string(dataBytes)
+
+		// The machine is going to get a new spec, so if a remediation sequence was in progress, we should start a new one.
+		delete(machine.Annotations, controlplanev1.RemediationForAnnotation)
+
 		if err := r.Client.Patch(ctx, machine, client.MergeFrom(orig)); err != nil {
 			return pkgerrors.Wrapf(err, "failed to trigger in-place update for Machine %s by setting the %s annotation", klog.KObj(machine), clusterv1.UpdateInProgressAnnotation)
 		}
@@ -141,7 +147,7 @@ func (r *Reconciler) triggerInPlaceUpdate(ctx context.Context, controlPlane *pkg
 	}
 	r.controller.DeferNextReconcileUntilCacheUpToDate(controlPlane.KCP, capicontrollerutil.StructuredObject(clusterv1.GroupVersion, "Machine"), desiredMachine.ResourceVersion)
 
-	log.Info(fmt.Sprintf("Completed triggering in-place update for Machine %s", klog.KObj(machine)))
+	log.Info(fmt.Sprintf("Starting in-place update for Machine %s", machine.Name))
 	r.recorder.Event(machine, corev1.EventTypeNormal, "SuccessfulStartInPlaceUpdate", "Machine starting in-place update")
 
 	return nil

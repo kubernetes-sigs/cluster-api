@@ -21,6 +21,7 @@ updates:
   directories:
   - "/"
   - "/api"
+  - "/utils"
   - "/test"
   - "/hack/tools"
   schedule:

@@ -30,7 +30,7 @@ import (
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
 	"sigs.k8s.io/cluster-api/exp/topology/scope"
 	"sigs.k8s.io/cluster-api/internal/contract"
-	"sigs.k8s.io/cluster-api/internal/hooks"
+	"sigs.k8s.io/cluster-api/pkg/runtimesdk/hooks"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
@@ -225,7 +225,7 @@ func (r *Reconciler) reconcileTopologyReconciledCondition(s *scope.Scope, cluste
 		hooks.IsPending(runtimehooksv1.AfterClusterUpgrade, cluster) {
 		// Start building the condition message showing upgrade progress.
 		msgBuilder := &strings.Builder{}
-		fmt.Fprintf(msgBuilder, "Cluster is upgrading to %s", cluster.Spec.Topology.Version)
+		fmt.Fprintf(msgBuilder, "Cluster is upgrading to %s:", cluster.Spec.Topology.Version)
 
 		// Setting condition reasons showing upgrade is progress; this will be overridden only
 		// when users are blocking upgrade to make further progress, e.g. deferred upgrades
@@ -337,7 +337,7 @@ func (r *Reconciler) reconcileTopologyReconciledCondition(s *scope.Scope, cluste
 	return nil
 }
 
-// pendingVersion return a message with pending version in the upgrad plan.
+// pendingVersions returns a message with pending version in the upgrad plan.
 func pendingVersions(plan []string, version string) string {
 	// clone the plan to avoid side effects on the original object.
 	planWithoutVersion := []string{}

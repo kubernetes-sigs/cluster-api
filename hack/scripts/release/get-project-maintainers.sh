@@ -27,7 +27,7 @@ fi
 REPO_ROOT=$(dirname "${BASH_SOURCE[0]}")/../../..
 
 YQ_BIN=yq
-YQ_PATH=hack/tools/bin/${YQ_BIN}
+YQ_PATH=_output/tools/${YQ_BIN}
 
 cd "${REPO_ROOT}" && make ${YQ_BIN} >/dev/null
 

@@ -74,7 +74,7 @@ func TestServerSideApply(t *testing.T) {
 		var original *unstructured.Unstructured
 		modified := obj.DeepCopy()
 
-		p0, err := NewServerSidePatchHelper(ctx, original, modified, env.GetClient(), ssa.NewCache(testController))
+		p0, err := NewServerSidePatchHelper(ctxV4, original, modified, env.GetClient(), ssa.NewCache(testController))
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(p0.HasChanges()).To(BeTrue())
 		g.Expect(p0.HasSpecChanges()).To(BeTrue())
@@ -87,7 +87,7 @@ func TestServerSideApply(t *testing.T) {
 		var original *clusterv1.MachineDeployment
 		modified := obj.DeepCopy()
 
-		p0, err := NewServerSidePatchHelper(ctx, original, modified, env.GetClient(), ssa.NewCache(testController))
+		p0, err := NewServerSidePatchHelper(ctxV4, original, modified, env.GetClient(), ssa.NewCache(testController))
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(p0.HasChanges()).To(BeTrue())
 		g.Expect(p0.HasSpecChanges()).To(BeTrue())
@@ -98,7 +98,7 @@ func TestServerSideApply(t *testing.T) {
 		g := NewWithT(t)
 
 		// Create a patch helper with original == nil and modified == obj, ensure this is detected as operation that triggers changes.
-		p0, err := NewServerSidePatchHelper(ctx, nil, obj.DeepCopy(), env.GetClient(), ssa.NewCache(testController), IgnorePaths{{"spec", "foo"}})
+		p0, err := NewServerSidePatchHelper(ctxV4, nil, obj.DeepCopy(), env.GetClient(), ssa.NewCache(testController), IgnorePaths{{"spec", "foo"}})
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(p0.HasChanges()).To(BeTrue())
 		g.Expect(p0.HasSpecChanges()).To(BeTrue())
@@ -136,7 +136,7 @@ func TestServerSideApply(t *testing.T) {
 
 		// Create a patch helper for a modified object with no changes.
 		modified := obj.DeepCopy()
-		p0, err := NewServerSidePatchHelper(ctx, original, modified, env.GetClient(), ssa.NewCache(testController), IgnorePaths{{"spec", "foo"}})
+		p0, err := NewServerSidePatchHelper(ctxV4, original, modified, env.GetClient(), ssa.NewCache(testController), IgnorePaths{{"spec", "foo"}})
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(p0.HasChanges()).To(BeFalse())
 		g.Expect(p0.HasSpecChanges()).To(BeFalse())
@@ -155,7 +155,7 @@ func TestServerSideApply(t *testing.T) {
 		modified := obj.DeepCopy()
 		g.Expect(unstructured.SetNestedField(modified.Object, "changed", "status", "foo")).To(Succeed())
 
-		p0, err := NewServerSidePatchHelper(ctx, original, modified, env.GetClient(), ssa.NewCache(testController), IgnorePaths{{"spec", "foo"}})
+		p0, err := NewServerSidePatchHelper(ctxV4, original, modified, env.GetClient(), ssa.NewCache(testController), IgnorePaths{{"spec", "foo"}})
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(p0.HasChanges()).To(BeFalse())
 		g.Expect(p0.HasSpecChanges()).To(BeFalse())
@@ -174,7 +174,7 @@ func TestServerSideApply(t *testing.T) {
 		modified := obj.DeepCopy()
 		g.Expect(unstructured.SetNestedField(modified.Object, "changed", "spec", "bar")).To(Succeed())
 
-		p0, err := NewServerSidePatchHelper(ctx, original, modified, env.GetClient(), ssa.NewCache(testController), IgnorePaths{{"spec", "foo"}})
+		p0, err := NewServerSidePatchHelper(ctxV4, original, modified, env.GetClient(), ssa.NewCache(testController), IgnorePaths{{"spec", "foo"}})
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(p0.HasChanges()).To(BeTrue())
 		g.Expect(p0.HasSpecChanges()).To(BeTrue())
@@ -193,6 +193,25 @@ func TestServerSideApply(t *testing.T) {
 `, "<uid>", string(original.GetUID()))))
 	})
 
+	t.Run("Server side apply patch helper detect changes do not generate diff at lower log levels", func(t *testing.T) {
+		g := NewWithT(t)
+
+		// Get the current object (assumes tests to be run in sequence).
+		original := obj.DeepCopy()
+		g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(original), original)).To(Succeed())
+
+		// Create a patch helper for a modified object with changes in spec.
+		modified := obj.DeepCopy()
+		g.Expect(unstructured.SetNestedField(modified.Object, "changed", "spec", "bar")).To(Succeed())
+
+		p0, err := NewServerSidePatchHelper(ctx, original, modified, env.GetClient(), ssa.NewCache(testController), IgnorePaths{{"spec", "foo"}})
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(p0.HasChanges()).To(BeTrue())
+		g.Expect(p0.HasSpecChanges()).To(BeTrue())
+		g.Expect(p0.PatchData()).To(Equal(`{"spec":{"bar":"changed"}}`))
+		g.Expect(p0.Diff()).To(BeEmpty())
+	})
+
 	t.Run("Server side apply patch helper detect changes impacting only metadata.labels", func(t *testing.T) {
 		g := NewWithT(t)
 
@@ -204,7 +223,7 @@ func TestServerSideApply(t *testing.T) {
 		modified := obj.DeepCopy()
 		modified.SetLabels(map[string]string{"foo": "changed"})
 
-		p0, err := NewServerSidePatchHelper(ctx, original, modified, env.GetClient(), ssa.NewCache(testController), IgnorePaths{{"spec", "foo"}})
+		p0, err := NewServerSidePatchHelper(ctxV4, original, modified, env.GetClient(), ssa.NewCache(testController), IgnorePaths{{"spec", "foo"}})
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(p0.HasChanges()).To(BeTrue())
 		g.Expect(p0.HasSpecChanges()).To(BeFalse())
@@ -235,7 +254,7 @@ func TestServerSideApply(t *testing.T) {
 		modified := obj.DeepCopy()
 		modified.SetAnnotations(map[string]string{"foo": "changed"})
 
-		p0, err := NewServerSidePatchHelper(ctx, original, modified, env.GetClient(), ssa.NewCache(testController), IgnorePaths{{"spec", "foo"}})
+		p0, err := NewServerSidePatchHelper(ctxV4, original, modified, env.GetClient(), ssa.NewCache(testController), IgnorePaths{{"spec", "foo"}})
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(p0.HasChanges()).To(BeTrue())
 		g.Expect(p0.HasSpecChanges()).To(BeFalse())
@@ -273,7 +292,7 @@ func TestServerSideApply(t *testing.T) {
 			},
 		})
 
-		p0, err := NewServerSidePatchHelper(ctx, original, modified, env.GetClient(), ssa.NewCache(testController), IgnorePaths{{"spec", "foo"}})
+		p0, err := NewServerSidePatchHelper(ctxV4, original, modified, env.GetClient(), ssa.NewCache(testController), IgnorePaths{{"spec", "foo"}})
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(p0.HasChanges()).To(BeTrue())
 		g.Expect(p0.HasSpecChanges()).To(BeFalse())
@@ -307,7 +326,7 @@ func TestServerSideApply(t *testing.T) {
 		modified := obj.DeepCopy()
 		g.Expect(unstructured.SetNestedField(modified.Object, "changed", "spec", "foo")).To(Succeed())
 
-		p0, err := NewServerSidePatchHelper(ctx, original, modified, env.GetClient(), ssa.NewCache(testController), IgnorePaths{{"spec", "foo"}})
+		p0, err := NewServerSidePatchHelper(ctxV4, original, modified, env.GetClient(), ssa.NewCache(testController), IgnorePaths{{"spec", "foo"}})
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(p0.HasChanges()).To(BeFalse())
 		g.Expect(p0.HasSpecChanges()).To(BeFalse())
@@ -342,7 +361,7 @@ func TestServerSideApply(t *testing.T) {
 		//       it here to be able to verify that managed field changes are ignored. This is the same situation as when
 		//       other controllers update .status (that is ignored) and the ServerSidePatchHelper then ignores the corresponding
 		//       managed field changes.
-		p0, err := NewServerSidePatchHelper(ctx, original, original, env.GetClient(), ssa.NewCache(testController), IgnorePaths{{"spec", "foo"}, {"spec", "bar"}})
+		p0, err := NewServerSidePatchHelper(ctxV4, original, original, env.GetClient(), ssa.NewCache(testController), IgnorePaths{{"spec", "foo"}, {"spec", "bar"}})
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(p0.HasChanges()).To(BeFalse())
 		g.Expect(p0.HasSpecChanges()).To(BeFalse())
@@ -360,7 +379,7 @@ func TestServerSideApply(t *testing.T) {
 		// Create a patch helper for a modified object with no changes to what previously applied by th topology manager.
 		modified := obj.DeepCopy()
 
-		p0, err := NewServerSidePatchHelper(ctx, original, modified, env.GetClient(), ssa.NewCache(testController), IgnorePaths{{"spec", "foo"}})
+		p0, err := NewServerSidePatchHelper(ctxV4, original, modified, env.GetClient(), ssa.NewCache(testController), IgnorePaths{{"spec", "foo"}})
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(p0.HasChanges()).To(BeFalse())
 		g.Expect(p0.HasSpecChanges()).To(BeFalse())
@@ -410,7 +429,7 @@ func TestServerSideApply(t *testing.T) {
 		modified := obj.DeepCopy()
 		g.Expect(unstructured.SetNestedField(modified.Object, "changed", "spec", "controlPlaneEndpoint", "host")).To(Succeed())
 
-		p0, err := NewServerSidePatchHelper(ctx, original, modified, env.GetClient(), ssa.NewCache(testController), IgnorePaths{{"spec", "foo"}})
+		p0, err := NewServerSidePatchHelper(ctxV4, original, modified, env.GetClient(), ssa.NewCache(testController), IgnorePaths{{"spec", "foo"}})
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(p0.HasChanges()).To(BeTrue())
 		g.Expect(p0.HasSpecChanges()).To(BeTrue())
@@ -461,7 +480,7 @@ func TestServerSideApply(t *testing.T) {
 		g.Expect(unstructured.SetNestedField(modified.Object, "changed", "spec", "controlPlaneEndpoint", "host")).To(Succeed())
 		g.Expect(unstructured.SetNestedField(modified.Object, "changed", "spec", "bar")).To(Succeed())
 
-		p0, err := NewServerSidePatchHelper(ctx, original, modified, env.GetClient(), ssa.NewCache(testController), IgnorePaths{{"spec", "foo"}})
+		p0, err := NewServerSidePatchHelper(ctxV4, original, modified, env.GetClient(), ssa.NewCache(testController), IgnorePaths{{"spec", "foo"}})
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(p0.HasChanges()).To(BeTrue())
 		g.Expect(p0.HasSpecChanges()).To(BeFalse())
@@ -504,7 +523,7 @@ func TestServerSideApply(t *testing.T) {
 		g.Expect(unstructured.SetNestedField(modified.Object, "changed", "spec", "controlPlaneEndpoint", "host")).To(Succeed())
 		g.Expect(unstructured.SetNestedField(modified.Object, "changed-by-topology-controller", "spec", "bar")).To(Succeed())
 
-		p0, err := NewServerSidePatchHelper(ctx, original, modified, env.GetClient(), ssa.NewCache(testController), IgnorePaths{{"spec", "foo"}})
+		p0, err := NewServerSidePatchHelper(ctxV4, original, modified, env.GetClient(), ssa.NewCache(testController), IgnorePaths{{"spec", "foo"}})
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(p0.HasChanges()).To(BeTrue())
 		g.Expect(p0.HasSpecChanges()).To(BeTrue())
@@ -567,7 +586,7 @@ func TestServerSideApply(t *testing.T) {
 		g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(original), original)).To(Succeed())
 
 		// Create a patch helper for a modified object with which has no changes.
-		p0, err := NewServerSidePatchHelper(ctx, original, modified, env.GetClient(), ssa.NewCache(testController))
+		p0, err := NewServerSidePatchHelper(ctxV4, original, modified, env.GetClient(), ssa.NewCache(testController))
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(p0.HasChanges()).To(BeFalse())
 		g.Expect(p0.HasSpecChanges()).To(BeFalse())
@@ -591,7 +610,7 @@ func TestServerSideApply(t *testing.T) {
 		modified.SetUID("")
 
 		// Create a patch helper which should fail because original's real UID changed.
-		_, err := NewServerSidePatchHelper(ctx, original, modified, env.GetClient(), ssa.NewCache(testController))
+		_, err := NewServerSidePatchHelper(ctxV4, original, modified, env.GetClient(), ssa.NewCache(testController))
 		g.Expect(err).To(HaveOccurred())
 	})
 	t.Run("Error on object which does not exist (anymore) but was expected to get updated", func(*testing.T) {
@@ -608,7 +627,7 @@ func TestServerSideApply(t *testing.T) {
 		original.SetUID("does-not-exist")
 
 		// Create a patch helper which should fail because original does not exist.
-		_, err := NewServerSidePatchHelper(ctx, original, modified, env.GetClient(), ssa.NewCache(testController))
+		_, err := NewServerSidePatchHelper(ctxV4, original, modified, env.GetClient(), ssa.NewCache(testController))
 		g.Expect(err).To(HaveOccurred())
 	})
 }
@@ -755,7 +774,7 @@ func TestServerSideApplyWithDefaulting(t *testing.T) {
 			ssaCache := ssa.NewCache(testController)
 
 			// Create the initial KubeadmConfigTemplate (with the old defaulting logic).
-			p0, err := NewServerSidePatchHelper(ctx, nil, kct.DeepCopy(), env.GetClient(), ssaCache)
+			p0, err := NewServerSidePatchHelper(ctxV4, nil, kct.DeepCopy(), env.GetClient(), ssaCache)
 			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(p0.HasChanges()).To(BeTrue())
 			g.Expect(p0.HasSpecChanges()).To(BeTrue())
@@ -820,7 +839,7 @@ func TestServerSideApplyWithDefaulting(t *testing.T) {
 			}
 
 			// Apply modified.
-			p0, err = NewServerSidePatchHelper(ctx, original, modified, env.GetClient(), ssaCache)
+			p0, err = NewServerSidePatchHelper(ctxV4, original, modified, env.GetClient(), ssaCache)
 			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(p0.HasChanges()).To(Equal(tt.expectChanges), fmt.Sprintf("changes: %s", p0.Diff()))
 			g.Expect(p0.HasSpecChanges()).To(Equal(tt.expectSpecChanges))
@@ -867,7 +886,7 @@ func TestServerSideApplyWithDefaulting(t *testing.T) {
 				countBefore := defaulter.Counter
 
 				// Apply modified again.
-				p0, err = NewServerSidePatchHelper(ctx, original, modified, env.GetClient(), ssaCache)
+				p0, err = NewServerSidePatchHelper(ctxV4, original, modified, env.GetClient(), ssaCache)
 				g.Expect(err).ToNot(HaveOccurred())
 
 				// Expect no changes.
@@ -895,7 +914,7 @@ func TestServerSideApplyWithDefaulting(t *testing.T) {
 			countBefore := defaulter.Counter
 
 			// Apply modified again.
-			p0, err = NewServerSidePatchHelper(ctx, original, modified, env.GetClient(), ssaCache)
+			p0, err = NewServerSidePatchHelper(ctxV4, original, modified, env.GetClient(), ssaCache)
 			g.Expect(err).ToNot(HaveOccurred())
 
 			// Expect no changes.

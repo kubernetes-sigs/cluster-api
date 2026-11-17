@@ -59,7 +59,7 @@ superseded-by:
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
 ## Glossary
-Refer to the [Cluster API Book Glossary](https://cluster-api.sigs.k8s.io/reference/glossary.html).
+Refer to the [Cluster API Book Glossary](../book/src/reference/glossary.md).
 
 ## Summary
 Enable opt in automated health checking and remediation of unhealthy nodes backed by machines.

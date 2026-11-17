@@ -23,11 +23,12 @@ import (
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	utilfeature "k8s.io/component-base/featuregate/testing"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
-	"sigs.k8s.io/cluster-api/feature"
+	"sigs.k8s.io/cluster-api/pkg/features"
 	"sigs.k8s.io/cluster-api/util/test/builder"
 )
 
@@ -59,7 +60,6 @@ const (
 
 // TestClusterClassWebhook_Succeed_Create tests the correct creation behaviour for a valid ClusterClass.
 func TestClusterClassWebhook_Succeed_Create(t *testing.T) {
-	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)
 	g := NewWithT(t)
 
 	ns, err := env.CreateNamespace(ctx, "test-topology-clusterclass-webhook")
@@ -100,7 +100,6 @@ func TestClusterClassWebhook_Succeed_Create(t *testing.T) {
 // TestClusterClassWebhook_Fail_Create tests the correct creation behaviour for an invalid ClusterClass with missing references.
 // In this case creation of the ClusterClass should be blocked by the webhook.
 func TestClusterClassWebhook_Fail_Create(t *testing.T) {
-	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)
 	g := NewWithT(t)
 
 	ns, err := env.CreateNamespace(ctx, "test-topology-clusterclass-webhook")
@@ -144,7 +143,6 @@ func TestClusterClassWebhook_Fail_Create(t *testing.T) {
 // TestClusterWebhook_Succeed_Update tests the correct update behaviour for a ClusterClass with references in existing Clusters.
 // In this case deletion of the ClusterClass should succeed by the webhook as the update is compatible with the existing Clusters using the ClusterClass.
 func TestClusterWebhook_Succeed_Update(t *testing.T) {
-	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)
 	g := NewWithT(t)
 
 	ns, err := env.CreateNamespace(ctx, "test-topology-clusterclass-webhook")
@@ -223,7 +221,6 @@ func TestClusterWebhook_Succeed_Update(t *testing.T) {
 // TestClusterWebhook_Fail_Update tests the correct update behaviour for a ClusterClass with references in existing Clusters.
 // In this case deletion of the ClusterClass should be blocked by the webhook as the update is incompatible with the existing Clusters using the ClusterClass.
 func TestClusterWebhook_Fail_Update(t *testing.T) {
-	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)
 	g := NewWithT(t)
 
 	ns, err := env.CreateNamespace(ctx, "test-topology-clusterclass-webhook")
@@ -301,7 +298,6 @@ func TestClusterWebhook_Fail_Update(t *testing.T) {
 // TestClusterClassWebhook_Fail_Delete tests the correct deletion behaviour for a ClusterClass with references in existing Clusters.
 // In this case deletion of the ClusterClass should be blocked by the webhook.
 func TestClusterClassWebhook_Delete(t *testing.T) {
-	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)
 	g := NewWithT(t)
 
 	ns, err := env.CreateNamespace(ctx, "test-topology-clusterclass-webhook")
@@ -385,7 +381,7 @@ func TestClusterClassWebhook_Delete(t *testing.T) {
 
 	// Attempt to delete ClusterClass "class1" which is in use.
 	// Expect no error here as the webhook should allow the deletion of an existing ClusterClass.
-	g.Expect(env.Delete(ctx, clusterClass1)).To(Not(Succeed()))
+	g.Expect(env.Delete(ctx, clusterClass1)).ToNot(Succeed())
 
 	// Attempt to delete ClusterClass "class2" which is not in use.
 	// Expect no error here as the webhook should allow the deletion of an existing ClusterClass.
@@ -527,15 +523,14 @@ func TestClusterClassWebhook_Delete_MultipleExistingClusters(t *testing.T) {
 
 	// Attempt to delete ClusterClass "class3" which is in use.
 	// Expect an error here as the webhook should not allow the deletion of an existing ClusterClass.
-	g.Expect(env.Delete(ctx, class)).To(Not(Succeed()))
+	g.Expect(env.Delete(ctx, class)).ToNot(Succeed())
 }
 
 // TestClusterClassWebhook_TemplateRefOrTemplate tests the CEL rule, present on every ClusterClass struct that
 // carries both a templateRef and a template field, requiring that exactly one of the two is set.
 func TestClusterClassWebhook_TemplateRefOrTemplate(t *testing.T) {
 	g := NewWithT(t)
-	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)
-	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterClassInlineTemplates, true)
+	utilfeature.SetFeatureGateDuringTest(t, features.Gates, features.ClusterClassInlineTemplates, true)
 
 	ns, err := env.CreateNamespace(ctx, "test-clusterclass-webhook-template")
 	g.Expect(err).ToNot(HaveOccurred())
@@ -743,4 +738,59 @@ func createTemplates(ns *corev1.Namespace) (func() error, error) {
 		}
 	}
 	return cleanup, nil
+}
+
+func TestClusterClassRolloutStrategyValidation(t *testing.T) {
+	g := NewWithT(t)
+
+	ns, err := env.CreateNamespace(ctx, "test-clusterclass-rollout-strategy")
+	g.Expect(err).ToNot(HaveOccurred())
+	t.Cleanup(func() {
+		g.Expect(env.Cleanup(ctx, ns)).To(Succeed())
+	})
+
+	maxSurge := intstr.FromInt32(1)
+	newClusterClass := func(name string, strategy clusterv1.MachineDeploymentClassRolloutStrategy) *clusterv1.ClusterClass {
+		clusterClass := clusterClassForTemplateRefOrTemplateTest(ns.Name, name)
+		clusterClass.Spec.Workers.MachineDeployments[0].Rollout.Strategy = strategy
+		return clusterClass
+	}
+
+	t.Run("Should reject rollingUpdate on create if type is OnDelete", func(t *testing.T) {
+		g := NewWithT(t)
+
+		clusterClass := newClusterClass("cc-ondelete-rollingupdate", clusterv1.MachineDeploymentClassRolloutStrategy{
+			Type:          clusterv1.OnDeleteMachineDeploymentStrategyType,
+			RollingUpdate: clusterv1.MachineDeploymentClassRolloutStrategyRollingUpdate{MaxSurge: &maxSurge},
+		})
+		err := env.Create(ctx, clusterClass)
+		g.Expect(err).To(HaveOccurred())
+		g.Expect(err.Error()).To(ContainSubstring(rollingUpdateCELErrMsg))
+	})
+
+	t.Run("Should reject switching to OnDelete while keeping rollingUpdate", func(t *testing.T) {
+		g := NewWithT(t)
+
+		clusterClass := newClusterClass("cc-rollingupdate", clusterv1.MachineDeploymentClassRolloutStrategy{
+			Type:          clusterv1.RollingUpdateMachineDeploymentStrategyType,
+			RollingUpdate: clusterv1.MachineDeploymentClassRolloutStrategyRollingUpdate{MaxSurge: &maxSurge},
+		})
+		g.Expect(env.CreateAndWait(ctx, clusterClass)).To(Succeed())
+		t.Cleanup(func() {
+			g.Expect(env.CleanupAndWait(ctx, clusterClass)).To(Succeed())
+		})
+
+		// Note: Using merge patches because the ClusterClass reconciler concurrently updates the object.
+		invalid := clusterClass.DeepCopy()
+		invalid.Spec.Workers.MachineDeployments[0].Rollout.Strategy.Type = clusterv1.OnDeleteMachineDeploymentStrategyType
+		err := env.Patch(ctx, invalid, client.MergeFrom(clusterClass))
+		g.Expect(err).To(HaveOccurred())
+		g.Expect(err.Error()).To(ContainSubstring(rollingUpdateCELErrMsg))
+
+		valid := clusterClass.DeepCopy()
+		valid.Spec.Workers.MachineDeployments[0].Rollout.Strategy = clusterv1.MachineDeploymentClassRolloutStrategy{
+			Type: clusterv1.OnDeleteMachineDeploymentStrategyType,
+		}
+		g.Expect(env.Patch(ctx, valid, client.MergeFrom(clusterClass))).To(Succeed())
+	})
 }

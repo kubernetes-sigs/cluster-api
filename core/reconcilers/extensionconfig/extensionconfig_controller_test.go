@@ -40,17 +40,16 @@ import (
 	runtimecatalog "sigs.k8s.io/cluster-api/api/runtime/catalog"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
 	runtimev1 "sigs.k8s.io/cluster-api/api/runtime/v1beta2"
-	"sigs.k8s.io/cluster-api/feature"
-	internalruntimeclient "sigs.k8s.io/cluster-api/internal/runtime/client"
-	runtimeregistry "sigs.k8s.io/cluster-api/internal/runtime/registry"
-	fakev1alpha1 "sigs.k8s.io/cluster-api/internal/runtime/test/v1alpha1"
+	"sigs.k8s.io/cluster-api/pkg/features"
+	runtimeclient "sigs.k8s.io/cluster-api/pkg/runtimesdk/client"
+	runtimeregistry "sigs.k8s.io/cluster-api/pkg/runtimesdk/registry"
+	fakev1alpha1 "sigs.k8s.io/cluster-api/pkg/runtimesdk/test/v1alpha1"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
 )
 
 func TestExtensionReconciler_Reconcile(t *testing.T) {
-	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)
-	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.RuntimeSDK, true)
+	utilfeature.SetFeatureGateDuringTest(t, features.Gates, features.RuntimeSDK, true)
 
 	g := NewWithT(t)
 	ns, err := env.CreateNamespace(ctx, "test-extension-config")
@@ -60,13 +59,13 @@ func TestExtensionReconciler_Reconcile(t *testing.T) {
 	g.Expect(fakev1alpha1.AddToCatalog(cat)).To(Succeed())
 
 	registry := runtimeregistry.New()
-	runtimeClient, _, err := internalruntimeclient.New(ctx, internalruntimeclient.Options{
+	runtimeClient, _, err := runtimeclient.New(ctx, runtimeclient.Options{
 		Catalog:  cat,
 		Registry: registry,
 	})
 	g.Expect(err).ToNot(HaveOccurred())
 	registryReadOnly := runtimeregistry.New()
-	runtimeClientReadOnly, _, err := internalruntimeclient.New(ctx, internalruntimeclient.Options{
+	runtimeClientReadOnly, _, err := runtimeclient.New(ctx, runtimeclient.Options{
 		Catalog:  cat,
 		Registry: registryReadOnly,
 	})
@@ -115,7 +114,7 @@ func TestExtensionReconciler_Reconcile(t *testing.T) {
 			RuntimeClient: runtimeClient,
 		}
 		g.Expect(warmup.Start(ctx)).To(Succeed())
-		runtimeClientReadOnly, _, err := internalruntimeclient.New(ctx, internalruntimeclient.Options{
+		runtimeClientReadOnly, _, err := runtimeclient.New(ctx, runtimeclient.Options{
 			Catalog:  cat,
 			Registry: registryReadOnly,
 		})
@@ -291,7 +290,7 @@ func TestExtensionReconciler_Reconcile(t *testing.T) {
 		g.Expect(err).ToNot(HaveOccurred())
 
 		for _, registry := range []runtimeregistry.ExtensionRegistry{registry, registryReadOnly} {
-			g.Expect(env.Get(ctx, util.ObjectKey(extensionConfig), extensionConfig)).To(Not(Succeed()))
+			g.Expect(env.Get(ctx, util.ObjectKey(extensionConfig), extensionConfig)).ToNot(Succeed())
 			_, err = registry.Get("first.ext1")
 			g.Expect(err).To(HaveOccurred())
 			_, err = registry.Get("third.ext1")
@@ -301,8 +300,7 @@ func TestExtensionReconciler_Reconcile(t *testing.T) {
 }
 
 func TestExtensionReconciler_discoverExtensionConfig(t *testing.T) {
-	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)
-	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.RuntimeSDK, true)
+	utilfeature.SetFeatureGateDuringTest(t, features.Gates, features.RuntimeSDK, true)
 	g := NewWithT(t)
 	ns, err := env.CreateNamespace(ctx, "test-runtime-extension")
 	g.Expect(err).ToNot(HaveOccurred())
@@ -318,7 +316,7 @@ func TestExtensionReconciler_discoverExtensionConfig(t *testing.T) {
 		g.Expect(err).ToNot(HaveOccurred())
 		defer srv1.Close()
 
-		runtimeClient, _, err := internalruntimeclient.New(ctx, internalruntimeclient.Options{
+		runtimeClient, _, err := runtimeclient.New(ctx, runtimeclient.Options{
 			Catalog:  cat,
 			Registry: registry,
 		})
@@ -359,7 +357,7 @@ func TestExtensionReconciler_discoverExtensionConfig(t *testing.T) {
 		// srv1 := fakeSecureExtensionServer(discoveryHandler("first"))
 		// defer srv1.Close()
 
-		runtimeClient, _, err := internalruntimeclient.New(ctx, internalruntimeclient.Options{
+		runtimeClient, _, err := runtimeclient.New(ctx, runtimeclient.Options{
 			Catalog:  cat,
 			Registry: registry,
 		})

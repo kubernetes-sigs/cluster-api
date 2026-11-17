@@ -24,6 +24,7 @@ import (
 	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apirand "k8s.io/apimachinery/pkg/util/rand"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
@@ -39,15 +40,19 @@ import (
 
 // sync is responsible for reconciling deployments on scaling events or when they
 // are paused.
-func (r *Reconciler) sync(ctx context.Context, md *clusterv1.MachineDeployment, msList []*clusterv1.MachineSet, machines collections.Machines, templateExists bool) error {
+func (r *Reconciler) sync(ctx context.Context, reconcileStartTime metav1.Time, md *clusterv1.MachineDeployment, msList []*clusterv1.MachineSet, machines collections.Machines, templateExists bool) error {
 	// Use the rollout planner to take benefit of the common logic for:
 	// - identifying newMS and OldMS when necessary
 	// - computing desired state for newMS and OldMS, including managing rollout related annotations and
 	//   in-place propagation of labels, annotations and other fields.
 	planner := newRolloutPlanner(r.Client, r.RuntimeClient, r.canUpdateMachineSetCache)
-	if err := planner.init(ctx, md, msList, machines.UnsortedList(), false, templateExists); err != nil {
+	if err := planner.init(ctx, reconcileStartTime, md, msList, machines.UnsortedList(), false, templateExists); err != nil {
 		return err
 	}
+
+	// Adjust the replica count for the newMS after a move operation has been completed.
+	// Note: this is a best-effort attempt to handle rollout paused when there are machines pending acknowledge move.
+	planner.reconcileReplicasPendingAcknowledgeMove(ctx)
 
 	// Applying above changes to MachineSets, so it will be possible to use legacy code for scale.
 	if err := r.createOrUpdateMachineSetsAndSyncMachineDeploymentRevision(ctx, planner); err != nil {
@@ -55,7 +60,7 @@ func (r *Reconciler) sync(ctx context.Context, md *clusterv1.MachineDeployment, 
 	}
 
 	// Call the legacy scale logic.
-	// Note: the legacy scale logic do not relies yet on the rollout planner, and it still lead to many
+	// Note: the legacy scale logic do not rely yet on the rollout planner, and it still lead to many
 	// patch calls vs grouping all the MachineSet changes in a single SSA call based on a carefully crafted desired state.
 	// Note: using the legacy scale logic on newMS and oldMSs computed by the rollout planner is not an issue because
 	// the legacy scale logic relies on info that are part of the desired state computed by rollout planner (or of
@@ -352,7 +357,7 @@ func (r *Reconciler) cleanupDeployment(ctx context.Context, oldMSs []*clusterv1.
 		}
 
 		// Note: We intentionally log after Delete because we want this log line to show up only after DeletionTimestamp has been set.
-		log.Info(fmt.Sprintf("MachineSet %s deleting (cleanup of old MachineSets)", klog.KObj(ms)), "MachineSet", klog.KObj(ms))
+		log.Info(fmt.Sprintf("MachineSet %s deleting (cleanup of old MachineSets)", ms.Name), "MachineSet", klog.KObj(ms), "reason", "MachineSetCleanup")
 		r.recorder.Eventf(deployment, corev1.EventTypeNormal, "SuccessfulDelete", "Deleted MachineSet %q", ms.Name)
 	}
 

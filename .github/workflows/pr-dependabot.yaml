@@ -1,4 +1,4 @@
-name: PR dependabot code generation and go modules fix
+name: PR fix go modules on dependabot PRs
 
 # This action runs on other PRs opened by dependabot. It updates modules on PRs opened by dependabot.
 on:

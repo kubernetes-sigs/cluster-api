@@ -35,8 +35,9 @@ import (
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/external"
-	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/contract"
+	"sigs.k8s.io/cluster-api/pkg/features"
+	logutil "sigs.k8s.io/cluster-api/util/log"
 )
 
 type preflightCheckErrorMessage *string
@@ -48,7 +49,7 @@ const preflightFailedRequeueAfter = 15 * time.Second
 func (r *Reconciler) runPreflightChecks(ctx context.Context, cluster *clusterv1.Cluster, ms *clusterv1.MachineSet, action string) ([]string, error) {
 	log := ctrl.LoggerFrom(ctx)
 	// If the MachineSetPreflightChecks feature gate is disabled return early.
-	if !feature.Gates.Enabled(feature.MachineSetPreflightChecks) {
+	if !features.Gates.Enabled(features.MachineSetPreflightChecks) {
 		return nil, nil
 	}
 
@@ -140,10 +141,16 @@ func (r *Reconciler) runPreflightChecks(ctx context.Context, cluster *clusterv1.
 		for _, v := range preflightCheckErrs {
 			preflightCheckErrStrings = append(preflightCheckErrStrings, *v)
 		}
-		log.Info(fmt.Sprintf("%s on hold because %s. The operation will continue after the preflight check(s) pass", action, strings.Join(preflightCheckErrStrings, "; ")))
+		// Note: The reasons are values of the key, so a change of the failing preflight checks is logged immediately.
+		r.logRateLimiter.InfoAtMostEvery(log, logRateLimitInterval, onHoldByPreflightChecksKey(ms, action, preflightCheckErrStrings), fmt.Sprintf("%s on hold because %s. The operation will continue after the preflight check(s) pass", action, strings.Join(preflightCheckErrStrings, "; ")))
 		return preflightCheckErrStrings, nil
 	}
+	r.logRateLimiter.Forget(onHoldByPreflightChecksKey(ms, action, nil))
 	return nil, nil
+}
+
+func onHoldByPreflightChecksKey(ms *clusterv1.MachineSet, action string, preflightCheckErrStrings []string) logutil.Key {
+	return logutil.NewKey(fmt.Sprintf("OnHoldByPreflightChecks %s", action), logutil.WithObjects(ms), logutil.WithValues(strings.Join(preflightCheckErrStrings, "; ")))
 }
 
 func shouldRun(preflightChecks, skippedPreflightChecks sets.Set[clusterv1.MachineSetPreflightCheck], preflightCheck clusterv1.MachineSetPreflightCheck) bool {
@@ -154,7 +161,7 @@ func shouldRun(preflightChecks, skippedPreflightChecks sets.Set[clusterv1.Machin
 func (r *Reconciler) controlPlaneStablePreflightCheck(controlPlane *unstructured.Unstructured, cluster *clusterv1.Cluster, controlPlaneVersion string) (preflightCheckErrorMessage, error) {
 	cpKlogRef := klog.KRef(controlPlane.GetNamespace(), controlPlane.GetName())
 
-	if feature.Gates.Enabled(feature.ClusterTopology) && cluster.Spec.Topology.IsDefined() {
+	if features.Gates.Enabled(features.ClusterTopology) && cluster.Spec.Topology.IsDefined() {
 		// Block when we expect an upgrade to be propagated to the control plane for topology clusters.
 		// NOTE: in case the cluster is performing an upgrade, allow creation of machines for the current step.
 		hasSameVersionOfCurrentUpgradeStep := false
@@ -167,7 +174,7 @@ func (r *Reconciler) controlPlaneStablePreflightCheck(controlPlane *unstructured
 			if version, ok := cluster.GetAnnotations()[clusterv1.ClusterTopologyUpgradeStepAnnotation]; ok && version != "" {
 				v = version
 			}
-			return ptr.To(fmt.Sprintf("%s %s has a pending version upgrade to %s (%q preflight check failed)", controlPlane.GetKind(), cpKlogRef, v, clusterv1.MachineSetPreflightCheckControlPlaneIsStable)), nil
+			return ptr.To(fmt.Sprintf("%s %s has a pending version upgrade to %s (%q preflight check failed)", controlPlane.GetKind(), controlPlane.GetName(), v, clusterv1.MachineSetPreflightCheckControlPlaneIsStable)), nil
 		}
 	}
 
@@ -177,7 +184,7 @@ func (r *Reconciler) controlPlaneStablePreflightCheck(controlPlane *unstructured
 		return nil, pkgerrors.Wrapf(err, "failed to perform %q preflight check: failed to check if %s %s is provisioning", clusterv1.MachineSetPreflightCheckControlPlaneIsStable, controlPlane.GetKind(), cpKlogRef)
 	}
 	if isProvisioning {
-		return ptr.To(fmt.Sprintf("%s %s is provisioning (%q preflight check failed)", controlPlane.GetKind(), cpKlogRef, clusterv1.MachineSetPreflightCheckControlPlaneIsStable)), nil
+		return ptr.To(fmt.Sprintf("%s %s is provisioning (%q preflight check failed)", controlPlane.GetKind(), controlPlane.GetName(), clusterv1.MachineSetPreflightCheckControlPlaneIsStable)), nil
 	}
 
 	// Check that the control plane is not upgrading.
@@ -186,7 +193,7 @@ func (r *Reconciler) controlPlaneStablePreflightCheck(controlPlane *unstructured
 		return nil, pkgerrors.Wrapf(err, "failed to perform %q preflight check: failed to check if the %s %s is upgrading", clusterv1.MachineSetPreflightCheckControlPlaneIsStable, controlPlane.GetKind(), cpKlogRef)
 	}
 	if isUpgrading {
-		return ptr.To(fmt.Sprintf("%s %s is upgrading (%q preflight check failed)", controlPlane.GetKind(), cpKlogRef, clusterv1.MachineSetPreflightCheckControlPlaneIsStable)), nil
+		return ptr.To(fmt.Sprintf("%s %s is upgrading (%q preflight check failed)", controlPlane.GetKind(), controlPlane.GetName(), clusterv1.MachineSetPreflightCheckControlPlaneIsStable)), nil
 	}
 
 	return nil, nil
@@ -229,7 +236,7 @@ func (r *Reconciler) kubeadmVersionPreflightCheck(cpSemver, msSemver semver.Vers
 }
 
 func (r *Reconciler) controlPlaneVersionPreflightCheck(cluster *clusterv1.Cluster, cpVersion, msVersion string) preflightCheckErrorMessage {
-	if feature.Gates.Enabled(feature.ClusterTopology) && cluster.Spec.Topology.IsDefined() {
+	if features.Gates.Enabled(features.ClusterTopology) && cluster.Spec.Topology.IsDefined() {
 		if cpVersion != msVersion {
 			return ptr.To(fmt.Sprintf("MachineSet version (%s) is not yet the same as the ControlPlane version (%s), waiting for version to be propagated to the MachineSet (%q preflight check failed)", msVersion, cpVersion, clusterv1.MachineSetPreflightCheckControlPlaneVersionSkew))
 		}

@@ -1,5 +1,4 @@
 //go:build tools
-// +build tools
 
 /*
 Copyright 2023 The Kubernetes Authors.
@@ -35,7 +34,7 @@ type githubClient struct {
 	repo string
 }
 
-// to allow for mocking in tests.
+// githubClientInterface is an interface to allow for mocking in tests.
 type githubClientInterface interface {
 	getDiffAllCommits(base, head string) (*githubDiff, error)
 	getRef(ref string) (githubRef, error)
@@ -56,7 +55,13 @@ type githubDiff struct {
 }
 
 type githubCommitNode struct {
-	Commit githubCommit `json:"commit"`
+	SHA     string               `json:"sha"`
+	Parents []githubCommitParent `json:"parents"`
+	Commit  githubCommit         `json:"commit"`
+}
+
+type githubCommitParent struct {
+	SHA string `json:"sha"`
 }
 
 type githubCommitter struct {

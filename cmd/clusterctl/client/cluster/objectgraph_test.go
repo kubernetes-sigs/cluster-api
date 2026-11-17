@@ -2814,3 +2814,73 @@ func newGraphNode(uid string) *node {
 		tenant:     map[*node]empty{},
 	}
 }
+
+func TestGetObjList(t *testing.T) {
+	tests := []struct {
+		name          string
+		typeMeta      metav1.TypeMeta
+		objs          []client.Object
+		expectedNames []string
+	}{
+		{
+			name: "return objects of a kind ending in List",
+			typeMeta: metav1.TypeMeta{
+				APIVersion: "ec2.aws.m.upbound.io/v1beta1",
+				Kind:       "ManagedPrefixList",
+			},
+			objs: []client.Object{
+				&unstructured.Unstructured{
+					Object: map[string]interface{}{
+						"apiVersion": "ec2.aws.m.upbound.io/v1beta1",
+						"kind":       "ManagedPrefixList",
+						"metadata": map[string]interface{}{
+							"name":      "foo",
+							"namespace": "ns1",
+						},
+					},
+				},
+			},
+			expectedNames: []string{"foo"},
+		},
+		{
+			name: "return objects of a kind not ending in List",
+			typeMeta: metav1.TypeMeta{
+				APIVersion: "v1",
+				Kind:       "ConfigMap",
+			},
+			objs: []client.Object{
+				&unstructured.Unstructured{
+					Object: map[string]interface{}{
+						"apiVersion": "v1",
+						"kind":       "ConfigMap",
+						"metadata": map[string]interface{}{
+							"name":      "foo",
+							"namespace": "ns1",
+						},
+					},
+				},
+			},
+			expectedNames: []string{"foo"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			proxy := test.NewFakeProxy().WithObjs(tt.objs...)
+			objList := new(unstructured.UnstructuredList)
+
+			err := getObjList(context.Background(), proxy, &tt.typeMeta, []client.ListOption{client.InNamespace("ns1")}, objList)
+			g.Expect(err).ToNot(HaveOccurred())
+
+			names := []string{}
+			for _, obj := range objList.Items {
+				g.Expect(obj.GetKind()).To(Equal(tt.typeMeta.Kind))
+				names = append(names, obj.GetName())
+			}
+
+			g.Expect(names).To(ConsistOf(tt.expectedNames))
+		})
+	}
+}

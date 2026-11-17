@@ -49,12 +49,12 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	"sigs.k8s.io/cluster-api/controllers/external"
 	coreadmission "sigs.k8s.io/cluster-api/core/webhooks/admission"
-	runtimeclient "sigs.k8s.io/cluster-api/exp/runtime/client"
 	"sigs.k8s.io/cluster-api/exp/topology/desiredstate"
 	"sigs.k8s.io/cluster-api/exp/topology/scope"
-	"sigs.k8s.io/cluster-api/feature"
-	"sigs.k8s.io/cluster-api/internal/hooks"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
+	"sigs.k8s.io/cluster-api/pkg/features"
+	runtimeclient "sigs.k8s.io/cluster-api/pkg/runtimesdk/client"
+	"sigs.k8s.io/cluster-api/pkg/runtimesdk/hooks"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/cache"
@@ -106,7 +106,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 		return pkgerrors.New("Client, APIReader and ClusterCache must not be nil")
 	}
 
-	if feature.Gates.Enabled(feature.RuntimeSDK) && r.RuntimeClient == nil {
+	if features.Gates.Enabled(features.RuntimeSDK) && r.RuntimeClient == nil {
 		return pkgerrors.New("RuntimeClient must not be nil")
 	}
 
@@ -375,7 +375,7 @@ func (r *Reconciler) reconcile(ctx context.Context, s *scope.Scope) (ctrl.Result
 	}
 
 	// The cluster topology is yet to be created. Call the BeforeClusterCreate hook before proceeding.
-	if feature.Gates.Enabled(feature.RuntimeSDK) {
+	if features.Gates.Enabled(features.RuntimeSDK) {
 		res, err := r.callBeforeClusterCreateHook(ctx, s)
 		if err != nil {
 			return reconcile.Result{}, err
@@ -447,7 +447,7 @@ func (r *Reconciler) setupDynamicWatches(ctx context.Context, s *scope.Scope) er
 func (r *Reconciler) callBeforeClusterCreateHook(ctx context.Context, s *scope.Scope) (reconcile.Result, error) {
 	// If the cluster objects (InfraCluster, ControlPlane, etc) are not yet created we are in the creation phase.
 	// Call the BeforeClusterCreate hook before proceeding.
-	log := ctrl.LoggerFrom(ctx)
+	log := ctrl.LoggerFrom(ctx).WithValues(hookLogValues(runtimehooksv1.BeforeClusterCreate)...)
 
 	if !s.Current.Cluster.Spec.InfrastructureRef.IsDefined() && !s.Current.Cluster.Spec.ControlPlaneRef.IsDefined() {
 		// Return quickly if the hook is not defined.
@@ -558,8 +558,9 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope.Scope) (ctrl.
 
 	// Call the BeforeClusterDelete hook if the 'ok-to-delete' annotation is not set
 	// and add the annotation to the cluster after receiving a successful non-blocking response.
-	log := ctrl.LoggerFrom(ctx)
-	if feature.Gates.Enabled(feature.RuntimeSDK) {
+	log := ctrl.LoggerFrom(ctx).WithValues(hookLogValues(runtimehooksv1.BeforeClusterDelete)...)
+
+	if features.Gates.Enabled(features.RuntimeSDK) {
 		if !hooks.IsOkToDelete(cluster) {
 			// Return quickly if the hook is not defined.
 			extensionHandlers, err := r.RuntimeClient.GetAllExtensions(ctx, runtimehooksv1.BeforeClusterDelete, s.Current.Cluster)

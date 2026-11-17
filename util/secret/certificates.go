@@ -269,6 +269,7 @@ func getCertificateSecret(ctx context.Context, secretCachingClient, ctrlclient c
 }
 
 // EnsureAllExist ensure that there is some data present for every certificate.
+// Key data is required only for certificates that name a KeyFile.
 func (c Certificates) EnsureAllExist() error {
 	for _, certificate := range c {
 		if certificate.KeyPair == nil {
@@ -277,7 +278,7 @@ func (c Certificates) EnsureAllExist() error {
 		if len(certificate.KeyPair.Cert) == 0 {
 			return pkgerrors.Wrapf(ErrMissingCrt, "for certificate: %s", certificate.Purpose)
 		}
-		if !certificate.External {
+		if certificate.KeyFile != "" {
 			if len(certificate.KeyPair.Key) == 0 {
 				return pkgerrors.Wrapf(ErrMissingKey, "for certificate: %s", certificate.Purpose)
 			}
@@ -544,8 +545,14 @@ func newSelfSignedCACert(key crypto.Signer, validityPeriodDays int32) (*x509.Cer
 		notAfter = now.Add(time.Duration(validityPeriodDays) * time.Hour * 24)
 	}
 
+	// Use a random 128-bit serial number, as recommended by RFC 5280 and the CA/Browser Forum baseline requirements.
+	serial, err := rand.Int(rand.Reader, new(big.Int).Lsh(big.NewInt(1), 128))
+	if err != nil {
+		return nil, pkgerrors.Wrap(err, "failed to generate serial number for self signed CA certificate")
+	}
+
 	tmpl := x509.Certificate{
-		SerialNumber: new(big.Int).SetInt64(0),
+		SerialNumber: serial,
 		Subject: pkix.Name{
 			CommonName:   cfg.CommonName,
 			Organization: cfg.Organization,

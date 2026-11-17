@@ -26,8 +26,12 @@ import (
 )
 
 const (
-	// MachineSetTopologyFinalizer is the finalizer used by the topology MachineDeployment controller to
+	// MachineSetTopologyFinalizer was the finalizer used by the topology MachineSet controller to
 	// clean up referenced template resources if necessary when a MachineSet is being deleted.
+	//
+	// Deprecated: The topology MachineSet controller has been merged into the MachineSet controller,
+	// which now handles the cleanup based on MachineSetFinalizer. This finalizer is not set anymore and is only
+	// removed by the MachineSet controller from MachineSets which still have it.
 	MachineSetTopologyFinalizer = "machineset.topology.cluster.x-k8s.io"
 
 	// MachineSetFinalizer is the finalizer used by the MachineSet controller to

@@ -111,7 +111,7 @@ func MaxRevision(ctx context.Context, allMSs []*clusterv1.MachineSet) int64 {
 	for _, ms := range allMSs {
 		if v, err := Revision(ms); err != nil {
 			// Skip the machine sets when it failed to parse their revision information
-			log.Error(err, fmt.Sprintf("Couldn't parse revision for MachineSet %s, deployment controller will skip it when reconciling revisions", klog.KObj(ms)))
+			log.Error(err, fmt.Sprintf("Couldn't parse revision for MachineSet %s, deployment controller will skip it when reconciling revisions", ms.Name), "MachineSet", klog.KObj(ms))
 		} else if v > maxVal {
 			maxVal = v
 		}
@@ -135,7 +135,6 @@ func Revision(obj runtime.Object) (int64, error) {
 var annotationsToSkip = map[string]bool{
 	corev1.LastAppliedConfigAnnotation:  true,
 	clusterv1.RevisionAnnotation:        true,
-	revisionHistoryAnnotation:           true,
 	clusterv1.DesiredReplicasAnnotation: true,
 	clusterv1.MaxReplicasAnnotation:     true,
 
@@ -173,11 +172,6 @@ func getIntFromAnnotation(ms *clusterv1.MachineSet, annotationKey string, logger
 	}
 	return int32(intValue), true
 }
-
-// revisionHistoryAnnotation maintains the history of all old revisions that a machine set has served for a machine deployment.
-//
-// Deprecated: This annotation is deprecated and is going to be removed in the next release.
-const revisionHistoryAnnotation = "machinedeployment.clusters.x-k8s.io/revision-history"
 
 // MachineSetAnnotationsFromMachineDeployment return the annotations that should be set on all the MachineSets and
 // that are derived from the controlling MachineDeployment.
@@ -220,23 +214,6 @@ func ComputeRevisionAnnotations(ctx context.Context, newMS *clusterv1.MachineSet
 				newRevision = currentRevision
 			}
 		}
-
-		// Ensure we preserve the revision history annotation in any case if it already exists.
-		// Note: With Server-Side-Apply not setting the annotation would drop it.
-		revisionHistory, revisionHistoryExists := newMS.Annotations[revisionHistoryAnnotation]
-		if revisionHistoryExists {
-			annotations[revisionHistoryAnnotation] = revisionHistory
-		}
-
-		// If the revision changes then add the old revision to the revision history annotation
-		if currentRevisionExists && currentRevision != newRevision {
-			oldRevisions := strings.Split(revisionHistory, ",")
-			if oldRevisions[0] == "" {
-				annotations[revisionHistoryAnnotation] = currentRevision
-			} else {
-				annotations[revisionHistoryAnnotation] = strings.Join(append(oldRevisions, currentRevision), ",")
-			}
-		}
 	}
 
 	annotations[clusterv1.RevisionAnnotation] = newRevision
@@ -248,9 +225,6 @@ func GetRevisionAnnotations(_ context.Context, oldMS *clusterv1.MachineSet) map[
 	annotations := map[string]string{}
 	if v, ok := oldMS.Annotations[clusterv1.RevisionAnnotation]; ok {
 		annotations[clusterv1.RevisionAnnotation] = v
-	}
-	if v, ok := oldMS.Annotations[revisionHistoryAnnotation]; ok {
-		annotations[revisionHistoryAnnotation] = v
 	}
 	return annotations
 }
@@ -448,17 +422,17 @@ func MachineTemplateDeepCopyRolloutFields(template *clusterv1.MachineTemplateSpe
 
 // FindNewAndOldMachineSets returns the newMS for a MachineDeployment (the one with the same machine template, ignoring
 // in-place mutable fields) as well as return oldMSs.
-// Note: If the reconciliation time is after the deployment's `rolloutAfter` time, a MS has to be newer than
+// Note: If the reconcile start time is after the deployment's `rolloutAfter` time, a MS has to be newer than
 // `rolloutAfter` to be considered as matching the deployment's intent.
 // NOTE: If we find a matching MachineSet which only differs in in-place mutable fields we can use it to
 // fulfill the intent of the MachineDeployment by just updating the MachineSet to propagate in-place mutable fields.
 // Thus we don't have to create a new MachineSet and we can avoid an unnecessary rollout.
-func FindNewAndOldMachineSets(deployment *clusterv1.MachineDeployment, msList []*clusterv1.MachineSet, reconciliationTime metav1.Time) (newMS *clusterv1.MachineSet, oldMSs []*clusterv1.MachineSet, upToDateResults map[string]UpToDateResult, createReason string) {
+func FindNewAndOldMachineSets(deployment *clusterv1.MachineDeployment, msList []*clusterv1.MachineSet, reconcileStartTime metav1.Time) (newMS *clusterv1.MachineSet, oldMSs []*clusterv1.MachineSet, upToDateResults map[string]UpToDateResult, createReason string) {
 	if len(msList) == 0 {
 		return nil, nil, nil, "no MachineSets exist for the MachineDeployment"
 	}
 
-	// It could happen that there is more than one newMS candidate when reconciliationTime is > rolloutAfter; considering this, the
+	// It could happen that there is more than one newMS candidate when reconcileStartTime is > rolloutAfter; considering this, the
 	// current implementation treats candidates that will be discarded as old machine sets not eligible for in-place updates.
 	// NOTE: We could also have more than one MS candidate in the very unlikely case where
 	// the diff logic MachineTemplateUpToDate is changed by dropping one of the existing criteria (version, failureDomain, infra/BootstrapRef).
@@ -478,7 +452,7 @@ func FindNewAndOldMachineSets(deployment *clusterv1.MachineDeployment, msList []
 		} else {
 			oldMSs = append(oldMSs, ms)
 			// Override the EligibleForInPlaceUpdate decision if rollout after is expired.
-			if !deployment.Spec.Rollout.After.IsZero() && deployment.Spec.Rollout.After.Before(&reconciliationTime) && ms.CreationTimestamp.Before(ptr.To(deployment.Spec.Rollout.After)) {
+			if shouldRolloutAfter(ms, reconcileStartTime, deployment.Spec.Rollout.After) {
 				upToDateResult.EligibleForInPlaceUpdate = false
 				upToDateResult.LogMessages = append(upToDateResult.LogMessages, "MachineDeployment spec.rolloutAfter expired")
 				// No need to set an additional condition message, it is not used anywhere.
@@ -492,49 +466,36 @@ func FindNewAndOldMachineSets(deployment *clusterv1.MachineDeployment, msList []
 		return nil, oldMSs, upToDateResults, fmt.Sprintf("couldn't find MachineSet matching MachineDeployment spec template: %s", strings.Join(diffs, "; "))
 	}
 
-	// If RolloutAfter is not set, pick the first matching MachineSet.
-	if deployment.Spec.Rollout.After.IsZero() {
-		for _, ms := range newMSCandidates[1:] {
-			oldMSs = append(oldMSs, ms)
-			upToDateResults[ms.Name] = UpToDateResult{
-				// No need to set log or condition message for discarded candidates, it is not used anywhere.
-				EligibleForInPlaceUpdate: false,
-			}
-		}
-		return newMSCandidates[0], oldMSs, upToDateResults, ""
-	}
-
-	// If reconciliation time is before RolloutAfter, pick the first matching MachineSet.
-	if reconciliationTime.Before(&deployment.Spec.Rollout.After) {
-		for _, ms := range newMSCandidates[1:] {
-			oldMSs = append(oldMSs, ms)
-			upToDateResults[ms.Name] = UpToDateResult{
-				// No need to set log or condition for discarded candidates, it is not used anywhere.
-				EligibleForInPlaceUpdate: false,
-			}
-		}
-		return newMSCandidates[0], oldMSs, upToDateResults, ""
-	}
-
-	// Pick the first matching MachineSet that has been created at RolloutAfter or later.
+	// Pick the first matching MachineSet for which rollout after is not expired.
+	// Note: If rollout after is not set or not yet expired, this is the first matching MachineSet.
 	for _, ms := range newMSCandidates {
-		if newMS == nil && !ms.CreationTimestamp.Before(ptr.To(deployment.Spec.Rollout.After)) {
+		if newMS == nil && !shouldRolloutAfter(ms, reconcileStartTime, deployment.Spec.Rollout.After) {
 			newMS = ms
 			continue
 		}
 
 		oldMSs = append(oldMSs, ms)
 		upToDateResults[ms.Name] = UpToDateResult{
-			// No need to set log or condition for discarded candidates, it is not used anywhere.
+			// No need to set log or condition message for discarded candidates, it is not used anywhere.
 			EligibleForInPlaceUpdate: false,
 		}
 	}
 
-	// If no matching MachineSet was created after RolloutAfter, trigger creation of a new MachineSet.
+	// If rollout after is expired for all matching MachineSets, trigger creation of a new MachineSet.
 	if newMS == nil {
 		return nil, oldMSs, upToDateResults, fmt.Sprintf("spec.rollout.after on MachineDeployment set to %s, no MachineSet has been created afterwards", deployment.Spec.Rollout.After.Format(time.RFC3339))
 	}
 	return newMS, oldMSs, upToDateResults, ""
+}
+
+// shouldRolloutAfter returns true if the MachineSet has to be rolled out because of rolloutAfter,
+// i.e. if CreationTimestamp < rolloutAfter < reconcileStartTime.
+// Note: This is the MachineSet equivalent of collections.ShouldRolloutAfter.
+func shouldRolloutAfter(ms *clusterv1.MachineSet, reconcileStartTime, rolloutAfter metav1.Time) bool {
+	if rolloutAfter.IsZero() {
+		return false
+	}
+	return ms.CreationTimestamp.Before(&rolloutAfter) && rolloutAfter.Before(&reconcileStartTime)
 }
 
 // GetReplicaCountForMachineSets returns the sum of Replicas of the given machine sets.
@@ -663,7 +624,7 @@ func DeploymentComplete(deployment *clusterv1.MachineDeployment, newStatus *clus
 // 1) The new MS is saturated: newMS's replicas == deployment's replicas
 // 2) For RollingUpdateStrategy: Max number of machines allowed is reached: deployment's replicas + maxSurge == all MSs' replicas.
 // 3) For OnDeleteStrategy: Max number of machines allowed is reached: deployment's replicas == all MSs' replicas.
-func NewMSNewReplicas(deployment *clusterv1.MachineDeployment, allMSs []*clusterv1.MachineSet, newMSReplicas int32) (int32, string, error) {
+func NewMSNewReplicas(deployment *clusterv1.MachineDeployment, allMSs []*clusterv1.MachineSet, newMSReplicas int32, maxSurgeLimit *int) (int32, string, error) {
 	switch deployment.Spec.Rollout.Strategy.Type {
 	case clusterv1.RollingUpdateMachineDeploymentStrategyType:
 		// Check if we can scale up.
@@ -671,6 +632,11 @@ func NewMSNewReplicas(deployment *clusterv1.MachineDeployment, allMSs []*cluster
 		if err != nil {
 			return 0, "", err
 		}
+
+		if maxSurgeLimit != nil {
+			maxSurge = min(maxSurge, *maxSurgeLimit)
+		}
+
 		// Find the total number of machines
 		currentMachineCount := TotalMachineSetsReplicaSum(allMSs)
 		maxTotalMachines := *(deployment.Spec.Replicas) + int32(maxSurge)

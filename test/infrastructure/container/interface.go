@@ -18,6 +18,7 @@ package container
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -154,7 +155,7 @@ func RuntimeFrom(ctx context.Context) (Runtime, error) {
 	if provider, ok := ctx.Value(providerKey{}).(Runtime); ok {
 		return provider, nil
 	}
-	return nil, fmt.Errorf("no container runtime client set for context")
+	return nil, errors.New("no container runtime client set for context")
 }
 
 // RuntimeInto is used to store the container runtime client into a

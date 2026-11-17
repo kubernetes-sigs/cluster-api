@@ -24,7 +24,7 @@ import (
 
 	"github.com/blang/semver/v4"
 	pkgerrors "github.com/pkg/errors"
-	v1 "k8s.io/api/admission/v1"
+	admissionv1 "k8s.io/api/admission/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -37,9 +37,9 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/core/webhooks/conversion"
-	"sigs.k8s.io/cluster-api/feature"
 	topologynames "sigs.k8s.io/cluster-api/internal/topology/names"
 	"sigs.k8s.io/cluster-api/internal/util/taints"
+	"sigs.k8s.io/cluster-api/pkg/features"
 )
 
 // SetupWebhookWithManager sets up the webhook with the Manager.
@@ -78,7 +78,7 @@ func (webhook *MachineDeployment) Default(ctx context.Context, m *clusterv1.Mach
 	}
 
 	var oldMD *clusterv1.MachineDeployment
-	if req.Operation == v1.Update {
+	if req.Operation == admissionv1.Update {
 		oldMD = &clusterv1.MachineDeployment{}
 		if err := webhook.decoder.DecodeRaw(req.OldObject, oldMD); err != nil {
 			return pkgerrors.Wrapf(err, "failed to decode oldObject to MachineDeployment")
@@ -197,7 +197,7 @@ func (webhook *MachineDeployment) validate(oldMD, newMD *clusterv1.MachineDeploy
 
 	// MachineSet preflight checks that should be skipped could also be set as annotation on the MachineDeployment
 	// since MachineDeployment annotations are synced to the MachineSet.
-	if feature.Gates.Enabled(feature.MachineSetPreflightChecks) {
+	if features.Gates.Enabled(features.MachineSetPreflightChecks) {
 		if err := validateSkippedMachineSetPreflightChecks(newMD); err != nil {
 			allErrs = append(allErrs, err)
 		}

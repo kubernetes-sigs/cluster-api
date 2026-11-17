@@ -9,7 +9,7 @@ reviewers:
  - "@fabriziopandini"
 creation-date: 2020-02-20
 last-updated: 2020-08-05
-status: experimental
+status: implemented
 ---
 
 # ClusterResourceSet
@@ -49,7 +49,7 @@ status: experimental
   
 ## Glossary
 
-Refer to the [Cluster API Book Glossary](https://cluster-api.sigs.k8s.io/reference/glossary.html).
+Refer to the [Cluster API Book Glossary](../book/src/reference/glossary.md).
 
 ## Summary
 
@@ -99,7 +99,7 @@ As someone creating multiple clusters and using ClusterResourceSet to install so
 
 #### Data model changes to existing API types
 
-None. We are planning to implement this feature without modifying any of the existing structure to minimize the footprint of ClusterResourceSet Controller. This enhancement will follow Kubernetes’s feature-gate structure and will be under the experimental package with its APIs, and enabled/disabled with a feature gate. 
+None. We are planning to implement this feature without modifying any of the existing structure to minimize the footprint of ClusterResourceSet Controller. This enhancement will follow Kubernetes’s feature-gate graduation process. 
 
 #### ClusterResourceSet Object Definition
 
@@ -354,7 +354,7 @@ The Alternatives section is used to highlight and record other possible approach
 
 ## Upgrade Strategy
 
-This is an experimental feature supported by a new CRD and controller so there is no need to handle upgrades for existing clusters.
+This is a feature supported by a new CRD and controller so there is no need to handle upgrades for existing clusters.
 
 ## Additional Details
 

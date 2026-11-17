@@ -63,6 +63,16 @@ func TestHasMachinePoolMachines(t *testing.T) {
 			want:    true,
 			wantErr: false,
 		},
+		{
+			name: "returns error when infrastructureMachineKind is malformed",
+			infraPool: &unstructured.Unstructured{Object: map[string]interface{}{
+				"status": map[string]interface{}{
+					"infrastructureMachineKind": int64(1),
+				},
+			}},
+			want:    false,
+			wantErr: true,
+		},
 	}
 
 	for _, tt := range tests {

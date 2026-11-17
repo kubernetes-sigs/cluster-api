@@ -24,7 +24,7 @@ import (
 
 	"github.com/blang/semver/v4"
 	pkgerrors "github.com/pkg/errors"
-	v1 "k8s.io/api/admission/v1"
+	admissionv1 "k8s.io/api/admission/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/utils/ptr"
@@ -33,7 +33,7 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/core/webhooks/conversion"
-	"sigs.k8s.io/cluster-api/feature"
+	"sigs.k8s.io/cluster-api/pkg/features"
 )
 
 // SetupWebhookWithManager sets up the webhook with the Manager.
@@ -71,7 +71,7 @@ func (webhook *MachinePool) Default(ctx context.Context, m *clusterv1.MachinePoo
 		dryRun = *req.DryRun
 	}
 	var oldMP *clusterv1.MachinePool
-	if req.Operation == v1.Update {
+	if req.Operation == admissionv1.Update {
 		oldMP = &clusterv1.MachinePool{}
 		if err := webhook.decoder.DecodeRaw(req.OldObject, oldMP); err != nil {
 			return pkgerrors.Wrapf(err, "failed to decode oldObject to MachinePool")
@@ -123,7 +123,7 @@ func (webhook *MachinePool) validate(oldObj, newObj *clusterv1.MachinePool) erro
 	// NOTE: MachinePool is behind MachinePool feature gate flag; the web hook
 	// must prevent creating newObj objects when the feature flag is disabled.
 	specPath := field.NewPath("spec")
-	if !feature.Gates.Enabled(feature.MachinePool) {
+	if !features.Gates.Enabled(features.MachinePool) {
 		return field.Forbidden(
 			specPath,
 			"can be set only if the MachinePool feature flag is enabled",
@@ -169,12 +169,7 @@ func (webhook *MachinePool) validate(oldObj, newObj *clusterv1.MachinePool) erro
 		}
 	}
 
-	if len(newObj.Spec.Template.Spec.Taints) > 0 {
-		allErrs = append(allErrs, field.Forbidden(specPath.Child("taints"), "taints feature for MachinePools is not yet implemented"))
-		if !feature.Gates.Enabled(feature.MachineTaintPropagation) {
-			allErrs = append(allErrs, field.Forbidden(specPath.Child("taints"), "taints are not allowed to be set when the feature gate MachineTaintPropagation is disabled"))
-		}
-	}
+	allErrs = append(allErrs, validateMachinePoolTaints(newObj.Spec.Template.Spec.Taints, specPath.Child("template", "spec", "taints"))...)
 
 	// Validate the metadata of the MachinePool template.
 	allErrs = append(allErrs, newObj.Spec.Template.Validate(specPath.Child("template", "metadata"))...)
@@ -183,6 +178,29 @@ func (webhook *MachinePool) validate(oldObj, newObj *clusterv1.MachinePool) erro
 		return nil
 	}
 	return apierrors.NewInvalid(clusterv1.GroupVersion.WithKind("MachinePool").GroupKind(), newObj.Name, allErrs)
+}
+
+func validateMachinePoolsFeatureGate[T any](machinePools []T, machinePoolsPath *field.Path) field.ErrorList {
+	if len(machinePools) == 0 || features.Gates.Enabled(features.MachinePool) {
+		return nil
+	}
+	return field.ErrorList{
+		field.Forbidden(machinePoolsPath, "can be set only if the MachinePool feature flag is enabled"),
+	}
+}
+
+func validateMachinePoolTaints(taints []clusterv1.MachineTaint, taintsPath *field.Path) field.ErrorList {
+	if len(taints) == 0 {
+		return nil
+	}
+
+	allErrs := field.ErrorList{
+		field.Forbidden(taintsPath, "taints feature for MachinePools is not yet implemented"),
+	}
+	if !features.Gates.Enabled(features.MachineTaintPropagation) {
+		allErrs = append(allErrs, field.Forbidden(taintsPath, "taints are not allowed to be set when the feature gate MachineTaintPropagation is disabled"))
+	}
+	return allErrs
 }
 
 func calculateMachinePoolReplicas(ctx context.Context, oldMP *clusterv1.MachinePool, newMP *clusterv1.MachinePool, dryRun bool) (int32, error) {

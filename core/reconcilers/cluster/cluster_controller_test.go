@@ -32,8 +32,8 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	runtimev1 "sigs.k8s.io/cluster-api/api/runtime/v1beta2"
-	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/contract"
+	"sigs.k8s.io/cluster-api/pkg/features"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/collections"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -89,6 +89,16 @@ func TestClusterReconciler(t *testing.T) {
 			}
 			return len(instance.Finalizers) > 0
 		}, timeout).Should(BeTrue())
+
+		// Validate the ControlPlaneInitialized condition reports the missing control plane.
+		g.Eventually(func(g Gomega) {
+			g.Expect(env.Get(ctx, key, instance)).To(Succeed())
+
+			condition := conditions.Get(instance, clusterv1.ClusterControlPlaneInitializedCondition)
+			g.Expect(condition).ToNot(BeNil())
+			g.Expect(condition.Status).To(Equal(metav1.ConditionUnknown))
+			g.Expect(condition.Reason).To(Equal(clusterv1.ClusterControlPlaneDoesNotExistReason))
+		}, timeout).Should(Succeed())
 
 		// Validate the RemoteConnectionProbe condition is false (because kubeconfig Secret doesn't exist)
 		g.Eventually(func(g Gomega) {
@@ -380,7 +390,7 @@ func TestClusterReconciler(t *testing.T) {
 			return true
 		}, timeout).Should(BeTrue())
 
-		g.Expect(cluster.Finalizers).Should(BeEmpty())
+		g.Expect(cluster.Finalizers).To(BeEmpty())
 
 		// Check finalizers are re-applied
 		g.Eventually(func() []string {
@@ -502,8 +512,7 @@ func TestClusterReconciler(t *testing.T) {
 }
 
 func TestClusterReconciler_reconcileDelete(t *testing.T) {
-	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.RuntimeSDK, true)
-	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)
+	utilfeature.SetFeatureGateDuringTest(t, features.Gates, features.RuntimeSDK, true)
 
 	fakeInfraCluster := builder.InfrastructureCluster("test-ns", "test-cluster").Build()
 
@@ -777,7 +786,7 @@ func (b *machinePoolBuilder) build() clusterv1.MachinePool {
 }
 
 func TestFilterOwnedDescendants(t *testing.T) {
-	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.MachinePool, true)
+	utilfeature.SetFeatureGateDuringTest(t, features.Gates, features.MachinePool, true)
 
 	c := clusterv1.Cluster{
 		ObjectMeta: metav1.ObjectMeta{

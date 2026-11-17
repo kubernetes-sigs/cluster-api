@@ -20,10 +20,10 @@ spec:
         name: quick-start-control-plane
     healthCheck:
       checks:
-        unhealthyNodeConditions:
-          - type: e2e.remediation.condition
-            status: "False"
-            timeoutSeconds: 20
+        unhealthyExpressions:
+          - expression: >-
+              node.has_condition_since("e2e.remediation.condition", "False", "20s")
+            message: "Node is unhealthy"
         unhealthyMachineConditions:
           - type: e2e.clusterclass.condition
             status: "False"

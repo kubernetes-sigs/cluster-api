@@ -17,6 +17,7 @@ limitations under the License.
 package v1beta1
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/onsi/gomega"
@@ -67,7 +68,7 @@ type matchCondition struct {
 func (m matchCondition) Match(actual interface{}) (success bool, err error) {
 	actualCondition, ok := actual.(clusterv1.Condition)
 	if !ok {
-		return false, fmt.Errorf("actual should be of type Condition")
+		return false, errors.New("actual should be of type Condition")
 	}
 
 	ok, err = gomega.Equal(m.expected.Type).Match(actualCondition.Type)

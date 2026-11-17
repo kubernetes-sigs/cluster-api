@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -44,15 +45,15 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	"sigs.k8s.io/cluster-api/controllers/external"
-	"sigs.k8s.io/cluster-api/feature"
-	"sigs.k8s.io/cluster-api/internal/hooks"
+	"sigs.k8s.io/cluster-api/pkg/features"
+	"sigs.k8s.io/cluster-api/pkg/runtimesdk/hooks"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/collections"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 	capicontrollerutil "sigs.k8s.io/cluster-api/util/controller"
 	"sigs.k8s.io/cluster-api/util/finalizers"
-	clog "sigs.k8s.io/cluster-api/util/log"
+	logutil "sigs.k8s.io/cluster-api/util/log"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/paused"
 	"sigs.k8s.io/cluster-api/util/predicates"
@@ -62,6 +63,9 @@ const (
 	// deleteRequeueAfter is how long to wait before checking again to see if the cluster still has children during
 	// deletion.
 	deleteRequeueAfter = 5 * time.Second
+
+	// logRateLimitInterval is the interval at which log lines repeated on every reconcile while waiting for something are logged.
+	logRateLimitInterval = time.Minute
 )
 
 // Update permissions on /finalizers subresrouce is required on management clusters with 'OwnerReferencesPermissionEnforcement' plugin enabled.
@@ -86,6 +90,7 @@ type Reconciler struct {
 
 	recorder        record.EventRecorder
 	externalTracker external.ObjectTracker
+	logRateLimiter  *logutil.Limiter
 }
 
 // SetupWithManager sets up the reconciler with the Manager.
@@ -108,7 +113,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 			&clusterv1.MachineDeployment{},
 			handler.EnqueueRequestsFromMapFunc(r.machineDeploymentToCluster),
 		)
-	if feature.Gates.Enabled(feature.MachinePool) {
+	if features.Gates.Enabled(features.MachinePool) {
 		b = b.Watches(
 			&clusterv1.MachinePool{},
 			handler.EnqueueRequestsFromMapFunc(r.machinePoolToCluster),
@@ -124,6 +129,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 		return pkgerrors.Wrap(err, "failed setting up with a controller manager")
 	}
 
+	r.logRateLimiter = logutil.New(ctx)
 	r.recorder = mgr.GetEventRecorderFor("cluster-controller")
 	r.externalTracker = external.ObjectTracker{
 		Controller:      c,
@@ -209,6 +215,8 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (retRes ct
 
 		return doReconcile(ctx, reconcileDelete, s)
 	}
+
+	r.reconcileCluster(ctx, s)
 
 	// Handle normal reconciliation loop.
 	if cluster.Spec.Topology.IsDefined() {
@@ -328,6 +336,15 @@ type scope struct {
 	deletingMessage string
 }
 
+func (r *Reconciler) reconcileCluster(_ context.Context, s *scope) {
+	cluster := s.cluster
+
+	if cluster.Labels == nil {
+		cluster.Labels = make(map[string]string)
+	}
+	cluster.Labels[clusterv1.ClusterNameLabel] = cluster.Name
+}
+
 // reconcileDelete handles cluster deletion.
 func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (reconcile.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
@@ -335,7 +352,7 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (reconcile.R
 
 	// If the RuntimeSDK and ClusterTopology flags are enabled, for clusters with managed topologies
 	// only proceed with delete if the cluster is marked as `ok-to-delete`
-	if feature.Gates.Enabled(feature.RuntimeSDK) && feature.Gates.Enabled(feature.ClusterTopology) {
+	if features.Gates.Enabled(features.RuntimeSDK) && features.Gates.Enabled(features.ClusterTopology) {
 		if cluster.Spec.Topology.IsDefined() && !hooks.IsOkToDelete(cluster) {
 			s.deletingReason = clusterv1.ClusterDeletingWaitingForBeforeDeleteHookReason
 			s.deletingMessage = "Waiting for BeforeClusterDelete hook"
@@ -358,7 +375,8 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (reconcile.R
 	}
 
 	if len(children) > 0 {
-		log.Info("Cluster still has children - deleting them first", "count", len(children))
+		// Note: The count is part of the key, so a change of the number of children (e.g. after a child is deleted) is logged immediately.
+		r.logRateLimiter.InfoAtMostEvery(log, logRateLimitInterval, waitingForChildrenDeletionKey(cluster, len(children)), "Cluster still has children", "count", len(children))
 
 		var errs []error
 
@@ -394,7 +412,7 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (reconcile.R
 		indirect := descendantCount - len(children)
 		names := s.descendants.objectsPendingDeleteNames(cluster)
 
-		log.Info("Cluster still has descendants - need to requeue", "descendants", strings.Join(names, "; "), "indirect descendants count", indirect)
+		r.logRateLimiter.InfoAtMostEvery(log, logRateLimitInterval, waitingForDescendantsDeletionKey(cluster), "Cluster still has descendants", "descendants", strings.Join(names, "; "), "indirect descendants count", indirect)
 
 		s.deletingReason = clusterv1.ClusterDeletingWaitingForWorkersDeletionReason
 		for i := range names {
@@ -405,6 +423,8 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (reconcile.R
 		// Requeue so we can check the next time to see if there are still any descendants left.
 		return ctrl.Result{RequeueAfter: deleteRequeueAfter}, nil
 	}
+	r.logRateLimiter.Forget(waitingForChildrenDeletionKey(cluster, 0))
+	r.logRateLimiter.Forget(waitingForDescendantsDeletionKey(cluster))
 
 	if cluster.Spec.ControlPlaneRef.IsDefined() {
 		if s.controlPlane == nil {
@@ -441,9 +461,10 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (reconcile.R
 
 			// We are watching it, will try again when it is deleted.
 			ref := cluster.Spec.ControlPlaneRef
-			log.Info("Cluster still has descendants - waiting for control plane deletion", ref.Kind, klog.KRef(cluster.Namespace, ref.Name))
+			r.logRateLimiter.InfoAtMostEvery(log, logRateLimitInterval, waitingForControlPlaneDeletionKey(cluster), "Cluster still has descendants - waiting for control plane deletion", ref.Kind, klog.KRef(cluster.Namespace, ref.Name))
 			return ctrl.Result{}, nil
 		}
+		r.logRateLimiter.Forget(waitingForControlPlaneDeletionKey(cluster))
 	}
 
 	if cluster.Spec.InfrastructureRef.IsDefined() {
@@ -481,17 +502,38 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (reconcile.R
 
 			// We are watching it, will try again when it is deleted.
 			ref := cluster.Spec.InfrastructureRef
-			log.Info("Cluster still has descendants - waiting for infrastructure cluster deletion", ref.Kind, klog.KRef(cluster.Namespace, ref.Name))
+			r.logRateLimiter.InfoAtMostEvery(log, logRateLimitInterval, waitingForInfrastructureDeletionKey(cluster), "Cluster still has descendants - waiting for infrastructure cluster deletion", ref.Kind, klog.KRef(cluster.Namespace, ref.Name))
 			return ctrl.Result{}, nil
 		}
+		r.logRateLimiter.Forget(waitingForInfrastructureDeletionKey(cluster))
 	}
 
 	s.deletingReason = clusterv1.ClusterDeletingDeletionCompletedReason
 	s.deletingMessage = "Deletion completed"
 
+	// Note: The Cluster is gone once the patch removing the finalizers succeeds; if the patch fails the next reconcile logs this line again.
+	if controllerutil.ContainsFinalizer(cluster, clusterv1.ClusterFinalizer) {
+		log.Info(fmt.Sprintf("Cluster %s deleted", cluster.Name), "duration", time.Since(cluster.DeletionTimestamp.Time).Truncate(time.Second/10))
+	}
 	controllerutil.RemoveFinalizer(cluster, clusterv1.ClusterFinalizer)
 	r.recorder.Eventf(cluster, corev1.EventTypeNormal, "Deleted", "Cluster %s has been deleted", cluster.Name)
 	return ctrl.Result{}, nil
+}
+
+func waitingForChildrenDeletionKey(c *clusterv1.Cluster, childrenCount int) logutil.Key {
+	return logutil.NewKey("WaitingForChildrenDeletion", logutil.WithObjects(c), logutil.WithValues(strconv.Itoa(childrenCount)))
+}
+
+func waitingForDescendantsDeletionKey(c *clusterv1.Cluster) logutil.Key {
+	return logutil.NewKey("WaitingForDescendantsDeletion", logutil.WithObjects(c))
+}
+
+func waitingForControlPlaneDeletionKey(c *clusterv1.Cluster) logutil.Key {
+	return logutil.NewKey("WaitingForControlPlaneDeletion", logutil.WithObjects(c))
+}
+
+func waitingForInfrastructureDeletionKey(c *clusterv1.Cluster) logutil.Key {
+	return logutil.NewKey("WaitingForInfrastructureDeletion", logutil.WithObjects(c))
 }
 
 type clusterDescendants struct {
@@ -531,7 +573,7 @@ func (c *clusterDescendants) objectsPendingDeleteNames(cluster *clusterv1.Cluste
 		}
 		if len(controlPlaneMachineNames) > 0 {
 			sort.Strings(controlPlaneMachineNames)
-			descendants = append(descendants, "Control plane Machines: "+clog.StringListToString(controlPlaneMachineNames))
+			descendants = append(descendants, "Control plane Machines: "+logutil.StringListToString(controlPlaneMachineNames))
 		}
 	}
 	machineDeploymentNames := make([]string, len(c.machineDeployments.Items))
@@ -540,7 +582,7 @@ func (c *clusterDescendants) objectsPendingDeleteNames(cluster *clusterv1.Cluste
 	}
 	if len(machineDeploymentNames) > 0 {
 		sort.Strings(machineDeploymentNames)
-		descendants = append(descendants, "MachineDeployments: "+clog.StringListToString(machineDeploymentNames))
+		descendants = append(descendants, "MachineDeployments: "+logutil.StringListToString(machineDeploymentNames))
 	}
 	machineSetNames := make([]string, len(c.machineSets.Items))
 	for i, machineSet := range c.machineSets.Items {
@@ -548,16 +590,16 @@ func (c *clusterDescendants) objectsPendingDeleteNames(cluster *clusterv1.Cluste
 	}
 	if len(machineSetNames) > 0 {
 		sort.Strings(machineSetNames)
-		descendants = append(descendants, "MachineSets: "+clog.StringListToString(machineSetNames))
+		descendants = append(descendants, "MachineSets: "+logutil.StringListToString(machineSetNames))
 	}
-	if feature.Gates.Enabled(feature.MachinePool) {
+	if features.Gates.Enabled(features.MachinePool) {
 		machinePoolNames := make([]string, len(c.machinePools.Items))
 		for i, machinePool := range c.machinePools.Items {
 			machinePoolNames[i] = machinePool.Name
 		}
 		if len(machinePoolNames) > 0 {
 			sort.Strings(machinePoolNames)
-			descendants = append(descendants, "MachinePools: "+clog.StringListToString(machinePoolNames))
+			descendants = append(descendants, "MachinePools: "+logutil.StringListToString(machinePoolNames))
 		}
 	}
 	workerMachineNames := make([]string, len(c.workerMachines))
@@ -566,7 +608,7 @@ func (c *clusterDescendants) objectsPendingDeleteNames(cluster *clusterv1.Cluste
 	}
 	if len(workerMachineNames) > 0 {
 		sort.Strings(workerMachineNames)
-		descendants = append(descendants, "Worker Machines: "+clog.StringListToString(workerMachineNames))
+		descendants = append(descendants, "Worker Machines: "+logutil.StringListToString(workerMachineNames))
 	}
 	return descendants
 }
@@ -589,7 +631,7 @@ func (r *Reconciler) getDescendants(ctx context.Context, s *scope) (reconcile.Re
 		return reconcile.Result{}, pkgerrors.Wrapf(err, "failed to list MachineSets for cluster %s/%s", cluster.Namespace, cluster.Name)
 	}
 
-	if feature.Gates.Enabled(feature.MachinePool) {
+	if features.Gates.Enabled(features.MachinePool) {
 		if err := r.Client.List(ctx, &descendants.machinePools, listOptions...); err != nil {
 			return reconcile.Result{}, pkgerrors.Wrapf(err, "failed to list MachinePools for the cluster %s/%s", cluster.Namespace, cluster.Name)
 		}
@@ -648,7 +690,7 @@ func (c *clusterDescendants) filterOwnedDescendants(cluster *clusterv1.Cluster) 
 		&c.machineSets,
 		toObjectList(c.workerMachines),
 	}
-	if feature.Gates.Enabled(feature.MachinePool) {
+	if features.Gates.Enabled(features.MachinePool) {
 		lists = append([]client.ObjectList{&c.machinePools}, lists...)
 	}
 

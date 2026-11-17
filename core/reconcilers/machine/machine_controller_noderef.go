@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"slices"
 	"strings"
+	"time"
 
 	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -33,13 +34,15 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/core/reconcilers/machinedeployment/mdutil"
-	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/util/taints"
+	"sigs.k8s.io/cluster-api/pkg/features"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
+	"sigs.k8s.io/cluster-api/util/conditions"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 	"sigs.k8s.io/cluster-api/util/index"
 	"sigs.k8s.io/cluster-api/util/labels"
+	logutil "sigs.k8s.io/cluster-api/util/log"
 )
 
 var (
@@ -94,8 +97,14 @@ func (r *Reconciler) reconcileNode(ctx context.Context, s *scope) (ctrl.Result, 
 				return ctrl.Result{}, pkgerrors.Wrapf(err, "no matching Node for Machine %q in namespace %q", machine.Name, machine.Namespace)
 			}
 			v1beta1conditions.MarkFalse(machine, clusterv1.MachineNodeHealthyV1Beta1Condition, clusterv1.NodeProvisioningV1Beta1Reason, clusterv1.ConditionSeverityWarning, "Waiting for a node with matching ProviderID to exist")
-			log.Info("Infrastructure provider reporting spec.providerID, matching Kubernetes Node is not yet available", machine.Spec.InfrastructureRef.Kind, klog.KRef(machine.Namespace, machine.Spec.InfrastructureRef.Name), "providerID", machine.Spec.ProviderID)
-			// No need to requeue here. Nodes emit an event that triggers reconciliation.
+			r.logRateLimiter.InfoAtMostEvery(log, logRateLimitInterval, waitingForNodeKey(machine), "Infrastructure provider reporting spec.providerID, matching Kubernetes Node is not yet available", machine.Spec.InfrastructureRef.Kind, klog.KRef(machine.Namespace, machine.Spec.InfrastructureRef.Name), "providerID", machine.Spec.ProviderID)
+			// The Node watch is only set up once the control plane is initialized (see watchClusterNodes), and a
+			// control plane made of stand-alone Machines is initialized only once one of them has a nodeRef. Until
+			// then no event reconciles this Machine when its Node shows up or gets its providerID, so requeue
+			// instead of waiting for the next resync.
+			if !conditions.IsTrue(cluster, clusterv1.ClusterControlPlaneInitializedCondition) {
+				return ctrl.Result{RequeueAfter: externalReadyWait}, nil
+			}
 			return ctrl.Result{}, nil
 		}
 		s.nodeGetError = err
@@ -110,7 +119,8 @@ func (r *Reconciler) reconcileNode(ctx context.Context, s *scope) (ctrl.Result, 
 		machine.Status.NodeRef = clusterv1.MachineNodeReference{
 			Name: s.node.Name,
 		}
-		log.Info("Infrastructure provider reporting spec.providerID, Kubernetes Node is now available", machine.Spec.InfrastructureRef.Kind, klog.KRef(machine.Namespace, machine.Spec.InfrastructureRef.Name), "providerID", machine.Spec.ProviderID, "Node", klog.KRef("", machine.Status.NodeRef.Name))
+		r.logRateLimiter.Forget(waitingForNodeKey(machine))
+		log.Info("Infrastructure provider reporting spec.providerID, Kubernetes Node is now available", machine.Spec.InfrastructureRef.Kind, klog.KRef(machine.Namespace, machine.Spec.InfrastructureRef.Name), "providerID", machine.Spec.ProviderID, "Node", klog.KRef("", machine.Status.NodeRef.Name), "duration", time.Since(machine.CreationTimestamp.Time).Truncate(time.Second/10))
 		r.recorder.Event(machine, corev1.EventTypeNormal, "SuccessfulSetNodeRef", machine.Status.NodeRef.Name)
 	}
 
@@ -165,6 +175,10 @@ func (r *Reconciler) reconcileNode(ctx context.Context, s *scope) (ctrl.Result, 
 
 	v1beta1conditions.MarkTrue(machine, clusterv1.MachineNodeHealthyV1Beta1Condition)
 	return ctrl.Result{}, nil
+}
+
+func waitingForNodeKey(m *clusterv1.Machine) logutil.Key {
+	return logutil.NewKey("WaitingForNode", logutil.WithObjects(m))
 }
 
 // summarizeNodeV1beta1Conditions summarizes a Node's conditions and returns the summary of condition statuses and concatenate failed condition messages:
@@ -238,7 +252,7 @@ func (r *Reconciler) getNode(ctx context.Context, c client.Reader, providerID st
 	return &nodeList.Items[0], nil
 }
 
-// PatchNode is required to workaround an issue on Node.Status.Address which is incorrectly annotated as patchStrategy=merge
+// patchNode is required to workaround an issue on Node.Status.Address which is incorrectly annotated as patchStrategy=merge
 // and this causes SSA patch to fail in case there are two addresses with the same key https://github.com/kubernetes-sigs/cluster-api/issues/8417
 func (r *Reconciler) patchNode(ctx context.Context, remoteClient client.Client, node *corev1.Node, newLabels, newAnnotations map[string]string, m *clusterv1.Machine, ms *clusterv1.MachineSet, md *clusterv1.MachineDeployment) error {
 	newNode := node.DeepCopy()
@@ -331,7 +345,7 @@ func (r *Reconciler) patchNode(ctx context.Context, remoteClient client.Client, 
 
 	// Propagate taints set on the Machine to the Node.
 	var propagateTaintsChanges bool
-	if feature.Gates.Enabled(feature.MachineTaintPropagation) {
+	if features.Gates.Enabled(features.MachineTaintPropagation) {
 		var err error
 		if propagateTaintsChanges, err = propagateMachineTaintsToNode(newNode, m.Spec.Taints); err != nil {
 			return pkgerrors.Wrapf(err, "failed to propagate Machine taints to Node %s", klog.KObj(node))

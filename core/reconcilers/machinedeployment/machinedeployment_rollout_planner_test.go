@@ -27,6 +27,7 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	. "github.com/onsi/gomega"
 	pkgerrors "github.com/pkg/errors"
@@ -103,9 +104,8 @@ func TestComputeDesiredNewMS(t *testing.T) {
 		// annotations that we are intentionally not setting in this func are not there
 		// Note: there is a dedicated test for ComputeRevisionAnnotations, so it is ok to have a minimal coverage here about revision management.
 		g.Expect(actualNewMS.Annotations).To(Equal(map[string]string{
-			clusterv1.RevisionAnnotation:                           "3",
-			"machinedeployment.clusters.x-k8s.io/revision-history": "1",
-			clusterv1.DisableMachineCreateAnnotation:               "false",
+			clusterv1.RevisionAnnotation:             "3",
+			clusterv1.DisableMachineCreateAnnotation: "false",
 		}))
 	})
 	t.Run("should preserve Revision annotations for newMS when already up to date", func(t *testing.T) {
@@ -115,8 +115,7 @@ func TestComputeDesiredNewMS(t *testing.T) {
 		currentMS := &clusterv1.MachineSet{
 			ObjectMeta: metav1.ObjectMeta{
 				Annotations: map[string]string{
-					clusterv1.RevisionAnnotation:                           "3",
-					"machinedeployment.clusters.x-k8s.io/revision-history": "1",
+					clusterv1.RevisionAnnotation: "3",
 				},
 			},
 		}
@@ -143,9 +142,8 @@ func TestComputeDesiredNewMS(t *testing.T) {
 		// annotations that we are intentionally not setting in this func are not there
 		// Note: there is a dedicated test for ComputeRevisionAnnotations, so it is ok to have a minimal coverage here about revision management.
 		g.Expect(actualNewMS.Annotations).To(Equal(map[string]string{
-			clusterv1.RevisionAnnotation:                           "3",
-			"machinedeployment.clusters.x-k8s.io/revision-history": "1",
-			clusterv1.DisableMachineCreateAnnotation:               "false",
+			clusterv1.RevisionAnnotation:             "3",
+			clusterv1.DisableMachineCreateAnnotation: "false",
 		}))
 	})
 }
@@ -154,14 +152,12 @@ func TestComputeDesiredOldMS(t *testing.T) {
 	t.Run("should carry over Revision annotations from oldMS", func(t *testing.T) {
 		g := NewWithT(t)
 		const revision = "4"
-		const revisionHistory = "1,3"
 
 		deployment := &clusterv1.MachineDeployment{}
 		currentMS := &clusterv1.MachineSet{
 			ObjectMeta: metav1.ObjectMeta{
 				Annotations: map[string]string{
-					clusterv1.RevisionAnnotation:                           revision,
-					"machinedeployment.clusters.x-k8s.io/revision-history": revisionHistory,
+					clusterv1.RevisionAnnotation: revision,
 				},
 			},
 		}
@@ -179,15 +175,13 @@ func TestComputeDesiredOldMS(t *testing.T) {
 
 		// annotations that we are intentionally not setting in this func are not there
 		g.Expect(actualOldMS.Annotations).To(Equal(map[string]string{
-			clusterv1.RevisionAnnotation:                           revision,
-			"machinedeployment.clusters.x-k8s.io/revision-history": revisionHistory,
-			clusterv1.DisableMachineCreateAnnotation:               "false",
+			clusterv1.RevisionAnnotation:             revision,
+			clusterv1.DisableMachineCreateAnnotation: "false",
 		}))
 	})
 	t.Run("should disable creation of machines on oldMS when rollout strategy is OnDelete", func(t *testing.T) {
 		g := NewWithT(t)
 		const revision = "4"
-		const revisionHistory = "1,3"
 
 		deployment := &clusterv1.MachineDeployment{
 			Spec: clusterv1.MachineDeploymentSpec{
@@ -197,8 +191,7 @@ func TestComputeDesiredOldMS(t *testing.T) {
 		currentMS := &clusterv1.MachineSet{
 			ObjectMeta: metav1.ObjectMeta{
 				Annotations: map[string]string{
-					clusterv1.RevisionAnnotation:                           revision,
-					"machinedeployment.clusters.x-k8s.io/revision-history": revisionHistory,
+					clusterv1.RevisionAnnotation: revision,
 				},
 			},
 		}
@@ -216,9 +209,8 @@ func TestComputeDesiredOldMS(t *testing.T) {
 
 		// annotations that we are intentionally not setting in this func are not there
 		g.Expect(actualOldMS.Annotations).To(Equal(map[string]string{
-			clusterv1.RevisionAnnotation:                           revision,
-			"machinedeployment.clusters.x-k8s.io/revision-history": revisionHistory,
-			clusterv1.DisableMachineCreateAnnotation:               "true",
+			clusterv1.RevisionAnnotation:             revision,
+			clusterv1.DisableMachineCreateAnnotation: "true",
 		}))
 	})
 }
@@ -415,75 +407,75 @@ func TestComputeDesiredMS(t *testing.T) {
 func assertDesiredMS(g *WithT, md *clusterv1.MachineDeployment, actualMS *clusterv1.MachineSet, expectedMS *clusterv1.MachineSet) {
 	// check UID
 	if expectedMS.UID != "" {
-		g.Expect(actualMS.UID).Should(Equal(expectedMS.UID))
+		g.Expect(actualMS.UID).To(Equal(expectedMS.UID))
 	}
 	// Check Name
 	if expectedMS.Name != "" {
-		g.Expect(actualMS.Name).Should(Equal(expectedMS.Name))
+		g.Expect(actualMS.Name).To(Equal(expectedMS.Name))
 	}
 	// Check Namespace
-	g.Expect(actualMS.Namespace).Should(Equal(expectedMS.Namespace))
+	g.Expect(actualMS.Namespace).To(Equal(expectedMS.Namespace))
 
 	// Check CreationTimestamp
-	g.Expect(actualMS.CreationTimestamp.IsZero()).Should(BeFalse())
+	g.Expect(actualMS.CreationTimestamp.IsZero()).To(BeFalse())
 
 	// Check Ownership
-	g.Expect(util.IsControlledBy(actualMS, md, clusterv1.GroupVersion.WithKind("MachineDeployment").GroupKind())).Should(BeTrue())
+	g.Expect(util.IsControlledBy(actualMS, md, clusterv1.GroupVersion.WithKind("MachineDeployment").GroupKind())).To(BeTrue())
 
 	// Check finalizers
-	g.Expect(actualMS.Finalizers).Should(Equal(expectedMS.Finalizers))
+	g.Expect(actualMS.Finalizers).To(Equal(expectedMS.Finalizers))
 
 	// Check Replicas
-	g.Expect(actualMS.Spec.Replicas).ShouldNot(BeNil())
-	g.Expect(actualMS.Spec.Replicas).Should(HaveValue(Equal(*expectedMS.Spec.Replicas)))
+	g.Expect(actualMS.Spec.Replicas).ToNot(BeNil())
+	g.Expect(actualMS.Spec.Replicas).To(HaveValue(Equal(*expectedMS.Spec.Replicas)))
 
 	// Check ClusterName
-	g.Expect(actualMS.Spec.ClusterName).Should(Equal(expectedMS.Spec.ClusterName))
+	g.Expect(actualMS.Spec.ClusterName).To(Equal(expectedMS.Spec.ClusterName))
 
 	// Check Labels
 	for k, v := range expectedMS.Labels {
-		g.Expect(actualMS.Labels).Should(HaveKeyWithValue(k, v))
+		g.Expect(actualMS.Labels).To(HaveKeyWithValue(k, v))
 	}
 	for k, v := range expectedMS.Spec.Template.Labels {
-		g.Expect(actualMS.Spec.Template.Labels).Should(HaveKeyWithValue(k, v))
+		g.Expect(actualMS.Spec.Template.Labels).To(HaveKeyWithValue(k, v))
 	}
 	// Verify that the labels also has the unique identifier key.
-	g.Expect(actualMS.Labels).Should(HaveKey(clusterv1.MachineDeploymentUniqueLabel))
-	g.Expect(actualMS.Spec.Template.Labels).Should(HaveKey(clusterv1.MachineDeploymentUniqueLabel))
+	g.Expect(actualMS.Labels).To(HaveKey(clusterv1.MachineDeploymentUniqueLabel))
+	g.Expect(actualMS.Spec.Template.Labels).To(HaveKey(clusterv1.MachineDeploymentUniqueLabel))
 
 	// Check Annotations
 	// Note: More nuanced validation of the Revision annotation calculations are done when testing `ComputeMachineSetAnnotations`.
 	for k, v := range expectedMS.Annotations {
-		g.Expect(actualMS.Annotations).Should(HaveKeyWithValue(k, v))
+		g.Expect(actualMS.Annotations).To(HaveKeyWithValue(k, v))
 	}
 	// annotations that must not be propagated from MD have been removed.
-	g.Expect(actualMS.Annotations).ShouldNot(HaveKey(corev1.LastAppliedConfigAnnotation))
-	g.Expect(actualMS.Annotations).ShouldNot(HaveKey(conversionutil.DataAnnotation))
+	g.Expect(actualMS.Annotations).ToNot(HaveKey(corev1.LastAppliedConfigAnnotation))
+	g.Expect(actualMS.Annotations).ToNot(HaveKey(conversionutil.DataAnnotation))
 
 	// annotations that must be derived from MD have been set.
-	g.Expect(actualMS.Annotations).Should(HaveKeyWithValue(clusterv1.DesiredReplicasAnnotation, fmt.Sprintf("%d", *md.Spec.Replicas)))
-	g.Expect(actualMS.Annotations).Should(HaveKeyWithValue(clusterv1.MaxReplicasAnnotation, fmt.Sprintf("%d", *(md.Spec.Replicas)+mdutil.MaxSurge(*md))))
+	g.Expect(actualMS.Annotations).To(HaveKeyWithValue(clusterv1.DesiredReplicasAnnotation, fmt.Sprintf("%d", *md.Spec.Replicas)))
+	g.Expect(actualMS.Annotations).To(HaveKeyWithValue(clusterv1.MaxReplicasAnnotation, fmt.Sprintf("%d", *(md.Spec.Replicas)+mdutil.MaxSurge(*md))))
 
 	// annotations that we are intentionally not setting in this func are not there
-	g.Expect(actualMS.Annotations).ShouldNot(HaveKey(clusterv1.RevisionAnnotation))
-	g.Expect(actualMS.Annotations).ShouldNot(HaveKey("machinedeployment.clusters.x-k8s.io/revision-history"))
-	g.Expect(actualMS.Annotations).ShouldNot(HaveKey(clusterv1.DisableMachineCreateAnnotation))
+	g.Expect(actualMS.Annotations).ToNot(HaveKey(clusterv1.RevisionAnnotation))
+	g.Expect(actualMS.Annotations).ToNot(HaveKey("machinedeployment.clusters.x-k8s.io/revision-history"))
+	g.Expect(actualMS.Annotations).ToNot(HaveKey(clusterv1.DisableMachineCreateAnnotation))
 
 	for k, v := range expectedMS.Spec.Template.Annotations {
-		g.Expect(actualMS.Spec.Template.Annotations).Should(HaveKeyWithValue(k, v))
+		g.Expect(actualMS.Spec.Template.Annotations).To(HaveKeyWithValue(k, v))
 	}
 
 	// Check MinReadySeconds
-	g.Expect(actualMS.Spec.Template.Spec.MinReadySeconds).Should(Equal(expectedMS.Spec.Template.Spec.MinReadySeconds))
+	g.Expect(actualMS.Spec.Template.Spec.MinReadySeconds).To(Equal(expectedMS.Spec.Template.Spec.MinReadySeconds))
 
 	// Check Order
-	g.Expect(actualMS.Spec.Deletion.Order).Should(Equal(expectedMS.Spec.Deletion.Order))
+	g.Expect(actualMS.Spec.Deletion.Order).To(Equal(expectedMS.Spec.Deletion.Order))
 
 	// Check MachineTemplateSpec
-	g.Expect(actualMS.Spec.Template.Spec).Should(BeComparableTo(expectedMS.Spec.Template.Spec))
+	g.Expect(actualMS.Spec.Template.Spec).To(BeComparableTo(expectedMS.Spec.Template.Spec))
 
 	// Check MachineNamingSpec
-	g.Expect(actualMS.Spec.MachineNaming.Template).Should(BeComparableTo(expectedMS.Spec.MachineNaming.Template))
+	g.Expect(actualMS.Spec.MachineNaming.Template).To(BeComparableTo(expectedMS.Spec.MachineNaming.Template))
 }
 
 // machineControllerMutator fakes a small part of the Machine controller, just what is required for the rollout to progress.
@@ -631,6 +623,9 @@ func machineSetControllerMutatorCreateMachines(_ context.Context, ms *clusterv1.
 	sortMachinesByName(scope.machineSetMachines[ms.Name])
 
 	scope.machinesCreated += len(machinesAdded)
+	for _, machineName := range machinesAdded {
+		scope.recordOperation(operationCreate, machineName)
+	}
 	fmt.Fprintf(logLines, "      - %s scaled up to %d/%[2]d replicas (%s created)", ms.Name, ptr.Deref(ms.Spec.Replicas, 0), strings.Join(machinesAdded, ","))
 }
 
@@ -710,6 +705,9 @@ func machineSetControllerMutatorMoveMachines(_ context.Context, ms *clusterv1.Ma
 	}
 	scope.machineSetMachines[ms.Name] = machinesSetMachines
 	scope.machinesUpdatedInPlace += len(machinesMoved)
+	for _, machineName := range machinesMoved {
+		scope.recordOperation(operationUpdateInPlace, machineName)
+	}
 	fmt.Fprintf(logLines, "      - %s scaled down to %d/%d replicas (%s moved to %s)", ms.Name, len(scope.machineSetMachines[ms.Name]), ptr.Deref(ms.Spec.Replicas, 0), strings.Join(machinesMoved, ","), targetMS.Name)
 
 	// Sort machines to ensure consistent reporting during tests.
@@ -751,6 +749,9 @@ func machineSetControllerMutatorDeleteMachines(_ context.Context, ms *clusterv1.
 	sortMachinesByName(scope.machineSetMachines[ms.Name])
 
 	scope.machinesDeleted += len(machinesDeleted)
+	for _, machineName := range machinesDeleted {
+		scope.recordOperation(operationDelete, machineName)
+	}
 	fmt.Fprintf(logLines, "      - %s scaled down to %d/%[2]d replicas (%s deleted)", ms.Name, ptr.Deref(ms.Spec.Replicas, 0), strings.Join(machinesDeleted, ","))
 }
 
@@ -790,6 +791,19 @@ type rolloutScope struct {
 	machinesCreated        int
 	machinesDeleted        int
 	machinesUpdatedInPlace int
+
+	// operations records the operations performed on Machines while running a test case, e.g. "create m4", "delete m1", "update in-place m2".
+	operations []string
+}
+
+const (
+	operationCreate        = "create"
+	operationDelete        = "delete"
+	operationUpdateInPlace = "update in-place"
+)
+
+func (r *rolloutScope) recordOperation(operation, machineName string) {
+	r.operations = append(r.operations, fmt.Sprintf("%s %s", operation, machineName))
 }
 
 func initCurrentRolloutScope(currentMachineNames []string, mdOptions ...machineDeploymentOption) (current *rolloutScope) {
@@ -900,6 +914,7 @@ func (r *rolloutScope) Clone() *rolloutScope {
 		machinesCreated:        r.machinesCreated,
 		machinesDeleted:        r.machinesDeleted,
 		machinesUpdatedInPlace: r.machinesUpdatedInPlace,
+		operations:             slices.Clone(r.operations),
 	}
 	for _, ms := range r.machineSets {
 		c.machineSets = append(c.machineSets, ms.DeepCopy())
@@ -1020,6 +1035,12 @@ func (r rolloutScope) rolloutPlannerResultSummary(p *rolloutPlanner) string {
 		}
 		if d.OtherChanges != "" {
 			fmt.Fprintf(&o, "      - Diff: %s\n", d.OtherChanges)
+		}
+		if p.pendingMSs.Len() > 0 {
+			fmt.Fprintf(&o, "    - Rollout blocked, waiting for canUpdateMachineSet decision (retry after %s)\n", p.pendingRetryAfter.Sub(p.now()).Round(time.Second))
+		}
+		if p.blockedMSs.Has(ms.Name) {
+			fmt.Fprintf(&o, "    - Rollout blocked, no operations allowed\n")
 		}
 	}
 	return o.String()
@@ -1296,12 +1317,6 @@ func createMD(failureDomain string, replicas int32, options ...machineDeployment
 func withStatusAvailableReplicas(r int32) fakeMachineSetOption {
 	return func(ms *clusterv1.MachineSet) {
 		ms.Status.AvailableReplicas = ptr.To(r)
-	}
-}
-
-func withStatusUpToDateReplicas(r int32) fakeMachineSetOption {
-	return func(ms *clusterv1.MachineSet) {
-		ms.Status.UpToDateReplicas = ptr.To(r)
 	}
 }
 

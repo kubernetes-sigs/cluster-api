@@ -30,13 +30,12 @@ import (
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
-	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/contract"
+	"sigs.k8s.io/cluster-api/pkg/features"
 	"sigs.k8s.io/cluster-api/util/test/builder"
 )
 
 func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
-	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)
 	ns := "ns1"
 
 	controlPlaneWithNoVersion := builder.ControlPlane(ns, "cp1").Build()
@@ -203,7 +202,7 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 				controlPlane: controlPlaneProvisioning,
 				machineSet:   &clusterv1.MachineSet{},
 				wantMessages: []string{
-					"GenericControlPlane ns1/cp1 is provisioning (\"ControlPlaneIsStable\" preflight check failed)",
+					"GenericControlPlane cp1 is provisioning (\"ControlPlaneIsStable\" preflight check failed)",
 				},
 				wantErr: false,
 			},
@@ -220,7 +219,7 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 				controlPlane: controlPlaneUpgrading,
 				machineSet:   &clusterv1.MachineSet{},
 				wantMessages: []string{
-					"GenericControlPlane ns1/cp1 is upgrading (\"ControlPlaneIsStable\" preflight check failed)",
+					"GenericControlPlane cp1 is upgrading (\"ControlPlaneIsStable\" preflight check failed)",
 				},
 				wantErr: false,
 			},
@@ -240,7 +239,7 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 				controlPlane: controlPlaneStable,
 				machineSet:   &clusterv1.MachineSet{},
 				wantMessages: []string{
-					"GenericControlPlane ns1/cp1 has a pending version upgrade to v1.27.2 (\"ControlPlaneIsStable\" preflight check failed)",
+					"GenericControlPlane cp1 has a pending version upgrade to v1.27.2 (\"ControlPlaneIsStable\" preflight check failed)",
 				},
 				wantErr: false,
 			},
@@ -263,7 +262,7 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 				controlPlane: controlPlaneStable,
 				machineSet:   &clusterv1.MachineSet{},
 				wantMessages: []string{
-					"GenericControlPlane ns1/cp1 has a pending version upgrade to v1.27.0 (\"ControlPlaneIsStable\" preflight check failed)",
+					"GenericControlPlane cp1 has a pending version upgrade to v1.27.0 (\"ControlPlaneIsStable\" preflight check failed)",
 				},
 				wantErr: false,
 			},
@@ -818,7 +817,7 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 	})
 
 	t.Run("should not run the preflight checks if the feature gate is disabled", func(t *testing.T) {
-		utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.MachineSetPreflightChecks, false)
+		utilfeature.SetFeatureGateDuringTest(t, features.Gates, features.MachineSetPreflightChecks, false)
 
 		g := NewWithT(t)
 		cluster := &clusterv1.Cluster{

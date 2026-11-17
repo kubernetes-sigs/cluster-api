@@ -54,10 +54,10 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	"sigs.k8s.io/cluster-api/core/reconcilers/clusterclass"
 	coreadmission "sigs.k8s.io/cluster-api/core/webhooks/admission"
-	runtimeclient "sigs.k8s.io/cluster-api/exp/runtime/client"
 	"sigs.k8s.io/cluster-api/exp/topology/desiredstate"
 	"sigs.k8s.io/cluster-api/exp/topology/scope"
-	"sigs.k8s.io/cluster-api/feature"
+	"sigs.k8s.io/cluster-api/pkg/features"
+	runtimeclient "sigs.k8s.io/cluster-api/pkg/runtimesdk/client"
 	"sigs.k8s.io/cluster-api/util/cache"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/contract"
@@ -71,7 +71,7 @@ func TestHandler(t *testing.T) {
 	g := NewWithT(t)
 
 	// Enable RuntimeSDK for this test so we can use RuntimeExtensions.
-	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.RuntimeSDK, true)
+	utilfeature.SetFeatureGateDuringTest(t, features.Gates, features.RuntimeSDK, true)
 
 	// Get a scope based on the Cluster and ClusterClass.
 	cluster := getCluster()
@@ -144,7 +144,7 @@ func TestHandler(t *testing.T) {
 
 	// Run variable defaulting and validation on the Cluster object.
 	errs := clusterWebhook.DefaultAndValidateVariables(ctx, s.Current.Cluster, nil, s.Blueprint.ClusterClass)
-	g.Expect(errs.ToAggregate()).ToNot(HaveOccurred())
+	g.Expect(errs.ToAggregate()).To(Succeed())
 
 	// Return the desired state.
 	desiredState, err := desiredStateGenerator.Generate(ctx, s)

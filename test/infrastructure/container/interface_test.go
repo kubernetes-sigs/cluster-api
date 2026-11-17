@@ -49,7 +49,7 @@ func TestFakeContext(t *testing.T) {
 	ctx := RuntimeInto(context.Background(), &fake)
 	rtc, err := RuntimeFrom(ctx)
 
-	g.Expect(err).ShouldNot(HaveOccurred())
+	g.Expect(err).ToNot(HaveOccurred())
 
 	_, ok := rtc.(*FakeRuntime)
 	g.Expect(ok).To(BeTrue())
@@ -61,7 +61,7 @@ func TestDockerContext(t *testing.T) {
 	ctx := RuntimeInto(context.Background(), &docker)
 	rtc, err := RuntimeFrom(ctx)
 
-	g.Expect(err).ShouldNot(HaveOccurred())
+	g.Expect(err).ToNot(HaveOccurred())
 
 	_, ok := rtc.(*dockerRuntime)
 	g.Expect(ok).To(BeTrue())
@@ -70,7 +70,7 @@ func TestDockerContext(t *testing.T) {
 func TestInvalidContext(t *testing.T) {
 	g := NewWithT(t)
 	_, err := RuntimeFrom(context.Background())
-	g.Expect(err).Should(HaveOccurred())
+	g.Expect(err).To(HaveOccurred())
 }
 
 func TestGetClusterIPFamily(t *testing.T) {

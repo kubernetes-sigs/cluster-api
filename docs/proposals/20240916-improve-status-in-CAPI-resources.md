@@ -15,9 +15,9 @@ creation-date: 2024-07-17
 last-updated: 2025-01-30
 status: implementable
 see-also:
-- [Proposal about custom Cluster API conditions (superseded by this document)](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20200506-conditions.md)
-- [Kubernetes API guidelines](https://github.com/kubernetes/community/blob/master/contributors/devel/sig-architecture/api-conventions.md)
-- [Kubernetes API deprecation rules](https://kubernetes.io/docs/reference/using-api/deprecation-policy/#fields-of-rest-resources)
+- "[Proposal about custom Cluster API conditions (superseded by this document)](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20200506-conditions.md)"
+- "[Kubernetes API guidelines](https://github.com/kubernetes/community/blob/master/contributors/devel/sig-architecture/api-conventions.md)"
+- "[Kubernetes API deprecation rules](https://kubernetes.io/docs/reference/using-api/deprecation-policy/#fields-of-rest-resources)"
 ---
 
 # Improving status in CAPI resources

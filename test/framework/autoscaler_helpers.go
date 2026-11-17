@@ -358,7 +358,7 @@ func DisableAutoscalerForMachineDeploymentTopologyAndWait(ctx context.Context, i
 		input.Cluster.Spec.Topology.Workers.MachineDeployments[i] = md
 	}
 	Eventually(func(g Gomega) {
-		g.Expect(patchHelper.Patch(ctx, input.Cluster)).Should(Succeed())
+		g.Expect(patchHelper.Patch(ctx, input.Cluster)).To(Succeed())
 	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to patch Cluster topology to drop autoscaler annotations")
 
 	log.Logf("Wait for the annotations to be dropped from the MachineDeployments")
@@ -408,7 +408,7 @@ func EnableAutoscalerForMachineDeploymentTopologyAndWait(ctx context.Context, in
 		input.Cluster.Spec.Topology.Workers.MachineDeployments[i] = md
 	}
 	Eventually(func(g Gomega) {
-		g.Expect(patchHelper.Patch(ctx, input.Cluster)).Should(Succeed())
+		g.Expect(patchHelper.Patch(ctx, input.Cluster)).To(Succeed())
 	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to patch Cluster topology to add autoscaler annotations")
 
 	log.Logf("Wait for the annotations to applied on the MachineDeployments")
@@ -462,7 +462,7 @@ func DisableAutoscalerForMachinePoolTopologyAndWait(ctx context.Context, input D
 		input.Cluster.Spec.Topology.Workers.MachinePools[i] = mp
 	}
 	Eventually(func(g Gomega) {
-		g.Expect(patchHelper.Patch(ctx, input.Cluster)).Should(Succeed())
+		g.Expect(patchHelper.Patch(ctx, input.Cluster)).To(Succeed())
 	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to patch Cluster topology to drop autoscaler annotations")
 
 	log.Logf("Wait for the annotations to be dropped from the MachinePools")
@@ -512,7 +512,7 @@ func EnableAutoscalerForMachinePoolTopologyAndWait(ctx context.Context, input En
 		input.Cluster.Spec.Topology.Workers.MachinePools[i] = mp
 	}
 	Eventually(func(g Gomega) {
-		g.Expect(patchHelper.Patch(ctx, input.Cluster)).Should(Succeed())
+		g.Expect(patchHelper.Patch(ctx, input.Cluster)).To(Succeed())
 	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to patch Cluster topology to add autoscaler annotations")
 
 	log.Logf("Wait for the annotations to applied on the MachinePools")

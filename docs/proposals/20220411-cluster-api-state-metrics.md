@@ -11,7 +11,7 @@ reviewers:
   - "@fabriziopandini"
 creation-date: 2022-03-03
 last-updated: 2022-09-07
-status: experimental
+status: implemented
 ---
 
 # Cluster API State Metrics
@@ -388,12 +388,12 @@ The initial plan is to add kube-state-metrics as to the `./hack/observability` d
 
 <!-- Links -->
 
-[Cluster API Book Glossary]: https://cluster-api.sigs.k8s.io/reference/glossary.html
+[Cluster API Book Glossary]: ../book/src/reference/glossary.md
 [mercedes-benz/cluster-api-state-metrics]: https://github.com/mercedes-benz/cluster-api-state-metrics/
 [Mercedes-Benz]: https://opensource.mercedes-benz.com/
 [OpenMetrics]: https://github.com/OpenObservability/OpenMetrics/blob/main/specification/OpenMetrics.md
 [metrics umbrella issue #1477]: https://github.com/kubernetes-sigs/cluster-api/issues/1477
-[corresponding section in the cluster-api docs]: https://cluster-api.sigs.k8s.io/reference/api/crd-relationships#worker-machines-relationships
+[corresponding section in the cluster-api docs]: ../book/src/reference/api/crd-relationships.md#worker-machines-relationships
 [Deployment]: https://github.com/kubernetes/kube-state-metrics/blob/main/docs/metrics/workload/deployment-metrics.md
 [ReplicaSet]: https://github.com/kubernetes/kube-state-metrics/blob/main/docs/metrics/workload/replicaset-metrics.md
 [Pod]: https://github.com/kubernetes/kube-state-metrics/blob/main/docs/metrics/workload/pod-metrics.md

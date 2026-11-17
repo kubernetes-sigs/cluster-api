@@ -43,6 +43,7 @@ func Examples(s string) string {
 	return normalizer{s}.trim().indent().string
 }
 
+// normalizer is a string wrapper.
 // TODO: document this, what does it do? Why is it here?
 type normalizer struct {
 	string

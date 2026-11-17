@@ -725,7 +725,7 @@ func (d *dockerRuntime) usernsRemap(info dockersystem.Info) bool {
 	return false
 }
 
-// rootless: use fuse-overlayfs by default
+// mountFuse determines if /dev/fuse should be mounted; for rootless: use fuse-overlayfs by default.
 // https://github.com/kubernetes-sigs/kind/issues/2275
 func (d *dockerRuntime) mountFuse(info dockersystem.Info) bool {
 	for _, o := range info.SecurityOptions {

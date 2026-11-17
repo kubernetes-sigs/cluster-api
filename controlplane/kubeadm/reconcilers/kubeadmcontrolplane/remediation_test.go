@@ -23,6 +23,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/go-logr/logr"
 	. "github.com/onsi/gomega"
 	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -30,7 +31,6 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/tools/record"
-	utilfeature "k8s.io/component-base/featuregate/testing"
 	utilptr "k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -43,7 +43,8 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/pkg"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/pkg/etcd"
-	"sigs.k8s.io/cluster-api/feature"
+	"sigs.k8s.io/cluster-api/controlplane/kubeadm/setup"
+	"sigs.k8s.io/cluster-api/pkg/dynamiccache"
 	"sigs.k8s.io/cluster-api/util/collections"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
@@ -428,8 +429,6 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 		g.Expect(ret.IsZero()).To(BeTrue()) // Remediation skipped
 	})
 	t.Run("reconcileUnhealthyMachines return early if there is a pending topology upgrade", func(t *testing.T) {
-		utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)
-
 		g := NewWithT(t)
 
 		m1 := createMachine(ctx, g, ns.Name, "m1-unhealthy-", withMachineHealthCheckFailed(), withWaitBeforeDeleteFinalizer())
@@ -1635,8 +1634,6 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 		g.Expect(env.CleanupAndWait(ctx, m2, m3)).To(Succeed())
 	})
 	t.Run("Remediation happens when the CP is at intermediate steps of an upgrade sequence", func(t *testing.T) {
-		utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)
-
 		g := NewWithT(t)
 
 		m1 := createMachine(ctx, g, ns.Name, "m1-unhealthy-", withMachineHealthCheckFailed(), withWaitBeforeDeleteFinalizer())
@@ -1713,6 +1710,253 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 		removeFinalizer(g, m1)
 		g.Expect(env.Cleanup(ctx, m1, m2, m3)).To(Succeed())
 	})
+}
+
+func TestCheckRetryLimits(t *testing.T) {
+	remediationTime := time.Date(2026, 1, 1, 12, 0, 0, 0, time.UTC)
+	defaultMinHealthyPeriod := time.Duration(controlplanev1.DefaultMinHealthyPeriodSeconds) * time.Second
+
+	tests := []struct {
+		name                string
+		lastRemediation     *RemediationData // nil means the machine has no RemediationForAnnotation.
+		invalidAnnotation   bool
+		remediationSpec     controlplanev1.KubeadmControlPlaneRemediationSpec
+		unhealthySince      *time.Time // when MachineHealthCheckSucceeded turned False; nil means the condition is missing.
+		machineVersion      string     // version of the machine to be remediated; the KCP version is v1.31.0 (empty means same as KCP).
+		rolloutAfterExpired bool       // KCP spec.rollout.after is expired and newer than the machine.
+		wantErr             bool
+		wantCanRemediate    bool
+		wantRetryCount      int
+		wantConditionReason string // empty means no MachineOwnerRemediated condition is expected.
+	}{
+		// Machine becomes unhealthy, KCP without MaxRetry and RetryPeriodSeconds
+
+		{
+			name:             "MaxRetry not set: retries are unlimited",
+			lastRemediation:  &RemediationData{Machine: "m0", Timestamp: metav1.Time{Time: remediationTime.Add(-defaultMinHealthyPeriod / 2)}, RetryCount: 100},
+			wantCanRemediate: true,
+			wantRetryCount:   101,
+		},
+
+		// Machine becomes unhealthy, KCP with MaxRetry
+
+		{
+			name:             "MaxRetry not reached: retry count is incremented",
+			remediationSpec:  controlplanev1.KubeadmControlPlaneRemediationSpec{MaxRetry: utilptr.To[int32](3)},
+			lastRemediation:  &RemediationData{Machine: "m0", Timestamp: metav1.Time{Time: remediationTime.Add(-defaultMinHealthyPeriod / 2)}, RetryCount: 1},
+			wantCanRemediate: true,
+			wantRetryCount:   2,
+		},
+		{
+			name:                "MaxRetry reached: remediation is blocked, retry count is carried over",
+			remediationSpec:     controlplanev1.KubeadmControlPlaneRemediationSpec{MaxRetry: utilptr.To[int32](3)},
+			lastRemediation:     &RemediationData{Machine: "m0", Timestamp: metav1.Time{Time: remediationTime.Add(-defaultMinHealthyPeriod / 2)}, RetryCount: 3},
+			wantCanRemediate:    false,
+			wantRetryCount:      3,
+			wantConditionReason: controlplanev1.KubeadmControlPlaneMachineCannotBeRemediatedReason,
+		},
+
+		// Machine becomes unhealthy, KCP with RetryPeriodSeconds
+
+		{
+			name:                "RetryPeriodSeconds not expired: remediation is deferred, takes precedence over MaxRetry",
+			remediationSpec:     controlplanev1.KubeadmControlPlaneRemediationSpec{MaxRetry: utilptr.To[int32](3), RetryPeriodSeconds: utilptr.To[int32](10 * 60)},
+			lastRemediation:     &RemediationData{Machine: "m0", Timestamp: metav1.Time{Time: remediationTime.Add(-time.Minute)}, RetryCount: 3},
+			wantCanRemediate:    false,
+			wantRetryCount:      3,
+			wantConditionReason: controlplanev1.KubeadmControlPlaneMachineRemediationDeferredReason,
+		},
+		{
+			name:             "RetryPeriodSeconds expired, MaxRetry not reached: retry count is incremented",
+			remediationSpec:  controlplanev1.KubeadmControlPlaneRemediationSpec{MaxRetry: utilptr.To[int32](3), RetryPeriodSeconds: utilptr.To[int32](10 * 60)},
+			lastRemediation:  &RemediationData{Machine: "m0", Timestamp: metav1.Time{Time: remediationTime.Add(-11 * time.Minute)}, RetryCount: 1},
+			wantCanRemediate: true,
+			wantRetryCount:   2,
+		},
+		{
+			name:                "RetryPeriodSeconds expired, MaxRetry reached: remediation is blocked, retry count is carried over",
+			remediationSpec:     controlplanev1.KubeadmControlPlaneRemediationSpec{MaxRetry: utilptr.To[int32](3), RetryPeriodSeconds: utilptr.To[int32](10 * 60)},
+			lastRemediation:     &RemediationData{Machine: "m0", Timestamp: metav1.Time{Time: remediationTime.Add(-11 * time.Minute)}, RetryCount: 3},
+			wantCanRemediate:    false,
+			wantRetryCount:      3,
+			wantConditionReason: controlplanev1.KubeadmControlPlaneMachineCannotBeRemediatedReason,
+		},
+
+		// Machine becomes unhealthy again before MinHealthyPeriodSeconds expires, KCP with MinHealthyPeriodSeconds
+		// NOTE: the machine was marked unhealthy before MinHealthyPeriodSeconds from the last remediation expired, so
+		// this is a retry of the same sequence, no matter how much time elapsed since the last remediation.
+
+		{
+			name:                "MinHealthyPeriodSeconds not expired, MaxRetry reached: remediation is blocked",
+			remediationSpec:     controlplanev1.KubeadmControlPlaneRemediationSpec{MaxRetry: utilptr.To[int32](3), MinHealthyPeriodSeconds: utilptr.To(4 * controlplanev1.DefaultMinHealthyPeriodSeconds)},
+			lastRemediation:     &RemediationData{Machine: "m0", Timestamp: metav1.Time{Time: remediationTime.Add(-2 * defaultMinHealthyPeriod)}, RetryCount: 3},
+			unhealthySince:      utilptr.To(remediationTime.Add(-defaultMinHealthyPeriod)),
+			wantCanRemediate:    false,
+			wantRetryCount:      3,
+			wantConditionReason: controlplanev1.KubeadmControlPlaneMachineCannotBeRemediatedReason,
+		},
+		{
+			name:                "MinHealthyPeriodSeconds elapsed since last remediation, MaxRetry reached: remediation stays blocked",
+			remediationSpec:     controlplanev1.KubeadmControlPlaneRemediationSpec{MaxRetry: utilptr.To[int32](3), MinHealthyPeriodSeconds: utilptr.To[int32](5 * 60)},
+			lastRemediation:     &RemediationData{Machine: "m0", Timestamp: metav1.Time{Time: remediationTime.Add(-10 * time.Minute)}, RetryCount: 3},
+			unhealthySince:      utilptr.To(remediationTime.Add(-8 * time.Minute)),
+			wantCanRemediate:    false,
+			wantRetryCount:      3,
+			wantConditionReason: controlplanev1.KubeadmControlPlaneMachineCannotBeRemediatedReason,
+		},
+
+		// Machine becomes unhealthy again after MinHealthyPeriodSeconds expires, KCP with MinHealthyPeriodSeconds
+		// NOTE: the machine was marked unhealthy after MinHealthyPeriodSeconds from the last remediation expired, so
+		// the new issue is assumed unrelated from the previous one and a new sequence starts.
+
+		{
+			name:             "MinHealthyPeriodSeconds expired, MaxRetry not reached: retry counter is reset",
+			remediationSpec:  controlplanev1.KubeadmControlPlaneRemediationSpec{MaxRetry: utilptr.To[int32](3), MinHealthyPeriodSeconds: utilptr.To[int32](5 * 60)},
+			lastRemediation:  &RemediationData{Machine: "m0", Timestamp: metav1.Time{Time: remediationTime.Add(-10 * time.Minute)}, RetryCount: 2},
+			unhealthySince:   utilptr.To(remediationTime),
+			wantCanRemediate: true,
+			wantRetryCount:   0,
+		},
+		{
+			name:             "MinHealthyPeriodSeconds expired, MaxRetry reached: retry counter is reset",
+			remediationSpec:  controlplanev1.KubeadmControlPlaneRemediationSpec{MaxRetry: utilptr.To[int32](3), MinHealthyPeriodSeconds: utilptr.To[int32](5 * 60)},
+			lastRemediation:  &RemediationData{Machine: "m0", Timestamp: metav1.Time{Time: remediationTime.Add(-10 * time.Minute)}, RetryCount: 3},
+			unhealthySince:   utilptr.To(remediationTime),
+			wantCanRemediate: true,
+			wantRetryCount:   0,
+		},
+		{
+			name:             "MinHealthyPeriodSeconds expired exactly when the machine is marked unhealthy, MaxRetry reached: retry counter is reset",
+			remediationSpec:  controlplanev1.KubeadmControlPlaneRemediationSpec{MaxRetry: utilptr.To[int32](3)},
+			lastRemediation:  &RemediationData{Machine: "m0", Timestamp: metav1.Time{Time: remediationTime.Add(-2 * defaultMinHealthyPeriod)}, RetryCount: 3},
+			unhealthySince:   utilptr.To(remediationTime.Add(-defaultMinHealthyPeriod)),
+			wantCanRemediate: true,
+			wantRetryCount:   0,
+		},
+
+		// other test cases
+
+		{
+			name:             "first remediation: no annotation, starts a new sequence",
+			wantCanRemediate: true,
+			wantRetryCount:   0,
+		},
+		{
+			name:              "invalid annotation: returns an error",
+			invalidAnnotation: true,
+			wantErr:           true,
+		},
+		{
+			name:             "MachineHealthCheckSucceeded condition missing, MinHealthyPeriodSeconds expired, MaxRetry reached: falls back to reconciliation time and retry counter is reset",
+			remediationSpec:  controlplanev1.KubeadmControlPlaneRemediationSpec{MaxRetry: utilptr.To[int32](3)},
+			lastRemediation:  &RemediationData{Machine: "m0", Timestamp: metav1.Time{Time: remediationTime.Add(-defaultMinHealthyPeriod - time.Second)}, RetryCount: 3},
+			wantCanRemediate: true,
+			wantRetryCount:   0,
+		},
+		{
+			name:                "MachineHealthCheckSucceeded condition missing, MinHealthyPeriodSeconds not expired, MaxRetry reached: remediation is blocked",
+			remediationSpec:     controlplanev1.KubeadmControlPlaneRemediationSpec{MaxRetry: utilptr.To[int32](3)},
+			lastRemediation:     &RemediationData{Machine: "m0", Timestamp: metav1.Time{Time: remediationTime.Add(-defaultMinHealthyPeriod + time.Second)}, RetryCount: 3},
+			wantCanRemediate:    false,
+			wantRetryCount:      3,
+			wantConditionReason: controlplanev1.KubeadmControlPlaneMachineCannotBeRemediatedReason,
+		},
+		{
+			name:             "annotation without Timestamp: history is ignored and retry counter is reset",
+			lastRemediation:  &RemediationData{Machine: "m0", RetryCount: 3},
+			remediationSpec:  controlplanev1.KubeadmControlPlaneRemediationSpec{MaxRetry: utilptr.To[int32](3)},
+			wantCanRemediate: true,
+			wantRetryCount:   0,
+		},
+		{
+			name:             "MaxRetry reached, Machine configuration is outdated: retry counter is reset",
+			remediationSpec:  controlplanev1.KubeadmControlPlaneRemediationSpec{MaxRetry: utilptr.To[int32](3)},
+			lastRemediation:  &RemediationData{Machine: "m0", Timestamp: metav1.Time{Time: remediationTime.Add(-defaultMinHealthyPeriod / 2)}, RetryCount: 3},
+			machineVersion:   "v1.30.0",
+			wantCanRemediate: true,
+			wantRetryCount:   0,
+		},
+		{
+			name:             "RetryPeriodSeconds not expired, Machine configuration is outdated: retry counter is reset",
+			remediationSpec:  controlplanev1.KubeadmControlPlaneRemediationSpec{MaxRetry: utilptr.To[int32](3), RetryPeriodSeconds: utilptr.To[int32](600)},
+			lastRemediation:  &RemediationData{Machine: "m0", Timestamp: metav1.Time{Time: remediationTime.Add(-time.Minute)}, RetryCount: 1},
+			machineVersion:   "v1.30.0",
+			wantCanRemediate: true,
+			wantRetryCount:   0,
+		},
+		{
+			name:                "MaxRetry reached, only rolloutAfter expired: remediation is blocked, Machine configuration is not outdated, retry count is carried over",
+			remediationSpec:     controlplanev1.KubeadmControlPlaneRemediationSpec{MaxRetry: utilptr.To[int32](3)},
+			lastRemediation:     &RemediationData{Machine: "m0", Timestamp: metav1.Time{Time: remediationTime.Add(-defaultMinHealthyPeriod / 2)}, RetryCount: 3},
+			rolloutAfterExpired: true,
+			wantCanRemediate:    false,
+			wantRetryCount:      3,
+			wantConditionReason: controlplanev1.KubeadmControlPlaneMachineCannotBeRemediatedReason,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			machine := &clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m1", Namespace: "default"}}
+			if tt.lastRemediation != nil {
+				machine.Annotations = map[string]string{
+					controlplanev1.RemediationForAnnotation: MustMarshalRemediationData(tt.lastRemediation),
+				}
+			}
+			if tt.invalidAnnotation {
+				machine.Annotations = map[string]string{controlplanev1.RemediationForAnnotation: "not-json"}
+			}
+			if tt.unhealthySince != nil {
+				conditions.Set(machine, metav1.Condition{
+					Type:               clusterv1.MachineHealthCheckSucceededCondition,
+					Status:             metav1.ConditionFalse,
+					Reason:             clusterv1.MachineHealthCheckNodeDeletedReason,
+					LastTransitionTime: metav1.Time{Time: *tt.unhealthySince},
+				})
+			}
+			kcp := &controlplanev1.KubeadmControlPlane{
+				Spec: controlplanev1.KubeadmControlPlaneSpec{Version: "v1.31.0", Remediation: tt.remediationSpec},
+			}
+			machine.Spec.Version = kcp.Spec.Version
+			machine.Spec.InfrastructureRef = clusterv1.ContractVersionedObjectReference{Kind: "GenericInfrastructureMachine", APIGroup: clusterv1.GroupVersionInfrastructure.Group, Name: machine.Name}
+			if tt.machineVersion != "" {
+				machine.Spec.Version = tt.machineVersion
+			}
+			if tt.rolloutAfterExpired {
+				machine.CreationTimestamp = metav1.NewTime(time.Now().Add(-2 * time.Hour))
+				kcp.Spec.Rollout.After = metav1.NewTime(time.Now().Add(-time.Hour))
+			}
+			// Note: Using NewControlPlane to compute the UpToDate results the same way the KCP controller does.
+			c := newFakeClient(builder.GenericInfrastructureMachineCRD)
+			dc := dynamiccache.NewFakeDynamicCache(c, setup.DynamicCacheOptions())
+			controlPlane, err := pkg.NewControlPlane(ctx, metav1.Now(), nil, dc, c, &clusterv1.Cluster{}, kcp, collections.FromMachines(machine))
+			g.Expect(err).ToNot(HaveOccurred())
+
+			r := &Reconciler{}
+			data, canRemediate, err := r.checkRetryLimits(logr.Discard(), machine, controlPlane, remediationTime)
+
+			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
+				return
+			}
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(canRemediate).To(Equal(tt.wantCanRemediate))
+			g.Expect(data.Machine).To(Equal(machine.Name))
+			g.Expect(data.RetryCount).To(Equal(tt.wantRetryCount))
+			g.Expect(data.Timestamp.Time).To(Equal(remediationTime))
+
+			condition := conditions.Get(machine, clusterv1.MachineOwnerRemediatedCondition)
+			if tt.wantConditionReason == "" {
+				g.Expect(condition).To(BeNil())
+				return
+			}
+			g.Expect(condition).ToNot(BeNil())
+			g.Expect(condition.Status).To(Equal(metav1.ConditionFalse))
+			g.Expect(condition.Reason).To(Equal(tt.wantConditionReason))
+		})
+	}
 }
 
 func TestReconcileUnhealthyMachinesSequences(t *testing.T) {

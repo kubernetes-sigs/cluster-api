@@ -43,7 +43,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	bootstrapbuilder "sigs.k8s.io/cluster-api/bootstrap/kubeadm/pkg/builder"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
-	"sigs.k8s.io/cluster-api/feature"
+	"sigs.k8s.io/cluster-api/pkg/features"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/certs"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -194,7 +194,7 @@ func TestKubeadmConfigReconciler_TestSecretOwnerReferenceReconciliation(t *testi
 		g.Expect(myclient.Get(ctx, key, actual)).To(Succeed())
 
 		controllerOwner := metav1.GetControllerOf(actual)
-		g.Expect(controllerOwner).To(Not(BeNil()))
+		g.Expect(controllerOwner).ToNot(BeNil())
 		g.Expect(controllerOwner.Kind).To(Equal("KubeadmConfig"))
 		g.Expect(controllerOwner.Name).To(Equal(config.Name))
 	})
@@ -206,7 +206,7 @@ func TestKubeadmConfigReconciler_TestSecretOwnerReferenceReconciliation(t *testi
 		g.Expect(myclient.Get(ctx, key, actual)).To(Succeed())
 
 		controllerOwner := metav1.GetControllerOf(actual)
-		g.Expect(controllerOwner).To(Not(BeNil()))
+		g.Expect(controllerOwner).ToNot(BeNil())
 		g.Expect(controllerOwner.Kind).To(Equal("KubeadmConfig"))
 		g.Expect(controllerOwner.Name).To(Equal(config.Name))
 	})
@@ -230,7 +230,7 @@ func TestKubeadmConfigReconciler_TestSecretOwnerReferenceReconciliation(t *testi
 		g.Expect(myclient.Get(ctx, key, actual)).To(Succeed())
 
 		controllerOwner := metav1.GetControllerOf(actual)
-		g.Expect(controllerOwner).To(Not(BeNil()))
+		g.Expect(controllerOwner).ToNot(BeNil())
 		g.Expect(controllerOwner.Kind).To(Equal("Machine"))
 		g.Expect(controllerOwner.Name).To(Equal(machine.Name))
 	})
@@ -660,34 +660,46 @@ func TestReconcileIfJoinCertificatesAvailableConditionInNodesAndControlPlaneIsRe
 	cluster.Spec.ControlPlaneEndpoint = clusterv1.APIEndpoint{Host: "100.105.150.1", Port: 6443}
 
 	useCases := []struct {
-		name          string
-		machine       *clusterv1.Machine
-		configName    string
-		configBuilder func(string, string) *bootstrapv1.KubeadmConfig
+		name           string
+		machine        *clusterv1.Machine
+		configName     string
+		configBuilder  func(string, string) *bootstrapv1.KubeadmConfig
+		secretsBuilder func(*testing.T, *clusterv1.Cluster, *bootstrapv1.KubeadmConfig) []client.Object
 	}{
 		{
-			name:          "Join a worker node with a fully compiled kubeadm config object",
-			machine:       newWorkerMachineForCluster(cluster),
-			configName:    "worker-join-cfg",
-			configBuilder: newWorkerJoinKubeadmConfig,
+			name:           "Join a worker node with a fully compiled kubeadm config object",
+			machine:        newWorkerMachineForCluster(cluster),
+			configName:     "worker-join-cfg",
+			configBuilder:  newWorkerJoinKubeadmConfig,
+			secretsBuilder: createSecrets,
 		},
 		{
-			name:          "Join a worker node  with an empty kubeadm config object (defaults apply)",
-			machine:       newWorkerMachineForCluster(cluster),
-			configName:    "worker-join-cfg",
-			configBuilder: newKubeadmConfig,
+			name:           "Join a worker node with only a cluster CA certificate Secret",
+			machine:        newWorkerMachineForCluster(cluster),
+			configName:     "worker-join-cfg",
+			configBuilder:  newWorkerJoinKubeadmConfig,
+			secretsBuilder: createCertificateOnlyClusterCASecret,
 		},
 		{
-			name:          "Join a control plane node with a fully compiled kubeadm config object",
-			machine:       newControlPlaneMachine(cluster, "control-plane-join-machine"),
-			configName:    "control-plane-join-cfg",
-			configBuilder: newControlPlaneJoinKubeadmConfig,
+			name:           "Join a worker node  with an empty kubeadm config object (defaults apply)",
+			machine:        newWorkerMachineForCluster(cluster),
+			configName:     "worker-join-cfg",
+			configBuilder:  newKubeadmConfig,
+			secretsBuilder: createSecrets,
 		},
 		{
-			name:          "Join a control plane node with an empty kubeadm config object (defaults apply)",
-			machine:       newControlPlaneMachine(cluster, "control-plane-join-machine"),
-			configName:    "control-plane-join-cfg",
-			configBuilder: newKubeadmConfig,
+			name:           "Join a control plane node with a fully compiled kubeadm config object",
+			machine:        newControlPlaneMachine(cluster, "control-plane-join-machine"),
+			configName:     "control-plane-join-cfg",
+			configBuilder:  newControlPlaneJoinKubeadmConfig,
+			secretsBuilder: createSecrets,
+		},
+		{
+			name:           "Join a control plane node with an empty kubeadm config object (defaults apply)",
+			machine:        newControlPlaneMachine(cluster, "control-plane-join-machine"),
+			configName:     "control-plane-join-cfg",
+			configBuilder:  newKubeadmConfig,
+			secretsBuilder: createSecrets,
 		},
 	}
 
@@ -703,7 +715,7 @@ func TestReconcileIfJoinCertificatesAvailableConditionInNodesAndControlPlaneIsRe
 				rt.machine,
 				config,
 			}
-			objects = append(objects, createSecrets(t, cluster, config)...)
+			objects = append(objects, rt.secretsBuilder(t, cluster, config)...)
 			myclient := fake.NewClientBuilder().WithObjects(objects...).WithStatusSubresource(&bootstrapv1.KubeadmConfig{}).Build()
 			k := &Reconciler{
 				Client:              myclient,
@@ -740,7 +752,7 @@ func TestReconcileIfJoinCertificatesAvailableConditionInNodesAndControlPlaneIsRe
 }
 
 func TestReconcileIfJoinNodePoolsAndControlPlaneIsReady(t *testing.T) {
-	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.MachinePool, true)
+	utilfeature.SetFeatureGateDuringTest(t, features.Gates, features.MachinePool, true)
 
 	cluster := builder.Cluster(metav1.NamespaceDefault, "cluster").Build()
 	cluster.Status.Initialization.InfrastructureProvisioned = ptr.To(true)
@@ -1182,12 +1194,12 @@ func TestBootstrapTokenTTLExtension(t *testing.T) {
 	}
 
 	patchHelper, err := patch.NewHelper(workerMachine, myclient)
-	g.Expect(err).ShouldNot(HaveOccurred())
+	g.Expect(err).ToNot(HaveOccurred())
 	workerMachine.Status.Initialization.InfrastructureProvisioned = ptr.To(true)
 	g.Expect(patchHelper.Patch(ctx, workerMachine)).To(Succeed())
 
 	patchHelper, err = patch.NewHelper(controlPlaneJoinMachine, myclient)
-	g.Expect(err).ShouldNot(HaveOccurred())
+	g.Expect(err).ToNot(HaveOccurred())
 	controlPlaneJoinMachine.Status.Initialization.InfrastructureProvisioned = ptr.To(true)
 	g.Expect(patchHelper.Patch(ctx, controlPlaneJoinMachine)).To(Succeed())
 
@@ -1230,14 +1242,14 @@ func TestBootstrapTokenTTLExtension(t *testing.T) {
 	}
 
 	patchHelper, err = patch.NewHelper(workerMachine, myclient)
-	g.Expect(err).ShouldNot(HaveOccurred())
+	g.Expect(err).ToNot(HaveOccurred())
 	workerMachine.Status.NodeRef = clusterv1.MachineNodeReference{
 		Name: "worker-node",
 	}
 	g.Expect(patchHelper.Patch(ctx, workerMachine)).To(Succeed())
 
 	patchHelper, err = patch.NewHelper(controlPlaneJoinMachine, myclient)
-	g.Expect(err).ShouldNot(HaveOccurred())
+	g.Expect(err).ToNot(HaveOccurred())
 	controlPlaneJoinMachine.Status.NodeRef = clusterv1.MachineNodeReference{
 		Name: "control-plane-node",
 	}
@@ -1272,7 +1284,7 @@ func TestBootstrapTokenTTLExtension(t *testing.T) {
 }
 
 func TestBootstrapTokenRotationMachinePool(t *testing.T) {
-	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.MachinePool, true)
+	utilfeature.SetFeatureGateDuringTest(t, features.Gates, features.MachinePool, true)
 	g := NewWithT(t)
 
 	cluster := builder.Cluster(metav1.NamespaceDefault, "cluster").Build()
@@ -1379,7 +1391,7 @@ func TestBootstrapTokenRotationMachinePool(t *testing.T) {
 	}
 
 	patchHelper, err := patch.NewHelper(workerMachinePool, myclient)
-	g.Expect(err).ShouldNot(HaveOccurred())
+	g.Expect(err).ToNot(HaveOccurred())
 	workerMachinePool.Status.Initialization.InfrastructureProvisioned = ptr.To(true)
 	g.Expect(patchHelper.Patch(ctx, workerMachinePool, patch.WithStatusObservedGeneration{})).To(Succeed())
 
@@ -1457,7 +1469,7 @@ func TestBootstrapTokenRotationMachinePool(t *testing.T) {
 		} else {
 			expirationTime, err := time.Parse(time.RFC3339, string(item.Data[bootstrapapi.BootstrapTokenExpirationKey]))
 			g.Expect(err).ToNot(HaveOccurred())
-			g.Expect(expirationTime).Should(BeTemporally("~", time.Now().UTC().Add(k.TokenTTL), 10*time.Second))
+			g.Expect(expirationTime).To(BeTemporally("~", time.Now().UTC().Add(k.TokenTTL), 10*time.Second))
 			foundNew = true
 		}
 	}
@@ -1528,7 +1540,7 @@ func TestBootstrapTokenRefreshIfTokenSecretCleaned(t *testing.T) {
 		err = remoteClient.Delete(ctx, &l.Items[0])
 		g.Expect(err).ToNot(HaveOccurred())
 
-		result, err = k.Reconcile(ctx, request)
+		_, err = k.Reconcile(ctx, request)
 		g.Expect(err).To(HaveOccurred())
 		g.Expect(err.Error()).To(ContainSubstring("failed to get bootstrap token secret in order to refresh it"))
 		// New token should not have been created
@@ -1541,7 +1553,7 @@ func TestBootstrapTokenRefreshIfTokenSecretCleaned(t *testing.T) {
 		g.Expect(l.Items).To(BeEmpty())
 	})
 	t.Run("should recreate the token for MachinePools", func(t *testing.T) {
-		utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.MachinePool, true)
+		utilfeature.SetFeatureGateDuringTest(t, features.Gates, features.MachinePool, true)
 		g := NewWithT(t)
 
 		cluster := builder.Cluster(metav1.NamespaceDefault, "cluster").Build()
@@ -2039,7 +2051,7 @@ func TestKubeadmConfigReconciler_Reconcile_AlwaysCheckCAVerificationUnlessReques
 // If a cluster object changes then all associated KubeadmConfigs should be re-reconciled.
 // This allows us to not requeue a kubeadm config while we wait for InfrastructureReady.
 func TestKubeadmConfigReconciler_ClusterToKubeadmConfigs(t *testing.T) {
-	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.MachinePool, true)
+	utilfeature.SetFeatureGateDuringTest(t, features.Gates, features.MachinePool, true)
 	g := NewWithT(t)
 
 	cluster := builder.Cluster(metav1.NamespaceDefault, "my-cluster").Build()
@@ -2171,7 +2183,7 @@ func TestKubeadmConfigReconciler_Reconcile_ExactlyOneControlPlaneMachineInitiali
 	for _, c := range confList.Items {
 		// Ensure the DataSecretName is only set for controlPlaneInitConfigFirst.
 		if c.Name == controlPlaneInitConfigFirst.Name {
-			g.Expect(c.Status.DataSecretName).To(Not(BeEmpty()))
+			g.Expect(c.Status.DataSecretName).ToNot(BeEmpty())
 		}
 		if c.Name == controlPlaneInitConfigSecond.Name {
 			g.Expect(c.Status.DataSecretName).To(BeEmpty())
@@ -2237,11 +2249,19 @@ func TestKubeadmConfigReconciler_ResolveFiles(t *testing.T) {
 			"key": []byte("foo"),
 		},
 	}
+	clusterWithMissingControlPlane := builder.Cluster(metav1.NamespaceDefault, "c").Build()
+	clusterWithMissingControlPlane.Spec.ControlPlaneRef = clusterv1.ContractVersionedObjectReference{
+		APIGroup: builder.ControlPlaneGroupVersion.Group,
+		Kind:     builder.TestControlPlaneKind,
+		Name:     "missing",
+	}
 
 	cases := map[string]struct {
 		cfg     *bootstrapv1.KubeadmConfig
+		cluster *clusterv1.Cluster
 		objects []client.Object
 		expect  []bootstrapv1.File
+		wantErr string
 	}{
 		"content should pass through": {
 			cfg: &bootstrapv1.KubeadmConfig{
@@ -2333,16 +2353,57 @@ func TestKubeadmConfigReconciler_ResolveFiles(t *testing.T) {
 			},
 			objects: []client.Object{testSecret},
 		},
+		"plain files should not read the control plane": {
+			cfg: &bootstrapv1.KubeadmConfig{
+				Spec: bootstrapv1.KubeadmConfigSpec{
+					Files: []bootstrapv1.File{
+						{
+							Content: "foo",
+							Path:    "/path",
+						},
+					},
+				},
+			},
+			cluster: clusterWithMissingControlPlane,
+			expect: []bootstrapv1.File{
+				{
+					Content: "foo",
+					Path:    "/path",
+				},
+			},
+			objects: []client.Object{builder.TestControlPlaneCRD.DeepCopy()},
+		},
+		"template files should fail when the control plane cannot be read": {
+			cfg: &bootstrapv1.KubeadmConfig{
+				Spec: bootstrapv1.KubeadmConfigSpec{
+					Files: []bootstrapv1.File{
+						{
+							Content:       "{{ .controlPlane.version }}",
+							ContentFormat: bootstrapv1.FileContentFormatTemplate,
+							Path:          "/path",
+						},
+					},
+				},
+			},
+			cluster: clusterWithMissingControlPlane,
+			objects: []client.Object{builder.TestControlPlaneCRD.DeepCopy()},
+			wantErr: "failed to read control plane version",
+		},
 	}
 
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			myclient := fake.NewClientBuilder().WithObjects(tc.objects...).Build()
+			scheme := runtime.NewScheme()
+			g.Expect(corev1.AddToScheme(scheme)).To(Succeed())
+			g.Expect(apiextensionsv1.AddToScheme(scheme)).To(Succeed())
+			g.Expect(clusterv1.AddToScheme(scheme)).To(Succeed())
+			myclient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(tc.objects...).Build()
 			k := &Reconciler{
 				Client:              myclient,
 				SecretCachingClient: myclient,
+				APIReader:           myclient,
 				KubeadmInitLock:     &myInitLocker{},
 			}
 
@@ -2357,7 +2418,11 @@ func TestKubeadmConfigReconciler_ResolveFiles(t *testing.T) {
 				}
 			}
 
-			files, err := k.resolveFiles(ctx, tc.cfg, nil)
+			files, err := k.resolveFiles(ctx, tc.cfg, tc.cluster)
+			if tc.wantErr != "" {
+				g.Expect(err).To(MatchError(ContainSubstring(tc.wantErr)))
+				return
+			}
 			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(files).To(BeComparableTo(tc.expect))
 			for _, file := range tc.cfg.Spec.Files {
@@ -2786,6 +2851,18 @@ func createSecrets(t *testing.T, cluster *clusterv1.Cluster, config *bootstrapv1
 		out = append(out, certificate.AsSecret(util.ObjectKey(cluster), *metav1.NewControllerRef(config, bootstrapv1.GroupVersion.WithKind("KubeadmConfig"))))
 	}
 	return out
+}
+
+func createCertificateOnlyClusterCASecret(t *testing.T, cluster *clusterv1.Cluster, config *bootstrapv1.KubeadmConfig) []client.Object {
+	t.Helper()
+
+	certificates := secret.NewCertificatesForInitialControlPlane(&config.Spec.ClusterConfiguration)
+	if err := certificates.Generate(); err != nil {
+		t.Fatal(err)
+	}
+	s := certificates.GetByPurpose(secret.ClusterCA).AsSecret(util.ObjectKey(cluster), *metav1.NewControllerRef(config, bootstrapv1.GroupVersion.WithKind("KubeadmConfig")))
+	delete(s.Data, secret.TLSKeyDataName)
+	return []client.Object{s}
 }
 
 type myInitLocker struct {

@@ -50,7 +50,7 @@ func TestKubeadmConfigTemplateDefault(t *testing.T) {
 	g.Expect(kubeadmConfigTemplate).To(BeComparableTo(original))
 
 	// Expect defaulting for dry-run request.
-	ctx = admission.NewContextWithRequest(ctx, admission.Request{
+	dryRunCtx := admission.NewContextWithRequest(ctx, admission.Request{
 		AdmissionRequest: admissionv1.AdmissionRequest{
 			DryRun: ptr.To(true),
 		},
@@ -58,7 +58,7 @@ func TestKubeadmConfigTemplateDefault(t *testing.T) {
 	kubeadmConfigTemplate.Annotations = map[string]string{
 		clusterv1.TopologyDryRunAnnotation: "",
 	}
-	g.Expect(webhook.Default(ctx, kubeadmConfigTemplate)).To(Succeed())
+	g.Expect(webhook.Default(dryRunCtx, kubeadmConfigTemplate)).To(Succeed())
 	g.Expect(kubeadmConfigTemplate.Spec.Template.Spec.Format).To(Equal(bootstrapv1.CloudConfig))
 }
 

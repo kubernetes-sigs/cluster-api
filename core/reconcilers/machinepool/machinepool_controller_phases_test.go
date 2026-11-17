@@ -29,6 +29,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/tools/record"
@@ -1236,9 +1237,9 @@ func TestReconcileMachinePoolInfrastructure(t *testing.T) {
 		name               string
 		bootstrapConfig    map[string]interface{}
 		infraConfig        map[string]interface{}
+		infraCRD           *apiextensionsv1.CustomResourceDefinition
 		machinepool        *clusterv1.MachinePool
 		expectError        bool
-		expectChanged      bool
 		expectRequeueAfter bool
 		expected           func(g *WithT, m *clusterv1.MachinePool)
 	}{
@@ -1257,7 +1258,7 @@ func TestReconcileMachinePoolInfrastructure(t *testing.T) {
 					},
 				},
 				"status": map[string]interface{}{
-					"initialization": map[string]interface{}{"provisioned": true}, "ready": true,
+					"initialization": map[string]interface{}{"provisioned": true},
 					"addresses": []interface{}{
 						map[string]interface{}{
 							"type":    "InternalIP",
@@ -1270,8 +1271,7 @@ func TestReconcileMachinePoolInfrastructure(t *testing.T) {
 					},
 				},
 			},
-			expectError:   false,
-			expectChanged: true,
+			expectError: false,
 			expected: func(g *WithT, m *clusterv1.MachinePool) {
 				g.Expect(ptr.Deref(m.Status.Initialization.InfrastructureProvisioned, false)).To(BeTrue())
 			},
@@ -1336,7 +1336,7 @@ func TestReconcileMachinePoolInfrastructure(t *testing.T) {
 					"providerIDList": []interface{}{},
 				},
 				"status": map[string]interface{}{
-					"initialization": map[string]interface{}{"provisioned": true}, "ready": true,
+					"initialization": map[string]interface{}{"provisioned": true},
 					"addresses": []interface{}{
 						map[string]interface{}{
 							"type":    "InternalIP",
@@ -1418,6 +1418,87 @@ func TestReconcileMachinePoolInfrastructure(t *testing.T) {
 					"recording a failure must not discard the rest of the v1beta1 status")
 			},
 		},
+		{
+			name: "new machinepool, infrastructure config ready via deprecated v1beta1 contract status.ready",
+			infraCRD: func() *apiextensionsv1.CustomResourceDefinition {
+				crd := builder.TestInfrastructureMachineTemplateCRD.DeepCopy()
+				crd.Labels = map[string]string{
+					clusterv1.GroupVersion.Group + "/v1beta1": builder.InfrastructureGroupVersion.Version,
+				}
+				return crd
+			}(),
+			infraConfig: map[string]interface{}{
+				"kind":       builder.TestInfrastructureMachineTemplateKind,
+				"apiVersion": builder.InfrastructureGroupVersion.String(),
+				"metadata": map[string]interface{}{
+					"name":      "infra-config1",
+					"namespace": metav1.NamespaceDefault,
+				},
+				"spec": map[string]interface{}{
+					"providerIDList": []interface{}{
+						"test://id-1",
+					},
+				},
+				"status": map[string]interface{}{
+					"ready": true,
+				},
+			},
+			expectError: false,
+			expected: func(g *WithT, m *clusterv1.MachinePool) {
+				g.Expect(ptr.Deref(m.Status.Initialization.InfrastructureProvisioned, false)).To(BeTrue())
+			},
+		},
+		{
+			name: "new machinepool, infrastructure config on the v1beta2 contract reporting only status.ready falls back to it",
+			infraConfig: map[string]interface{}{
+				"kind":       builder.TestInfrastructureMachineTemplateKind,
+				"apiVersion": builder.InfrastructureGroupVersion.String(),
+				"metadata": map[string]interface{}{
+					"name":      "infra-config1",
+					"namespace": metav1.NamespaceDefault,
+				},
+				"spec": map[string]interface{}{
+					"providerIDList": []interface{}{
+						"test://id-1",
+					},
+				},
+				"status": map[string]interface{}{
+					"ready": true,
+				},
+			},
+			expectError: false,
+			expected: func(g *WithT, m *clusterv1.MachinePool) {
+				g.Expect(ptr.Deref(m.Status.Initialization.InfrastructureProvisioned, false)).To(BeTrue())
+			},
+		},
+		{
+			name: "infrastructure provisioned does not flip back to false when the infrastructure config reports not provisioned",
+			machinepool: func() *clusterv1.MachinePool {
+				mp := defaultMachinePool.DeepCopy()
+				mp.Status.Initialization.InfrastructureProvisioned = ptr.To(true)
+				return mp
+			}(),
+			infraConfig: map[string]interface{}{
+				"kind":       builder.TestInfrastructureMachineTemplateKind,
+				"apiVersion": builder.InfrastructureGroupVersion.String(),
+				"metadata": map[string]interface{}{
+					"name":      "infra-config1",
+					"namespace": metav1.NamespaceDefault,
+				},
+				"spec": map[string]interface{}{
+					"providerIDList": []interface{}{
+						"test://id-1",
+					},
+				},
+				"status": map[string]interface{}{
+					"initialization": map[string]interface{}{"provisioned": false},
+				},
+			},
+			expectError: false,
+			expected: func(g *WithT, m *clusterv1.MachinePool) {
+				g.Expect(ptr.Deref(m.Status.Initialization.InfrastructureProvisioned, false)).To(BeTrue())
+			},
+		},
 	}
 
 	for _, tc := range testCases {
@@ -1428,8 +1509,13 @@ func TestReconcileMachinePoolInfrastructure(t *testing.T) {
 				tc.machinepool = defaultMachinePool.DeepCopy()
 			}
 
+			infraCRD := builder.TestInfrastructureMachineTemplateCRD
+			if tc.infraCRD != nil {
+				infraCRD = tc.infraCRD
+			}
+
 			infraConfig := &unstructured.Unstructured{Object: tc.infraConfig}
-			fakeClient := fake.NewClientBuilder().WithObjects(tc.machinepool, infraConfig, builder.TestBootstrapConfigCRD, builder.TestInfrastructureMachineTemplateCRD).Build()
+			fakeClient := fake.NewClientBuilder().WithObjects(tc.machinepool, infraConfig, builder.TestBootstrapConfigCRD, infraCRD).Build()
 			r := &Reconciler{
 				Client:       fakeClient,
 				ClusterCache: clustercache.NewFakeClusterCache(fakeClient, client.ObjectKey{Name: defaultCluster.Name, Namespace: defaultCluster.Namespace}),
@@ -1506,7 +1592,7 @@ func TestReconcileMachinePoolMachines(t *testing.T) {
 					},
 				},
 				"status": map[string]interface{}{
-					"ready": true,
+					"initialization": map[string]interface{}{"provisioned": true},
 					"addresses": []interface{}{
 						map[string]interface{}{
 							"type":    "InternalIP",
@@ -1577,7 +1663,7 @@ func TestReconcileMachinePoolMachines(t *testing.T) {
 					},
 				},
 				"status": map[string]interface{}{
-					"ready": true,
+					"initialization": map[string]interface{}{"provisioned": true},
 					"addresses": []interface{}{
 						map[string]interface{}{
 							"type":    "InternalIP",
@@ -1645,7 +1731,7 @@ func TestReconcileMachinePoolMachines(t *testing.T) {
 					},
 				},
 				"status": map[string]interface{}{
-					"ready": true,
+					"initialization": map[string]interface{}{"provisioned": true},
 					"addresses": []interface{}{
 						map[string]interface{}{
 							"type":    "InternalIP",
@@ -2060,7 +2146,7 @@ func TestReconcileMachinePoolScaleToFromZero(t *testing.T) {
 			},
 			"spec": map[string]interface{}{},
 			"status": map[string]interface{}{
-				"ready": true,
+				"initialization": map[string]interface{}{"provisioned": true},
 			},
 		},
 	}
@@ -2694,8 +2780,8 @@ func TestMachinePoolReconciler_getNodeRefMap(t *testing.T) {
 			g.Expect(result).To(HaveLen(len(tt.expected)), "Expected NodeRef count to be %v, got %v", len(result), len(tt.expected))
 			for providerID, node := range result {
 				g.Expect(node).ToNot(BeNil())
-				g.Expect(node.Spec).Should(Equal(tt.expected[providerID].Spec))
-				g.Expect(node.GetObjectMeta().GetName()).Should(Equal(tt.expected[providerID].GetObjectMeta().GetName()))
+				g.Expect(node.Spec).To(Equal(tt.expected[providerID].Spec))
+				g.Expect(node.GetObjectMeta().GetName()).To(Equal(tt.expected[providerID].GetObjectMeta().GetName()))
 			}
 		})
 	}
@@ -2709,5 +2795,116 @@ func reconcileNormalFuncsForTest(mpr *Reconciler) []machinePoolReconcileFunc {
 		mpr.getMachinesForMachinePool,
 		mpr.reconcileNodeRefs,
 		mpr.setMachinesUptoDate,
+	}
+}
+
+func TestComputeDesiredMachine(t *testing.T) {
+	deletionSpec := clusterv1.MachineDeletionSpec{
+		NodeDrainTimeoutSeconds:        ptr.To[int32](120),
+		NodeDeletionTimeoutSeconds:     ptr.To[int32](300),
+		NodeVolumeDetachTimeoutSeconds: ptr.To[int32](60),
+	}
+
+	infraGVK := schema.GroupVersionKind{
+		Group:   "infrastructure.cluster.x-k8s.io",
+		Version: "v1beta1",
+		Kind:    "GenericInfrastructureMachine",
+	}
+
+	infraMachineName := "test-infra-machine"
+
+	tests := []struct {
+		name             string
+		templateDeletion clusterv1.MachineDeletionSpec
+		existingMachine  *clusterv1.Machine
+		wantName         string
+		wantUID          types.UID
+	}{
+		{
+			name:             "create a new Machine",
+			templateDeletion: deletionSpec,
+			wantName:         infraMachineName,
+		},
+		{
+			name:             "update an existing Machine and sync deletion settings from the MachinePool template",
+			templateDeletion: deletionSpec,
+			existingMachine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "existing-machine",
+					UID:  "existing-machine-uid",
+				},
+				Spec: clusterv1.MachineSpec{
+					Deletion: clusterv1.MachineDeletionSpec{
+						NodeDrainTimeoutSeconds: ptr.To[int32](1),
+					},
+				},
+			},
+			wantName: "existing-machine",
+			wantUID:  "existing-machine-uid",
+		},
+		{
+			name:     "leave deletion settings empty when they are not set in the MachinePool template",
+			wantName: infraMachineName,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			mp := &clusterv1.MachinePool{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-mp",
+					Namespace: metav1.NamespaceDefault,
+				},
+				Spec: clusterv1.MachinePoolSpec{
+					ClusterName: "test-cluster",
+					Template: clusterv1.MachineTemplateSpec{
+						ObjectMeta: clusterv1.ObjectMeta{
+							Labels: map[string]string{
+								"custom-label": "custom-value",
+							},
+							Annotations: map[string]string{
+								"custom-annotation": "custom-value",
+							},
+						},
+						Spec: clusterv1.MachineSpec{
+							Deletion: tt.templateDeletion,
+						},
+					},
+				},
+			}
+
+			expectedSpec := clusterv1.MachineSpec{
+				ClusterName: mp.Spec.ClusterName,
+				Bootstrap: clusterv1.Bootstrap{
+					DataSecretName: ptr.To(""),
+				},
+				InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+					APIGroup: infraGVK.Group,
+					Kind:     infraGVK.Kind,
+					Name:     infraMachineName,
+				},
+				Deletion: tt.templateDeletion,
+			}
+
+			r := &Reconciler{}
+			desiredMachine := r.computeDesiredMachine(mp, infraGVK, infraMachineName, tt.existingMachine, nil)
+
+			g.Expect(desiredMachine).ToNot(BeNil())
+			g.Expect(desiredMachine.Name).To(Equal(tt.wantName))
+			g.Expect(desiredMachine.Namespace).To(Equal(mp.Namespace))
+			g.Expect(desiredMachine.UID).To(Equal(tt.wantUID))
+			g.Expect(desiredMachine.OwnerReferences).To(ConsistOf(*metav1.NewControllerRef(mp, machinePoolKind)))
+			g.Expect(desiredMachine.Labels).To(Equal(map[string]string{
+				"custom-label":                 "custom-value",
+				clusterv1.MachinePoolNameLabel: format.MustFormatValue(mp.Name),
+				clusterv1.ClusterNameLabel:     mp.Spec.ClusterName,
+			}))
+			g.Expect(desiredMachine.Annotations).To(Equal(map[string]string{
+				"custom-annotation": "custom-value",
+			}))
+			g.Expect(desiredMachine.Spec).To(BeComparableTo(expectedSpec))
+		})
 	}
 }

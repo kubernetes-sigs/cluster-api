@@ -23,14 +23,14 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
-	"sigs.k8s.io/cluster-api/feature"
+	"sigs.k8s.io/cluster-api/pkg/features"
 )
 
 // ValidateMachineTaints validates MachineTaints.
 func ValidateMachineTaints(taints []clusterv1.MachineTaint, taintsPath *field.Path) field.ErrorList {
 	var allErrs field.ErrorList
 
-	if !feature.Gates.Enabled(feature.MachineTaintPropagation) {
+	if !features.Gates.Enabled(features.MachineTaintPropagation) {
 		if len(taints) > 0 {
 			allErrs = append(allErrs, field.Forbidden(taintsPath, "taints are not allowed to be set when the feature gate MachineTaintPropagation is disabled"))
 		}

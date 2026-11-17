@@ -18,6 +18,7 @@ package variables
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math"
 	"regexp"
@@ -252,20 +253,28 @@ func validateRootSchema(ctx context.Context, oldClusterClassVariables, clusterCl
 		}
 		return allErrs
 	}
-	ss := wrappedStructural.Properties["variableSchema"]
 
 	// Validate defaults in the structural schema.
 	// Note: Since convertToAPIExtensionsJSONSchemaProps converts the XValidations,
 	// this func internally now also uses CEL to validate the defaults values.
-	validationErrors, err = structuraldefaulting.ValidateDefaults(ctx, fldPath, &ss, false, true)
+	// Note: The wrapped schema is used so the variable schema is not handled as the root of a resource,
+	// for which CEL type information can only be built if it is `type: object`.
+	validationErrors, err = structuraldefaulting.ValidateDefaults(ctx, fldPath, wrappedStructural, false, true)
 	if err != nil {
 		return append(allErrs, field.Invalid(fldPath, "", err.Error()))
 	}
 	if len(validationErrors) > 0 {
-		return append(allErrs, validationErrors...)
+		for _, validationError := range validationErrors {
+			// Remove .properties[variableSchema], this only exists because we had to wrap via wrappedSchema.
+			validationError.Field = strings.Replace(validationError.Field, "openAPIV3Schema.properties[variableSchema]", "openAPIV3Schema", 1)
+			allErrs = append(allErrs, validationError)
+		}
+		return allErrs
 	}
 
-	celContext := apiextensionsvalidation.RootCELContext(apiExtensionsSchema)
+	// Note: The CEL context is built for the wrapped schema so the variable schema is not handled as the root of a resource,
+	// for which CEL type information can only be built if it is `type: object`.
+	celContext := apiextensionsvalidation.RootCELContext(wrappedSchema).ChildPropertyContext(apiExtensionsSchema, "variableSchema")
 
 	// Context:
 	// * EnvSets are CEL environments configured with various options (https://github.com/kubernetes/kubernetes/blob/v1.30.0/staging/src/k8s.io/apiserver/pkg/cel/environment/base.go#L49)
@@ -450,7 +459,7 @@ func validateSchema(ctx context.Context, schema *apiextensions.JSONSchemaProps, 
 			if err != nil {
 				allErrs.CELErrors = append(allErrs.CELErrors, field.InternalError(fldPath.Child("x-kubernetes-validations"), fmt.Errorf("internal error: failed to construct type information for x-kubernetes-validations rules: %s", err)))
 			} else if typeInfo == nil {
-				allErrs.CELErrors = append(allErrs.CELErrors, field.InternalError(fldPath.Child("x-kubernetes-validations"), fmt.Errorf("internal error: failed to retrieve type information for x-kubernetes-validations")))
+				allErrs.CELErrors = append(allErrs.CELErrors, field.InternalError(fldPath.Child("x-kubernetes-validations"), errors.New("internal error: failed to retrieve type information for x-kubernetes-validations")))
 			} else {
 				// Note: k/k CRD validation also uses celconfig.PerCallLimit when creating the validator.
 				// The current PerCallLimit gives roughly 0.1 second for each expression validation call.
@@ -612,7 +621,7 @@ func multiplyWithOverflowGuard(baseCost, cardinality uint64) uint64 {
 }
 
 // unbounded uses nil to represent an unbounded cardinality value.
-var unbounded *uint64 = nil //nolint:revive // Using as a named variable to provide the meaning of nil in this context.
+var unbounded *uint64
 
 func getExpressionCost(cr cel.CompilationResult, cardinalityCost *apiextensionsvalidation.CELSchemaContext) uint64 {
 	if cardinalityCost.MaxCardinality != unbounded {

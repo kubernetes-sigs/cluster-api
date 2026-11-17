@@ -1,5 +1,4 @@
 //go:build e2e
-// +build e2e
 
 /*
 Copyright 2020 The Kubernetes Authors.
@@ -189,7 +188,7 @@ var _ = SynchronizedAfterSuite(func() {
 	// After all ParallelNodes.
 
 	By("Dumping logs from the bootstrap cluster")
-	dumpKindClusterLogs(ctx, artifactFolder, bootstrapClusterProxy)
+	dumpKindClusterLogsAndPods(ctx, artifactFolder, bootstrapClusterProxy)
 
 	By("Tearing down the management cluster")
 	if !skipCleanup {
@@ -258,6 +257,7 @@ func initBootstrapCluster(bootstrapClusterProxy framework.ClusterProxy, config *
 		RuntimeExtensionProviders: config.RuntimeExtensionProviders(),
 		AddonProviders:            config.AddonProviders(),
 		LogFolder:                 filepath.Join(artifactFolder, "clusters", bootstrapClusterProxy.GetName()),
+		CheckForPodRestarts:       true,
 	}, config.GetIntervals(bootstrapClusterProxy.GetName(), "wait-controllers")...)
 }
 

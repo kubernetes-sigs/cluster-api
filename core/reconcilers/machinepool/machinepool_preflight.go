@@ -34,8 +34,8 @@ import (
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/external"
-	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/contract"
+	"sigs.k8s.io/cluster-api/pkg/features"
 )
 
 type preflightCheckErrorMessage *string
@@ -145,7 +145,7 @@ func shouldRun(preflightChecks, skippedPreflightChecks sets.Set[clusterv1.Machin
 func (r *Reconciler) controlPlaneStablePreflightCheck(controlPlane *unstructured.Unstructured, cluster *clusterv1.Cluster, controlPlaneVersion string) (preflightCheckErrorMessage, error) {
 	cpKlogRef := klog.KRef(controlPlane.GetNamespace(), controlPlane.GetName())
 
-	if feature.Gates.Enabled(feature.ClusterTopology) {
+	if features.Gates.Enabled(features.ClusterTopology) {
 		// Block when we expect an upgrade to be propagated to the control plane for topology clusters.
 		// NOTE: in case the cluster is performing an upgrade, allow creation of machines for the current step.
 		hasSameVersionOfCurrentUpgradeStep := false
@@ -220,7 +220,7 @@ func (r *Reconciler) kubeadmVersionPreflightCheck(cpSemver, msSemver semver.Vers
 }
 
 func (r *Reconciler) controlPlaneVersionPreflightCheck(cluster *clusterv1.Cluster, cpVersion, msVersion string) preflightCheckErrorMessage {
-	if feature.Gates.Enabled(feature.ClusterTopology) && cluster.Spec.Topology.IsDefined() {
+	if features.Gates.Enabled(features.ClusterTopology) && cluster.Spec.Topology.IsDefined() {
 		if cpVersion != msVersion {
 			return ptr.To(fmt.Sprintf("MachinePool version (%s) is not yet the same as the ControlPlane version (%s), waiting for version to be propagated to the MachinePool (%q preflight check failed)", msVersion, cpVersion, clusterv1.MachineSetPreflightCheckControlPlaneVersionSkew))
 		}

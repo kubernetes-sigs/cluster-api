@@ -20,6 +20,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
@@ -32,6 +33,9 @@ type NodeObject struct {
 	metav1.TypeMeta
 	metav1.ObjectMeta
 	Status NodeStatus
+
+	// Items are the objects represented by a group node.
+	Items []client.Object
 }
 
 // NodeStatus is the status of a node object.

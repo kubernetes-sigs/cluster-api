@@ -98,6 +98,12 @@ const (
 	// UpdateInProgressAnnotation is an internal annotation added to machines by the controller owning the Machine when in-place update
 	// is started, e.g. by the MachineSet controller; the annotation will be removed by the Machine controller when in-place update is completed.
 	UpdateInProgressAnnotation = "in-place-updates.internal.cluster.x-k8s.io/update-in-progress"
+
+	// UpdateDirtyAnnotation is an internal annotation added to machines by the Machine controller when the UpdateMachine
+	// hook completed an in-place update with updateStatus CompletedButDirty.
+	// The annotation is removed by the Machine controller when the next in-place update of the Machine completes
+	// with updateStatus Completed.
+	UpdateDirtyAnnotation = "in-place-updates.internal.cluster.x-k8s.io/dirty"
 )
 
 // UpdateInProgressAnnotationData is used to store data about the in-place update in the UpdateInProgressAnnotation.
@@ -193,6 +199,12 @@ const (
 
 	// MachineInPlaceUpdateFailedReason surfaces when the in-place update has failed.
 	MachineInPlaceUpdateFailedReason = "InPlaceUpdateFailed"
+
+	// MachineInPlaceUpdateBlockedReason surfaces when the in-place update is blocked.
+	MachineInPlaceUpdateBlockedReason = "InPlaceUpdateBlocked"
+
+	// MachineInPlaceUpdateInternalErrorReason surfaces unexpected failures during in-place update.
+	MachineInPlaceUpdateInternalErrorReason = InternalErrorReason
 )
 
 // Machine's BootstrapConfigReady condition and corresponding reasons.
@@ -533,7 +545,7 @@ type MachineDeletionSpec struct {
 	NodeVolumeDetachTimeoutSeconds *int32 `json:"nodeVolumeDetachTimeoutSeconds,omitempty"`
 
 	// nodeDeletionTimeoutSeconds defines how long the controller will attempt to delete the Node that the Machine
-	// hosts after the Machine is marked for deletion. A duration of 0 will retry deletion indefinitely.
+	// hosts, measured from when the deletion of the Node started. A duration of 0 will retry deletion indefinitely.
 	// Defaults to 10 seconds.
 	// +optional
 	// +kubebuilder:validation:Minimum=0
@@ -760,6 +772,12 @@ type MachineDeletionStatus struct {
 	// Only present when the Machine has a deletionTimestamp and waiting for pre-terminate hooks had been started.
 	// +optional
 	WaitForPreTerminateHookStartTime metav1.Time `json:"waitForPreTerminateHookStartTime,omitempty,omitzero"`
+
+	// nodeDeletionStartTime is the time when the deletion of the Node started and is used to determine
+	// if the nodeDeletionTimeoutSeconds is exceeded.
+	// Only present when the Machine has a deletionTimestamp and deleting the Node had been started.
+	// +optional
+	NodeDeletionStartTime metav1.Time `json:"nodeDeletionStartTime,omitempty,omitzero"`
 }
 
 // SetTypedPhase sets the Phase field to the string representation of MachinePhase.

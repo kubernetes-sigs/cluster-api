@@ -2,8 +2,6 @@
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
-  annotations:
-    controller-gen.kubebuilder.io/version: v0.22.0
   name: machinepools.cluster.x-k8s.io
 spec:
   group: cluster.x-k8s.io
@@ -263,7 +261,7 @@ spec:
                       nodeDeletionTimeout:
                         description: |-
                           nodeDeletionTimeout defines how long the controller will attempt to delete the Node that the Machine
-                          hosts after the Machine is marked for deletion. A duration of 0 will retry deletion indefinitely.
+                          hosts, measured from when the deletion of the Node started. A duration of 0 will retry deletion indefinitely.
                           Defaults to 10 seconds.
                         type: string
                       nodeDrainTimeout:
@@ -936,7 +934,7 @@ spec:
                           nodeDeletionTimeoutSeconds:
                             description: |-
                               nodeDeletionTimeoutSeconds defines how long the controller will attempt to delete the Node that the Machine
-                              hosts after the Machine is marked for deletion. A duration of 0 will retry deletion indefinitely.
+                              hosts, measured from when the deletion of the Node started. A duration of 0 will retry deletion indefinitely.
                               Defaults to 10 seconds.
                             format: int32
                             minimum: 0

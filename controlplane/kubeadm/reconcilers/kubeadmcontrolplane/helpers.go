@@ -98,7 +98,7 @@ func (r *Reconciler) reconcileKubeconfig(ctx context.Context, controlPlane *pkg.
 	return ctrl.Result{}, nil
 }
 
-// Ensure the KubeadmConfigSecret has an owner reference to the control plane if it is not a user-provided secret.
+// adoptKubeconfigSecret ensures the KubeadmConfigSecret has an owner reference to the control plane if it is not a user-provided secret.
 func (r *Reconciler) adoptKubeconfigSecret(ctx context.Context, configSecret *corev1.Secret, kcp *controlplanev1.KubeadmControlPlane) error {
 	// No op if the secret is provided by the user.
 	if configSecret.Type != clusterv1.ClusterSecretType {

@@ -33,15 +33,14 @@ import (
 	runtimecatalog "sigs.k8s.io/cluster-api/api/runtime/catalog"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
 	runtimev1 "sigs.k8s.io/cluster-api/api/runtime/v1beta2"
-	"sigs.k8s.io/cluster-api/feature"
-	internalruntimeclient "sigs.k8s.io/cluster-api/internal/runtime/client"
-	runtimeregistry "sigs.k8s.io/cluster-api/internal/runtime/registry"
-	fakev1alpha1 "sigs.k8s.io/cluster-api/internal/runtime/test/v1alpha1"
+	"sigs.k8s.io/cluster-api/pkg/features"
+	runtimeclient "sigs.k8s.io/cluster-api/pkg/runtimesdk/client"
+	runtimeregistry "sigs.k8s.io/cluster-api/pkg/runtimesdk/registry"
+	fakev1alpha1 "sigs.k8s.io/cluster-api/pkg/runtimesdk/test/v1alpha1"
 )
 
 func Test_warmupRunnable_Start(t *testing.T) {
-	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)
-	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.RuntimeSDK, true)
+	utilfeature.SetFeatureGateDuringTest(t, features.Gates, features.RuntimeSDK, true)
 
 	t.Run("succeed to warm up registry on Start", func(t *testing.T) {
 		g := NewWithT(t)
@@ -78,7 +77,7 @@ func Test_warmupRunnable_Start(t *testing.T) {
 			})
 		}
 
-		runtimeClient, _, err := internalruntimeclient.New(ctx, internalruntimeclient.Options{
+		runtimeClient, _, err := runtimeclient.New(ctx, runtimeclient.Options{
 			Catalog:  cat,
 			Registry: registry,
 		})
@@ -130,7 +129,7 @@ func Test_warmupRunnable_Start(t *testing.T) {
 			})
 		}
 
-		runtimeClient, _, err := internalruntimeclient.New(ctx, internalruntimeclient.Options{
+		runtimeClient, _, err := runtimeclient.New(ctx, runtimeclient.Options{
 			Catalog:  cat,
 			Registry: registry,
 		})
@@ -141,7 +140,7 @@ func Test_warmupRunnable_Start(t *testing.T) {
 			RuntimeClient: runtimeClient,
 		}
 
-		runtimeClientReadOnly, _, err := internalruntimeclient.New(ctx, internalruntimeclient.Options{
+		runtimeClientReadOnly, _, err := runtimeclient.New(ctx, runtimeclient.Options{
 			Catalog:  cat,
 			Registry: registryReadOnly,
 		})
@@ -209,7 +208,7 @@ func Test_warmupRunnable_Start(t *testing.T) {
 			g.Expect(env.CreateAndWait(ctx, extensionConfig)).To(Succeed())
 		}
 
-		runtimeClient, _, err := internalruntimeclient.New(ctx, internalruntimeclient.Options{
+		runtimeClient, _, err := runtimeclient.New(ctx, runtimeclient.Options{
 			Catalog:  cat,
 			Registry: registry,
 		})

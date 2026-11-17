@@ -20,14 +20,17 @@ import (
 	"context"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/resourceversion"
 	toolscache "k8s.io/client-go/tools/cache"
 	ctrlcache "sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -383,6 +386,68 @@ func TestConsistencyStore_getStore(t *testing.T) {
 	assert.True(t, ok)
 	assert.Equal(t, dynGVK, dynObj.GroupVersionKind())
 	assert.Len(t, cDynamic.stores, 1)
+}
+
+func TestConsistencyStore_getStore_MultiNamespaceInformer(t *testing.T) {
+	ctx := t.Context()
+
+	nsA, err := env.CreateNamespace(ctx, "consistency-multi-ns-informer")
+	require.NoError(t, err)
+
+	scheme := runtime.NewScheme()
+	require.NoError(t, corev1.AddToScheme(scheme))
+
+	multiNSCache, err := ctrlcache.New(env.GetConfig(), ctrlcache.Options{
+		Scheme: scheme,
+		DefaultNamespaces: map[string]ctrlcache.Config{
+			// Note: CAPI only supports configuring none or one namespace.
+			nsA.Name: {},
+		},
+	})
+	require.NoError(t, err)
+
+	cacheCtx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	go func() {
+		_ = multiNSCache.Start(cacheCtx)
+	}()
+	require.True(t, multiNSCache.WaitForCacheSync(cacheCtx))
+
+	c := newConsistencyStore(scheme, multiNSCache, nil)
+
+	owner := types.NamespacedName{Name: "owner-1", Namespace: nsA.Name}
+	ownerUID := types.UID("owner-uid-1")
+
+	cm := &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: "cm", Namespace: nsA.Name}}
+	gvkt := StructuredObject(corev1.SchemeGroupVersion, "ConfigMap")
+	configMapStore, err := getStore(ctx, c, gvkt)
+	require.NoError(t, err)
+	assert.NotNil(t, configMapStore)
+	require.NoError(t, env.Create(ctx, cm))
+	// EnsureReady must wait until the ConfigMap is in the cache.
+	c.WroteAt(owner, ownerUID, gvkt, cm.ResourceVersion)
+
+	node := &corev1.Node{ObjectMeta: metav1.ObjectMeta{Name: "node"}}
+	gvkt = StructuredObject(corev1.SchemeGroupVersion, "Node")
+	nodeStore, err := getStore(ctx, c, gvkt)
+	require.NoError(t, err)
+	assert.NotNil(t, nodeStore)
+	require.NoError(t, env.Create(ctx, node))
+	// EnsureReady must wait until the Node is in the cache.
+	c.WroteAt(owner, ownerUID, gvkt, node.ResourceVersion)
+
+	require.Eventually(t, func() bool {
+		cmp, err := resourceversion.CompareResourceVersion(configMapStore.LastStoreSyncResourceVersion(), cm.ResourceVersion)
+		if err != nil || cmp < 0 {
+			return false
+		}
+		cmp, err = resourceversion.CompareResourceVersion(nodeStore.LastStoreSyncResourceVersion(), node.ResourceVersion)
+		if err != nil || cmp < 0 {
+			return false
+		}
+		consistencyErrors, err := c.EnsureReady(ctx, owner)
+		return err == nil && len(consistencyErrors) == 0
+	}, 10*time.Second, 100*time.Millisecond, "consistency store should become ready once both informers catch up")
 }
 
 type fakeInformerGetter struct{}

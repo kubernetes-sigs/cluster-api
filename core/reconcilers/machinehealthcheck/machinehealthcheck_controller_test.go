@@ -562,7 +562,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 
 				unhealthy++
 			}
-			return
+			return unhealthy
 		}).Should(Equal(1))
 
 		g.Eventually(func() (ownerRemediated int) {
@@ -584,7 +584,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 
 				ownerRemediated++
 			}
-			return
+			return ownerRemediated
 		}).Should(Equal(1))
 	})
 
@@ -672,7 +672,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 
 				unhealthy++
 			}
-			return
+			return unhealthy
 		}).Should(Equal(1))
 
 		g.Eventually(func() (ownerRemediated int) {
@@ -694,7 +694,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 
 				ownerRemediated++
 			}
-			return
+			return ownerRemediated
 		}).Should(Equal(1))
 	})
 
@@ -1511,7 +1511,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 		}
 
 		reqCtx := admission.NewContextWithRequest(ctx, admission.Request{})
-		g.Expect((&coreadmission.MachineSet{}).Default(reqCtx, machineSet)).Should(Succeed())
+		g.Expect((&coreadmission.MachineSet{}).Default(reqCtx, machineSet)).To(Succeed())
 		g.Expect(env.Create(ctx, machineSet)).To(Succeed())
 
 		// Ensure machines have been created.
@@ -2068,7 +2068,7 @@ func assertMachinesNotHealthy(g *WithT, mhc *clusterv1.MachineHealthCheck, expec
 
 			unhealthy++
 		}
-		return
+		return unhealthy
 	}).Should(Equal(expectNotHealthy))
 }
 
@@ -2100,7 +2100,7 @@ func assertMachinesOwnerRemediated(g *WithT, mhc *clusterv1.MachineHealthCheck, 
 
 			ownerRemediated++
 		}
-		return
+		return ownerRemediated
 	}).Should(Equal(expectOwnerRemediated))
 }
 
@@ -2957,7 +2957,7 @@ func TestPatchTargets(t *testing.T) {
 
 	// Target with wrong patch helper will fail but the other one will be patched.
 	g.Expect(r.patchUnhealthyTargets(context.TODO(), logr.New(log.NullLogSink{}), []healthCheckTarget{target1, target3}, defaultCluster, mhc)).ToNot(BeEmpty())
-	g.Expect(cl.Get(ctx, client.ObjectKey{Name: machine2.Name, Namespace: machine2.Namespace}, machine2)).ToNot(HaveOccurred())
+	g.Expect(cl.Get(ctx, client.ObjectKey{Name: machine2.Name, Namespace: machine2.Namespace}, machine2)).To(Succeed())
 	g.Expect(v1beta1conditions.Get(machine2, clusterv1.MachineOwnerRemediatedV1Beta1Condition).Status).To(Equal(corev1.ConditionFalse))
 	g.Expect(conditions.Get(machine2, clusterv1.MachineOwnerRemediatedCondition).Status).To(Equal(metav1.ConditionFalse))
 

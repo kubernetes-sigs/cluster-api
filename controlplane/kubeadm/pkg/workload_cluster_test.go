@@ -538,7 +538,7 @@ func TestUpdateApiServerInKubeadmConfigMap(t *testing.T) {
 				client.ObjectKey{Name: kubeadmConfigKey, Namespace: metav1.NamespaceSystem},
 				&actualConfig,
 			)).To(Succeed())
-			g.Expect(actualConfig.Data[clusterConfigurationKey]).Should(Equal(tt.wantClusterConfiguration), cmp.Diff(tt.wantClusterConfiguration, actualConfig.Data[clusterConfigurationKey]))
+			g.Expect(actualConfig.Data[clusterConfigurationKey]).To(Equal(tt.wantClusterConfiguration), cmp.Diff(tt.wantClusterConfiguration, actualConfig.Data[clusterConfigurationKey]))
 		})
 	}
 }
@@ -624,7 +624,7 @@ func TestUpdateControllerManagerInKubeadmConfigMap(t *testing.T) {
 				client.ObjectKey{Name: kubeadmConfigKey, Namespace: metav1.NamespaceSystem},
 				&actualConfig,
 			)).To(Succeed())
-			g.Expect(actualConfig.Data[clusterConfigurationKey]).Should(Equal(tt.wantClusterConfiguration), cmp.Diff(tt.wantClusterConfiguration, actualConfig.Data[clusterConfigurationKey]))
+			g.Expect(actualConfig.Data[clusterConfigurationKey]).To(Equal(tt.wantClusterConfiguration), cmp.Diff(tt.wantClusterConfiguration, actualConfig.Data[clusterConfigurationKey]))
 		})
 	}
 }
@@ -709,7 +709,7 @@ func TestUpdateSchedulerInKubeadmConfigMap(t *testing.T) {
 				client.ObjectKey{Name: kubeadmConfigKey, Namespace: metav1.NamespaceSystem},
 				&actualConfig,
 			)).To(Succeed())
-			g.Expect(actualConfig.Data[clusterConfigurationKey]).Should(Equal(tt.wantClusterConfiguration), cmp.Diff(tt.wantClusterConfiguration, actualConfig.Data[clusterConfigurationKey]))
+			g.Expect(actualConfig.Data[clusterConfigurationKey]).To(Equal(tt.wantClusterConfiguration), cmp.Diff(tt.wantClusterConfiguration, actualConfig.Data[clusterConfigurationKey]))
 		})
 	}
 }
@@ -918,7 +918,7 @@ func TestUpdateFeatureGatesInKubeadmConfigMap(t *testing.T) {
 			if err != nil {
 				return
 			}
-			g.Expect(*actualConfiguration).Should(BeComparableTo(tt.wantClusterConfiguration))
+			g.Expect(*actualConfiguration).To(BeComparableTo(tt.wantClusterConfiguration))
 		})
 	}
 }
@@ -977,7 +977,7 @@ func TestUpdateCertificateValidityPeriodDaysInKubeadmConfigMap(t *testing.T) {
 				client.ObjectKey{Name: kubeadmConfigKey, Namespace: metav1.NamespaceSystem},
 				&actualConfig,
 			)).To(Succeed())
-			g.Expect(actualConfig.Data[clusterConfigurationKey]).Should(Equal(tt.wantClusterConfiguration), cmp.Diff(tt.wantClusterConfiguration, actualConfig.Data[clusterConfigurationKey]))
+			g.Expect(actualConfig.Data[clusterConfigurationKey]).To(Equal(tt.wantClusterConfiguration), cmp.Diff(tt.wantClusterConfiguration, actualConfig.Data[clusterConfigurationKey]))
 		})
 	}
 }

@@ -2,10 +2,10 @@
 title: In place propagation of changes affecting Kubernetes objects only
 authors:
 - "@fabriziopandini"
-- @sbueringer
+- "@sbueringer"
 reviewers:
-- @oscar
-- @vincepri
+- "@oscar"
+- "@vincepri"
 creation-date: 2022-02-10
 last-updated: 2022-02-26
 status: implementable
@@ -55,7 +55,7 @@ superseded-by:
 
 ## Glossary
 
-Refer to the [Cluster API Book Glossary](https://cluster-api.sigs.k8s.io/reference/glossary.html).
+Refer to the [Cluster API Book Glossary](../book/src/reference/glossary.md).
 
 **In-place mutable fields**: fields which changes would only impact Kubernetes objects or/and controller behaviour
 but they won't mutate in any way provider infrastructure nor the software running on it. In-place mutable fields
@@ -135,7 +135,7 @@ As a cluster admin/user, I would like to set autoscaler labels for MachineDeploy
 
 ### Metadata propagation
 
-The following schema represent how metadata propagation works today (also documented in [book](https://cluster-api.sigs.k8s.io/reference/api/metadata-propagation)).
+The following schema represent how metadata propagation works today (also documented in [book](../book/src/reference/api/metadata-propagation.md)).
 
 ![Figure 1](./images/in-place-propagation/current-state.jpg)
 

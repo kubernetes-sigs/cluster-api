@@ -91,7 +91,27 @@ func TestNewCertificatesForInitialControlPlane(t *testing.T) {
 			decodedCert, err := certs.DecodeCertPEM(caCert.KeyPair.Cert)
 			g.Expect(err).ToNot(HaveOccurred())
 
-			g.Expect(decodedCert.NotAfter).Should(BeTemporally("~", test.expectedExpiry, 1*time.Minute))
+			g.Expect(decodedCert.NotAfter).To(BeTemporally("~", test.expectedExpiry, 1*time.Minute))
 		})
+	}
+}
+
+func TestNewCertificatesForInitialControlPlaneCASerialNumber(t *testing.T) {
+	g := NewWithT(t)
+
+	serialNumbers := map[string]bool{}
+	for range 5 {
+		clusterCerts := secret.NewCertificatesForInitialControlPlane(&bootstrapv1.ClusterConfiguration{})
+		g.Expect(clusterCerts.Generate()).To(Succeed())
+
+		caCert := clusterCerts.GetByPurpose(secret.ClusterCA)
+		g.Expect(caCert.KeyPair).NotTo(BeNil())
+
+		decodedCert, err := certs.DecodeCertPEM(caCert.KeyPair.Cert)
+		g.Expect(err).ToNot(HaveOccurred())
+
+		g.Expect(decodedCert.SerialNumber.Sign()).To(Equal(1), "serial number must be positive")
+		g.Expect(serialNumbers).ToNot(HaveKey(decodedCert.SerialNumber.String()), "serial number must be unique")
+		serialNumbers[decodedCert.SerialNumber.String()] = true
 	}
 }

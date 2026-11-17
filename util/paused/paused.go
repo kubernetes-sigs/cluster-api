@@ -54,7 +54,7 @@ func EnsurePausedCondition(ctx context.Context, c client.Client, cluster *cluste
 	switch {
 	case pausedStatusChanged && isPaused:
 		log.V(4).Info("Pausing reconciliation for this object", "reason", newCondition.Message)
-	case pausedStatusChanged && !isPaused:
+	case pausedStatusChanged && !isPaused && oldCondition != nil:
 		log.V(4).Info("Unpausing reconciliation for this object")
 	case !pausedStatusChanged && isPaused:
 		log.V(6).Info("Reconciliation is paused for this object", "reason", newCondition.Message)

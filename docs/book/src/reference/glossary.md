@@ -1,8 +1,6 @@
-# Table of Contents
+# Glossary
 
-[A](#a) | [B](#b) | [C](#c) | [D](#d) | [E](#e) | [H](#h) | [I](#i) | [K](#k) | [L](#l)| [M](#m) | [N](#n) | [O](#o) | [P](#p) | [R](#r) | [S](#s) | [T](#t) | [U](#u) |[W](#w)
-
-# A
+## A
 ---
 
 ### Add-ons
@@ -12,7 +10,7 @@ Services beyond the fundamental components of Kubernetes.
 * __Core Add-ons__: Addons that are required to deploy a Kubernetes-conformant cluster: DNS, kube-proxy, CNI.
 * __Additional Add-ons__: Addons that are not required for a Kubernetes-conformant cluster (e.g. metrics/Heapster, Dashboard).
 
-# B
+## B
 ---
 
 ### Bootstrap
@@ -30,7 +28,7 @@ Bootstrap provider's interaction with Cluster API is based on what is defined in
 
 See [CABPK](#cabpk).
 
-# C
+## C
 ---
 
 ### CAEP
@@ -59,6 +57,9 @@ Cluster API Provider Docker
 
 ### CAPDO
 Cluster API Provider DigitalOcean
+
+### CAPE
+Cluster API Provider evroc
 
 ### CAPG
 Cluster API Google Cloud Provider
@@ -163,7 +164,7 @@ A full Kubernetes deployment. See Management Cluster and Workload Cluster.
 ### ClusterClass
 
 A collection of templates that define a topology (control plane and workers) to be used to continuously reconcile one or more Clusters.
-See [ClusterClass](../tasks/experimental-features/cluster-class/index.md)
+See [ClusterClass](../user/guide/configuration/cluster-class/index.md)
 
 ### Cluster API
 
@@ -226,7 +227,7 @@ The set of controllers in [Core Cluster API](#core-cluster-api).
 
 See [Cluster API](#cluster-api), [CAPI](#capi).
 
-# D
+## D
 ---
 
 ### Default implementation
@@ -234,7 +235,7 @@ See [Cluster API](#cluster-api), [CAPI](#capi).
 A feature implementation offered as part of the Cluster API project and maintained by the CAPI core team; For example
 [KCP](#kcp) is a default implementation for a [control plane provider](#control-plane-provider).
 
-# E
+## E
 ---
 
 ### Efficient upgrade
@@ -253,7 +254,7 @@ of the [upgrade plan](#upgrade-plan) for control plane machines.
 
 A [runtime extension](#runtime-extension) that implements a [topology mutation hook](#topology-mutation-hook).
 
-# H
+## H
 ---
 
 ### Horizontal Scaling
@@ -264,7 +265,7 @@ The ability to add more machines based on policy and well-defined metrics. For e
 
 see [Server](#server)
 
-# I
+## I
 ---
 
 ### Infrastructure provider
@@ -311,7 +312,7 @@ Note: Cluster API also has extensibility points that make it possible to perform
 Refers to a [provider](#provider) that allows Cluster API to interact with IPAM solutions.
 IPAM provider's interaction with Cluster API is based on the `IPAddressClaim` and `IPAddress` API types.
 
-# K
+## K
 ---
 
 ### Kubernetes-conformant
@@ -328,14 +329,15 @@ Refers to the [main Kubernetes git repository](https://github.com/kubernetes/kub
 
 Kubeadm Control plane Provider
 
-# L
+## L
 ---
 
 ### Lifecycle hook
 A [Runtime Hook](#runtime-hook) that allows external components to interact with the lifecycle of a Cluster.
 
-See [Implementing Lifecycle Hooks](../tasks/experimental-features/runtime-sdk/implement-lifecycle-hooks.md)
-# M
+See [Implementing Lifecycle Hooks](../developer/runtime-extensions/implement-lifecycle-hooks.md)
+
+## M
 ---
 
 ### Machine
@@ -372,14 +374,14 @@ instances of the same provider, each one with its own credentials; starting from
 
 See also [Support multiple instances](../developer/core/support-multiple-instances.md).
 
-# N
+## N
 ---
 
 ### Node pools
 
 A node pool is a group of nodes within a cluster that all have the same configuration.
 
-# O
+## O
 ---
 
 ### Operating system
@@ -388,7 +390,7 @@ Or __OS__
 
 A generically understood combination of a kernel and system-level userspace interface, such as Linux or Windows, as opposed to a particular distribution.
 
-# P
+## P
 ---
 
 ### Patch
@@ -435,7 +437,7 @@ See [Provider repository](#provider-repository)
 Refers to the location where the YAML for [provider components](#provider-components) are hosted; usually a provider repository hosts
 many version of provider components, one for each released version.
 
-# R
+## R
 ---
 
 ### Runtime Extension
@@ -451,7 +453,7 @@ Runtime Extension provider's interaction with Cluster API are based on the Open 
 
 ### Runtime Hook
 
-A single, well identified, extension point allowing applications built on top of Cluster API to hook into specific moments of the [Cluster API Runtime](#cluster-api-runtime), e.g. [BeforeClusterUpgrade](../tasks/experimental-features/runtime-sdk/implement-lifecycle-hooks.md#beforeclusterupgrade), [TopologyMutationHook](#topology-mutation-hook).
+A single, well identified, extension point allowing applications built on top of Cluster API to hook into specific moments of the [Cluster API Runtime](#cluster-api-runtime), e.g. [BeforeClusterUpgrade](../developer/runtime-extensions/implement-lifecycle-hooks.md#beforeclusterupgrade), [TopologyMutationHook](#topology-mutation-hook).
 
 See [Runtime SDK](#runtime-sdk)
 
@@ -459,9 +461,9 @@ See [Runtime SDK](#runtime-sdk)
 
 A developer toolkit required to build Runtime Hooks and Runtime Extensions.
 
-See [Runtime SDK](../tasks/experimental-features/runtime-sdk/index.md)
+See [Runtime SDK](../developer/runtime-extensions/index.md)
 
-# S
+## S
 ---
 
 ### Scaling
@@ -477,7 +479,7 @@ is running as a static pod.
 
 The infrastructure that backs a [Machine Resource](#machine), typically either a cloud instance, virtual machine, or physical host.
 
-# T
+## T
 ---
 
 ### Topology
@@ -492,9 +494,9 @@ See [ClusterClass](#clusterclass)
 
 A [Runtime Hook](#runtime-hook) that allows external components to generate [patches](#patch) for customizing Kubernetes objects that are part of a [Cluster topology](#topology).
 
-See [Topology Mutation](../tasks/experimental-features/runtime-sdk/implement-topology-mutation-hook.md)
+See [Topology Mutation](../developer/runtime-extensions/implement-topology-mutation-hook.md)
 
-# U
+## U
 ---
 
 ### Update Extension
@@ -512,7 +514,7 @@ performing a [chained upgrade](#chained-upgrade).
 Notably, the upgrade plan for control plane machines might be a superset of the upgrade plan for
 workers machines.
 
-# W
+## W
 ---
 
 ### Workload Cluster

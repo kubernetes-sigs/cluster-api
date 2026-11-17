@@ -1,5 +1,4 @@
 //go:build tools
-// +build tools
 
 /*
 Copyright 2023 The Kubernetes Authors.
@@ -20,7 +19,7 @@ limitations under the License.
 package main
 
 import (
-	"fmt"
+	"errors"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -66,6 +65,51 @@ func Test_buildSetOfPRNumbers(t *testing.T) {
 			},
 			want: map[string]bool{
 				"9263": false,
+			},
+		},
+		{
+			name: "backport merge uses release PR instead of original PR in cherry-picked subject",
+			commits: []githubCommitNode{
+				{
+					SHA:    "release-commit",
+					Commit: githubCommit{Message: "Restore apiVersionGetter after unit tests (#14189)"},
+				},
+				{
+					SHA: "release-merge-commit",
+					Parents: []githubCommitParent{
+						{SHA: "release-base-tip"},
+						{SHA: "release-commit"},
+					},
+					Commit: githubCommit{Message: "Merge pull request #14255 from dlanov/fix-14253-conversion-getter\n\n[release-1.14] Restore apiVersionGetter after unit tests"},
+				},
+			},
+			want: map[string]bool{
+				"14255": false,
+			},
+		},
+		{
+			name: "first parent of a merge commit is still counted",
+			commits: []githubCommitNode{
+				{
+					SHA:    "first-parent-commit",
+					Commit: githubCommit{Message: "Fix race in KCP proxy DialContext (#14280)"},
+				},
+				{
+					SHA:    "second-parent-commit",
+					Commit: githubCommit{Message: "fix: flaky test"},
+				},
+				{
+					SHA: "merge-commit",
+					Parents: []githubCommitParent{
+						{SHA: "first-parent-commit"},
+						{SHA: "second-parent-commit"},
+					},
+					Commit: githubCommit{Message: "Merge pull request #14299 from cherrypick-robot/cherry-pick-14295-to-release-1.13\n\n[release-1.13] fix flaky test"},
+				},
+			},
+			want: map[string]bool{
+				"14280": false,
+				"14299": false,
 			},
 		},
 	}
@@ -170,7 +214,7 @@ func Test_githubFromToPRLister_listPRs(t *testing.T) {
 		{
 			name: "Fail when toRef and previousReleaseRef set blank",
 			lister: newGithubFromToPRListerWithClient(
-				newMockGithubClientWithError("diff", fmt.Errorf("invalid ref")),
+				newMockGithubClientWithError("diff", errors.New("invalid ref")),
 				ref{reType: "tags", value: "v0.26.0"},
 				ref{reType: "tags", value: ""},
 				"main",

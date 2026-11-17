@@ -31,7 +31,7 @@ import (
 	"k8s.io/utils/ptr"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
-	"sigs.k8s.io/cluster-api/feature"
+	"sigs.k8s.io/cluster-api/pkg/features"
 )
 
 // validatePatches returns errors if the Patches in the ClusterClass violate any validation rules.
@@ -121,7 +121,7 @@ func validatePatchDefinitions(patch clusterv1.ClusterClassPatch, clusterClass *c
 		}
 	}
 	if patch.External != nil {
-		if !feature.Gates.Enabled(feature.RuntimeSDK) {
+		if !features.Gates.Enabled(features.RuntimeSDK) {
 			allErrs = append(allErrs,
 				field.Forbidden(
 					path.Child("external"),
@@ -140,7 +140,7 @@ func validatePatchDefinitions(patch clusterv1.ClusterClassPatch, clusterClass *c
 	return allErrs
 }
 
-// validateSelectors validates if enabledIf is a valid template if it is set.
+// validateEnabledIf validates if enabledIf is a valid template if it is set.
 func validateEnabledIf(enabledIf string, path *field.Path) field.ErrorList {
 	var allErrs field.ErrorList
 
@@ -460,7 +460,7 @@ func getVariableName(variable string) string {
 	})[0]
 }
 
-// This contains a list of all of the valid builtin variables.
+// builtinVariables contains a list of all of the valid builtin variables.
 // TODO(killianmuldoon): Match this list to controllers/topology/internal/extensions/patches/variables as those structs become available across the code base i.e. public or top-level internal.
 var builtinVariables = sets.Set[string]{}.Insert(
 	"builtin",

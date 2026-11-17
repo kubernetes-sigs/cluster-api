@@ -694,6 +694,9 @@ func spokeMachineStatus(in *clusterv1beta1.MachineStatus, c randfill.Continue) {
 		if reflect.DeepEqual(in.Deletion.WaitForPreTerminateHookStartTime, &metav1.Time{}) {
 			in.Deletion.WaitForPreTerminateHookStartTime = nil
 		}
+		if reflect.DeepEqual(in.Deletion.NodeDeletionStartTime, &metav1.Time{}) {
+			in.Deletion.NodeDeletionStartTime = nil
+		}
 	}
 }
 

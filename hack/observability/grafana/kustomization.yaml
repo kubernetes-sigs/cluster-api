@@ -28,6 +28,3 @@ configMapGenerator:
 - name: grafana-dashboard-cluster-api-runtime-extensions
   files:
   - dashboards/cluster-api-runtime-extensions.json
-- name: grafana-dashboard-cluster-api-logs
-  files:
-    - dashboards/cluster-api-logs.json

@@ -1769,6 +1769,24 @@ func Test_ValidateClusterClassVariable(t *testing.T) {
 			},
 		},
 		{
+			name: "pass if x-kubernetes-validations has valid rule (array)",
+			clusterClassVariable: &clusterv1.ClusterClassVariable{
+				Name: "cpu",
+				Schema: clusterv1.VariableSchema{
+					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Type:     "array",
+						MaxItems: ptr.To[int64](10),
+						XValidations: []clusterv1.ValidationRule{{
+							Rule: "self.all(value, value >= 1)",
+						}},
+						Items: &clusterv1.JSONSchemaProps{
+							Type: "integer",
+						},
+					},
+				},
+			},
+		},
+		{
 			name: "fail if x-kubernetes-validations has invalid rule: invalid CEL expression",
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name: "cpu",
@@ -1997,6 +2015,98 @@ func Test_ValidateClusterClassVariable(t *testing.T) {
 			wantErrs: []validationMatch{
 				invalid("Invalid value: 0: failed rule: self >= 1",
 					"spec.variables[cpu].schema.openAPIV3Schema.properties[nestedField].default"),
+			},
+		},
+		{
+			name: "pass if x-kubernetes-validations has valid rule: valid default value (array)",
+			clusterClassVariable: &clusterv1.ClusterClassVariable{
+				Name: "cpu",
+				Schema: clusterv1.VariableSchema{
+					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Type:     "array",
+						MaxItems: ptr.To[int64](10),
+						Default: &apiextensionsv1.JSON{
+							Raw: []byte(`[1,2]`),
+						},
+						XValidations: []clusterv1.ValidationRule{{
+							Rule: "self.all(value, value >= 1)",
+						}},
+						Items: &clusterv1.JSONSchemaProps{
+							Type: "integer",
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "fail if x-kubernetes-validations has valid rule: invalid default value (array)",
+			clusterClassVariable: &clusterv1.ClusterClassVariable{
+				Name: "cpu",
+				Schema: clusterv1.VariableSchema{
+					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Type:     "array",
+						MaxItems: ptr.To[int64](10),
+						Default: &apiextensionsv1.JSON{
+							Raw: []byte(`[1,0]`),
+						},
+						XValidations: []clusterv1.ValidationRule{{
+							Rule: "self.all(value, value >= 1)",
+						}},
+						Items: &clusterv1.JSONSchemaProps{
+							Type: "integer",
+						},
+					},
+				},
+			},
+			wantErrs: []validationMatch{
+				invalid("failed rule: self.all(value, value >= 1)",
+					"spec.variables[cpu].schema.openAPIV3Schema.default"),
+			},
+		},
+		{
+			name: "pass if x-kubernetes-validations has valid rule: valid default value (array items)",
+			clusterClassVariable: &clusterv1.ClusterClassVariable{
+				Name: "cpu",
+				Schema: clusterv1.VariableSchema{
+					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Type:     "array",
+						MaxItems: ptr.To[int64](10),
+						Default: &apiextensionsv1.JSON{
+							Raw: []byte(`[1,2]`),
+						},
+						Items: &clusterv1.JSONSchemaProps{
+							Type: "integer",
+							XValidations: []clusterv1.ValidationRule{{
+								Rule: "self >= 1",
+							}},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "fail if x-kubernetes-validations has valid rule: invalid default value (array items)",
+			clusterClassVariable: &clusterv1.ClusterClassVariable{
+				Name: "cpu",
+				Schema: clusterv1.VariableSchema{
+					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Type:     "array",
+						MaxItems: ptr.To[int64](10),
+						Default: &apiextensionsv1.JSON{
+							Raw: []byte(`[1,0]`),
+						},
+						Items: &clusterv1.JSONSchemaProps{
+							Type: "integer",
+							XValidations: []clusterv1.ValidationRule{{
+								Rule: "self >= 1",
+							}},
+						},
+					},
+				},
+			},
+			wantErrs: []validationMatch{
+				invalid("Invalid value: 0: failed rule: self >= 1",
+					"spec.variables[cpu].schema.openAPIV3Schema.default[1]"),
 			},
 		},
 		{

@@ -34,10 +34,10 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	runtimev1 "sigs.k8s.io/cluster-api/api/runtime/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
-	"sigs.k8s.io/cluster-api/feature"
 	contractapi "sigs.k8s.io/cluster-api/internal/contract/api"
 	contractv1beta1 "sigs.k8s.io/cluster-api/internal/contract/api/v1beta1"
 	contractv1 "sigs.k8s.io/cluster-api/internal/contract/api/v1beta2"
+	"sigs.k8s.io/cluster-api/pkg/features"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -1595,6 +1595,41 @@ func TestSetUpToDateCondition(t *testing.T) {
 			},
 		},
 		{
+			name: "up-to-date, but dirty after in-place update",
+			machineDeployment: &clusterv1.MachineDeployment{
+				Spec: clusterv1.MachineDeploymentSpec{
+					Template: clusterv1.MachineTemplateSpec{
+						Spec: clusterv1.MachineSpec{
+							Version: "v1.31.0",
+						},
+					},
+				},
+			},
+			machineSet: &clusterv1.MachineSet{
+				Spec: clusterv1.MachineSetSpec{
+					Template: clusterv1.MachineTemplateSpec{
+						Spec: clusterv1.MachineSpec{
+							Version: "v1.31.0",
+						},
+					},
+				},
+			},
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{clusterv1.UpdateDirtyAnnotation: ""},
+				},
+				Spec: clusterv1.MachineSpec{
+					Version: "v1.31.0",
+				},
+			},
+			expectCondition: &metav1.Condition{
+				Type:    clusterv1.MachineUpToDateCondition,
+				Status:  metav1.ConditionTrue,
+				Reason:  clusterv1.MachineUpToDateReason,
+				Message: "In-place update completed, but the Machine might still differ from the desired state",
+			},
+		},
+		{
 			name: "updating",
 			machineDeployment: &clusterv1.MachineDeployment{
 				Spec: clusterv1.MachineDeploymentSpec{
@@ -1667,6 +1702,23 @@ func TestSetUpToDateCondition(t *testing.T) {
 				Status:  metav1.ConditionFalse,
 				Reason:  clusterv1.MachineUpToDateUpdatingReason,
 				Message: "* Node.status.nodeInfo.kubeletVersion v1.30.0, v1.31.0 required",
+			},
+		},
+		{
+			name:              "up-to-date, spec.version not set",
+			machineDeployment: &clusterv1.MachineDeployment{},
+			machineSet:        &clusterv1.MachineSet{},
+			machine: &clusterv1.Machine{
+				Status: clusterv1.MachineStatus{
+					NodeInfo: &corev1.NodeSystemInfo{
+						KubeletVersion: "v1.31.0",
+					},
+				},
+			},
+			expectCondition: &metav1.Condition{
+				Type:   clusterv1.MachineUpToDateCondition,
+				Status: metav1.ConditionTrue,
+				Reason: clusterv1.MachineUpToDateReason,
 			},
 		},
 		{
@@ -3097,7 +3149,7 @@ func TestReconcileMachinePhases(t *testing.T) {
 	})
 
 	t.Run("Should set `Updating` when Machine is in-place updating", func(t *testing.T) {
-		utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.InPlaceUpdates, true)
+		utilfeature.SetFeatureGateDuringTest(t, features.Gates, features.InPlaceUpdates, true)
 
 		g := NewWithT(t)
 

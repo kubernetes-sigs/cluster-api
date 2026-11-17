@@ -121,6 +121,7 @@ func (b *ClusterBlueprint) ControlPlaneMachineHealthCheckClass() (clusterv1.Mach
 				NodeStartupTimeoutSeconds:  b.Topology.ControlPlane.HealthCheck.Checks.NodeStartupTimeoutSeconds,
 				UnhealthyNodeConditions:    b.Topology.ControlPlane.HealthCheck.Checks.UnhealthyNodeConditions,
 				UnhealthyMachineConditions: b.Topology.ControlPlane.HealthCheck.Checks.UnhealthyMachineConditions,
+				UnhealthyExpressions:       b.Topology.ControlPlane.HealthCheck.Checks.UnhealthyExpressions,
 			}, clusterv1.MachineHealthCheckRemediation{
 				TriggerIf: clusterv1.MachineHealthCheckRemediationTriggerIf{
 					UnhealthyLessThanOrEqualTo: b.Topology.ControlPlane.HealthCheck.Remediation.TriggerIf.UnhealthyLessThanOrEqualTo,
@@ -134,6 +135,7 @@ func (b *ClusterBlueprint) ControlPlaneMachineHealthCheckClass() (clusterv1.Mach
 			NodeStartupTimeoutSeconds:  b.ControlPlane.HealthCheck.Checks.NodeStartupTimeoutSeconds,
 			UnhealthyNodeConditions:    b.ControlPlane.HealthCheck.Checks.UnhealthyNodeConditions,
 			UnhealthyMachineConditions: b.ControlPlane.HealthCheck.Checks.UnhealthyMachineConditions,
+			UnhealthyExpressions:       b.ControlPlane.HealthCheck.Checks.UnhealthyExpressions,
 		}, clusterv1.MachineHealthCheckRemediation{
 			TriggerIf: clusterv1.MachineHealthCheckRemediationTriggerIf{
 				UnhealthyLessThanOrEqualTo: b.ControlPlane.HealthCheck.Remediation.TriggerIf.UnhealthyLessThanOrEqualTo,
@@ -170,6 +172,7 @@ func (b *ClusterBlueprint) MachineDeploymentMachineHealthCheckClass(md *clusterv
 				NodeStartupTimeoutSeconds:  md.HealthCheck.Checks.NodeStartupTimeoutSeconds,
 				UnhealthyNodeConditions:    md.HealthCheck.Checks.UnhealthyNodeConditions,
 				UnhealthyMachineConditions: md.HealthCheck.Checks.UnhealthyMachineConditions,
+				UnhealthyExpressions:       md.HealthCheck.Checks.UnhealthyExpressions,
 			}, clusterv1.MachineHealthCheckRemediation{
 				TriggerIf: clusterv1.MachineHealthCheckRemediationTriggerIf{
 					UnhealthyLessThanOrEqualTo: md.HealthCheck.Remediation.TriggerIf.UnhealthyLessThanOrEqualTo,
@@ -183,6 +186,7 @@ func (b *ClusterBlueprint) MachineDeploymentMachineHealthCheckClass(md *clusterv
 			NodeStartupTimeoutSeconds:  b.MachineDeployments[md.Class].HealthCheck.Checks.NodeStartupTimeoutSeconds,
 			UnhealthyNodeConditions:    b.MachineDeployments[md.Class].HealthCheck.Checks.UnhealthyNodeConditions,
 			UnhealthyMachineConditions: b.MachineDeployments[md.Class].HealthCheck.Checks.UnhealthyMachineConditions,
+			UnhealthyExpressions:       b.MachineDeployments[md.Class].HealthCheck.Checks.UnhealthyExpressions,
 		}, clusterv1.MachineHealthCheckRemediation{
 			TriggerIf: clusterv1.MachineHealthCheckRemediationTriggerIf{
 				UnhealthyLessThanOrEqualTo: b.MachineDeployments[md.Class].HealthCheck.Remediation.TriggerIf.UnhealthyLessThanOrEqualTo,

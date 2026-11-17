@@ -20,8 +20,10 @@ import (
 	"cmp"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math"
+	"strconv"
 	"strings"
 	"time"
 
@@ -34,6 +36,7 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -57,20 +60,21 @@ import (
 	coreadmission "sigs.k8s.io/cluster-api/core/webhooks/admission"
 	"sigs.k8s.io/cluster-api/internal/contract"
 	contractapi "sigs.k8s.io/cluster-api/internal/contract/api"
-	"sigs.k8s.io/cluster-api/internal/hooks"
 	topologynames "sigs.k8s.io/cluster-api/internal/topology/names"
 	"sigs.k8s.io/cluster-api/internal/util/inplace"
 	"sigs.k8s.io/cluster-api/internal/util/remediation"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
 	"sigs.k8s.io/cluster-api/pkg/dynamiccache"
+	"sigs.k8s.io/cluster-api/pkg/runtimesdk/hooks"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/collections"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 	capicontrollerutil "sigs.k8s.io/cluster-api/util/controller"
 	"sigs.k8s.io/cluster-api/util/finalizers"
+	utillabels "sigs.k8s.io/cluster-api/util/labels"
 	"sigs.k8s.io/cluster-api/util/labels/format"
-	clog "sigs.k8s.io/cluster-api/util/log"
+	logutil "sigs.k8s.io/cluster-api/util/log"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/paused"
 	"sigs.k8s.io/cluster-api/util/predicates"
@@ -89,6 +93,9 @@ var (
 const (
 	machineSetManagerName         = "capi-machineset"
 	machineSetMetadataManagerName = "capi-machineset-metadata"
+
+	// logRateLimitInterval is the interval at which log lines repeated on every reconcile while waiting for something are logged.
+	logRateLimitInterval = time.Minute
 )
 
 // Update permissions on /finalizers subresrouce is required on management clusters with 'OwnerReferencesPermissionEnforcement' plugin enabled.
@@ -98,6 +105,7 @@ const (
 // +kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io;bootstrap.cluster.x-k8s.io,resources=*,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machinesets;machinesets/status;machinesets/finalizers,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machinedeployments,verbs=get;list;watch
 
 // Reconciler reconciles a MachineSet object.
 type Reconciler struct {
@@ -112,9 +120,10 @@ type Reconciler struct {
 	// WatchFilterValue is the label value used to filter events prior to reconciliation.
 	WatchFilterValue string
 
-	ssaCache   ssa.Cache
-	controller capicontrollerutil.Controller
-	recorder   record.EventRecorder
+	ssaCache       ssa.Cache
+	controller     capicontrollerutil.Controller
+	recorder       record.EventRecorder
+	logRateLimiter *logutil.Limiter
 
 	// Note: This field is only used for unit tests that use fake client because the fake client does not properly set resourceVersion
 	//       on BootstrapConfig/InfraMachine after ssa.Patch and then ssa.RemoveManagedFieldsForLabelsAndAnnotations would fail.
@@ -176,6 +185,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 	if err != nil {
 		return pkgerrors.Wrap(err, "failed setting up with a controller manager")
 	}
+	r.logRateLimiter = logutil.New(ctx)
 	r.controller = c
 	r.recorder = mgr.GetEventRecorderFor("machineset-controller")
 	r.ssaCache = ssa.NewCache("machineset")
@@ -184,6 +194,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 
 // Reconcile reconciles the passed in object.
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (retres ctrl.Result, reterr error) {
+	reconcileStartTime := metav1.Now()
 	machineSet := &clusterv1.MachineSet{}
 	if err := r.Client.Get(ctx, req.NamespacedName, machineSet); err != nil {
 		if apierrors.IsNotFound(err) {
@@ -197,7 +208,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (retres ct
 
 	// AddOwners adds the owners of MachineSet as k/v pairs to the logger.
 	// Specifically, it will add MachineDeployment.
-	ctx, _, err := clog.AddOwners(ctx, r.Client, machineSet)
+	ctx, _, err := logutil.AddOwners(ctx, r.Client, machineSet)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -225,7 +236,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (retres ct
 	s := &scope{
 		cluster:            cluster,
 		machineSet:         machineSet,
-		reconciliationTime: time.Now(),
+		reconcileStartTime: reconcileStartTime,
 	}
 
 	defer func() {
@@ -276,6 +287,14 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (retres ct
 		return doReconcile(ctx, s, reconcileDelete)
 	}
 
+	// Remove the finalizer which was previously used by the topology/machineset controller, which
+	// has been merged into this controller. The cleanup it was responsible for now happens in reconcileDelete.
+	// Note: This is intentionally only done here and not for deleting MachineSets as the legacy finalizer must
+	// only be removed together with the finalizer of this controller once the cleanup has been done to avoid
+	// issues when CAPI is upgraded while the MachineSet only has MachineSetTopologyFinalizer set.
+	// Note: This code can be removed with Cluster API v1.18.
+	controllerutil.RemoveFinalizer(s.machineSet, clusterv1.MachineSetTopologyFinalizer) //nolint:staticcheck // Intentionally used to clean up the legacy finalizer.
+
 	reconcileNormal := append(alwaysReconcile,
 		wrapErrMachineSetReconcileFunc(r.reconcileUnhealthyMachines, "failed to reconcile unhealthy machines"),
 		wrapErrMachineSetReconcileBlockingFunc(r.syncMachines, "failed to sync Machines"),
@@ -295,7 +314,7 @@ type scope struct {
 	getAndAdoptMachinesForMachineSetSucceeded bool
 	owningMachineDeployment                   *clusterv1.MachineDeployment
 	scaleUpPreflightCheckErrMessages          []string
-	reconciliationTime                        time.Time
+	reconcileStartTime                        metav1.Time
 }
 
 type machineSetReconcileBlockingFunc func(ctx context.Context, s *scope) (ctrl.Result, bool, error)
@@ -407,7 +426,7 @@ func (r *Reconciler) triggerInPlaceUpdate(ctx context.Context, s *scope) (ctrl.R
 		}
 		r.controller.DeferNextReconcileUntilCacheUpToDate(s.machineSet, capicontrollerutil.StructuredObject(clusterv1.GroupVersion, "Machine"), machine.ResourceVersion)
 
-		log.Info(fmt.Sprintf("Completed triggering in-place update for Machine %s", machine.Name))
+		log.Info(fmt.Sprintf("Starting in-place update for Machine %s (move completed)", machine.Name))
 		r.recorder.Event(machine, corev1.EventTypeNormal, "SuccessfulStartInPlaceUpdate", "Machine starting in-place update")
 	}
 
@@ -565,25 +584,122 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (ctrl.Result
 
 	// If all the descendant machines are deleted, then remove the machineset's finalizer.
 	if len(machineList) == 0 {
+		// If the MachineSet is topology-owned, delete the referenced templates if they are not used by other
+		// MachineDeployments or MachineSets, i.e. the templates would otherwise be orphaned after the MachineSet deletion completes.
+		if utillabels.IsTopologyOwned(machineSet) {
+			if err := r.deleteUnusedTemplates(ctx, machineSet); err != nil {
+				return ctrl.Result{}, err
+			}
+		}
+
+		// Note: The MachineSet is gone once the patch removing the finalizers succeeds; if the patch fails the next reconcile logs this line again.
+		if controllerutil.ContainsFinalizer(machineSet, clusterv1.MachineSetFinalizer) {
+			log.Info(fmt.Sprintf("MachineSet %s deleted", machineSet.Name), "duration", time.Since(machineSet.DeletionTimestamp.Time).Truncate(time.Second/10))
+		}
+		r.logRateLimiter.Forget(waitingForMachinesDeletionKey(machineSet))
 		r.controller.ClearConsistencyStore(client.ObjectKeyFromObject(machineSet), machineSet.UID)
 		controllerutil.RemoveFinalizer(machineSet, clusterv1.MachineSetFinalizer)
+		// Also remove the legacy finalizer of the topology/machineset controller if it is still set,
+		// e.g. because the MachineSet was already deleting when the controllers were merged.
+		controllerutil.RemoveFinalizer(machineSet, clusterv1.MachineSetTopologyFinalizer) //nolint:staticcheck // Intentionally used to clean up the legacy finalizer.
 		return ctrl.Result{}, nil
 	}
 
 	// else delete owned machines.
 	for _, machine := range machineList {
-		if machine.DeletionTimestamp.IsZero() {
-			if err := r.Client.Delete(ctx, machine); err != nil && !apierrors.IsNotFound(err) {
-				return ctrl.Result{}, pkgerrors.Wrapf(err, "failed to delete Machine %s", klog.KObj(machine))
-			}
-			// Note: We intentionally log after Delete because we want this log line to show up only after DeletionTimestamp has been set.
-			// Also, setting DeletionTimestamp doesn't mean the Machine is actually deleted (deletion takes some time).
-			log.Info(fmt.Sprintf("Deleting Machine %s (MachineSet deleted)", machine.Name), "Machine", klog.KObj(machine))
+		// Propagate the subset of fields that impact tearing down a Machine (e.g. nodeDrainTimeoutSeconds),
+		// so that changes to the MachineSet still take effect while it is deleting.
+		if err := syncDeletingMachine(ctx, r.Client, machineSet, machine); err != nil {
+			return ctrl.Result{}, err
+		}
+
+		if !machine.DeletionTimestamp.IsZero() {
+			continue
+		}
+
+		if err := r.Client.Delete(ctx, machine); err != nil && !apierrors.IsNotFound(err) {
+			return ctrl.Result{}, pkgerrors.Wrapf(err, "failed to delete Machine %s", klog.KObj(machine))
+		}
+		// Note: We intentionally log after Delete because we want this log line to show up only after DeletionTimestamp has been set.
+		// Also, setting DeletionTimestamp doesn't mean the Machine is actually deleted (deletion takes some time).
+		log.Info(fmt.Sprintf("Deleting Machine %s (MachineSet deleted)", machine.Name), "Machine", klog.KObj(machine), "reason", "MachineSetDeleted")
+	}
+
+	r.logRateLimiter.InfoAtMostEvery(log, logRateLimitInterval, waitingForMachinesDeletionKey(machineSet), "Waiting for Machines to be deleted", "Machines", klog.KObjSlice(machineList))
+	return ctrl.Result{}, nil
+}
+
+func waitingForMachinesDeletionKey(ms *clusterv1.MachineSet) logutil.Key {
+	return logutil.NewKey("WaitingForMachinesDeletion", logutil.WithObjects(ms))
+}
+
+// deleteUnusedTemplates deletes the templates referenced in a topology-owned MachineSet if they are not used by other
+// MachineDeployments or MachineSets, i.e. the templates would otherwise be orphaned after the MachineSet deletion completes.
+// Note: We assume templates are not reused by different MachineDeployments, which is (only) true for topology-owned
+// MachineDeployments.
+// Note: MachineSets are listed via APIReader to avoid race conditions caused by an outdated cache.
+func (r *Reconciler) deleteUnusedTemplates(ctx context.Context, machineSet *clusterv1.MachineSet) error {
+	// Gets the name of the MachineDeployment that controls this MachineSet.
+	mdName, err := getMachineDeploymentName(machineSet)
+	if err != nil {
+		return err
+	}
+
+	// Get all the MachineSets for the MachineDeployment.
+	msList, err := mdutil.GetMachineSetsForDeployment(ctx, r.APIReader, *mdName)
+	if err != nil {
+		return err
+	}
+
+	// Fetch the MachineDeployment instance, if it still exists.
+	// Note: This can happen because MachineDeployments are deleted before their corresponding MachineSets.
+	md := &clusterv1.MachineDeployment{}
+	if err := r.Client.Get(ctx, *mdName, md); err != nil {
+		if !apierrors.IsNotFound(err) {
+			return pkgerrors.Wrapf(err, "failed to get MachineDeployment/%s", mdName.Name)
+		}
+		// If the MachineDeployment doesn't exist anymore, set md to nil, so we can handle that case correctly below.
+		md = nil
+	}
+
+	// Calculate which templates are still in use by MachineDeployments or MachineSets which are not in deleting state.
+	templatesInUse, err := mdutil.CalculateTemplatesInUse(md, msList)
+	if err != nil {
+		return err
+	}
+
+	// Delete unused templates.
+	ref := machineSet.Spec.Template.Spec.Bootstrap.ConfigRef
+	if err := mdutil.DeleteTemplateIfUnused(ctx, r.Client, templatesInUse, ref, machineSet.Namespace); err != nil {
+		return pkgerrors.Wrapf(err, "failed to delete %s %s for MachineSet %s", ref.Kind, klog.KRef(machineSet.Namespace, ref.Name), klog.KObj(machineSet))
+	}
+	ref = machineSet.Spec.Template.Spec.InfrastructureRef
+	if err := mdutil.DeleteTemplateIfUnused(ctx, r.Client, templatesInUse, ref, machineSet.Namespace); err != nil {
+		return pkgerrors.Wrapf(err, "failed to delete %s %s for MachineSet %s", ref.Kind, klog.KRef(machineSet.Namespace, ref.Name), klog.KObj(machineSet))
+	}
+	return nil
+}
+
+// getMachineDeploymentName calculates the MachineDeployment name based on owner references.
+func getMachineDeploymentName(ms *clusterv1.MachineSet) (*types.NamespacedName, error) {
+	for _, ref := range ms.GetOwnerReferences() {
+		if ref.Kind != "MachineDeployment" {
+			continue
+		}
+		gv, err := schema.ParseGroupVersion(ref.APIVersion)
+		if err != nil {
+			return nil, pkgerrors.Errorf("could not calculate MachineDeployment name for MachineSet %s: invalid apiVersion %q: %v",
+				klog.KObj(ms), ref.APIVersion, err)
+		}
+		if gv.Group == clusterv1.GroupVersion.Group {
+			return &client.ObjectKey{Namespace: ms.Namespace, Name: ref.Name}, nil
 		}
 	}
 
-	log.Info("Waiting for Machines to be deleted", "Machines", clog.ObjNamesString(machineList))
-	return ctrl.Result{}, nil
+	// Note: Once we set an owner reference to a MachineDeployment in a MachineSet it stays there
+	// and is not deleted when the MachineDeployment is deleted. So we assume there's something wrong,
+	// if we couldn't find a MachineDeployment owner reference.
+	return nil, pkgerrors.Errorf("could not calculate MachineDeployment name for MachineSet %s", klog.KObj(ms))
 }
 
 func (r *Reconciler) getAndAdoptMachinesForMachineSet(ctx context.Context, s *scope) (ctrl.Result, bool, error) {
@@ -623,7 +739,7 @@ func (r *Reconciler) getAndAdoptMachinesForMachineSet(ctx context.Context, s *sc
 				r.recorder.Eventf(machineSet, corev1.EventTypeWarning, "FailedAdopt", "Failed to adopt Machine %q: %v", machine.Name, err)
 				continue
 			}
-			log.Info("Adopted Machine")
+			log.Info(fmt.Sprintf("Machine %s adopted", machine.Name), "reason", "Adoption")
 			r.recorder.Eventf(machineSet, corev1.EventTypeNormal, "SuccessfulAdopt", "Adopted Machine %q", machine.Name)
 		}
 
@@ -634,6 +750,24 @@ func (r *Reconciler) getAndAdoptMachinesForMachineSet(ctx context.Context, s *sc
 	s.getAndAdoptMachinesForMachineSetSucceeded = true
 
 	return ctrl.Result{}, false, nil
+}
+
+// syncDeletingMachine propagates the subset of in-place mutable fields that impact tearing down a Machine
+// from the MachineSet to a Machine that is deleting or about to be deleted.
+// Note: These Machines are patched with a merge patch instead of SSA, so we only touch the fields that matter
+// for tearing down the Machine (e.g. nodeDrainTimeoutSeconds), which allows users to unblock a stuck deletion.
+func syncDeletingMachine(ctx context.Context, c client.Client, machineSet *clusterv1.MachineSet, m *clusterv1.Machine) error {
+	original := m.DeepCopy()
+
+	m.Spec.Deletion.NodeDrainTimeoutSeconds = machineSet.Spec.Template.Spec.Deletion.NodeDrainTimeoutSeconds
+	m.Spec.Deletion.NodeDeletionTimeoutSeconds = machineSet.Spec.Template.Spec.Deletion.NodeDeletionTimeoutSeconds
+	coreadmission.DefaultMachineNodeDeletionTimeoutSeconds(m) // Default to avoid unnecessary patch calls if field is not set on MS.
+	m.Spec.Deletion.NodeVolumeDetachTimeoutSeconds = machineSet.Spec.Template.Spec.Deletion.NodeVolumeDetachTimeoutSeconds
+
+	if err := c.Patch(ctx, m, client.MergeFrom(original)); err != nil {
+		return pkgerrors.Wrapf(err, "failed to patch deleting Machine %s", klog.KObj(m))
+	}
+	return nil
 }
 
 // syncMachines updates Machines, InfrastructureMachine and BootstrapConfig to propagate in-place mutable fields
@@ -651,18 +785,7 @@ func (r *Reconciler) syncMachines(ctx context.Context, s *scope) (ctrl.Result, b
 		// If the machine is already being deleted, we only need to sync
 		// the subset of fields that impact tearing down a machine
 		if !m.DeletionTimestamp.IsZero() {
-			original := m.DeepCopy()
-
-			// Set all other in-place mutable fields that impact the ability to tear down existing machines.
-			m.Spec.ReadinessGates = machineSet.Spec.Template.Spec.ReadinessGates
-			m.Spec.Deletion.NodeDrainTimeoutSeconds = machineSet.Spec.Template.Spec.Deletion.NodeDrainTimeoutSeconds
-			m.Spec.Deletion.NodeDeletionTimeoutSeconds = machineSet.Spec.Template.Spec.Deletion.NodeDeletionTimeoutSeconds
-			coreadmission.DefaultMachineNodeDeletionTimeoutSeconds(m) // Default to avoid unnecessary patch calls if field is not set on MS.
-			m.Spec.Deletion.NodeVolumeDetachTimeoutSeconds = machineSet.Spec.Template.Spec.Deletion.NodeVolumeDetachTimeoutSeconds
-			m.Spec.MinReadySeconds = machineSet.Spec.Template.Spec.MinReadySeconds
-			m.Spec.Taints = machineSet.Spec.Template.Spec.Taints
-
-			if err := r.Client.Patch(ctx, m, client.MergeFrom(original)); err != nil {
+			if err := syncDeletingMachine(ctx, r.Client, machineSet, m); err != nil {
 				return ctrl.Result{}, true, err
 			}
 			continue
@@ -782,6 +905,11 @@ func (r *Reconciler) syncReplicas(ctx context.Context, s *scope) (ctrl.Result, e
 		return ctrl.Result{}, err
 	}
 
+	// Note: Forget when there are no Machines to delete, so the next scale down is logged at Info even if it has the same values.
+	if res.MachinesToDelete == 0 {
+		r.logRateLimiter.Forget(scalingDownKey(ms, 0))
+	}
+
 	// If there are not enough Machines, create missing Machines unless Machine creation is disabled.
 	if res.MachineCreationDisabled {
 		log.Info("Automatic creation of new machines disabled for MachineSet")
@@ -895,7 +1023,7 @@ func (r *Reconciler) listMSOwnedObjectsFromContractVersionedRef(ctx context.Cont
 	err = meta.EachListItem(objList, func(obj runtime.Object) error {
 		clientObj, ok := obj.(client.Object)
 		if !ok {
-			return fmt.Errorf("unexpected object in list")
+			return errors.New("unexpected object in list")
 		}
 
 		// Note: Only consider objects that are still owned by the current MachineSet.
@@ -943,7 +1071,7 @@ func (r *Reconciler) createMachines(ctx context.Context, s *scope, machinesToAdd
 		return ctrl.Result{RequeueAfter: preflightFailedRequeueAfter}, nil
 	}
 
-	log.V(4).Info(fmt.Sprintf("MachineSet is scaling up to %d replicas by creating %d Machines", *(ms.Spec.Replicas), machinesToAdd), "desiredReplicas", *(ms.Spec.Replicas), "replicas", len(s.machines))
+	log.V(4).Info(fmt.Sprintf("MachineSet %s is scaling up to %d replicas by creating %d Machines", ms.Name, *(ms.Spec.Replicas), machinesToAdd), "desiredReplicas", *(ms.Spec.Replicas), "replicas", len(s.machines), "scaleUpCount", machinesToAdd)
 
 	for i := range machinesToAdd {
 		// Create a new logger so the global logger is not modified.
@@ -1013,7 +1141,7 @@ func (r *Reconciler) createMachines(ctx context.Context, s *scope, machinesToAdd
 		}
 		r.controller.DeferNextReconcileUntilCacheUpToDate(s.machineSet, capicontrollerutil.StructuredObject(clusterv1.GroupVersion, "Machine"), machine.ResourceVersion)
 
-		log.Info(fmt.Sprintf("Machine %s created (scale up, creating %d of %d)", klog.KObj(machine), i+1, machinesToAdd), "Machine", klog.KObj(machine), "desiredReplicas", *(ms.Spec.Replicas), "replicas", len(s.machines))
+		log.Info(fmt.Sprintf("Machine %s created (scale up, creating %d of %d)", machine.Name, i+1, machinesToAdd), "Machine", klog.KObj(machine), "reason", "ScaleUp", "desiredReplicas", *(ms.Spec.Replicas), "replicas", len(s.machines))
 		r.recorder.Eventf(ms, corev1.EventTypeNormal, "SuccessfulCreate", "Created Machine %q", machine.Name)
 	}
 
@@ -1030,7 +1158,8 @@ func (r *Reconciler) deleteMachines(ctx context.Context, s *scope, machinesToDel
 	ms := s.machineSet
 	machines := s.machines
 
-	log.Info(fmt.Sprintf("MachineSet is scaling down to %d replicas by deleting %d Machines", *(ms.Spec.Replicas), machinesToDelete), "replicas", *(ms.Spec.Replicas), "machineCount", len(machines), "order", cmp.Or(ms.Spec.Deletion.Order, clusterv1.RandomMachineSetDeletionOrder))
+	// Note: The replicas and the number of Machines to delete are values of the key, so a change of the scale down is logged immediately.
+	r.logRateLimiter.InfoAtMostEvery(log, logRateLimitInterval, scalingDownKey(ms, machinesToDelete), fmt.Sprintf("MachineSet %s is scaling down to %d replicas by deleting %d Machines", ms.Name, *(ms.Spec.Replicas), machinesToDelete), "desiredReplicas", *(ms.Spec.Replicas), "replicas", len(s.machines), "scaleDownCount", machinesToDelete, "order", cmp.Or(ms.Spec.Deletion.Order, clusterv1.RandomMachineSetDeletionOrder))
 
 	// Pick the list of machines to be deleted according to the criteria defined in ms.Spec.Deletion.Order.
 	// Note: In case the system has to delete some machine, and there are machines are still updating in place, those machine must be deleted first.
@@ -1060,10 +1189,11 @@ func (r *Reconciler) deleteMachines(ctx context.Context, s *scope, machinesToDel
 				r.controller.DeferNextReconcileUntilCacheUpToDate(s.machineSet, capicontrollerutil.StructuredObject(clusterv1.GroupVersion, "Machine"), deletedMachine.GetResourceVersion())
 			}
 
-			log.Info(fmt.Sprintf("Machine %s deleting (scale down, deleting %d of %d)", klog.KObj(machine), i+1, machinesToDelete))
+			log.Info(fmt.Sprintf("Deleting Machine %s (scale down, deleting %d of %d)", machine.Name, i+1, machinesToDelete), "reason", "ScaleDown")
 			r.recorder.Eventf(ms, corev1.EventTypeNormal, "SuccessfulDelete", "Deleted Machine %q", machine.Name)
 		} else {
-			log.Info(fmt.Sprintf("Waiting for Machine to be deleted (scale down, deleting %d of %d)", i+1, machinesToDelete))
+			// Note: Forget is not called because the entry is not used anymore after the Machine is gone, and it expires after the TTL.
+			r.logRateLimiter.InfoAtMostEvery(log, logRateLimitInterval, waitingForMachineDeletionKey(ms, machine), fmt.Sprintf("Waiting for Machine %s to be deleted (scale down, deleting %d of %d)", machine.Name, i+1, machinesToDelete), "reason", "ScaleDown")
 		}
 	}
 
@@ -1071,6 +1201,14 @@ func (r *Reconciler) deleteMachines(ctx context.Context, s *scope, machinesToDel
 		return ctrl.Result{}, kerrors.NewAggregate(errs)
 	}
 	return ctrl.Result{}, nil
+}
+
+func scalingDownKey(ms *clusterv1.MachineSet, machinesToDelete int) logutil.Key {
+	return logutil.NewKey("ScalingDown", logutil.WithObjects(ms), logutil.WithValues(strconv.Itoa(int(*(ms.Spec.Replicas))), strconv.Itoa(machinesToDelete)))
+}
+
+func waitingForMachineDeletionKey(ms *clusterv1.MachineSet, machine *clusterv1.Machine) logutil.Key {
+	return logutil.NewKey("WaitingForMachineDeletion", logutil.WithObjects(ms, machine))
 }
 
 func (r *Reconciler) startMoveMachines(ctx context.Context, s *scope, targetMSName string, machinesToMove int, affectsAvailability *bool) (ctrl.Result, error) {
@@ -1096,7 +1234,7 @@ func (r *Reconciler) startMoveMachines(ctx context.Context, s *scope, targetMSNa
 		return ctrl.Result{}, pkgerrors.Errorf("MachineSet %s is set to move replicas to %s, but %[2]s only accepts Machines from %s", ms.Name, targetMS.Name, validSourceMSs)
 	}
 
-	log.Info(fmt.Sprintf("MachineSet is scaling down to %d replicas by moving %d Machines to %s", *(ms.Spec.Replicas), machinesToMove, targetMSName), "replicas", *(ms.Spec.Replicas), "machineCount", len(machines), "order", cmp.Or(ms.Spec.Deletion.Order, clusterv1.RandomMachineSetDeletionOrder))
+	log.Info(fmt.Sprintf("MachineSet %s is scaling down to %d replicas by moving %d Machines to MachineSet %s", ms.Name, *(ms.Spec.Replicas), machinesToMove, targetMSName), "targetMachineSet", klog.KRef(ms.Namespace, targetMSName), "desiredReplicas", *(ms.Spec.Replicas), "replicas", len(s.machines), "scaleDownCount", machinesToMove, "order", cmp.Or(ms.Spec.Deletion.Order, clusterv1.RandomMachineSetDeletionOrder))
 
 	// Sort to Move machine in deterministic and predictable order.
 	// Note: For convenience we sort machine using the ordering criteria defined in ms.Spec.Deletion.Order.
@@ -1129,7 +1267,7 @@ func (r *Reconciler) startMoveMachines(ctx context.Context, s *scope, targetMSNa
 				r.controller.DeferNextReconcileUntilCacheUpToDate(s.machineSet, capicontrollerutil.StructuredObject(clusterv1.GroupVersion, "Machine"), deletedMachine.GetResourceVersion())
 			}
 
-			log.Info(fmt.Sprintf("Machine %s deleting (deleting the Machine instead of moving it to MachineSet %s because Machine is marked for remediation)", klog.KObj(machine), targetMS.Name))
+			log.Info(fmt.Sprintf("Deleting Machine %s (deleting the Machine instead of moving it to MachineSet %s because Machine is marked for remediation)", machine.Name, targetMS.Name), "reason", "Remediation")
 			r.recorder.Eventf(ms, corev1.EventTypeNormal, "SuccessfulDelete", "Deleted Machine %q", machine.Name)
 			continue
 		}
@@ -1155,7 +1293,7 @@ func (r *Reconciler) startMoveMachines(ctx context.Context, s *scope, targetMSNa
 
 		machinesToMove--
 
-		log.Info(fmt.Sprintf("Triggering in-place update for Machine %s (by moving to MachineSet %s)", machine.Name, targetMS.Name))
+		log.Info(fmt.Sprintf("Preparing Machine %s for in-place update (by moving to MachineSet %s)", machine.Name, targetMS.Name), "reason", "InPlaceUpdate", "targetMachineSet", klog.KObj(targetMS))
 
 		// Perform the first part of a move operation, the part under the responsibility of the oldMS.
 		orig := machine.DeepCopy()
@@ -1523,7 +1661,7 @@ func (r *Reconciler) reconcileV1Beta1Status(ctx context.Context, s *scope) error
 
 		if noderefutil.IsNodeReady(node) {
 			readyReplicasCount++
-			if noderefutil.IsNodeAvailable(node, ptr.Deref(ms.Spec.Template.Spec.MinReadySeconds, 0), metav1.Now()) {
+			if noderefutil.IsNodeAvailable(node, ptr.Deref(ms.Spec.Template.Spec.MinReadySeconds, 0), s.reconcileStartTime) {
 				availableReplicasCount++
 			}
 		} else if machine.GetDeletionTimestamp().IsZero() {
@@ -1818,7 +1956,7 @@ func (r *Reconciler) reconcileUnhealthyMachines(ctx context.Context, s *scope) (
 		}
 		// Note: We intentionally log after Delete because we want this log line to show up only after DeletionTimestamp has been set.
 		// Also, setting DeletionTimestamp doesn't mean the Machine is actually deleted (deletion takes some time).
-		log.Info(fmt.Sprintf("Deleting Machine %s (remediating unhealthy Machine)", m.Name), "Machine", klog.KObj(m))
+		log.Info(fmt.Sprintf("Deleting Machine %s (remediating unhealthy Machine)", m.Name), "Machine", klog.KObj(m), "reason", "Remediation")
 	}
 	if len(errs) > 0 {
 		return ctrl.Result{}, pkgerrors.Wrapf(kerrors.NewAggregate(errs), "failed to delete unhealthy Machines")

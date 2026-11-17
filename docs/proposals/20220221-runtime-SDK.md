@@ -64,7 +64,7 @@ superseded-by:
   
 ## Glossary
 
-Refer to the [Cluster API Book Glossary](https://cluster-api.sigs.k8s.io/reference/glossary.html).
+Refer to the [Cluster API Book Glossary](../book/src/reference/glossary.md).
 
 - **Cluster API Runtime**: identifies the Cluster API execution model, a set of controllers cooperating in managing the
   workload cluster’s lifecycle.
@@ -276,8 +276,8 @@ mechanism allowing to:
 
 The following sections have been moved to the Cluster API book to avoid duplication:
 
-* [Implementing Runtime Extensions](../../docs/book/src/tasks/experimental-features/runtime-sdk/implement-extensions.md)
-* [Deploying Runtime Extensions](../../docs/book/src/tasks/experimental-features/runtime-sdk/implement-extensions.md)
+* [Implementing Runtime Extensions](../../docs/book/src/developer/runtime-extensions/implement-extensions.md)
+* [Deploying Runtime Extensions](../../docs/book/src/developer/runtime-extensions/implement-extensions.md)
 
 ### Registering Runtime Extensions
 

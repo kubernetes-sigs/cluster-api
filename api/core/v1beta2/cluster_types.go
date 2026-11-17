@@ -630,6 +630,7 @@ type ControlPlaneTopology struct {
 	// and it's assumed that the control plane controller does not implement support for this field.
 	// When specified against a control plane provider that lacks support for this field, this value will be ignored.
 	// +optional
+	// +kubebuilder:validation:Minimum=0
 	Replicas *int32 `json:"replicas,omitempty"`
 
 	// rollout allows you to configure the behavior of rolling updates to the control plane.
@@ -786,6 +787,16 @@ type ControlPlaneTopologyHealthCheckChecks struct {
 	// +kubebuilder:validation:MinItems=1
 	// +kubebuilder:validation:MaxItems=100
 	UnhealthyMachineConditions []UnhealthyMachineCondition `json:"unhealthyMachineConditions,omitempty"`
+
+	// unhealthyExpressions contains a list of CEL expressions that determine whether a
+	// Machine is considered unhealthy. The expressions are combined in a
+	// logical OR, i.e. if any of the expressions evaluates to true, the machine is unhealthy.
+	//
+	// +optional
+	// +listType=atomic
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=10
+	UnhealthyExpressions []UnhealthyExpression `json:"unhealthyExpressions,omitempty"`
 }
 
 // ControlPlaneTopologyHealthCheckRemediation configures if and how remediations are triggered if a control plane Machine is unhealthy.
@@ -847,7 +858,7 @@ type ControlPlaneTopologyMachineDeletionSpec struct {
 	NodeVolumeDetachTimeoutSeconds *int32 `json:"nodeVolumeDetachTimeoutSeconds,omitempty"`
 
 	// nodeDeletionTimeoutSeconds defines how long the controller will attempt to delete the Node that the Machine
-	// hosts after the Machine is marked for deletion. A duration of 0 will retry deletion indefinitely.
+	// hosts, measured from when the deletion of the Node started. A duration of 0 will retry deletion indefinitely.
 	// Defaults to 10 seconds.
 	// +optional
 	// +kubebuilder:validation:Minimum=0
@@ -900,6 +911,24 @@ type MachineDeploymentTopology struct {
 	// +kubebuilder:validation:Pattern=`^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$`
 	Name string `json:"name,omitempty"`
 
+	// version is the optional Kubernetes version for this MachineDeployment.
+	// When set, it overrides Cluster.spec.topology.version for this MachineDeployment only,
+	// enabling manual version management and upgrade scheduling.
+	//
+	// It cannot be greater than Cluster.spec.topology.version and it cannot be decreased.
+	// Skew between this version and the control plane version is enforced according to the
+	// Kubernetes version skew policy.
+	//
+	// If unset, the MachineDeployment uses Cluster.spec.topology.version and is upgraded together with
+	// the Cluster whenever Cluster.spec.topology.version changes.
+	// Once set, the MachineDeployment is upgraded only by changing this field, and the field can be
+	// unset only if this version is equal to Cluster.spec.topology.version.
+	//
+	// +optional
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=256
+	Version string `json:"version,omitempty"`
+
 	// failureDomain is the failure domain the machines will be created in.
 	// Must match a key in the FailureDomains map stored on the cluster object.
 	// +optional
@@ -912,6 +941,7 @@ type MachineDeploymentTopology struct {
 	// and it's assumed that an external entity (like cluster autoscaler) is responsible for the management
 	// of this value.
 	// +optional
+	// +kubebuilder:validation:Minimum=0
 	Replicas *int32 `json:"replicas,omitempty"`
 
 	// healthCheck allows to enable, disable and override MachineDeployment health check
@@ -1063,6 +1093,16 @@ type MachineDeploymentTopologyHealthCheckChecks struct {
 	// +kubebuilder:validation:MinItems=1
 	// +kubebuilder:validation:MaxItems=100
 	UnhealthyMachineConditions []UnhealthyMachineCondition `json:"unhealthyMachineConditions,omitempty"`
+
+	// unhealthyExpressions contains a list of CEL expressions that determine whether a
+	// Machine is considered unhealthy. The expressions are combined in a
+	// logical OR, i.e. if any of the expressions evaluates to true, the machine is unhealthy.
+	//
+	// +optional
+	// +listType=atomic
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=10
+	UnhealthyExpressions []UnhealthyExpression `json:"unhealthyExpressions,omitempty"`
 }
 
 // MachineDeploymentTopologyHealthCheckRemediation configures if and how remediations are triggered if a MachineDeployment Machine is unhealthy.
@@ -1147,7 +1187,7 @@ type MachineDeploymentTopologyMachineDeletionSpec struct {
 	NodeVolumeDetachTimeoutSeconds *int32 `json:"nodeVolumeDetachTimeoutSeconds,omitempty"`
 
 	// nodeDeletionTimeoutSeconds defines how long the controller will attempt to delete the Node that the Machine
-	// hosts after the Machine is marked for deletion. A duration of 0 will retry deletion indefinitely.
+	// hosts, measured from when the deletion of the Node started. A duration of 0 will retry deletion indefinitely.
 	// Defaults to 10 seconds.
 	// +optional
 	// +kubebuilder:validation:Minimum=0
@@ -1174,6 +1214,7 @@ type MachineDeploymentTopologyRolloutSpec struct {
 // MachineDeploymentTopologyRolloutStrategy describes how to replace existing machines
 // with new ones.
 // +kubebuilder:validation:MinProperties=1
+// +kubebuilder:validation:XValidation:rule="(oldSelf.hasValue() && self == oldSelf.value()) || !has(self.rollingUpdate) || self.type == 'RollingUpdate'",optionalOldSelf=true,message="rollingUpdate can only be set if type is RollingUpdate"
 type MachineDeploymentTopologyRolloutStrategy struct {
 	// type of rollout. Allowed values are RollingUpdate and OnDelete.
 	// Default is RollingUpdate.
@@ -1247,6 +1288,24 @@ type MachinePoolTopology struct {
 	// +kubebuilder:validation:Pattern=`^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$`
 	Name string `json:"name,omitempty"`
 
+	// version is the optional Kubernetes version for this MachinePool.
+	// When set, it overrides Cluster.spec.topology.version for this MachinePool only,
+	// enabling manual version management and upgrade scheduling.
+	//
+	// It cannot be greater than Cluster.spec.topology.version and it cannot be decreased.
+	// Skew between this version and the control plane version is enforced according to the
+	// Kubernetes version skew policy.
+	//
+	// If unset, the MachinePool uses Cluster.spec.topology.version and is upgraded together with
+	// the Cluster whenever Cluster.spec.topology.version changes.
+	// Once set, the MachinePool is upgraded only by changing this field, and the field can be
+	// unset only if this version is equal to Cluster.spec.topology.version.
+	//
+	// +optional
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=256
+	Version string `json:"version,omitempty"`
+
 	// failureDomains is the list of failure domains the machine pool will be created in.
 	// Must match a key in the FailureDomains map stored on the cluster object.
 	// +optional
@@ -1291,6 +1350,7 @@ type MachinePoolTopology struct {
 	// and it's assumed that an external entity (like cluster autoscaler) is responsible for the management
 	// of this value.
 	// +optional
+	// +kubebuilder:validation:Minimum=0
 	Replicas *int32 `json:"replicas,omitempty"`
 
 	// variables can be used to customize the MachinePool through patches.

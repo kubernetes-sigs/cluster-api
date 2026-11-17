@@ -262,7 +262,7 @@ func TestSimpleProcessor_Process(t *testing.T) {
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				if len(tt.missingVariables) != 0 {
-					e, ok := err.(*errMissingVariables)
+					e, ok := err.(*missingVariablesError)
 					g.Expect(ok).To(BeTrue())
 					g.Expect(e.Missing).To(ConsistOf(tt.missingVariables))
 				}

@@ -18,7 +18,7 @@ package client
 
 import (
 	"context"
-	"fmt"
+	"errors"
 	"strings"
 
 	corev1 "k8s.io/api/core/v1"
@@ -131,7 +131,7 @@ func getObjectRefs(clusterClient cluster.Client, namespace string, resources []s
 	}
 
 	if len(resources) == 0 {
-		return []corev1.ObjectReference{}, fmt.Errorf("required resource not specified")
+		return []corev1.ObjectReference{}, errors.New("required resource not specified")
 	}
 	normalized := normalizeResources(resources)
 	objRefs, err := util.GetObjectReferences(namespace, normalized...)

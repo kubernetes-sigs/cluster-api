@@ -36,8 +36,8 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	"sigs.k8s.io/cluster-api/core/reconcilers/clusterclass"
 	"sigs.k8s.io/cluster-api/core/setup"
-	fakeruntimeclient "sigs.k8s.io/cluster-api/internal/runtime/client/fake"
 	"sigs.k8s.io/cluster-api/internal/test/envtest"
+	fakeruntimeclient "sigs.k8s.io/cluster-api/pkg/runtimesdk/client/fake"
 	"sigs.k8s.io/cluster-api/util/index"
 )
 
@@ -56,11 +56,6 @@ func init() {
 func TestMain(m *testing.M) {
 	setupIndexes := func(ctx context.Context, mgr ctrl.Manager) {
 		if err := index.AddDefaultIndexes(ctx, mgr); err != nil {
-			panic(fmt.Sprintf("unable to setup index: %v", err))
-		}
-		// Set up the ClusterClassName index explicitly here. This index is ordinarily created in
-		// index.AddDefaultIndexes. That doesn't happen here because the ClusterClass feature flag is not set.
-		if err := index.ByClusterClassRef(ctx, mgr); err != nil {
 			panic(fmt.Sprintf("unable to setup index: %v", err))
 		}
 	}

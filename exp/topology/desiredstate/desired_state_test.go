@@ -48,12 +48,12 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	"sigs.k8s.io/cluster-api/core/webhooks/conversion"
 	"sigs.k8s.io/cluster-api/exp/topology/scope"
-	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/contract"
-	fakeruntimeclient "sigs.k8s.io/cluster-api/internal/runtime/client/fake"
 	"sigs.k8s.io/cluster-api/internal/topology/clustershim"
 	topologynames "sigs.k8s.io/cluster-api/internal/topology/names"
 	"sigs.k8s.io/cluster-api/internal/topology/ownerrefs"
+	"sigs.k8s.io/cluster-api/pkg/features"
+	fakeruntimeclient "sigs.k8s.io/cluster-api/pkg/runtimesdk/client/fake"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/cache"
 	conversionutil "sigs.k8s.io/cluster-api/util/conversion"
@@ -442,20 +442,20 @@ func TestComputeControlPlane(t *testing.T) {
 	jsonValue, err := json.Marshal(&clusterClassReadinessGates)
 	g.Expect(err).ToNot(HaveOccurred())
 	var expectedClusterClassReadinessGates []interface{}
-	g.Expect(json.Unmarshal(jsonValue, &expectedClusterClassReadinessGates)).ToNot(HaveOccurred())
+	g.Expect(json.Unmarshal(jsonValue, &expectedClusterClassReadinessGates)).To(Succeed())
 	jsonValue, err = json.Marshal(&readinessGates)
 	g.Expect(err).ToNot(HaveOccurred())
 	var expectedReadinessGates []interface{}
-	g.Expect(json.Unmarshal(jsonValue, &expectedReadinessGates)).ToNot(HaveOccurred())
+	g.Expect(json.Unmarshal(jsonValue, &expectedReadinessGates)).To(Succeed())
 
 	jsonValue, err = json.Marshal(&clusterClassTaints)
 	g.Expect(err).ToNot(HaveOccurred())
 	var expectedClusterClassTaints []interface{}
-	g.Expect(json.Unmarshal(jsonValue, &expectedClusterClassTaints)).ToNot(HaveOccurred())
+	g.Expect(json.Unmarshal(jsonValue, &expectedClusterClassTaints)).To(Succeed())
 	jsonValue, err = json.Marshal(&taints)
 	g.Expect(err).ToNot(HaveOccurred())
 	var expectedTaints []interface{}
-	g.Expect(json.Unmarshal(jsonValue, &expectedTaints)).ToNot(HaveOccurred())
+	g.Expect(json.Unmarshal(jsonValue, &expectedTaints)).To(Succeed())
 
 	scheme := runtime.NewScheme()
 	_ = clusterv1.AddToScheme(scheme)
@@ -1109,7 +1109,7 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 		return "", fmt.Errorf("unknown GroupVersionKind: %v", gk)
 	}))
 
-	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.RuntimeSDK, true)
+	utilfeature.SetFeatureGateDuringTest(t, features.Gates, features.RuntimeSDK, true)
 
 	catalog := runtimecatalog.New()
 	_ = runtimehooksv1.AddToCatalog(catalog)
@@ -1791,7 +1791,7 @@ func TestComputeCluster(t *testing.T) {
 	g.Expect(obj.GetAnnotations()).ToNot(HaveKey(clusterv1.ClusterTopologyUpgradeStepAnnotation))
 
 	// Surfaces the ClusterTopologyUpgradeStepAnnotation annotation during upgrades when runtime SDK feature flag is on.
-	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.RuntimeSDK, true)
+	utilfeature.SetFeatureGateDuringTest(t, features.Gates, features.RuntimeSDK, true)
 
 	annotations := s.Current.Cluster.GetAnnotations()
 	if annotations == nil {
@@ -2091,6 +2091,31 @@ func TestComputeMachineDeployment(t *testing.T) {
 		g.Expect(*actualMd.Spec.Template.Spec.Deletion.NodeDrainTimeoutSeconds).To(Equal(clusterClassDuration))
 		g.Expect(*actualMd.Spec.Template.Spec.Deletion.NodeVolumeDetachTimeoutSeconds).To(Equal(clusterClassDuration))
 		g.Expect(*actualMd.Spec.Template.Spec.Deletion.NodeDeletionTimeoutSeconds).To(Equal(clusterClassDuration))
+	})
+
+	t.Run("Generates the machine deployment with rollout after from Cluster and rollout strategy from ClusterClass", func(t *testing.T) {
+		g := NewWithT(t)
+		scope := scope.New(cluster)
+		scope.Blueprint = blueprint
+
+		rolloutAfter := metav1.NewTime(time.Date(2027, 9, 24, 17, 1, 37, 0, time.UTC))
+		mdTopology := clusterv1.MachineDeploymentTopology{
+			Class:    "linux-worker",
+			Name:     "big-pool-of-machines",
+			Replicas: &replicas,
+			Rollout: clusterv1.MachineDeploymentTopologyRolloutSpec{
+				After: rolloutAfter,
+			},
+		}
+
+		e := generator{}
+
+		actual, err := e.computeMachineDeployment(ctx, scope, mdTopology)
+		g.Expect(err).ToNot(HaveOccurred())
+
+		actualMd := actual.Object
+		g.Expect(actualMd.Spec.Rollout.After).To(BeComparableTo(rolloutAfter))
+		g.Expect(actualMd.Spec.Rollout.Strategy).To(BeComparableTo(clusterClassMDStrategy))
 	})
 
 	t.Run("Skips setting readinessGates if not set in Cluster and ClusterClass", func(t *testing.T) {
@@ -3773,6 +3798,9 @@ func Test_computeMachineHealthCheck(t *testing.T) {
 				TimeoutSeconds: ptr.To(int32(5 * 60)),
 			},
 		},
+		UnhealthyExpressions: []clusterv1.UnhealthyExpression{
+			{Expression: "node.has_condition('Ready','False')"},
+		},
 		NodeStartupTimeoutSeconds: ptr.To(int32(1)),
 	}
 	selector := &metav1.LabelSelector{MatchLabels: map[string]string{
@@ -3822,6 +3850,9 @@ func Test_computeMachineHealthCheck(t *testing.T) {
 						Status:         metav1.ConditionFalse,
 						TimeoutSeconds: ptr.To(int32(5 * 60)),
 					},
+				},
+				UnhealthyExpressions: []clusterv1.UnhealthyExpression{
+					{Expression: "node.has_condition('Ready','False')"},
 				},
 				NodeStartupTimeoutSeconds: ptr.To(int32(1)),
 			},

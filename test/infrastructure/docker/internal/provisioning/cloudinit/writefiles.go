@@ -142,7 +142,7 @@ func fixNodeRegistration(nodeRegistration *bootstrapv1.NodeRegistrationOptions, 
 	}
 }
 
-// defautExtraArg sets a default value for an extra arg if it is not already set.
+// defaultExtraArg sets a default value for an extra arg if it is not already set.
 func defaultExtraArg(nodeRegistration *bootstrapv1.NodeRegistrationOptions, arg, value string) {
 	found := false
 	for i := range nodeRegistration.KubeletExtraArgs {

@@ -1,7 +1,7 @@
 .git
 .github
 .vscode
-bin/
+_output/
 **/*.yaml
 hack/
 docs/
@@ -11,12 +11,17 @@ tilt-settings.json
 tilt-settings.yaml
 tilt.d/
 Tiltfile
-**/.tiltbuild
 **/config/**/*.yaml
 **/config/**/*.yaml-e
-_artifacts
 Makefile
 **/Makefile
+
+# Output folders used before _output was introduced; kept so leftovers of older builds don't end up in the build context.
+# TODO(output-dir): Drop these entries after a few releases.
+**/bin/**
+**/.tiltbuild
+_artifacts
+**/out/**
 
 # We need the following yaml files while building clusterctl in the container
 !cmd/clusterctl/config/manifest/clusterctl-api.yaml
@@ -35,8 +40,6 @@ test/infrastructure/docker/e2e/**
 **/*.so
 **/*.dylib
 cmd/clusterctl/clusterctl/**
-**/bin/**
-**/out/**
 
 # go.work files
 go.work

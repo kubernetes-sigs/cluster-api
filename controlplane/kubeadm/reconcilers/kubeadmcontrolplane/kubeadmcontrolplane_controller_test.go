@@ -60,9 +60,9 @@ import (
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/setup"
 	controlplaneadmission "sigs.k8s.io/cluster-api/controlplane/kubeadm/webhooks/admission"
 	coreadmission "sigs.k8s.io/cluster-api/core/webhooks/admission"
-	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
 	"sigs.k8s.io/cluster-api/pkg/dynamiccache"
+	"sigs.k8s.io/cluster-api/pkg/features"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/certs"
 	"sigs.k8s.io/cluster-api/util/collections"
@@ -78,77 +78,6 @@ import (
 const (
 	timeout = time.Second * 30
 )
-
-func TestClusterToKubeadmControlPlane(t *testing.T) {
-	g := NewWithT(t)
-	fakeClient := newFakeClient()
-
-	cluster := newCluster(&types.NamespacedName{Name: "foo", Namespace: metav1.NamespaceDefault})
-	cluster.Spec = clusterv1.ClusterSpec{
-		ControlPlaneRef: clusterv1.ContractVersionedObjectReference{
-			APIGroup: controlplanev1.GroupVersion.Group,
-			Kind:     "KubeadmControlPlane",
-			Name:     "kcp-foo",
-		},
-	}
-
-	expectedResult := []ctrl.Request{
-		{
-			NamespacedName: client.ObjectKey{
-				Namespace: cluster.Namespace,
-				Name:      cluster.Spec.ControlPlaneRef.Name,
-			},
-		},
-	}
-
-	r := &Reconciler{
-		Client:              fakeClient,
-		SecretCachingClient: fakeClient,
-		recorder:            record.NewFakeRecorder(32),
-	}
-
-	got := r.ClusterToKubeadmControlPlane(ctx, cluster)
-	g.Expect(got).To(BeComparableTo(expectedResult))
-}
-
-func TestClusterToKubeadmControlPlaneNoControlPlane(t *testing.T) {
-	g := NewWithT(t)
-	fakeClient := newFakeClient()
-
-	cluster := newCluster(&types.NamespacedName{Name: "foo", Namespace: metav1.NamespaceDefault})
-
-	r := &Reconciler{
-		Client:              fakeClient,
-		SecretCachingClient: fakeClient,
-		recorder:            record.NewFakeRecorder(32),
-	}
-
-	got := r.ClusterToKubeadmControlPlane(ctx, cluster)
-	g.Expect(got).To(BeNil())
-}
-
-func TestClusterToKubeadmControlPlaneOtherControlPlane(t *testing.T) {
-	g := NewWithT(t)
-	fakeClient := newFakeClient()
-
-	cluster := newCluster(&types.NamespacedName{Name: "foo", Namespace: metav1.NamespaceDefault})
-	cluster.Spec = clusterv1.ClusterSpec{
-		ControlPlaneRef: clusterv1.ContractVersionedObjectReference{
-			APIGroup: controlplanev1.GroupVersion.Group,
-			Kind:     "OtherControlPlane",
-			Name:     "other-foo",
-		},
-	}
-
-	r := &Reconciler{
-		Client:              fakeClient,
-		SecretCachingClient: fakeClient,
-		recorder:            record.NewFakeRecorder(32),
-	}
-
-	got := r.ClusterToKubeadmControlPlane(ctx, cluster)
-	g.Expect(got).To(BeNil())
-}
 
 func TestReconcileReturnErrorWhenOwnerClusterIsMissing(t *testing.T) {
 	g := NewWithT(t)
@@ -564,7 +493,7 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 			managementCluster:   fmc,
 		}
 
-		_, adoptableMachineFound, err := r.initControlPlaneScope(ctx, cluster, kcp)
+		_, adoptableMachineFound, err := r.initControlPlaneScope(ctx, metav1.Now(), cluster, kcp)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(adoptableMachineFound).To(BeTrue())
 
@@ -656,7 +585,7 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 			managementCluster:   fmc,
 		}
 
-		_, adoptableMachineFound, err := r.initControlPlaneScope(ctx, cluster, kcp)
+		_, adoptableMachineFound, err := r.initControlPlaneScope(ctx, metav1.Now(), cluster, kcp)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(adoptableMachineFound).To(BeTrue())
 
@@ -742,7 +671,7 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 			managementCluster:   fmc,
 		}
 
-		_, adoptableMachineFound, err := r.initControlPlaneScope(ctx, cluster, kcp)
+		_, adoptableMachineFound, err := r.initControlPlaneScope(ctx, metav1.Now(), cluster, kcp)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(adoptableMachineFound).To(BeFalse())
 
@@ -796,7 +725,7 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 			managementCluster:   fmc,
 		}
 
-		_, adoptableMachineFound, err := r.initControlPlaneScope(ctx, cluster, kcp)
+		_, adoptableMachineFound, err := r.initControlPlaneScope(ctx, metav1.Now(), cluster, kcp)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(adoptableMachineFound).To(BeTrue())
 
@@ -1170,7 +1099,7 @@ func TestReconcileCertificateExpiries(t *testing.T) {
 		managementCluster:   managementCluster,
 	}
 
-	controlPlane, err := pkg.NewControlPlane(ctx, managementCluster, r.DynamicCache, fakeClient, cluster, kcp, ownedMachines)
+	controlPlane, err := pkg.NewControlPlane(ctx, metav1.Now(), managementCluster, r.DynamicCache, fakeClient, cluster, kcp, ownedMachines)
 	g.Expect(err).ToNot(HaveOccurred())
 
 	err = r.reconcileCertificateExpiries(ctx, controlPlane)
@@ -2164,39 +2093,39 @@ func TestKubeadmControlPlaneReconciler_syncMachines(t *testing.T) {
 	// Verify in-place mutable fields are updated on the Machine.
 	updatedInPlaceMutatingMachine = inPlaceMutatingMachine.DeepCopy()
 	g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(updatedInPlaceMutatingMachine), updatedInPlaceMutatingMachine)).To(Succeed())
-	g.Expect(updatedInPlaceMutatingMachine.Labels).Should(Equal(expectedLabels))
+	g.Expect(updatedInPlaceMutatingMachine.Labels).To(Equal(expectedLabels))
 	expectedAnnotations := map[string]string{}
 	for k, v := range kcp.Spec.MachineTemplate.ObjectMeta.Annotations {
 		expectedAnnotations[k] = v
 	}
 	// The pre-terminate annotation should always be added
 	expectedAnnotations[controlplanev1.PreTerminateHookCleanupAnnotation] = ""
-	g.Expect(updatedInPlaceMutatingMachine.Annotations).Should(Equal(expectedAnnotations))
-	g.Expect(updatedInPlaceMutatingMachine.Spec.Deletion.NodeDrainTimeoutSeconds).Should(Equal(kcp.Spec.MachineTemplate.Spec.Deletion.NodeDrainTimeoutSeconds))
-	g.Expect(updatedInPlaceMutatingMachine.Spec.Deletion.NodeDeletionTimeoutSeconds).Should(Equal(kcp.Spec.MachineTemplate.Spec.Deletion.NodeDeletionTimeoutSeconds))
-	g.Expect(updatedInPlaceMutatingMachine.Spec.Deletion.NodeVolumeDetachTimeoutSeconds).Should(Equal(kcp.Spec.MachineTemplate.Spec.Deletion.NodeVolumeDetachTimeoutSeconds))
+	g.Expect(updatedInPlaceMutatingMachine.Annotations).To(Equal(expectedAnnotations))
+	g.Expect(updatedInPlaceMutatingMachine.Spec.Deletion.NodeDrainTimeoutSeconds).To(Equal(kcp.Spec.MachineTemplate.Spec.Deletion.NodeDrainTimeoutSeconds))
+	g.Expect(updatedInPlaceMutatingMachine.Spec.Deletion.NodeDeletionTimeoutSeconds).To(Equal(kcp.Spec.MachineTemplate.Spec.Deletion.NodeDeletionTimeoutSeconds))
+	g.Expect(updatedInPlaceMutatingMachine.Spec.Deletion.NodeVolumeDetachTimeoutSeconds).To(Equal(kcp.Spec.MachineTemplate.Spec.Deletion.NodeVolumeDetachTimeoutSeconds))
 	// Verify that the non in-place mutating fields remain the same.
-	g.Expect(updatedInPlaceMutatingMachine.Spec.FailureDomain).Should(Equal(inPlaceMutatingMachine.Spec.FailureDomain))
-	g.Expect(updatedInPlaceMutatingMachine.Spec.ProviderID).Should(Equal(inPlaceMutatingMachine.Spec.ProviderID))
-	g.Expect(updatedInPlaceMutatingMachine.Spec.Version).Should(Equal(inPlaceMutatingMachine.Spec.Version))
-	g.Expect(updatedInPlaceMutatingMachine.Spec.InfrastructureRef).Should(BeComparableTo(inPlaceMutatingMachine.Spec.InfrastructureRef))
-	g.Expect(updatedInPlaceMutatingMachine.Spec.Bootstrap).Should(BeComparableTo(inPlaceMutatingMachine.Spec.Bootstrap))
+	g.Expect(updatedInPlaceMutatingMachine.Spec.FailureDomain).To(Equal(inPlaceMutatingMachine.Spec.FailureDomain))
+	g.Expect(updatedInPlaceMutatingMachine.Spec.ProviderID).To(Equal(inPlaceMutatingMachine.Spec.ProviderID))
+	g.Expect(updatedInPlaceMutatingMachine.Spec.Version).To(Equal(inPlaceMutatingMachine.Spec.Version))
+	g.Expect(updatedInPlaceMutatingMachine.Spec.InfrastructureRef).To(BeComparableTo(inPlaceMutatingMachine.Spec.InfrastructureRef))
+	g.Expect(updatedInPlaceMutatingMachine.Spec.Bootstrap).To(BeComparableTo(inPlaceMutatingMachine.Spec.Bootstrap))
 
 	// Verify in-place mutable fields are updated on InfrastructureMachine
 	updatedInfraMachine = existingInfraMachine.DeepCopy()
 	g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(updatedInfraMachine), updatedInfraMachine)).To(Succeed())
-	g.Expect(updatedInfraMachine.GetLabels()).Should(Equal(expectedLabels))
-	g.Expect(updatedInfraMachine.GetAnnotations()).Should(Equal(kcp.Spec.MachineTemplate.ObjectMeta.Annotations))
+	g.Expect(updatedInfraMachine.GetLabels()).To(Equal(expectedLabels))
+	g.Expect(updatedInfraMachine.GetAnnotations()).To(Equal(kcp.Spec.MachineTemplate.ObjectMeta.Annotations))
 	// Verify spec remains the same
-	g.Expect(updatedInfraMachine.Object).Should(HaveKeyWithValue("spec", infraMachineSpec))
+	g.Expect(updatedInfraMachine.Object).To(HaveKeyWithValue("spec", infraMachineSpec))
 
 	// Verify in-place mutable fields are updated on the KubeadmConfig.
 	updatedKubeadmConfig = existingKubeadmConfig.DeepCopy()
 	g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(updatedKubeadmConfig), updatedKubeadmConfig)).To(Succeed())
-	g.Expect(updatedKubeadmConfig.GetLabels()).Should(Equal(expectedLabels))
-	g.Expect(updatedKubeadmConfig.GetAnnotations()).Should(Equal(kcp.Spec.MachineTemplate.ObjectMeta.Annotations))
+	g.Expect(updatedKubeadmConfig.GetLabels()).To(Equal(expectedLabels))
+	g.Expect(updatedKubeadmConfig.GetAnnotations()).To(Equal(kcp.Spec.MachineTemplate.ObjectMeta.Annotations))
 	// Verify spec remains the same
-	g.Expect(updatedKubeadmConfig.Spec).Should(BeComparableTo(existingKubeadmConfig.Spec))
+	g.Expect(updatedKubeadmConfig.Spec).To(BeComparableTo(existingKubeadmConfig.Spec))
 
 	// Verify ManagedFields
 	g.Eventually(func(g Gomega) {
@@ -2220,16 +2149,16 @@ func TestKubeadmControlPlaneReconciler_syncMachines(t *testing.T) {
 	// Verify in-place mutable fields are updated on the deleting Machine.
 	updatedDeletingMachine := deletingMachine.DeepCopy()
 	g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(updatedDeletingMachine), updatedDeletingMachine)).To(Succeed())
-	g.Expect(updatedDeletingMachine.Labels).Should(Equal(deletingMachine.Labels))           // Not propagated to a deleting Machine
-	g.Expect(updatedDeletingMachine.Annotations).Should(Equal(deletingMachine.Annotations)) // Not propagated to a deleting Machine
-	g.Expect(updatedDeletingMachine.Spec.Deletion.NodeDrainTimeoutSeconds).Should(Equal(kcp.Spec.MachineTemplate.Spec.Deletion.NodeDrainTimeoutSeconds))
-	g.Expect(updatedDeletingMachine.Spec.Deletion.NodeDeletionTimeoutSeconds).Should(Equal(kcp.Spec.MachineTemplate.Spec.Deletion.NodeDeletionTimeoutSeconds))
-	g.Expect(updatedDeletingMachine.Spec.Deletion.NodeVolumeDetachTimeoutSeconds).Should(Equal(kcp.Spec.MachineTemplate.Spec.Deletion.NodeVolumeDetachTimeoutSeconds))
+	g.Expect(updatedDeletingMachine.Labels).To(Equal(deletingMachine.Labels))           // Not propagated to a deleting Machine
+	g.Expect(updatedDeletingMachine.Annotations).To(Equal(deletingMachine.Annotations)) // Not propagated to a deleting Machine
+	g.Expect(updatedDeletingMachine.Spec.Deletion.NodeDrainTimeoutSeconds).To(Equal(kcp.Spec.MachineTemplate.Spec.Deletion.NodeDrainTimeoutSeconds))
+	g.Expect(updatedDeletingMachine.Spec.Deletion.NodeDeletionTimeoutSeconds).To(Equal(kcp.Spec.MachineTemplate.Spec.Deletion.NodeDeletionTimeoutSeconds))
+	g.Expect(updatedDeletingMachine.Spec.Deletion.NodeVolumeDetachTimeoutSeconds).To(Equal(kcp.Spec.MachineTemplate.Spec.Deletion.NodeVolumeDetachTimeoutSeconds))
 	// Verify the machine spec is otherwise unchanged.
 	deletingMachine.Spec.Deletion.NodeDrainTimeoutSeconds = kcp.Spec.MachineTemplate.Spec.Deletion.NodeDrainTimeoutSeconds
 	deletingMachine.Spec.Deletion.NodeDeletionTimeoutSeconds = kcp.Spec.MachineTemplate.Spec.Deletion.NodeDeletionTimeoutSeconds
 	deletingMachine.Spec.Deletion.NodeVolumeDetachTimeoutSeconds = kcp.Spec.MachineTemplate.Spec.Deletion.NodeVolumeDetachTimeoutSeconds
-	g.Expect(updatedDeletingMachine.Spec).Should(BeComparableTo(deletingMachine.Spec))
+	g.Expect(updatedDeletingMachine.Spec).To(BeComparableTo(deletingMachine.Spec))
 }
 
 func TestKubeadmControlPlaneReconciler_reconcileControlPlaneAndMachinesConditions(t *testing.T) {
@@ -2382,7 +2311,7 @@ func TestKubeadmControlPlaneReconciler_reconcileControlPlaneAndMachinesCondition
 		{
 			name: "Machines up to date",
 			controlPlane: func() *pkg.ControlPlane {
-				controlPlane, err := pkg.NewControlPlane(ctx, nil, dynamicCache, env.GetClient(), defaultCluster, defaultKCP.DeepCopy(), collections.FromMachines(
+				controlPlane, err := pkg.NewControlPlane(ctx, metav1.Now(), nil, dynamicCache, env.GetClient(), defaultCluster, defaultKCP.DeepCopy(), collections.FromMachines(
 					defaultMachine1.DeepCopy(),
 				))
 				if err != nil {
@@ -2464,9 +2393,100 @@ func TestKubeadmControlPlaneReconciler_reconcileControlPlaneAndMachinesCondition
 			},
 		},
 		{
+			name: "Machines up to date but dirty",
+			controlPlane: func() *pkg.ControlPlane {
+				controlPlane, err := pkg.NewControlPlane(ctx, metav1.Now(), nil, dynamicCache, env.GetClient(), defaultCluster, defaultKCP.DeepCopy(), collections.FromMachines(
+					func() *clusterv1.Machine {
+						m := defaultMachine1.DeepCopy()
+						m.Annotations = map[string]string{
+							clusterv1.UpdateDirtyAnnotation: "",
+						}
+						return m
+					}(),
+				))
+				if err != nil {
+					panic(err)
+				}
+				return controlPlane
+			}(),
+			managementCluster: &fakeManagementCluster{
+				Workload: &fakeWorkloadCluster{
+					Workload: &pkg.Workload{
+						Client: fake.NewClientBuilder().Build(),
+					},
+				},
+			},
+			lastProbeSuccessTime: now.Add(-3 * time.Minute),
+			expectKCPConditions: []metav1.Condition{
+				{
+					Type:   controlplanev1.KubeadmControlPlaneInitializedCondition,
+					Status: metav1.ConditionTrue,
+					Reason: controlplanev1.KubeadmControlPlaneInitializedReason,
+				},
+				{
+					Type:   controlplanev1.KubeadmControlPlaneEtcdClusterHealthyCondition,
+					Status: metav1.ConditionUnknown,
+					Reason: controlplanev1.KubeadmControlPlaneEtcdClusterHealthUnknownReason,
+					Message: "* Machine machine1-test:\n" +
+						"  * EtcdMemberHealthy: Waiting for a Node with spec.providerID foo to exist",
+				},
+				{
+					Type:   controlplanev1.KubeadmControlPlaneControlPlaneComponentsHealthyCondition,
+					Status: metav1.ConditionUnknown,
+					Reason: controlplanev1.KubeadmControlPlaneControlPlaneComponentsHealthUnknownReason,
+					Message: "* Machine machine1-test:\n" +
+						"  * Control plane components: Waiting for a Node with spec.providerID foo to exist",
+				},
+			},
+			expectMachineConditions: []metav1.Condition{
+				{
+					Type:    controlplanev1.KubeadmControlPlaneMachineNodeKubeadmLabelsAndTaintsSetCondition,
+					Status:  metav1.ConditionUnknown,
+					Reason:  controlplanev1.KubeadmControlPlaneMachineNodeKubeadmLabelsAndTaintsInspectionFailedReason,
+					Message: "Waiting for a Node with spec.providerID foo to exist",
+				},
+				{
+					Type:    controlplanev1.KubeadmControlPlaneMachineAPIServerPodHealthyCondition,
+					Status:  metav1.ConditionUnknown,
+					Reason:  controlplanev1.KubeadmControlPlaneMachinePodInspectionFailedReason,
+					Message: "Waiting for a Node with spec.providerID foo to exist",
+				},
+				{
+					Type:    controlplanev1.KubeadmControlPlaneMachineControllerManagerPodHealthyCondition,
+					Status:  metav1.ConditionUnknown,
+					Reason:  controlplanev1.KubeadmControlPlaneMachinePodInspectionFailedReason,
+					Message: "Waiting for a Node with spec.providerID foo to exist",
+				},
+				{
+					Type:    controlplanev1.KubeadmControlPlaneMachineSchedulerPodHealthyCondition,
+					Status:  metav1.ConditionUnknown,
+					Reason:  controlplanev1.KubeadmControlPlaneMachinePodInspectionFailedReason,
+					Message: "Waiting for a Node with spec.providerID foo to exist",
+				},
+				{
+					Type:    controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition,
+					Status:  metav1.ConditionUnknown,
+					Reason:  controlplanev1.KubeadmControlPlaneMachinePodInspectionFailedReason,
+					Message: "Waiting for a Node with spec.providerID foo to exist",
+				},
+				{
+					Type:    controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyCondition,
+					Status:  metav1.ConditionUnknown,
+					Reason:  controlplanev1.KubeadmControlPlaneMachineEtcdMemberInspectionFailedReason,
+					Message: "Waiting for a Node with spec.providerID foo to exist",
+				},
+				{
+					Type:    clusterv1.MachineUpToDateCondition,
+					Status:  metav1.ConditionTrue,
+					Reason:  clusterv1.MachineUpToDateReason,
+					Message: "In-place update completed, but the Machine might still differ from the desired state",
+				},
+			},
+		},
+		{
 			name: "Machines in place updating, machine not up-to-date date",
 			controlPlane: func() *pkg.ControlPlane {
-				controlPlane, err := pkg.NewControlPlane(ctx, nil, dynamicCache, env.GetClient(), defaultCluster, defaultKCP.DeepCopy(), collections.FromMachines(
+				controlPlane, err := pkg.NewControlPlane(ctx, metav1.Now(), nil, dynamicCache, env.GetClient(), defaultCluster, defaultKCP.DeepCopy(), collections.FromMachines(
 					func() *clusterv1.Machine {
 						m := defaultMachine1.DeepCopy()
 						m.Annotations = map[string]string{
@@ -2557,7 +2577,7 @@ func TestKubeadmControlPlaneReconciler_reconcileControlPlaneAndMachinesCondition
 		{
 			name: "Machines.spec.version out of sync with kubeletVersion, machine not up-to-date date",
 			controlPlane: func() *pkg.ControlPlane {
-				controlPlane, err := pkg.NewControlPlane(ctx, nil, dynamicCache, env.GetClient(), defaultCluster, defaultKCP.DeepCopy(), collections.FromMachines(
+				controlPlane, err := pkg.NewControlPlane(ctx, metav1.Now(), nil, dynamicCache, env.GetClient(), defaultCluster, defaultKCP.DeepCopy(), collections.FromMachines(
 					func() *clusterv1.Machine {
 						m := defaultMachine1.DeepCopy()
 						m.Status.NodeInfo = &corev1.NodeSystemInfo{KubeletVersion: "v1.30.0"}
@@ -2646,7 +2666,7 @@ func TestKubeadmControlPlaneReconciler_reconcileControlPlaneAndMachinesCondition
 		{
 			name: "Machines not up to date",
 			controlPlane: func() *pkg.ControlPlane {
-				controlPlane, err := pkg.NewControlPlane(ctx, nil, dynamicCache, env.GetClient(), defaultCluster, defaultKCP.DeepCopy(), collections.FromMachines(
+				controlPlane, err := pkg.NewControlPlane(ctx, metav1.Now(), nil, dynamicCache, env.GetClient(), defaultCluster, defaultKCP.DeepCopy(), collections.FromMachines(
 					defaultMachine1NotUpToDate.DeepCopy(),
 				))
 				if err != nil {
@@ -2814,7 +2834,7 @@ func TestKubeadmControlPlaneReconciler_reconcileControlPlaneAndMachinesCondition
 		{
 			name: "connection down, set conditions as they haven't been set before (probe did not succeed yet)",
 			controlPlane: func() *pkg.ControlPlane {
-				controlPlane, err := pkg.NewControlPlane(ctx, nil, dynamicCache, env.GetClient(), defaultCluster, defaultKCP.DeepCopy(), collections.FromMachines(
+				controlPlane, err := pkg.NewControlPlane(ctx, metav1.Now(), nil, dynamicCache, env.GetClient(), defaultCluster, defaultKCP.DeepCopy(), collections.FromMachines(
 					defaultMachine1.DeepCopy(),
 				))
 				if err != nil {
@@ -4780,6 +4800,9 @@ func TestKubeadmControlPlaneReconciler_reconcileDelete(t *testing.T) {
 		machines.UnsortedList()[2].DeletionTimestamp = &metav1.Time{Time: time.Now()}
 
 		fakeClient := newFakeClient(initObjs...)
+		// Note: The finalizer keeps the KCP around with a deletionTimestamp, which is what reconcileDelete expects.
+		g.Expect(fakeClient.Delete(ctx, kcp)).To(Succeed())
+		g.Expect(fakeClient.Get(ctx, client.ObjectKeyFromObject(kcp), kcp)).To(Succeed())
 
 		r := &Reconciler{
 			Client:              fakeClient,
@@ -4834,6 +4857,44 @@ func TestKubeadmControlPlaneReconciler_reconcileDelete(t *testing.T) {
 		g.Expect(controlPlane.DeletingMessage).To(Equal("Deletion completed"))
 	})
 
+	t.Run("surfaces control plane Machines in deletion since more than 15m as a list", func(t *testing.T) {
+		g := NewWithT(t)
+
+		cluster, kcp, _ := createClusterWithControlPlane(metav1.NamespaceDefault)
+		controllerutil.AddFinalizer(kcp, controlplanev1.KubeadmControlPlaneFinalizer)
+		initObjs := []client.Object{cluster.DeepCopy(), kcp.DeepCopy()}
+
+		m, _ := createMachineNodePair("test-0", cluster, kcp, true)
+		m.Finalizers = []string{"cluster.x-k8s.io/block-deletion"}
+		m.DeletionTimestamp = &metav1.Time{Time: time.Now().Add(-1 * time.Hour)}
+		initObjs = append(initObjs, m)
+
+		fakeClient := newFakeClient(initObjs...)
+
+		r := &Reconciler{
+			Client:              fakeClient,
+			SecretCachingClient: fakeClient,
+			managementCluster: &fakeManagementCluster{
+				Management: &pkg.Management{Client: fakeClient},
+				Workload:   &fakeWorkloadCluster{},
+			},
+			controller: capicontrollerutil.NewFakeController(),
+			recorder:   record.NewFakeRecorder(32),
+		}
+
+		controlPlane := &pkg.ControlPlane{
+			KCP:      kcp,
+			Cluster:  cluster,
+			Machines: collections.FromMachines(m),
+		}
+
+		result, err := r.reconcileDelete(ctx, controlPlane)
+		g.Expect(result).To(Equal(ctrl.Result{RequeueAfter: deleteRequeueAfter}))
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(controlPlane.DeletingReason).To(Equal(controlplanev1.KubeadmControlPlaneDeletingWaitingForMachineDeletionReason))
+		g.Expect(controlPlane.DeletingMessage).To(Equal("Deleting 1 Machine:\n* Machine test-0 is in deletion since more than 15m"))
+	})
+
 	t.Run("does not remove any control plane Machines if other Machines exist", func(t *testing.T) {
 		g := NewWithT(t)
 
@@ -4884,7 +4945,8 @@ func TestKubeadmControlPlaneReconciler_reconcileDelete(t *testing.T) {
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(kcp.Finalizers).To(ContainElement(controlplanev1.KubeadmControlPlaneFinalizer))
 		g.Expect(controlPlane.DeletingReason).To(Equal(controlplanev1.KubeadmControlPlaneDeletingWaitingForWorkersDeletionReason))
-		g.Expect(controlPlane.DeletingMessage).To(Equal("KubeadmControlPlane deletion blocked because following objects still exist:\n* Machines: worker-0, worker-1, worker-2, worker-3, worker-4, ... (5 more)"))
+		g.Expect(controlPlane.DeletingMessage).To(Equal("Waiting for deletion of the following objects:\n" +
+			"* Machines: worker-0, worker-1, worker-2, worker-3, worker-4, ... (5 more)"))
 
 		controlPlaneMachines := clusterv1.MachineList{}
 		labels := map[string]string{
@@ -4895,7 +4957,7 @@ func TestKubeadmControlPlaneReconciler_reconcileDelete(t *testing.T) {
 	})
 
 	t.Run("does not remove any control plane Machines if MachinePools exist", func(t *testing.T) {
-		utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.MachinePool, true)
+		utilfeature.SetFeatureGateDuringTest(t, features.Gates, features.MachinePool, true)
 		g := NewWithT(t)
 
 		cluster, kcp, _ := createClusterWithControlPlane(metav1.NamespaceDefault)
@@ -4945,7 +5007,8 @@ func TestKubeadmControlPlaneReconciler_reconcileDelete(t *testing.T) {
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(kcp.Finalizers).To(ContainElement(controlplanev1.KubeadmControlPlaneFinalizer))
 		g.Expect(controlPlane.DeletingReason).To(Equal(controlplanev1.KubeadmControlPlaneDeletingWaitingForWorkersDeletionReason))
-		g.Expect(controlPlane.DeletingMessage).To(Equal("KubeadmControlPlane deletion blocked because following objects still exist:\n* MachinePools: mp-0, mp-1, mp-2, mp-3, mp-4, ... (5 more)"))
+		g.Expect(controlPlane.DeletingMessage).To(Equal("Waiting for deletion of the following objects:\n" +
+			"* MachinePools: mp-0, mp-1, mp-2, mp-3, mp-4, ... (5 more)"))
 
 		controlPlaneMachines := clusterv1.MachineList{}
 		labels := map[string]string{
@@ -4962,6 +5025,9 @@ func TestKubeadmControlPlaneReconciler_reconcileDelete(t *testing.T) {
 		controllerutil.AddFinalizer(kcp, controlplanev1.KubeadmControlPlaneFinalizer)
 
 		fakeClient := newFakeClient(cluster.DeepCopy(), kcp.DeepCopy())
+		// Note: The finalizer keeps the KCP around with a deletionTimestamp, which is what reconcileDelete expects.
+		g.Expect(fakeClient.Delete(ctx, kcp)).To(Succeed())
+		g.Expect(fakeClient.Get(ctx, client.ObjectKeyFromObject(kcp), kcp)).To(Succeed())
 
 		r := &Reconciler{
 			Client:              fakeClient,

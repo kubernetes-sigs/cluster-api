@@ -52,7 +52,7 @@ import (
 	t2v1beta2 "sigs.k8s.io/cluster-api/controllers/crdmigrator/test/t2/v1beta2"
 	t3v1beta2 "sigs.k8s.io/cluster-api/controllers/crdmigrator/test/t3/v1beta2"
 	t4v1beta2 "sigs.k8s.io/cluster-api/controllers/crdmigrator/test/t4/v1beta2"
-	"sigs.k8s.io/cluster-api/feature"
+	"sigs.k8s.io/cluster-api/pkg/features"
 )
 
 func TestReconcile(t *testing.T) {
@@ -435,7 +435,7 @@ func createManagerWithCRDMigrator(skipCRDMigrationPhases []Phase, crdMigratorCon
 	options := manager.Options{
 		Controller: config.Controller{
 			SkipNameValidation: ptr.To(true), // Has to be skipped as we create multiple controllers with the same name.
-			UsePriorityQueue:   ptr.To(feature.Gates.Enabled(feature.PriorityQueue)),
+			UsePriorityQueue:   ptr.To(features.Gates.Enabled(features.PriorityQueue)),
 		},
 		Scheme: scheme,
 		Metrics: metricsserver.Options{

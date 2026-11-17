@@ -33,6 +33,7 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
+	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -133,9 +134,21 @@ func createRESTConfig(ctx context.Context, clientConfig *clusterAccessorClientCo
 		return nil, errors.WithMessage(err, "error creating REST config: error parsing kubeconfig")
 	}
 
-	// Note: Using ExecProvider is not supported in ClusterCache as we don't want our controllers to exec.
+	// Note: Using ExecProvider is not supported in ClusterCache as we don't want our controllers to exec,
+	// except for the exec plugin commands explicitly allowed by the controller.
 	if restConfig.ExecProvider != nil {
-		return nil, errors.New("ExecProvider is not supported in ClusterCache")
+		if len(clientConfig.AllowedExecProviderCommands) == 0 {
+			return nil, errors.New("ExecProvider is not supported in ClusterCache")
+		}
+
+		allowlist := make([]clientcmdapi.AllowlistEntry, 0, len(clientConfig.AllowedExecProviderCommands))
+		for _, command := range clientConfig.AllowedExecProviderCommands {
+			allowlist = append(allowlist, clientcmdapi.AllowlistEntry{Name: command})
+		}
+		restConfig.ExecProvider.PluginPolicy = clientcmdapi.PluginPolicy{
+			PolicyType: clientcmdapi.PluginPolicyAllowlist,
+			Allowlist:  allowlist,
+		}
 	}
 	// Note: Using AuthProvider is not supported as we are not registering plugins like e.g. oidc in Cluster API.
 	if restConfig.AuthProvider != nil {

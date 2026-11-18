@@ -93,6 +93,7 @@ var (
 	restConfigBurst             int
 	clusterCacheClientQPS       float32
 	clusterCacheClientBurst     int
+	clusterCacheAllowedExecCmds []string
 	webhookPort                 int
 	webhookCertDir              string
 	webhookCertName             string
@@ -182,6 +183,9 @@ func InitFlags(fs *pflag.FlagSet) {
 
 	fs.IntVar(&clusterCacheClientBurst, "clustercache-client-burst", 30,
 		"Maximum number of queries that should be allowed in one burst from the cluster cache clients to the Kubernetes API server of workload clusters.")
+
+	fs.StringSliceVar(&clusterCacheAllowedExecCmds, "clustercache-client-allowed-exec-provider-commands", []string{},
+		"List of exec plugin commands allowed in workload cluster kubeconfigs. If empty, kubeconfigs using exec plugins are rejected.")
 
 	fs.IntVar(&webhookPort, "webhook-port", 9443,
 		"Webhook Server port")
@@ -348,10 +352,13 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 		os.Exit(1)
 	}
 
+	clusterCacheClientOptions := setup.ClusterCacheClientOptions(controllerName, clusterCacheClientQPS, clusterCacheClientBurst)
+	clusterCacheClientOptions.AllowedExecProviderCommands = clusterCacheAllowedExecCmds
+
 	clusterCache, err := clustercache.SetupWithManager(ctx, mgr, clustercache.Options{
 		SecretClient:     secretCachingClient,
 		Cache:            setup.ClusterCacheCacheOptions(),
-		Client:           setup.ClusterCacheClientOptions(controllerName, clusterCacheClientQPS, clusterCacheClientBurst),
+		Client:           clusterCacheClientOptions,
 		WatchFilterValue: watchFilterValue,
 	}, concurrency(clusterCacheConcurrency))
 	if err != nil {

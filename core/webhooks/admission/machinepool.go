@@ -34,6 +34,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/core/webhooks/conversion"
 	"sigs.k8s.io/cluster-api/pkg/features"
+	validationutil "sigs.k8s.io/cluster-api/util/validation"
 )
 
 // SetupWebhookWithManager sets up the webhook with the Manager.
@@ -172,7 +173,7 @@ func (webhook *MachinePool) validate(oldObj, newObj *clusterv1.MachinePool) erro
 	allErrs = append(allErrs, validateMachinePoolTaints(newObj.Spec.Template.Spec.Taints, specPath.Child("template", "spec", "taints"))...)
 
 	// Validate the metadata of the MachinePool template.
-	allErrs = append(allErrs, newObj.Spec.Template.Validate(specPath.Child("template", "metadata"))...)
+	allErrs = append(allErrs, validationutil.ValidateObjectMeta(newObj.Spec.Template.ObjectMeta, specPath.Child("template", "metadata"))...)
 
 	if len(allErrs) == 0 {
 		return nil

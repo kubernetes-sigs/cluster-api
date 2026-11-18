@@ -43,6 +43,7 @@ import (
 	"sigs.k8s.io/cluster-api/internal/util/taints"
 	"sigs.k8s.io/cluster-api/util/container"
 	"sigs.k8s.io/cluster-api/util/secret"
+	validationutil "sigs.k8s.io/cluster-api/util/validation"
 	"sigs.k8s.io/cluster-api/util/version"
 )
 
@@ -319,7 +320,7 @@ func validateKubeadmControlPlaneSpec(s controlplanev1.KubeadmControlPlaneSpec, p
 	allErrs = append(allErrs, taints.ValidateMachineTaints(s.MachineTemplate.Spec.Taints, pathPrefix.Child("machineTemplate", "spec", "taints"))...)
 
 	// Validate the metadata of the MachineTemplate
-	allErrs = append(allErrs, s.MachineTemplate.ObjectMeta.Validate(pathPrefix.Child("machineTemplate", "metadata"))...)
+	allErrs = append(allErrs, validationutil.ValidateObjectMeta(s.MachineTemplate.ObjectMeta, pathPrefix.Child("machineTemplate", "metadata"))...)
 
 	if !strings.HasPrefix(s.Version, "v") {
 		allErrs = append(allErrs, field.Invalid(pathPrefix.Child("version"), s.Version, "must start with v"))

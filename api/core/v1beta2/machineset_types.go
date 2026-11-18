@@ -18,9 +18,6 @@ package v1beta2
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	metav1validation "k8s.io/apimachinery/pkg/apis/meta/v1/validation"
-	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/apimachinery/pkg/util/validation/field"
 
 	capierrors "sigs.k8s.io/cluster-api/api/deprecated/errors"
 )
@@ -446,29 +443,6 @@ type MachineSetV1Beta1DeprecatedStatus struct {
 	//
 	// +optional
 	AvailableReplicas int32 `json:"availableReplicas"` //nolint:kubeapilinter // field will be removed when v1beta1 is removed
-}
-
-// Validate validates the MachineSet fields.
-func (m *MachineSet) Validate() field.ErrorList {
-	errors := field.ErrorList{}
-
-	// validate spec.selector and spec.template.labels
-	fldPath := field.NewPath("spec")
-	errors = append(errors, metav1validation.ValidateLabelSelector(&m.Spec.Selector, metav1validation.LabelSelectorValidationOptions{}, fldPath.Child("selector"))...)
-	if len(m.Spec.Selector.MatchLabels)+len(m.Spec.Selector.MatchExpressions) == 0 {
-		errors = append(errors, field.Invalid(fldPath.Child("selector"), m.Spec.Selector, "empty selector is not valid for MachineSet."))
-	}
-	selector, err := metav1.LabelSelectorAsSelector(&m.Spec.Selector)
-	if err != nil {
-		errors = append(errors, field.Invalid(fldPath.Child("selector"), m.Spec.Selector, "invalid label selector."))
-	} else {
-		labels := labels.Set(m.Spec.Template.Labels)
-		if !selector.Matches(labels) {
-			errors = append(errors, field.Invalid(fldPath.Child("template", "metadata", "labels"), m.Spec.Template.Labels, "`selector` does not match template `labels`"))
-		}
-	}
-
-	return errors
 }
 
 // +kubebuilder:object:root=true

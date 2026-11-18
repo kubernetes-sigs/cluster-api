@@ -24,7 +24,6 @@ import (
 
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/apimachinery/pkg/util/naming"
 )
 
 // Catalog contains all information about RuntimeHooks defined in Cluster API,
@@ -43,10 +42,6 @@ type Catalog struct {
 
 	// gvhToHookDescriptor maps a GroupVersionHook to the corresponding hook descriptor.
 	gvhToHookDescriptor map[GroupVersionHook]HookDescriptor
-
-	// catalogName is the name of this catalog. It is set based on the stack of the New caller.
-	// This is useful for error reporting to indicate the origin of the Catalog.
-	catalogName string
 }
 
 // Hook is a marker interface for a RuntimeHook function.
@@ -92,10 +87,6 @@ func New() *Catalog {
 		gvhToType:           map[GroupVersionHook]reflect.Type{},
 		typeToGVH:           map[reflect.Type]GroupVersionHook{},
 		gvhToHookDescriptor: map[GroupVersionHook]HookDescriptor{},
-		// Note: We have to ignore the current file so that GetNameFromCallsite retrieves the name of the caller of New (the parent).
-		// The module path is intentionally not part of the ignored file, because when the api module is consumed as a
-		// dependency, the file is in the Go module cache, e.g. "sigs.k8s.io/cluster-api/api@v1.15.0/runtime/catalog/catalog.go".
-		catalogName: naming.GetNameFromCallsite("/runtime/catalog/catalog.go"),
 	}
 }
 
@@ -145,7 +136,7 @@ func (c *Catalog) AddHook(gv schema.GroupVersion, hookFunc Hook, hookMeta *HookM
 
 	// Validate that the GVH is not already registered with another type.
 	if oldT, found := c.gvhToType[gvh]; found && oldT != t {
-		panic(fmt.Sprintf("Double registration of different type for %v: old=%v.%v, new=%v.%v in catalog %q", gvh, oldT.PkgPath(), oldT.Name(), t.PkgPath(), t.Name(), c.catalogName))
+		panic(fmt.Sprintf("Double registration of different type for %v: old=%v.%v, new=%v.%v in catalog", gvh, oldT.PkgPath(), oldT.Name(), t.PkgPath(), t.Name()))
 	}
 
 	// Add GVH <=> RuntimeHook function mappings.
@@ -202,7 +193,7 @@ func (c *Catalog) GroupVersionHook(hookFunc Hook) (GroupVersionHook, error) {
 
 	gvh, ok := c.typeToGVH[t]
 	if !ok {
-		return emptyGroupVersionHook, fmt.Errorf("hook %s is not registered in catalog %q", HookName(hookFunc), c.catalogName)
+		return emptyGroupVersionHook, fmt.Errorf("hook %s is not registered in catalog", HookName(hookFunc))
 	}
 	return gvh, nil
 }
@@ -225,7 +216,7 @@ func (c *Catalog) GroupVersionKind(obj runtime.Object) (schema.GroupVersionKind,
 func (c *Catalog) Request(hook GroupVersionHook) (schema.GroupVersionKind, error) {
 	descriptor, ok := c.gvhToHookDescriptor[hook]
 	if !ok {
-		return emptyGroupVersionKind, fmt.Errorf("failed to get request GVK for hook %s: hook is not registered in catalog %q", hook, c.catalogName)
+		return emptyGroupVersionKind, fmt.Errorf("failed to get request GVK for hook %s: hook is not registered in catalog", hook)
 	}
 
 	return descriptor.Request, nil
@@ -235,7 +226,7 @@ func (c *Catalog) Request(hook GroupVersionHook) (schema.GroupVersionKind, error
 func (c *Catalog) Response(hook GroupVersionHook) (schema.GroupVersionKind, error) {
 	descriptor, ok := c.gvhToHookDescriptor[hook]
 	if !ok {
-		return emptyGroupVersionKind, fmt.Errorf("failed to get response GVK for hook %s: hook is not registered in catalog %q", hook, c.catalogName)
+		return emptyGroupVersionKind, fmt.Errorf("failed to get response GVK for hook %s: hook is not registered in catalog", hook)
 	}
 
 	return descriptor.Response, nil
@@ -245,7 +236,7 @@ func (c *Catalog) Response(hook GroupVersionHook) (schema.GroupVersionKind, erro
 func (c *Catalog) NewRequest(hook GroupVersionHook) (runtime.Object, error) {
 	descriptor, ok := c.gvhToHookDescriptor[hook]
 	if !ok {
-		return nil, fmt.Errorf("failed to create request object for hook %s: hook is not registered in catalog %q", hook, c.catalogName)
+		return nil, fmt.Errorf("failed to create request object for hook %s: hook is not registered in catalog", hook)
 	}
 	obj, err := c.scheme.New(descriptor.Request)
 	if err != nil {
@@ -258,7 +249,7 @@ func (c *Catalog) NewRequest(hook GroupVersionHook) (runtime.Object, error) {
 func (c *Catalog) NewResponse(hook GroupVersionHook) (runtime.Object, error) {
 	descriptor, ok := c.gvhToHookDescriptor[hook]
 	if !ok {
-		return nil, fmt.Errorf("failed to create response object for hook %s: hook is not registered in catalog %q", hook, c.catalogName)
+		return nil, fmt.Errorf("failed to create response object for hook %s: hook is not registered in catalog", hook)
 	}
 	obj, err := c.scheme.New(descriptor.Response)
 	if err != nil {

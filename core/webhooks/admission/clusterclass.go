@@ -43,6 +43,7 @@ import (
 	"sigs.k8s.io/cluster-api/util/cache"
 	"sigs.k8s.io/cluster-api/util/index"
 	logutil "sigs.k8s.io/cluster-api/util/log"
+	validationutil "sigs.k8s.io/cluster-api/util/validation"
 	"sigs.k8s.io/cluster-api/util/version"
 )
 
@@ -538,12 +539,12 @@ func validateNamingStrategies(clusterClass *clusterv1.ClusterClass) field.ErrorL
 
 func validateClusterClassMetadata(clusterClass *clusterv1.ClusterClass) field.ErrorList {
 	var allErrs field.ErrorList //nolint:prealloc // Not all paths append
-	allErrs = append(allErrs, clusterClass.Spec.ControlPlane.Metadata.Validate(field.NewPath("spec", "controlPlane", "metadata"))...)
+	allErrs = append(allErrs, validationutil.ValidateObjectMeta(clusterClass.Spec.ControlPlane.Metadata, field.NewPath("spec", "controlPlane", "metadata"))...)
 	for _, m := range clusterClass.Spec.Workers.MachineDeployments {
-		allErrs = append(allErrs, m.Metadata.Validate(field.NewPath("spec", "workers", "machineDeployments").Key(m.Class).Child("template", "metadata"))...)
+		allErrs = append(allErrs, validationutil.ValidateObjectMeta(m.Metadata, field.NewPath("spec", "workers", "machineDeployments").Key(m.Class).Child("template", "metadata"))...)
 	}
 	for _, m := range clusterClass.Spec.Workers.MachinePools {
-		allErrs = append(allErrs, m.Metadata.Validate(field.NewPath("spec", "workers", "machinePools").Key(m.Class).Child("template", "metadata"))...)
+		allErrs = append(allErrs, validationutil.ValidateObjectMeta(m.Metadata, field.NewPath("spec", "workers", "machinePools").Key(m.Class).Child("template", "metadata"))...)
 	}
 	return allErrs
 }

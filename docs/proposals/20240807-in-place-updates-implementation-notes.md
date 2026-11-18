@@ -20,8 +20,11 @@ into the proposal or into the user-facing documentation for this feature.
   - MD controller manages MS:
     - MD controller enforces maxUnavailable, maxSurge
     - MD controller decides when to scale up newMS, when to scale down oldMS
-    - When scaling down, the MD controller checks whether the operation can be performed in-place instead of delete/recreate. If in-place is possible:
+    - When scaling down, the MD controller checks whether the operation can be performed in-place instead of delete/recreate. If in-place is possible and allowed:
       - Old MS is instructed to move machines to the newMS, and newMS is informed to receive machines from oldMS.
+    - If the `CanUpdateMachineSet` hook is still taking a decision for at least one old MS, scale down of all the old MS and the usage of maxSurge are paused
+      (only replicas in excess of spec.replicas + maxSurge are scaled down).
+    - If the `CanUpdateMachineSet` hook blocks the rollout for an old MS, scale down of this MS is not performed, until newMS has all the desired replicas.
   - MS controller manages a subset of Machines
     - When scaling down the old MS, if required to move, MS controller is responsible for moving a Machine to newMS
     - When reconciling the new MachineSet, the MS controller takes ownership of the moved machine and begins the actual in-place update.
@@ -93,7 +96,7 @@ sequenceDiagram
 - In-place updates respect the existing control plane update strategy:
   - KCP controller uses `rollingUpdate` strategy with `maxSurge` (0 or 1)
   - When `maxSurge` is 0, no new machines are created during rollout; updates are performed only on existing machines via in-place updates or by scaling down outdated machines
-  - When `maxSurge` is 1 and the `CanUpdateMachine` hook confirms that the operation affects availability (default):
+  - When `maxSurge` is 1, the `CanUpdateMachine` hook confirms that the operation affects availability (default) and `Replace` is allowed:
     - The controller first scales up by creating one new machine to maximize fault tolerance
     - Once `maxReplicas` (desiredReplicas + 1) is reached, it evaluates whether to in-place update or scale down old machines
     - For each old machine needing rollout, the controller evaluates if it is eligible for in-place update. If so, it performs the in-place update on that machine. Otherwise, it scales down the outdated machine (which will be replaced by a new one in the next reconciliation cycle)
@@ -114,7 +117,9 @@ sequenceDiagram
     - Check if we already have enough up-to-date replicas (if `currentUpToDateReplicas >= desiredReplicas`, skip in-place and scale down)
     - Run preflight checks to ensure control plane stability
     - Call the `CanUpdateMachine` hook on registered runtime extensions
-    - If all checks pass, trigger in-place update. Otherwise, fall back to scale down/recreate
+    - If the `CanUpdateMachine` hook is still taking a decision (`retryAfterSeconds` > 0), wait and call the hook again after `retryAfterSeconds`
+    - If all checks pass and `UpdateInPlace` is allowed, trigger in-place update
+    - Otherwise, if `Replace` is allowed, fall back to scale down/recreate; otherwise the rollout is blocked, and the hook is called again after 5 minutes or when the KCP spec changes
   - This flow repeats on each reconciliation until all machines are up-to-date
   
 - Orchestration of in-place updates uses two key annotations:

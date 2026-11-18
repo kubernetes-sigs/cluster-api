@@ -26,6 +26,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
@@ -177,6 +178,13 @@ users:
 `, clusterFields, userFields)
 	}
 
+	execUser := func(command string) string {
+		return fmt.Sprintf(`    exec:
+      apiVersion: client.authentication.k8s.io/v1
+      command: %s
+      interactiveMode: Never`, command)
+	}
+
 	// client-go verifies that referenced files exist when parsing the kubeconfig.
 	dir := t.TempDir()
 	filePath := filepath.Join(dir, "file")
@@ -185,9 +193,11 @@ users:
 	}
 
 	tests := []struct {
-		name       string
-		kubeconfig string
-		wantErr    string
+		name                        string
+		kubeconfig                  string
+		wantErr                     string
+		allowedExecProviderCommands []string
+		wantPluginPolicy            *clientcmdapi.PluginPolicy
 	}{
 		{
 			name:       "inline credentials are accepted",
@@ -213,6 +223,23 @@ users:
 			kubeconfig: kubeconfig("    certificate-authority: "+filePath, "    token: token"),
 			wantErr:    "TLSClientConfig.CAFile is not supported in ClusterCache",
 		},
+		{
+			name:       "exec provider is rejected by default",
+			kubeconfig: kubeconfig("    insecure-skip-tls-verify: true", execUser("/usr/bin/sh")),
+			wantErr:    "ExecProvider is not supported in ClusterCache",
+		},
+		{
+			name:                        "exec provider is configured with client-go allowlist",
+			kubeconfig:                  kubeconfig("    insecure-skip-tls-verify: true", execUser("/usr/local/bin/workload-identity")),
+			allowedExecProviderCommands: []string{"/usr/local/bin/workload-identity", "/usr/local/bin/other"},
+			wantPluginPolicy: &clientcmdapi.PluginPolicy{
+				PolicyType: clientcmdapi.PluginPolicyAllowlist,
+				Allowlist: []clientcmdapi.AllowlistEntry{
+					{Name: "/usr/local/bin/workload-identity"},
+					{Name: "/usr/local/bin/other"},
+				},
+			},
+		},
 	}
 
 	for _, tt := range tests {
@@ -230,7 +257,8 @@ users:
 			}
 			c := fake.NewClientBuilder().WithObjects(kubeconfigSecret).Build()
 
-			restConfig, err := createRESTConfig(ctx, &clusterAccessorClientConfig{}, c, client.ObjectKey{Namespace: namespace, Name: clusterName})
+			clientConfig := &clusterAccessorClientConfig{AllowedExecProviderCommands: tt.allowedExecProviderCommands}
+			restConfig, err := createRESTConfig(ctx, clientConfig, c, client.ObjectKey{Namespace: namespace, Name: clusterName})
 			if tt.wantErr != "" {
 				g.Expect(err).To(MatchError(ContainSubstring(tt.wantErr)))
 				g.Expect(restConfig).To(BeNil())
@@ -238,6 +266,10 @@ users:
 			}
 			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(restConfig).ToNot(BeNil())
+			if tt.wantPluginPolicy != nil {
+				g.Expect(restConfig.ExecProvider).ToNot(BeNil())
+				g.Expect(restConfig.ExecProvider.PluginPolicy).To(Equal(*tt.wantPluginPolicy))
+			}
 		})
 	}
 }

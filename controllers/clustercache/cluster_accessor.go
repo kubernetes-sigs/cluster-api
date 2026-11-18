@@ -129,6 +129,10 @@ type clusterAccessorClientConfig struct {
 	// Cache is the cache config defining how the clients that clusterAccessor creates
 	// should interact with the underlying cache.
 	Cache clusterAccessorClientCacheConfig
+
+	// AllowedExecProviderCommands is the list of exec plugin commands allowed in workload cluster kubeconfigs.
+	// An empty list rejects all kubeconfigs with an ExecProvider.
+	AllowedExecProviderCommands []string
 }
 
 // clusterAccessorClientCacheConfig is the cache config used for the client that the clusterAccessor creates.

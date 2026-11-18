@@ -1,5 +1,6 @@
 version: "2"
 run:
+  relative-path-mode: gitroot
   go: "1.26"
   allow-parallel-runners: true
 linters:

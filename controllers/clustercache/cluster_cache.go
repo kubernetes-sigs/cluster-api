@@ -133,6 +133,10 @@ type ClientOptions struct {
 
 	// Cache are the cache options defining how clients should interact with the underlying cache.
 	Cache ClientCacheOptions
+
+	// AllowedExecProviderCommands is the list of exec plugin commands allowed in workload cluster kubeconfigs.
+	// An empty list rejects all kubeconfigs with an ExecProvider.
+	AllowedExecProviderCommands []string
 }
 
 // ClientCacheOptions are the cache options for the clients that are created per cluster.
@@ -776,6 +780,7 @@ func buildClusterAccessorConfig(scheme *runtime.Scheme, options Options, control
 			Cache: clusterAccessorClientCacheConfig{
 				DisableFor: options.Client.Cache.DisableFor,
 			},
+			AllowedExecProviderCommands: options.Client.AllowedExecProviderCommands,
 		},
 		HealthProbe: &clusterAccessorHealthProbeConfig{
 			Timeout:          5 * time.Second,

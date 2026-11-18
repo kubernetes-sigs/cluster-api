@@ -14,11 +14,6 @@ to the changes.
 
 Enabling `MachineSetPreflightChecks` provides safety in such circumstances by making sure that a Machine is only created when it is safe to do so.
 
-
-**Feature gate name**: `MachineSetPreflightChecks`
-
-**Variable name to enable/disable the feature gate**: `EXP_MACHINE_SET_PREFLIGHT_CHECKS`
-
 ## Supported PreflightChecks
 
 ### `ControlPlaneIsStable`

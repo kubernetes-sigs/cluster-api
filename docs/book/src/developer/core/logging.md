@@ -14,6 +14,23 @@ In Cluster API we strive to follow three principles while implementing logging:
   As Cluster API contributors you are not only the ones that implement logs, but also the first users of them. Use it!
   Provide feedback!
 
+## Rules
+
+- Use contextual logging (`ctrl.LoggerFrom(ctx)`, `ctrl.LoggerInto(ctx, log)`) ([details](#contextual-logging)).
+- At the start of the reconcile, add the objects the reconciled object belongs to, e.g. its `Cluster`, to the
+  logger; add the objects you act on (created, updated, deleted) as key/value pairs too ([details](#keyvalue-pairs)).
+- Keys for objects are the Kind in upper camel case (`Cluster`, `MachineSet`, `AWSCluster`); all other keys are
+  lower camel case (`resourceVersion`, `oldReplicas`).
+- Use `klog.KObj(obj)` or `klog.KRef(namespace, name)` for values representing a Kubernetes object, never use a plain name string.
+- Use the well-known keys `reason` for why a change happened, `diff` for the changes that led to or resulted from it,
+  and `duration` to track operation length.
+- Messages start with a capital letter, have no trailing period, and use Kind and name of the object.
+  Prefer logging before the action with the -ing form, e.g. `Deleting Machine foo-bar-abcde`; after the action use
+  Kind, name and past tense, e.g. `Machine foo-bar-abcde deleted` ([details](#log-messages)).
+- `log.Info` (level 0-3) documents state changes; skip and requeue paths use `log.V(5).Info` ([details](#log-levels)).
+- Log lines repeated on every reconcile while waiting for something go through the log rate limiter, with a matching
+  `Forget` when the wait ends ([details](#log-rate-limiter)).
+
 ## Upstream Alignment
 
 Kubernetes defines a set of [logging conventions](https://git.k8s.io/community/contributors/devel/sig-instrumentation/logging.md),
@@ -106,21 +123,48 @@ Notably, over time in CAPI we are also standardizing usage of other key value pa
 logs, e.g.
 - key `reason` MUST be used when adding details about WHY a change happened.
 - key `diff` MUST be used when documenting the diff in an object that either lead to a change, or that is resulting from a change.
+- key `duration` MUST be used when documenting the duration of an operation. Durations MUST always be truncated, e.g. `time.Since(t).Truncate(time.Second/10)`.
+
+For example, the MachineDeployment controller adds the Cluster at the start of the reconcile, adds the MachineSet
+while acting on it, and uses `reason` to explain why a MachineSet is rolled out:
+
+```go
+log := ctrl.LoggerFrom(ctx)
+log = log.WithValues("Cluster", klog.KRef(md.Namespace, md.Spec.ClusterName))
+ctx = ctrl.LoggerInto(ctx, log)
+
+for _, ms := range machineSets {
+	log := log.WithValues("MachineSet", klog.KObj(ms))
+	ctx := ctrl.LoggerInto(ctx, log)
+	...
+}
+
+log.Info(fmt.Sprintf("MachineSet %s needs rollout", oldMS.Name), "MachineSet", klog.KObj(oldMS), "reason", createReason)
+```
+
+Don't add a key/value pair that is already in the logger (e.g. the reconciled object, which controller runtime adds),
+and don't use different keys for the same information in different places.
 
 ## Log Messages
 
 - A Message MUST always start with a capital letter.
 - Period at the end of a message MUST be omitted.
 - Always prefer logging before the action, so in case of errors there will be an immediate, visual correlation between
-  the action log and the corresponding error log; While logging before the action, log verbs should use the -ing form.
+  the action log and the corresponding error log; While logging before the action, log messages should start with
+  the verb in the -ing form followed by Kind and name, for example `Deleting Machine foo-bar-abcde (scale down)` or
+  `Creating MachineDeployment foo-md-0`.
+- When logging after the action, e.g. when the action completed or when the name of the object is only known
+  after it was created, log messages should start with Kind and name followed by the verb in the past tense,
+  for example `Machine foo-bar-abcde created (scale up, creating 1 of 1)` or `Machine foo-bar-abcde deleted`.
 - Ideally log messages should surface a different level of detail according to the target log level (see [log levels](#log-levels)
   for more details).
-- If Kubernetes resource name is used in log messages, it MUST be used as is, For example `Reconciling DockerMachineTemplate`
-- If an API field name is used in log messages, the entire path MUST be used and field names MUST capitalized like in the 
-  API (not as in the golang type). For example `Waiting for spec.providerID to be set`
-- If a log message is about a controlled or a referenced object, e.g. Machine controller performing an action on MachineSet,
-  the message MUST contain the Kind of the controlled/referenced object and its name, for example `Created MachineSet foo-bar`
+- If the reconciled object appears in a log message, the message MUST contain the Kind of the object and its name,
+  for example `MachineSet foo-bar is scaling down to 3 replicas by deleting 1 Machine`
+- If a log message is about a controlled or a referenced object, e.g. the MachineSet controller creating a Machine,
+  the message MUST contain the Kind of the controlled/referenced object and its name, for example `Machine foo-bar-abcde created (scale up, creating 1 of 1)`
   - The controlled/referenced object MUST also be added as a key value pair (see guidelines above)
+- If an API field name is used in log messages, the entire path MUST be used and field names MUST be capitalized like in the
+  API (not as in the golang type). For example `Waiting for spec.providerID to be set`
 
 ## Log Levels
 
@@ -136,10 +180,30 @@ for log levels; as a small integration on the above guidelines we would like to 
 - Don’t use verbosity higher than 5.
 
 Log lines that are repeated on every reconcile while a controller is waiting for something (e.g. waiting for the infrastructure
-of a Machine to be provisioned) should not be logged at every reconcile; use the log rate limiter (`util/log`) instead.
+of a Machine to be provisioned) should not be logged at every reconcile; use the [log rate limiter](#log-rate-limiter) instead.
 
 We are using log level 2 as a default verbosity for all core Cluster API
 controllers as recommended by the Kubernetes guidelines.
+
+### Log rate limiter
+
+The log rate limiter in `util/log` logs a message at most once per interval for a given key. Once the wait is over,
+call `Forget` so the next wait for the same object is logged immediately.
+
+```go
+func waitingForInfrastructureDeletionKey(m *clusterv1.Machine) logutil.Key {
+	return logutil.NewKey("WaitingForInfrastructureDeletion", logutil.WithObjects(m))
+}
+
+if !infrastructureDeleted {
+	r.logRateLimiter.InfoAtMostEvery(log, logRateLimitInterval, waitingForInfrastructureDeletionKey(m),
+		"Waiting for infrastructure to be deleted", m.Spec.InfrastructureRef.Kind, klog.KRef(m.Namespace, m.Spec.InfrastructureRef.Name))
+	return ctrl.Result{}, nil
+}
+r.logRateLimiter.Forget(waitingForInfrastructureDeletionKey(m))
+```
+
+See `core/reconcilers/machine` for a complete example.
 
 ## Trade-offs
 

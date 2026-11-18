@@ -11,7 +11,27 @@ The API defines the main contract with the Cluster API users. This makes API des
     - default to pre-existing behavior
     - optional as part of the API contract
 
-## Kubernetes API guidelines 
+## Rules
+
+- Breaking changes within the same version of the API are not allowed.
+- A change to the API must be discussed with the community (e.g. in an issue or a CAEP) and approved by maintainers first.
+- Follow the [Kubernetes API guidelines](#kubernetes-api-guidelines) and comply with the kube-api-linter rules
+  (`make lint-api`).
+- Don't silence kube-api-linter with `//nolint` unless the comment explains why (e.g. "field will be removed when
+  v1beta1 is removed"). Prefer a targeted `exclude` (with `path` and `text`) in `.golangci-kal.yml`, with a comment over an inline //nolint comment.
+- v1beta2 is the hub and storage version. Every field added to or changed in v1beta2 should be mirrored identically in
+  v1beta1, so conversion needs no custom code. If a field can't be mirrored, explain why in a `// Note:` comment.
+- Don't add tests for conversion code; the fuzz conversion tests already cover it.
+- Don't use kubebuilder defaulting markers. Controller-side defaulting can be described in godoc ("Defaults to X").
+- Don't share a type between fields whose validation differs; split it into separate types with their own markers.
+- Put a field where it belongs structurally, e.g. directly under `status` instead of nested in an unrelated struct.
+- Godoc: field comments start with the JSON name of the field; type comments are one sentence ("X holds/defines ...").
+  Keep the godoc of sibling fields (control plane vs. workers, v1beta1 vs. v1beta2) in sync.
+- After changing API types run `make generate` and `make test-conversions`; never hand-edit `zz_generated.*` or generated CRDs.
+- API changes must also be listed in the "API Changes" section of the [migration doc](../providers/migrations/overview.md)
+  for the next release.
+
+## Kubernetes API guidelines
 
 This project follows the [Kubernetes API conventions](https://github.com/kubernetes/community/blob/master/contributors/devel/sig-architecture/api-conventions.md).
 

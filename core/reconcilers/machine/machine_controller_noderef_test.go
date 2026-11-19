@@ -131,7 +131,8 @@ func TestReconcileNode(t *testing.T) {
 				},
 				Status: corev1.NodeStatus{
 					NodeInfo: corev1.NodeSystemInfo{
-						MachineID: "foo",
+						MachineID:      "foo",
+						KubeletVersion: "v1.36.3-eks-cb19647",
 					},
 					Addresses: []corev1.NodeAddress{
 						{
@@ -153,6 +154,7 @@ func TestReconcileNode(t *testing.T) {
 				g.Expect(m.Status.NodeRef.Name).To(Equal("test-node-1"))
 				g.Expect(m.Status.NodeInfo).ToNot(BeNil())
 				g.Expect(m.Status.NodeInfo.MachineID).To(Equal("foo"))
+				g.Expect(m.Status.Version).To(Equal("v1.36.3-eks-cb19647"))
 			},
 		},
 		{

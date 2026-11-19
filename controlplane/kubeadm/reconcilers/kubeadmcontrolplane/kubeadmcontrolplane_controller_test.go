@@ -2538,12 +2538,12 @@ func TestKubeadmControlPlaneReconciler_reconcileControlPlaneAndMachinesCondition
 			},
 		},
 		{
-			name: "Machines.spec.version out of sync with kubeletVersion, machine not up-to-date date",
+			name: "Machines.spec.version out of sync with status.version, machine not up-to-date date",
 			controlPlane: func() *pkg.ControlPlane {
 				controlPlane, err := pkg.NewControlPlane(ctx, nil, env.GetClient(), defaultCluster, defaultKCP.DeepCopy(), collections.FromMachines(
 					func() *clusterv1.Machine {
 						m := defaultMachine1.DeepCopy()
-						m.Status.NodeInfo = &corev1.NodeSystemInfo{KubeletVersion: "v1.30.0"}
+						m.Status.Version = "v1.30.0"
 						return m
 					}(),
 				))
@@ -2622,7 +2622,7 @@ func TestKubeadmControlPlaneReconciler_reconcileControlPlaneAndMachinesCondition
 					Type:    clusterv1.MachineUpToDateCondition,
 					Status:  metav1.ConditionFalse,
 					Reason:  clusterv1.MachineUpToDateUpdatingReason,
-					Message: "* Node.status.nodeInfo.kubeletVersion v1.30.0, v1.31.0 required",
+					Message: "* Machine.status.version v1.30.0, v1.31.0 required",
 				},
 			},
 		},

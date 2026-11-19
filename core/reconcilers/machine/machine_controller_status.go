@@ -729,13 +729,13 @@ func setUpToDateCondition(_ context.Context, m *clusterv1.Machine, ms *clusterv1
 		return
 	}
 
-	if m.Spec.Version != "" && m.Status.NodeInfo != nil && m.Status.NodeInfo.KubeletVersion != "" && m.Status.NodeInfo.KubeletVersion != m.Spec.Version {
+	if m.Spec.Version != "" && m.Status.Version != "" && m.Status.Version != m.Spec.Version {
 		conditions.Set(m, metav1.Condition{
 			Type:   clusterv1.MachineUpToDateCondition,
 			Status: metav1.ConditionFalse,
 			Reason: clusterv1.MachineUpToDateUpdatingReason,
-			Message: fmt.Sprintf("* Node.status.nodeInfo.kubeletVersion %s, %s required",
-				m.Status.NodeInfo.KubeletVersion, m.Spec.Version),
+			Message: fmt.Sprintf("* Machine.status.version %s, %s required",
+				m.Status.Version, m.Spec.Version),
 		})
 		return
 	}

@@ -6539,6 +6539,13 @@ func schema_cluster_api_api_core_v1beta2_MachineStatus(ref common.ReferenceCallb
 							Ref:         ref("k8s.io/api/core/v1.NodeSystemInfo"),
 						},
 					},
+					"version": {
+						SchemaProps: spec.SchemaProps{
+							Description: "version is the Kubernetes version of the Machine. It is identical to the Node's status.nodeInfo.kubeletVersion field.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
 					"lastUpdated": {
 						SchemaProps: spec.SchemaProps{
 							Description: "lastUpdated identifies when the phase of the Machine last transitioned.",

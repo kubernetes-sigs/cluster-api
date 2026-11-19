@@ -51,11 +51,13 @@ import (
 
 // Options defines the options to configure a ClusterCache.
 type Options struct {
-	// SecretClient is the client used to access secrets of type secret.Kubeconfig, i.e. Secrets
+	// SecretCachingClient is the client used to access secrets of type secret.Kubeconfig, i.e. Secrets
 	// with the following name format: "<cluster-name>-kubeconfig".
-	// Ideally this is a client that caches only kubeconfig secrets, it is highly recommended to avoid caching all secrets.
+	// It must be a client that caches kubeconfig secrets, as the kubeconfig Secret is read on every
+	// reconcile of a Cluster to detect kubeconfig changes, e.g. token rotations.
+	// Ideally the client caches only kubeconfig secrets, it is highly recommended to avoid caching all secrets.
 	// An example on how to create an ideal secret caching client can be found in the core Cluster API controller main.go file.
-	SecretClient client.Reader
+	SecretCachingClient client.Reader
 
 	// WatchFilterValue is the label value used to filter events prior to reconciliation.
 	// If a filter excludes a cluster from reconciliation, the accessors for this cluster
@@ -522,6 +524,20 @@ func (cc *clusterCache) Reconcile(ctx context.Context, req reconcile.Request) (r
 		}
 	}
 
+	// Sync the kubeconfig Secret before running the health probe. This allows token-only
+	// changes to be applied in place so the probe uses the refreshed token.
+	if connected {
+		reconnected, err := accessor.SyncKubeconfig(ctx)
+		if err != nil {
+			log.Error(err, "Failed to sync kubeconfig, keeping current connection")
+		}
+		if reconnected {
+			// Store that disconnect and connect were done, so that consumers re-create their watches.
+			didDisconnect = true
+			didConnect = true
+		}
+	}
+
 	// Run the health probe, if connected.
 	if connected {
 		healthCheckingState := accessor.GetHealthCheckingState(ctx)
@@ -648,6 +664,8 @@ func (cc *clusterCache) cleanupMetricsForCluster(cluster client.ObjectKey) {
 	connectionUp.DeleteLabelValues(cluster.Name, cluster.Namespace)
 	healthChecksTotal.DeleteLabelValues(cluster.Name, cluster.Namespace, "success")
 	healthChecksTotal.DeleteLabelValues(cluster.Name, cluster.Namespace, "error")
+	kubeconfigSyncTotal.DeleteLabelValues(cluster.Name, cluster.Namespace, "token_refreshed")
+	kubeconfigSyncTotal.DeleteLabelValues(cluster.Name, cluster.Namespace, "reconnect")
 }
 
 func (cc *clusterCache) cleanupForCluster(ctx context.Context, cluster client.ObjectKey) {
@@ -740,8 +758,8 @@ func (cc *clusterCache) Shutdown() {
 }
 
 func validateAndDefaultOptions(opts *Options) error {
-	if opts.SecretClient == nil {
-		return pkgerrors.New("options.SecretClient must be set")
+	if opts.SecretCachingClient == nil {
+		return pkgerrors.New("options.SecretCachingClient must be set")
 	}
 
 	if opts.Client.Timeout.Nanoseconds() == 0 {
@@ -763,7 +781,7 @@ func validateAndDefaultOptions(opts *Options) error {
 func buildClusterAccessorConfig(scheme *runtime.Scheme, options Options, controllerPodMetadata *metav1.ObjectMeta) *clusterAccessorConfig {
 	return &clusterAccessorConfig{
 		Scheme:                          scheme,
-		SecretClient:                    options.SecretClient,
+		SecretCachingClient:             options.SecretCachingClient,
 		ControllerPodMetadata:           controllerPodMetadata,
 		ConnectionCreationRetryInterval: 30 * time.Second,
 		Cache: &clusterAccessorCacheConfig{

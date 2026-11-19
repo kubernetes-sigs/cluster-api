@@ -452,10 +452,10 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager, watchNamespace stri
 	clusterCacheClientOptions.AllowedExecProviderCommands = clusterCacheAllowedExecCmds
 
 	clusterCache, err := clustercache.SetupWithManager(ctx, mgr, clustercache.Options{
-		SecretClient:     secretCachingClient,
-		Cache:            setup.ClusterCacheCacheOptions(),
-		Client:           clusterCacheClientOptions,
-		WatchFilterValue: watchFilterValue,
+		SecretCachingClient: secretCachingClient,
+		Cache:               setup.ClusterCacheCacheOptions(),
+		Client:              clusterCacheClientOptions,
+		WatchFilterValue:    watchFilterValue,
 	}, concurrency(clusterCacheConcurrency))
 	if err != nil {
 		setupLog.Error(err, "Unable to create ClusterCache")

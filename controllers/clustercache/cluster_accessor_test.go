@@ -19,9 +19,11 @@ package clustercache
 import (
 	"bytes"
 	"context"
+	"encoding/pem"
 	"errors"
 	"io"
 	"net/http"
+	"net/http/httptest"
 	"testing"
 	"time"
 
@@ -32,8 +34,10 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/rest/fake"
 	"k8s.io/client-go/tools/clientcmd"
+	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	ctrlcache "sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -66,7 +70,7 @@ func TestConnect(t *testing.T) {
 	defer func() { g.Expect(env.CleanupAndWait(ctx, testCluster)).To(Succeed()) }()
 
 	config := buildClusterAccessorConfig(env.GetScheme(), Options{
-		SecretClient: env.GetClient(),
+		SecretCachingClient: env.GetClient(),
 		Client: ClientOptions{
 			UserAgent: remote.DefaultClusterAPIUserAgent("test-controller-manager"),
 			Timeout:   10 * time.Second,
@@ -85,7 +89,7 @@ func TestConnect(t *testing.T) {
 	// Connect when kubeconfig Secret doesn't exist (should fail)
 	err = accessor.Connect(ctx)
 	g.Expect(err).To(HaveOccurred())
-	g.Expect(err.Error()).To(Equal("error creating REST config: error getting kubeconfig secret: Secret \"test-cluster-kubeconfig\" not found"))
+	g.Expect(err.Error()).To(Equal("error getting kubeconfig secret: Secret \"test-cluster-kubeconfig\" not found"))
 	g.Expect(accessor.Connected(ctx)).To(BeFalse())
 	g.Expect(accessor.lockedState.lastConnectionCreationErrorTime.IsZero()).To(BeFalse())
 	g.Expect(accessor.lockedState).To(Equal(clusterAccessorLockedState{
@@ -197,7 +201,7 @@ func TestDisconnect(t *testing.T) {
 	defer func() { g.Expect(env.CleanupAndWait(ctx, kubeconfigSecret)).To(Succeed()) }()
 
 	config := buildClusterAccessorConfig(env.GetScheme(), Options{
-		SecretClient: env.GetClient(),
+		SecretCachingClient: env.GetClient(),
 		Client: ClientOptions{
 			UserAgent: remote.DefaultClusterAPIUserAgent("test-controller-manager"),
 			Timeout:   10 * time.Second,
@@ -342,6 +346,289 @@ func TestHealthCheck(t *testing.T) {
 	}
 }
 
+func TestSyncKubeconfig(t *testing.T) {
+	testCluster := &clusterv1.Cluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-cluster",
+			Namespace: metav1.NamespaceDefault,
+		},
+	}
+	clusterKey := client.ObjectKeyFromObject(testCluster)
+
+	// apiservers used to verify kubeconfigs, they only accept old-token and new-token.
+	// They serve the minimal discovery information required to create a connection.
+	// Note: TLS is required, as client-go ignores the auth info of a kubeconfig for non-TLS servers.
+	newAPIServer := func() *httptest.Server {
+		return httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			switch r.Header.Get("Authorization") {
+			case "Bearer old-token", "Bearer new-token":
+			default:
+				w.WriteHeader(http.StatusUnauthorized)
+				return
+			}
+			w.Header().Set("Content-Type", "application/json")
+			switch r.URL.Path {
+			case "/api":
+				_, _ = w.Write([]byte(`{"kind":"APIVersions","versions":["v1"]}`))
+			case "/api/v1":
+				_, _ = w.Write([]byte(`{"kind":"APIResourceList","groupVersion":"v1","resources":[{"name":"nodes","kind":"Node","namespaced":false,"verbs":["get","list","watch"]}]}`))
+			case "/apis":
+				_, _ = w.Write([]byte(`{"kind":"APIGroupList","groups":[]}`))
+			default:
+				w.WriteHeader(http.StatusOK)
+			}
+		}))
+	}
+	oldServer := newAPIServer()
+	defer oldServer.Close()
+	newServer := newAPIServer()
+	defer newServer.Close()
+	unreachableServer := newAPIServer()
+	unreachableServer.Close()
+	// All httptest servers use the same certificate, which is valid for 127.0.0.1 and example.com.
+	caData := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: oldServer.Certificate().Raw})
+
+	oldKubeconfig := newTokenKubeconfig("test-cluster", oldServer.URL, "old-token", caData)
+	rotatedTokenKubeconfig := newTokenKubeconfig("test-cluster", oldServer.URL, "new-token", caData)
+	rejectedTokenKubeconfig := newTokenKubeconfig("test-cluster", oldServer.URL, "rejected-token", caData)
+	newServerKubeconfig := newTokenKubeconfig("test-cluster", newServer.URL, "old-token", caData)
+	newServerAndRotatedTokenKubeconfig := newTokenKubeconfig("test-cluster", newServer.URL, "new-token", caData)
+	unreachableServerKubeconfig := newTokenKubeconfig("test-cluster", unreachableServer.URL, "old-token", caData)
+	oldKubeconfigWithInactiveToken := withAuthInfoToken(oldKubeconfig, "inactive-user", "old-inactive-token")
+	newKubeconfigWithInactiveToken := withAuthInfoToken(oldKubeconfig, "inactive-user", "new-inactive-token")
+	oldClientCertificateKubeconfig := withClientCertificateAuth(oldKubeconfig)
+	newClientCertificateKubeconfig := withClientCertificateAuth(newServerKubeconfig)
+	newTLSServerNameKubeconfig := withClusterTLSServerName(oldKubeconfig, "test-cluster", "example.com")
+	withoutCurrentContextKubeconfig := withoutCurrentContext(oldKubeconfig)
+
+	tests := []struct {
+		name                   string
+		initialResourceVersion string
+		initialKubeconfig      []byte
+		initialTokenHolder     *tokenHolder
+		runningOnCluster       bool
+		secret                 *corev1.Secret
+		secretReaderError      error
+		wantErr                bool
+		wantReconnected        bool
+		wantResourceVersion    string
+		wantKubeconfig         []byte
+		wantToken              string
+	}{
+		{
+			name:                   "resourceVersion unchanged returns no-op",
+			initialResourceVersion: "1",
+			initialKubeconfig:      oldKubeconfig,
+			initialTokenHolder:     newTokenHolder("old-token"),
+			secret:                 newKubeconfigSecret(testCluster, "1", rotatedTokenKubeconfig),
+			wantResourceVersion:    "1",
+			wantKubeconfig:         oldKubeconfig,
+			wantToken:              "old-token",
+		},
+		{
+			name:                   "same kubeconfig bytes with new resourceVersion only updates resourceVersion",
+			initialResourceVersion: "1",
+			initialKubeconfig:      oldKubeconfig,
+			initialTokenHolder:     newTokenHolder("old-token"),
+			secret:                 newKubeconfigSecret(testCluster, "2", oldKubeconfig),
+			wantResourceVersion:    "2",
+			wantKubeconfig:         oldKubeconfig,
+			wantToken:              "old-token",
+		},
+		{
+			name:                   "token-only change refreshes token in place",
+			initialResourceVersion: "1",
+			initialKubeconfig:      oldKubeconfig,
+			initialTokenHolder:     newTokenHolder("old-token"),
+			secret:                 newKubeconfigSecret(testCluster, "2", rotatedTokenKubeconfig),
+			wantResourceVersion:    "2",
+			wantKubeconfig:         rotatedTokenKubeconfig,
+			wantToken:              "new-token",
+		},
+		{
+			name:                   "token-only change with rejected token keeps current token",
+			initialResourceVersion: "1",
+			initialKubeconfig:      oldKubeconfig,
+			initialTokenHolder:     newTokenHolder("old-token"),
+			secret:                 newKubeconfigSecret(testCluster, "2", rejectedTokenKubeconfig),
+			wantErr:                true,
+			wantResourceVersion:    "1",
+			wantKubeconfig:         oldKubeconfig,
+			wantToken:              "old-token",
+		},
+		{
+			name:                   "token-only change without token holder re-creates connection",
+			initialResourceVersion: "1",
+			initialKubeconfig:      oldKubeconfig,
+			secret:                 newKubeconfigSecret(testCluster, "2", rotatedTokenKubeconfig),
+			wantReconnected:        true,
+			wantResourceVersion:    "2",
+			wantKubeconfig:         rotatedTokenKubeconfig,
+			wantToken:              "new-token",
+		},
+		{
+			name:                   "server change re-creates connection",
+			initialResourceVersion: "1",
+			initialKubeconfig:      oldKubeconfig,
+			initialTokenHolder:     newTokenHolder("old-token"),
+			secret:                 newKubeconfigSecret(testCluster, "2", newServerKubeconfig),
+			wantReconnected:        true,
+			wantResourceVersion:    "2",
+			wantKubeconfig:         newServerKubeconfig,
+			wantToken:              "old-token",
+		},
+		{
+			name:                   "server change to unreachable server keeps connection",
+			initialResourceVersion: "1",
+			initialKubeconfig:      oldKubeconfig,
+			initialTokenHolder:     newTokenHolder("old-token"),
+			secret:                 newKubeconfigSecret(testCluster, "2", unreachableServerKubeconfig),
+			wantErr:                true,
+			wantResourceVersion:    "1",
+			wantKubeconfig:         oldKubeconfig,
+			wantToken:              "old-token",
+		},
+		{
+			name:                   "server change while running on cluster only updates kubeconfig state",
+			initialResourceVersion: "1",
+			initialKubeconfig:      oldKubeconfig,
+			initialTokenHolder:     newTokenHolder("old-token"),
+			runningOnCluster:       true,
+			secret:                 newKubeconfigSecret(testCluster, "2", newServerKubeconfig),
+			wantResourceVersion:    "2",
+			wantKubeconfig:         newServerKubeconfig,
+			wantToken:              "old-token",
+		},
+		{
+			name:                   "server and token change while running on cluster refreshes token in place",
+			initialResourceVersion: "1",
+			initialKubeconfig:      oldKubeconfig,
+			initialTokenHolder:     newTokenHolder("old-token"),
+			runningOnCluster:       true,
+			secret:                 newKubeconfigSecret(testCluster, "2", newServerAndRotatedTokenKubeconfig),
+			wantResourceVersion:    "2",
+			wantKubeconfig:         newServerAndRotatedTokenKubeconfig,
+			wantToken:              "new-token",
+		},
+		{
+			name:                   "server change with client certificate while running on cluster only updates kubeconfig state",
+			initialResourceVersion: "1",
+			initialKubeconfig:      oldClientCertificateKubeconfig,
+			runningOnCluster:       true,
+			secret:                 newKubeconfigSecret(testCluster, "2", newClientCertificateKubeconfig),
+			wantResourceVersion:    "2",
+			wantKubeconfig:         newClientCertificateKubeconfig,
+		},
+		{
+			name:                   "TLS server name change while running on cluster re-creates connection",
+			initialResourceVersion: "1",
+			initialKubeconfig:      oldKubeconfig,
+			initialTokenHolder:     newTokenHolder("old-token"),
+			runningOnCluster:       true,
+			secret:                 newKubeconfigSecret(testCluster, "2", newTLSServerNameKubeconfig),
+			wantReconnected:        true,
+			wantResourceVersion:    "2",
+			wantKubeconfig:         newTLSServerNameKubeconfig,
+			wantToken:              "old-token",
+		},
+		{
+			name:                   "inactive AuthInfo token change only updates kubeconfig state",
+			initialResourceVersion: "1",
+			initialKubeconfig:      oldKubeconfigWithInactiveToken,
+			initialTokenHolder:     newTokenHolder("old-token"),
+			secret:                 newKubeconfigSecret(testCluster, "2", newKubeconfigWithInactiveToken),
+			wantResourceVersion:    "2",
+			wantKubeconfig:         newKubeconfigWithInactiveToken,
+			wantToken:              "old-token",
+		},
+		{
+			name:                   "secret missing keeps connection",
+			initialResourceVersion: "1",
+			initialKubeconfig:      oldKubeconfig,
+			initialTokenHolder:     newTokenHolder("old-token"),
+			secretReaderError:      apierrors.NewNotFound(schema.GroupResource{Resource: "secrets"}, "test-cluster-kubeconfig"),
+			wantErr:                true,
+			wantResourceVersion:    "1",
+			wantKubeconfig:         oldKubeconfig,
+			wantToken:              "old-token",
+		},
+		{
+			name:                   "unparsable new kubeconfig keeps connection",
+			initialResourceVersion: "1",
+			initialKubeconfig:      oldKubeconfig,
+			initialTokenHolder:     newTokenHolder("old-token"),
+			secret:                 newKubeconfigSecret(testCluster, "2", []byte("not a kubeconfig")),
+			wantErr:                true,
+			wantResourceVersion:    "1",
+			wantKubeconfig:         oldKubeconfig,
+			wantToken:              "old-token",
+		},
+		{
+			name:                   "new kubeconfig without current context keeps connection",
+			initialResourceVersion: "1",
+			initialKubeconfig:      oldKubeconfig,
+			initialTokenHolder:     newTokenHolder("old-token"),
+			secret:                 newKubeconfigSecret(testCluster, "2", withoutCurrentContextKubeconfig),
+			wantErr:                true,
+			wantResourceVersion:    "1",
+			wantKubeconfig:         oldKubeconfig,
+			wantToken:              "old-token",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			accessorConfig := buildClusterAccessorConfig(env.GetScheme(), Options{
+				SecretCachingClient: &testSecretReader{
+					secret: tt.secret,
+					err:    tt.secretReaderError,
+				},
+				Client: ClientOptions{
+					UserAgent: remote.DefaultClusterAPIUserAgent("test-controller-manager"),
+					Timeout:   5 * time.Second,
+				},
+			}, nil)
+			accessor := newClusterAccessor(context.Background(), clusterKey, accessorConfig)
+			oldCache := &stoppableCache{cancelFunc: func(error) {}}
+			accessor.lockedState.connection = &clusterAccessorLockedConnectionState{
+				restConfig:                &rest.Config{Host: oldServer.URL},
+				kubeconfigResourceVersion: tt.initialResourceVersion,
+				kubeconfig:                tt.initialKubeconfig,
+				tokenHolder:               tt.initialTokenHolder,
+				runningOnCluster:          tt.runningOnCluster,
+				cache:                     oldCache,
+			}
+			defer accessor.Disconnect(ctx)
+
+			reconnected, err := accessor.SyncKubeconfig(ctx)
+			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
+			} else {
+				g.Expect(err).ToNot(HaveOccurred())
+			}
+			g.Expect(reconnected).To(Equal(tt.wantReconnected))
+
+			g.Expect(accessor.Connected(ctx)).To(BeTrue())
+			connection := accessor.lockedState.connection
+			g.Expect(connection.kubeconfigResourceVersion).To(Equal(tt.wantResourceVersion))
+			g.Expect(connection.kubeconfig).To(Equal(tt.wantKubeconfig))
+			if tt.wantReconnected {
+				g.Expect(oldCache.stopped).To(BeTrue())
+				g.Expect(connection.cache).ToNot(BeIdenticalTo(oldCache))
+				g.Expect(connection.tokenHolder.token()).To(Equal(tt.wantToken))
+				return
+			}
+			g.Expect(oldCache.stopped).To(BeFalse())
+			g.Expect(connection.cache).To(BeIdenticalTo(oldCache))
+			if tt.initialTokenHolder != nil {
+				g.Expect(tt.initialTokenHolder.token()).To(Equal(tt.wantToken))
+			}
+		})
+	}
+}
+
 func TestWatch(t *testing.T) {
 	g := NewWithT(t)
 
@@ -368,7 +655,7 @@ func TestWatch(t *testing.T) {
 	defer func() { g.Expect(env.CleanupAndWait(ctx, kubeconfigSecret)).To(Succeed()) }()
 
 	config := buildClusterAccessorConfig(env.GetScheme(), Options{
-		SecretClient: env.GetClient(),
+		SecretCachingClient: env.GetClient(),
 		Client: ClientOptions{
 			UserAgent: remote.DefaultClusterAPIUserAgent("test-controller-manager"),
 			Timeout:   10 * time.Second,
@@ -435,7 +722,7 @@ func TestConnectWithDefaultTransform(t *testing.T) {
 	defer func() { g.Expect(env.CleanupAndWait(ctx, kubeconfigSecret)).To(Succeed()) }()
 
 	config := buildClusterAccessorConfig(env.GetScheme(), Options{
-		SecretClient: env.GetClient(),
+		SecretCachingClient: env.GetClient(),
 		Client: ClientOptions{
 			UserAgent: remote.DefaultClusterAPIUserAgent("test-controller-manager"),
 			Timeout:   10 * time.Second,
@@ -489,4 +776,118 @@ func objBody(obj runtime.Object) io.ReadCloser {
 	corev1GV := schema.GroupVersion{Version: "v1"}
 	corev1Codec := scheme.Codecs.CodecForVersions(scheme.Codecs.LegacyCodec(corev1GV), scheme.Codecs.UniversalDecoder(corev1GV), corev1GV, corev1GV)
 	return io.NopCloser(bytes.NewReader([]byte(runtime.EncodeOrDie(corev1Codec, obj))))
+}
+
+type testSecretReader struct {
+	secret *corev1.Secret
+	err    error
+}
+
+var _ client.Reader = &testSecretReader{}
+
+func (r *testSecretReader) Get(_ context.Context, _ client.ObjectKey, obj client.Object, _ ...client.GetOption) error {
+	if r.err != nil {
+		return r.err
+	}
+
+	r.secret.DeepCopyInto(obj.(*corev1.Secret))
+	return nil
+}
+
+func (r *testSecretReader) List(_ context.Context, _ client.ObjectList, _ ...client.ListOption) error {
+	return errors.New("List is not implemented")
+}
+
+func newKubeconfigSecret(cluster *clusterv1.Cluster, resourceVersion string, data []byte) *corev1.Secret {
+	kubeconfigSecret := kubeconfig.GenerateSecret(cluster, data)
+	kubeconfigSecret.ResourceVersion = resourceVersion
+	return kubeconfigSecret
+}
+
+func newTokenKubeconfig(clusterName, server, token string, certificateAuthorityData []byte) []byte {
+	const authInfoName = "test-user"
+
+	data, err := clientcmd.Write(clientcmdapi.Config{
+		Clusters: map[string]*clientcmdapi.Cluster{
+			clusterName: {
+				Server:                   server,
+				CertificateAuthorityData: certificateAuthorityData,
+			},
+		},
+		Contexts: map[string]*clientcmdapi.Context{
+			clusterName: {
+				Cluster:  clusterName,
+				AuthInfo: authInfoName,
+			},
+		},
+		AuthInfos: map[string]*clientcmdapi.AuthInfo{
+			authInfoName: {
+				Token: token,
+			},
+		},
+		CurrentContext: clusterName,
+	})
+	if err != nil {
+		panic(err)
+	}
+	return data
+}
+
+func withAuthInfoToken(kubeconfig []byte, name, token string) []byte {
+	config, err := clientcmd.Load(kubeconfig)
+	if err != nil {
+		panic(err)
+	}
+	config.AuthInfos[name] = &clientcmdapi.AuthInfo{Token: token}
+
+	data, err := clientcmd.Write(*config)
+	if err != nil {
+		panic(err)
+	}
+	return data
+}
+
+func withoutCurrentContext(kubeconfig []byte) []byte {
+	config, err := clientcmd.Load(kubeconfig)
+	if err != nil {
+		panic(err)
+	}
+	config.CurrentContext = ""
+
+	data, err := clientcmd.Write(*config)
+	if err != nil {
+		panic(err)
+	}
+	return data
+}
+
+func withClientCertificateAuth(kubeconfig []byte) []byte {
+	config, err := clientcmd.Load(kubeconfig)
+	if err != nil {
+		panic(err)
+	}
+	authInfo := config.AuthInfos[config.Contexts[config.CurrentContext].AuthInfo]
+	authInfo.Token = ""
+	authInfo.ClientCertificateData = []byte("client-certificate")
+	authInfo.ClientKeyData = []byte("client-key")
+
+	data, err := clientcmd.Write(*config)
+	if err != nil {
+		panic(err)
+	}
+	return data
+}
+
+func withClusterTLSServerName(kubeconfig []byte, clusterName, tlsServerName string) []byte {
+	config, err := clientcmd.Load(kubeconfig)
+	if err != nil {
+		panic(err)
+	}
+	config.Clusters[clusterName].TLSServerName = tlsServerName
+
+	data, err := clientcmd.Write(*config)
+	if err != nil {
+		panic(err)
+	}
+	return data
 }

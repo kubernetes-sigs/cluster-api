@@ -61,9 +61,9 @@ func TestMain(m *testing.M) {
 		}
 
 		clusterCache, err := clustercache.SetupWithManager(ctx, mgr, clustercache.Options{
-			SecretClient: secretCachingClient,
-			Cache:        setup.ClusterCacheCacheOptions(),
-			Client:       setup.ClusterCacheClientOptions("test-controller-manager", 20, 30),
+			SecretCachingClient: secretCachingClient,
+			Cache:               setup.ClusterCacheCacheOptions(),
+			Client:              setup.ClusterCacheClientOptions("test-controller-manager", 20, 30),
 		}, controller.Options{MaxConcurrentReconciles: 10})
 		if err != nil {
 			panic(fmt.Sprintf("Failed to create ClusterCache: %v", err))

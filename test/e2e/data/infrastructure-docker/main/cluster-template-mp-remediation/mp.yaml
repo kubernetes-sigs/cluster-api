@@ -1,0 +1,9 @@
+apiVersion: cluster.x-k8s.io/v1beta2
+kind: MachinePool
+metadata:
+  name: "${CLUSTER_NAME}-mp-0"
+spec:
+  template:
+    metadata:
+      labels:
+        "e2e.remediation.label": ""

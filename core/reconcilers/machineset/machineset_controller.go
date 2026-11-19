@@ -23,7 +23,6 @@ import (
 	"errors"
 	"fmt"
 	"math"
-	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -63,11 +62,11 @@ import (
 	contractapi "sigs.k8s.io/cluster-api/internal/contract/api"
 	topologynames "sigs.k8s.io/cluster-api/internal/topology/names"
 	"sigs.k8s.io/cluster-api/internal/util/inplace"
+	"sigs.k8s.io/cluster-api/internal/util/remediation"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
 	"sigs.k8s.io/cluster-api/pkg/dynamiccache"
 	"sigs.k8s.io/cluster-api/pkg/runtimesdk/hooks"
 	"sigs.k8s.io/cluster-api/util"
-	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/collections"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
@@ -1797,7 +1796,7 @@ func (r *Reconciler) reconcileUnhealthyMachines(ctx context.Context, s *scope) (
 		}
 	}
 	if len(errList) > 0 {
-		return ctrl.Result{}, pkgerrors.Wrapf(kerrors.NewAggregate(errList), "failed to remove OwnerRemediated condition from healhty Machines")
+		return ctrl.Result{}, pkgerrors.Wrapf(kerrors.NewAggregate(errList), "failed to remove OwnerRemediated condition from healthy Machines")
 	}
 
 	// Calculates the Machines to be remediated.
@@ -1876,7 +1875,7 @@ func (r *Reconciler) reconcileUnhealthyMachines(ctx context.Context, s *scope) (
 	// Sort the machines from newest to oldest.
 	// We are trying to remediate machines failing to come up first because
 	// there is a chance that they are not hosting any workloads (minimize disruption).
-	sortMachinesToRemediate(machinesToRemediate)
+	remediation.SortMachinesToRemediate(machinesToRemediate)
 
 	// Check if we should limit the in flight operations.
 	if len(machinesToRemediate) > maxInFlight {
@@ -2193,24 +2192,4 @@ func (r *Reconciler) computeDesiredInfraMachine(ctx context.Context, ms *cluster
 		infraMachine.SetUID(existingInfraMachine.GetUID())
 	}
 	return infraMachine, nil
-}
-
-// sortMachinesToRemediate sorts the machines to be remediated in the following order:
-//   - Machines with RemediateMachineAnnotation annotation if any,
-//   - Machines failing to come up first because
-//     there is a chance that they are not hosting any workloads (minimize disruption).
-func sortMachinesToRemediate(machines []*clusterv1.Machine) {
-	sort.SliceStable(machines, func(i, j int) bool {
-		if annotations.HasRemediateMachine(machines[i]) && !annotations.HasRemediateMachine(machines[j]) {
-			return true
-		}
-		if !annotations.HasRemediateMachine(machines[i]) && annotations.HasRemediateMachine(machines[j]) {
-			return false
-		}
-		// Use newest (and Name) as a tie-breaker criteria.
-		if machines[i].CreationTimestamp.Equal(&machines[j].CreationTimestamp) {
-			return machines[i].Name < machines[j].Name
-		}
-		return machines[i].CreationTimestamp.After(machines[j].CreationTimestamp.Time)
-	})
 }

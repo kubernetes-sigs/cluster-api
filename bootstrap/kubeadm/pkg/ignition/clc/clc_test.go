@@ -557,6 +557,106 @@ func TestRender(t *testing.T) {
 				},
 			},
 		},
+		{
+			desc: "file append",
+			input: &cloudinit.BaseUserData{
+				PreKubeadmCommands:  preKubeadmCommands,
+				PostKubeadmCommands: postKubeadmCommands,
+				KubeadmCommand:      "kubeadm join",
+				WriteFiles: []bootstrapv1.File{
+					{
+						Path:        "/etc/appended.yaml",
+						Content:     "foo",
+						Permissions: "0600",
+						Append:      ptr.To(true),
+					},
+					{
+						Path:        "/etc/not-appended.yaml",
+						Content:     "foo",
+						Permissions: "0600",
+						Append:      ptr.To(false),
+					},
+					{
+						Path:        "/etc/append-unset.yaml",
+						Content:     "foo",
+						Permissions: "0600",
+					},
+				},
+			},
+			wantIgnition: types.Config{
+				Ignition: types.Ignition{
+					Version: "2.3.0",
+				},
+				Storage: types.Storage{
+					Files: []types.File{
+						{
+							Node: types.Node{
+								Filesystem: "root",
+								Path:       "/etc/appended.yaml",
+							},
+							FileEmbedded1: types.FileEmbedded1{
+								Append:   true,
+								Contents: types.FileContents{Source: "data:,foo%0A"},
+								Mode:     ptr.To(384),
+							},
+						},
+						{
+							Node: types.Node{
+								Filesystem: "root",
+								Path:       "/etc/not-appended.yaml",
+							},
+							FileEmbedded1: types.FileEmbedded1{
+								Contents: types.FileContents{Source: "data:,foo%0A"},
+								Mode:     ptr.To(384),
+							},
+						},
+						{
+							Node: types.Node{
+								Filesystem: "root",
+								Path:       "/etc/append-unset.yaml",
+							},
+							FileEmbedded1: types.FileEmbedded1{
+								Contents: types.FileContents{Source: "data:,foo%0A"},
+								Mode:     ptr.To(384),
+							},
+						},
+						{
+							Node: types.Node{
+								Filesystem: "root",
+								Path:       "/etc/kubeadm.sh",
+							},
+							FileEmbedded1: types.FileEmbedded1{
+								Contents: types.FileContents{
+									Source: "data:,%23!%2Fbin%2Fbash%0Aset%20-e%0A%0Apre-command%0Aanother-pre-command%0Acat%20%3C%3CEOF%20%3E%20%2Fetc%2Fmodules-load.d%2Fcontainerd.conf%0Aoverlay%0Abr_netfilter%0AEOF%0A%0A%0Akubeadm%20join%0Amkdir%20-p%20%2Frun%2Fcluster-api%20%26%26%20echo%20success%20%3E%20%2Frun%2Fcluster-api%2Fbootstrap-success.complete%0Amv%20%2Fetc%2Fkubeadm.yml%20%2Ftmp%2F%0A%0Apost-kubeadm-command%0Aanother-post-kubeamd-command%0Acat%20%3C%3CEOF%20%3E%20%2Fetc%2Fmodules-load.d%2Fcontainerd.conf%0Aoverlay%0Abr_netfilter%0AEOF%0A",
+								},
+								Mode: ptr.To(448),
+							},
+						},
+						{
+							Node: types.Node{
+								Filesystem: "root",
+								Path:       "/etc/kubeadm.yml",
+							},
+							FileEmbedded1: types.FileEmbedded1{
+								Contents: types.FileContents{
+									Source: "data:,---%0Afoo%0A",
+								},
+								Mode: ptr.To(384),
+							},
+						},
+					},
+				},
+				Systemd: types.Systemd{
+					Units: []types.Unit{
+						{
+							Contents: "[Unit]\nDescription=kubeadm\n# Run only once. After successful run, this file is moved to /tmp/.\nConditionPathExists=/etc/kubeadm.yml\nAfter=network.target\n[Service]\n# To not restart the unit when it exits, as it is expected.\nType=oneshot\nExecStart=/bin/bash /etc/kubeadm.sh\n[Install]\nWantedBy=multi-user.target\n",
+							Enabled:  ptr.To(true),
+							Name:     "kubeadm.service",
+						},
+					},
+				},
+			},
+		},
 	}
 
 	for _, tt := range tc {

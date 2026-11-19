@@ -32,8 +32,22 @@ import (
 var ctx = ctrl.SetupSignalHandler()
 
 func TestKubeadmConfigValidate(t *testing.T) {
+	withClusterConfiguration := func(cc bootstrapv1.ClusterConfiguration) *bootstrapv1.KubeadmConfig {
+		return &bootstrapv1.KubeadmConfig{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "baz",
+				Namespace: metav1.NamespaceDefault,
+			},
+			Spec: bootstrapv1.KubeadmConfigSpec{
+				ClusterConfiguration: cc,
+			},
+		}
+	}
+
 	cases := map[string]struct {
-		in                    *bootstrapv1.KubeadmConfig
+		in *bootstrapv1.KubeadmConfig
+		// old is only set for update-only cases, where validation depends on the previous object.
+		old                   *bootstrapv1.KubeadmConfig
 		enableIgnitionFeature bool
 		expectErr             bool
 	}{
@@ -583,6 +597,40 @@ func TestKubeadmConfigValidate(t *testing.T) {
 				},
 			},
 		},
+		"valid imageRepository": {
+			in: withClusterConfiguration(bootstrapv1.ClusterConfiguration{
+				ImageRepository: "registry.contoso.com/kubernetes",
+				DNS:             bootstrapv1.DNS{ImageRepository: "registry.contoso.com/coredns"},
+				Etcd:            bootstrapv1.Etcd{Local: bootstrapv1.LocalEtcd{ImageRepository: "registry.contoso.com/etcd"}},
+			}),
+		},
+		"invalid imageRepository": {
+			in: withClusterConfiguration(bootstrapv1.ClusterConfiguration{
+				ImageRepository: "registry.contoso.com/kubernetes\n",
+			}),
+			expectErr: true,
+		},
+		"invalid dns.imageRepository": {
+			in: withClusterConfiguration(bootstrapv1.ClusterConfiguration{
+				DNS: bootstrapv1.DNS{ImageRepository: "registry.contoso.com/coredns\n"},
+			}),
+			expectErr: true,
+		},
+		"invalid etcd.local.imageRepository": {
+			in: withClusterConfiguration(bootstrapv1.ClusterConfiguration{
+				Etcd: bootstrapv1.Etcd{Local: bootstrapv1.LocalEtcd{ImageRepository: "registry.contoso.com/etcd\n"}},
+			}),
+			expectErr: true,
+		},
+		"unchanged invalid imageRepository on update": {
+			// Objects created before the validation was added can still be updated as long as the value does not change.
+			in: withClusterConfiguration(bootstrapv1.ClusterConfiguration{
+				ImageRepository: "registry.contoso.com/kubernetes\n",
+			}),
+			old: withClusterConfiguration(bootstrapv1.ClusterConfiguration{
+				ImageRepository: "registry.contoso.com/kubernetes\n",
+			}),
+		},
 	}
 
 	for name, tt := range cases {
@@ -595,6 +643,17 @@ func TestKubeadmConfigValidate(t *testing.T) {
 			g := NewWithT(t)
 
 			webhook := &KubeadmConfig{}
+
+			if tt.old != nil {
+				warnings, err := webhook.ValidateUpdate(ctx, tt.old, tt.in)
+				if tt.expectErr {
+					g.Expect(err).To(HaveOccurred())
+				} else {
+					g.Expect(err).ToNot(HaveOccurred())
+				}
+				g.Expect(warnings).To(BeEmpty())
+				return
+			}
 
 			if tt.expectErr {
 				warnings, err := webhook.ValidateCreate(ctx, tt.in)

@@ -85,12 +85,6 @@ linters:
           - k8s.io/cluster-bootstrap/token/util$
           - k8s.io/kube-openapi
           - sigs.k8s.io/cluster-api/api
-          # TODO: Remove these imports (or at least consider it)
-          - k8s.io/apimachinery/pkg/api/validation$
-          - k8s.io/apimachinery/pkg/apis/meta/v1/validation$
-          - k8s.io/apimachinery/pkg/labels$
-          - k8s.io/apimachinery/pkg/util/naming$
-          - k8s.io/apimachinery/pkg/util/validation/field$
         utils:
           list-mode: strict
           files:

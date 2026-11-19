@@ -28,6 +28,7 @@ import (
 	"sigs.k8s.io/cluster-api/internal/util/compare"
 	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta2"
 	"sigs.k8s.io/cluster-api/util/topology"
+	validationutil "sigs.k8s.io/cluster-api/util/validation"
 )
 
 // DevMachineTemplate implements a custom validation and defaulting webhook for DevMachineTemplate.
@@ -59,7 +60,7 @@ var _ admission.Validator[*infrav1.DevMachineTemplate] = &DevMachineTemplate{}
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
 func (webhook *DevMachineTemplate) ValidateCreate(_ context.Context, obj *infrav1.DevMachineTemplate) (admission.Warnings, error) {
 	// Validate the metadata of the template.
-	allErrs := obj.Spec.Template.ObjectMeta.Validate(field.NewPath("spec", "template", "metadata"))
+	allErrs := validationutil.ValidateObjectMeta(obj.Spec.Template.ObjectMeta, field.NewPath("spec", "template", "metadata"))
 	if len(allErrs) > 0 {
 		return nil, apierrors.NewInvalid(infrav1.GroupVersion.WithKind("DevMachineTemplate").GroupKind(), obj.Name, allErrs)
 	}
@@ -87,7 +88,7 @@ func (webhook *DevMachineTemplate) ValidateUpdate(ctx context.Context, oldObj *i
 	}
 
 	// Validate the metadata of the template.
-	allErrs = append(allErrs, newObj.Spec.Template.ObjectMeta.Validate(field.NewPath("spec", "template", "metadata"))...)
+	allErrs = append(allErrs, validationutil.ValidateObjectMeta(newObj.Spec.Template.ObjectMeta, field.NewPath("spec", "template", "metadata"))...)
 
 	if len(allErrs) == 0 {
 		return nil, nil

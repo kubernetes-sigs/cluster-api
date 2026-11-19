@@ -28,6 +28,7 @@ import (
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/webhooks/conversion"
 	"sigs.k8s.io/cluster-api/util/topology"
+	validationutil "sigs.k8s.io/cluster-api/util/validation"
 )
 
 // SetupWebhookWithManager sets up the webhook with the Manager.
@@ -104,7 +105,7 @@ func (webhook *KubeadmConfigTemplate) validate(r *bootstrapv1.KubeadmConfigTempl
 
 	allErrs = append(allErrs, Validate(&r.Template.Spec, false, field.NewPath("spec", "template", "spec"))...)
 	// Validate the metadata of the template.
-	allErrs = append(allErrs, r.Template.ObjectMeta.Validate(field.NewPath("spec", "template", "metadata"))...)
+	allErrs = append(allErrs, validationutil.ValidateObjectMeta(r.Template.ObjectMeta, field.NewPath("spec", "template", "metadata"))...)
 
 	if len(allErrs) == 0 {
 		return nil

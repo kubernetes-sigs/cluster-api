@@ -51,6 +51,7 @@ import (
 	"sigs.k8s.io/cluster-api/pkg/runtimesdk/hooks"
 	"sigs.k8s.io/cluster-api/util/cache"
 	"sigs.k8s.io/cluster-api/util/conditions"
+	validationutil "sigs.k8s.io/cluster-api/util/validation"
 	"sigs.k8s.io/cluster-api/util/version"
 )
 
@@ -1598,14 +1599,14 @@ func clusterClassIsReconciled(clusterClass *clusterv1.ClusterClass) bool {
 
 func validateTopologyMetadata(topology clusterv1.Topology, fldPath *field.Path) field.ErrorList {
 	var allErrs field.ErrorList //nolint:prealloc // Not all paths append
-	allErrs = append(allErrs, topology.ControlPlane.Metadata.Validate(fldPath.Child("controlPlane", "metadata"))...)
+	allErrs = append(allErrs, validationutil.ValidateObjectMeta(topology.ControlPlane.Metadata, fldPath.Child("controlPlane", "metadata"))...)
 	for _, md := range topology.Workers.MachineDeployments {
-		allErrs = append(allErrs, md.Metadata.Validate(
+		allErrs = append(allErrs, validationutil.ValidateObjectMeta(md.Metadata,
 			fldPath.Child("workers", "machineDeployments").Key(md.Name).Child("metadata"),
 		)...)
 	}
 	for _, mp := range topology.Workers.MachinePools {
-		allErrs = append(allErrs, mp.Metadata.Validate(
+		allErrs = append(allErrs, validationutil.ValidateObjectMeta(mp.Metadata,
 			fldPath.Child("workers", "machinePools").Key(mp.Name).Child("metadata"),
 		)...)
 	}

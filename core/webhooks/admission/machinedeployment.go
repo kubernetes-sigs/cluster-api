@@ -40,6 +40,7 @@ import (
 	topologynames "sigs.k8s.io/cluster-api/internal/topology/names"
 	"sigs.k8s.io/cluster-api/internal/util/taints"
 	"sigs.k8s.io/cluster-api/pkg/features"
+	validationutil "sigs.k8s.io/cluster-api/util/validation"
 )
 
 // SetupWebhookWithManager sets up the webhook with the Manager.
@@ -242,7 +243,7 @@ func (webhook *MachineDeployment) validate(oldMD, newMD *clusterv1.MachineDeploy
 	allErrs = append(allErrs, validateMachineTaintsForWorkers(newMD.Spec.Template.Spec.Taints, nil, specPath.Child("template", "spec", "taints"))...)
 
 	// Validate the metadata of the template.
-	allErrs = append(allErrs, newMD.Spec.Template.Validate(specPath.Child("template", "metadata"))...)
+	allErrs = append(allErrs, validationutil.ValidateObjectMeta(newMD.Spec.Template.ObjectMeta, specPath.Child("template", "metadata"))...)
 
 	if len(allErrs) == 0 {
 		return nil

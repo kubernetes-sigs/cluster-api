@@ -28,6 +28,7 @@ import (
 	"sigs.k8s.io/cluster-api/internal/util/compare"
 	"sigs.k8s.io/cluster-api/pkg/features"
 	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta2"
+	validationutil "sigs.k8s.io/cluster-api/util/validation"
 )
 
 // DevClusterTemplate implements a validating and defaulting webhook for DevClusterTemplate.
@@ -69,7 +70,7 @@ func (webhook *DevClusterTemplate) ValidateCreate(_ context.Context, clusterTemp
 	allErrs := validateDevClusterSpec(clusterTemplate.Spec.Template.Spec)
 
 	// Validate the metadata of the template.
-	allErrs = append(allErrs, clusterTemplate.Spec.Template.ObjectMeta.Validate(field.NewPath("spec", "template", "metadata"))...)
+	allErrs = append(allErrs, validationutil.ValidateObjectMeta(clusterTemplate.Spec.Template.ObjectMeta, field.NewPath("spec", "template", "metadata"))...)
 
 	if len(allErrs) > 0 {
 		return nil, apierrors.NewInvalid(infrav1.GroupVersion.WithKind("DevClusterTemplate").GroupKind(), clusterTemplate.Name, allErrs)

@@ -94,6 +94,11 @@ func Ordinalize(n int) string {
 	}
 
 	an := int(math.Abs(float64(n)))
+	// Numbers whose last two digits are 11, 12 or 13 always take "th"
+	// (e.g. 11th, 112th), regardless of their last digit.
+	if an%100 >= 11 && an%100 <= 13 {
+		return fmt.Sprintf("%dth", n)
+	}
 	if an < 10 {
 		return fmt.Sprintf("%d%s", n, m[an])
 	}

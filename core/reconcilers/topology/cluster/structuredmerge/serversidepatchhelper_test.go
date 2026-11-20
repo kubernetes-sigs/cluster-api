@@ -33,7 +33,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -679,7 +678,7 @@ func TestServerSideApplyWithDefaulting(t *testing.T) {
 							KubeletExtraArgs: []bootstrapv1.Arg{
 								{
 									Name:  "eviction-hard",
-									Value: ptr.To("nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%"),
+									Value: new("nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%"),
 								},
 							},
 						},
@@ -964,7 +963,7 @@ func setupWebhookWithManager(ns *corev1.Namespace) (*KubeadmConfigTemplateTestDe
 			{
 				Name: ns.Name + ".kubeadmconfigtemplate.bootstrap.cluster.x-k8s.io",
 				ClientConfig: admissionv1.WebhookClientConfig{
-					URL:      ptr.To(fmt.Sprintf("https://%s%s", net.JoinHostPort(webhookHost, strconv.Itoa(webhookServer.Options.Port)), webhookPath)),
+					URL:      new(fmt.Sprintf("https://%s%s", net.JoinHostPort(webhookHost, strconv.Itoa(webhookServer.Options.Port)), webhookPath)),
 					CABundle: caBundle,
 				},
 				Rules: []admissionv1.RuleWithOperations{

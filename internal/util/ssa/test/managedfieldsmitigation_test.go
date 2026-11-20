@@ -143,7 +143,7 @@ func TestMigrateClusterAndMitigateManagedFieldsIssue(t *testing.T) {
 				Manager:    patchManager,
 				Operation:  metav1.ManagedFieldsOperationUpdate,
 				APIVersion: clusterv1.GroupVersion.String(),
-				Time:       ptr.To(metav1.Now()),
+				Time:       new(metav1.Now()),
 				FieldsType: "FieldsV1",
 				FieldsV1: metav1.NewFieldsV1(trimSpaces(`{
 "f:metadata":{
@@ -218,7 +218,7 @@ func TestMigrateClusterAndMitigateManagedFieldsIssue(t *testing.T) {
 				Manager:    beforeFirstApplyManager,
 				Operation:  metav1.ManagedFieldsOperationApply,
 				APIVersion: clusterv1.GroupVersion.String(),
-				Time:       ptr.To(metav1.Now()),
+				Time:       new(metav1.Now()),
 				FieldsType: "FieldsV1",
 				FieldsV1: metav1.NewFieldsV1(trimSpaces(`{
 "f:metadata":{
@@ -246,7 +246,7 @@ func TestMigrateClusterAndMitigateManagedFieldsIssue(t *testing.T) {
 				Manager:    oldClusterSSAManager,
 				Operation:  metav1.ManagedFieldsOperationApply,
 				APIVersion: clusterv1.GroupVersion.String(),
-				Time:       ptr.To(metav1.Now()),
+				Time:       new(metav1.Now()),
 				FieldsType: "FieldsV1",
 				FieldsV1: metav1.NewFieldsV1(trimSpaces(`{
 "f:metadata":{
@@ -274,7 +274,7 @@ func TestMigrateClusterAndMitigateManagedFieldsIssue(t *testing.T) {
 				Manager:    beforeFirstApplyManager,
 				Operation:  metav1.ManagedFieldsOperationApply,
 				APIVersion: clusterv1.GroupVersion.String(),
-				Time:       ptr.To(metav1.Now()),
+				Time:       new(metav1.Now()),
 				FieldsType: "FieldsV1",
 				FieldsV1: metav1.NewFieldsV1(trimSpaces(`{
 "f:metadata":{
@@ -286,7 +286,7 @@ func TestMigrateClusterAndMitigateManagedFieldsIssue(t *testing.T) {
 				Manager:    otherFieldManager,
 				Operation:  metav1.ManagedFieldsOperationApply,
 				APIVersion: clusterv1.GroupVersion.String(),
-				Time:       ptr.To(metav1.Now()),
+				Time:       new(metav1.Now()),
 				FieldsType: "FieldsV1",
 				FieldsV1: metav1.NewFieldsV1(trimSpaces(`{
 "f:metadata":{
@@ -315,7 +315,7 @@ func TestMigrateClusterAndMitigateManagedFieldsIssue(t *testing.T) {
 				Manager:    oldClusterSSAManager,
 				Operation:  metav1.ManagedFieldsOperationApply,
 				APIVersion: clusterv1.GroupVersion.String(),
-				Time:       ptr.To(metav1.Now()),
+				Time:       new(metav1.Now()),
 				FieldsType: "FieldsV1",
 				FieldsV1: metav1.NewFieldsV1(trimSpaces(`{
 "f:metadata":{
@@ -327,7 +327,7 @@ func TestMigrateClusterAndMitigateManagedFieldsIssue(t *testing.T) {
 				Manager:    otherFieldManager,
 				Operation:  metav1.ManagedFieldsOperationApply,
 				APIVersion: clusterv1.GroupVersion.String(),
-				Time:       ptr.To(metav1.Now()),
+				Time:       new(metav1.Now()),
 				FieldsType: "FieldsV1",
 				FieldsV1: metav1.NewFieldsV1(trimSpaces(`{
 "f:metadata":{
@@ -356,7 +356,7 @@ func TestMigrateClusterAndMitigateManagedFieldsIssue(t *testing.T) {
 				Manager:    beforeFirstApplyManager,
 				Operation:  metav1.ManagedFieldsOperationApply,
 				APIVersion: clusterv1.GroupVersion.String(),
-				Time:       ptr.To(metav1.Now()),
+				Time:       new(metav1.Now()),
 				FieldsType: "FieldsV1",
 				FieldsV1: metav1.NewFieldsV1(trimSpaces(`{
 "f:metadata":{
@@ -368,7 +368,7 @@ func TestMigrateClusterAndMitigateManagedFieldsIssue(t *testing.T) {
 				Manager:    oldClusterSSAManager,
 				Operation:  metav1.ManagedFieldsOperationApply,
 				APIVersion: clusterv1.GroupVersion.String(),
-				Time:       ptr.To(metav1.Now()),
+				Time:       new(metav1.Now()),
 				FieldsType: "FieldsV1",
 				FieldsV1: metav1.NewFieldsV1(trimSpaces(`{
 "f:metadata":{
@@ -381,7 +381,7 @@ func TestMigrateClusterAndMitigateManagedFieldsIssue(t *testing.T) {
 				Manager:    otherFieldManager,
 				Operation:  metav1.ManagedFieldsOperationApply,
 				APIVersion: clusterv1.GroupVersion.String(),
-				Time:       ptr.To(metav1.Now()),
+				Time:       new(metav1.Now()),
 				FieldsType: "FieldsV1",
 				FieldsV1: metav1.NewFieldsV1(trimSpaces(`{
 "f:metadata":{
@@ -493,7 +493,7 @@ func TestMitigateManagedFieldsIssue(t *testing.T) {
 						Name:     "inframachine",
 					},
 					Bootstrap: clusterv1.Bootstrap{
-						DataSecretName: ptr.To(""),
+						DataSecretName: new(""),
 					},
 				},
 			},
@@ -519,11 +519,11 @@ func TestMitigateManagedFieldsIssue(t *testing.T) {
 						ExtraArgs: []bootstrapv1.Arg{
 							{
 								Name:  "v",
-								Value: ptr.To("1"),
+								Value: new("1"),
 							},
 							{
 								Name:  "allow-privileged",
-								Value: ptr.To("true"),
+								Value: new("true"),
 							},
 						},
 					},
@@ -531,11 +531,11 @@ func TestMitigateManagedFieldsIssue(t *testing.T) {
 						ExtraArgs: []bootstrapv1.Arg{
 							{
 								Name:  "v",
-								Value: ptr.To("2"),
+								Value: new("2"),
 							},
 							{
 								Name:  "profiling",
-								Value: ptr.To("false"),
+								Value: new("false"),
 							},
 						},
 					},
@@ -543,11 +543,11 @@ func TestMitigateManagedFieldsIssue(t *testing.T) {
 						ExtraArgs: []bootstrapv1.Arg{
 							{
 								Name:  "profiling",
-								Value: ptr.To("false"),
+								Value: new("false"),
 							},
 							{
 								Name:  "v",
-								Value: ptr.To("3"),
+								Value: new("3"),
 							},
 						},
 					},
@@ -556,11 +556,11 @@ func TestMitigateManagedFieldsIssue(t *testing.T) {
 							ExtraArgs: []bootstrapv1.Arg{
 								{
 									Name:  "v",
-									Value: ptr.To("4"),
+									Value: new("4"),
 								},
 								{
 									Name:  "auto-tls",
-									Value: ptr.To("false"),
+									Value: new("false"),
 								},
 							},
 						},
@@ -571,11 +571,11 @@ func TestMitigateManagedFieldsIssue(t *testing.T) {
 						KubeletExtraArgs: []bootstrapv1.Arg{
 							{
 								Name:  "node-labels",
-								Value: ptr.To("kubernetesVersion=1-34-0"),
+								Value: new("kubernetesVersion=1-34-0"),
 							},
 							{
 								Name:  "v",
-								Value: ptr.To("5"),
+								Value: new("5"),
 							},
 						},
 					},
@@ -704,11 +704,11 @@ func TestMitigateManagedFieldsIssue(t *testing.T) {
 						ExtraArgs: []bootstrapv1.Arg{
 							{
 								Name:  "allow-privileged",
-								Value: ptr.To("true"),
+								Value: new("true"),
 							},
 							{
 								Name:  "profiling",
-								Value: ptr.To("false"),
+								Value: new("false"),
 							},
 						},
 					},
@@ -716,7 +716,7 @@ func TestMitigateManagedFieldsIssue(t *testing.T) {
 						ExtraArgs: []bootstrapv1.Arg{
 							{
 								Name:  "v",
-								Value: ptr.To("2"),
+								Value: new("2"),
 							},
 						},
 					},
@@ -724,11 +724,11 @@ func TestMitigateManagedFieldsIssue(t *testing.T) {
 						ExtraArgs: []bootstrapv1.Arg{
 							{
 								Name:  "profiling",
-								Value: ptr.To("false"),
+								Value: new("false"),
 							},
 							{
 								Name:  "v",
-								Value: ptr.To("6"),
+								Value: new("6"),
 							},
 						},
 					},
@@ -737,7 +737,7 @@ func TestMitigateManagedFieldsIssue(t *testing.T) {
 							ExtraArgs: []bootstrapv1.Arg{
 								{
 									Name:  "v",
-									Value: ptr.To("4"),
+									Value: new("4"),
 								},
 							},
 						},
@@ -748,11 +748,11 @@ func TestMitigateManagedFieldsIssue(t *testing.T) {
 						KubeletExtraArgs: []bootstrapv1.Arg{
 							{
 								Name:  "node-labels",
-								Value: ptr.To("kubernetesVersion=1-35-0"),
+								Value: new("kubernetesVersion=1-35-0"),
 							},
 							{
 								Name:  "v",
-								Value: ptr.To("5"),
+								Value: new("5"),
 							},
 						},
 					},
@@ -762,11 +762,11 @@ func TestMitigateManagedFieldsIssue(t *testing.T) {
 						KubeletExtraArgs: []bootstrapv1.Arg{
 							{
 								Name:  "node-labels",
-								Value: ptr.To("kubernetesVersion=1-35-0"),
+								Value: new("kubernetesVersion=1-35-0"),
 							},
 							{
 								Name:  "v",
-								Value: ptr.To("6"),
+								Value: new("6"),
 							},
 						},
 					},
@@ -916,7 +916,7 @@ func TestMitigateManagedFieldsIssue(t *testing.T) {
 			ExtraArgs: []bootstrapv1.Arg{
 				{
 					Name:  "profiling",
-					Value: ptr.To("false"),
+					Value: new("false"),
 				},
 			},
 		},
@@ -924,7 +924,7 @@ func TestMitigateManagedFieldsIssue(t *testing.T) {
 			ExtraArgs: []bootstrapv1.Arg{
 				{
 					Name:  "profiling",
-					Value: ptr.To("false"),
+					Value: new("false"),
 				},
 			},
 		},
@@ -1300,7 +1300,7 @@ func TestMitigateManagedFieldsIssue(t *testing.T) {
 				Manager:    testFieldManager,
 				Operation:  metav1.ManagedFieldsOperationApply,
 				APIVersion: controlplanev1.GroupVersion.String(),
-				Time:       ptr.To(metav1.Now()),
+				Time:       new(metav1.Now()),
 				FieldsType: "FieldsV1",
 				FieldsV1: metav1.NewFieldsV1(trimSpaces(`{
 "f:metadata":{
@@ -1353,7 +1353,7 @@ func TestMitigateManagedFieldsIssue(t *testing.T) {
 				Manager:    beforeFirstApplyManager,
 				Operation:  metav1.ManagedFieldsOperationApply,
 				APIVersion: controlplanev1.GroupVersion.String(),
-				Time:       ptr.To(metav1.Now()),
+				Time:       new(metav1.Now()),
 				FieldsType: "FieldsV1",
 				FieldsV1: metav1.NewFieldsV1(trimSpaces(`{
 "f:metadata":{
@@ -1391,7 +1391,7 @@ func TestMitigateManagedFieldsIssue(t *testing.T) {
 				Manager:    beforeFirstApplyManager,
 				Operation:  metav1.ManagedFieldsOperationApply,
 				APIVersion: controlplanev1beta1.GroupVersion.String(),
-				Time:       ptr.To(metav1.Now()),
+				Time:       new(metav1.Now()),
 				FieldsType: "FieldsV1",
 				FieldsV1: metav1.NewFieldsV1(trimSpaces(`{
 "f:metadata":{
@@ -1403,7 +1403,7 @@ func TestMitigateManagedFieldsIssue(t *testing.T) {
 				Manager:    otherFieldManager,
 				Operation:  metav1.ManagedFieldsOperationApply,
 				APIVersion: controlplanev1beta1.GroupVersion.String(),
-				Time:       ptr.To(metav1.Now()),
+				Time:       new(metav1.Now()),
 				FieldsType: "FieldsV1",
 				FieldsV1: metav1.NewFieldsV1(trimSpaces(`{
 "f:metadata":{
@@ -1503,7 +1503,7 @@ func TestMitigateManagedFieldsIssue(t *testing.T) {
 				Manager:    beforeFirstApplyManager,
 				Operation:  metav1.ManagedFieldsOperationApply,
 				APIVersion: controlplanev1.GroupVersion.String(),
-				Time:       ptr.To(metav1.Now()),
+				Time:       new(metav1.Now()),
 				FieldsType: "FieldsV1",
 				FieldsV1: metav1.NewFieldsV1(trimSpaces(`{
 "f:metadata":{
@@ -1515,7 +1515,7 @@ func TestMitigateManagedFieldsIssue(t *testing.T) {
 				Manager:    otherFieldManager,
 				Operation:  metav1.ManagedFieldsOperationApply,
 				APIVersion: controlplanev1.GroupVersion.String(),
-				Time:       ptr.To(metav1.Now()),
+				Time:       new(metav1.Now()),
 				FieldsType: "FieldsV1",
 				FieldsV1: metav1.NewFieldsV1(trimSpaces(`{
 "f:metadata":{
@@ -1526,7 +1526,7 @@ func TestMitigateManagedFieldsIssue(t *testing.T) {
 				Manager:    testFieldManager,
 				Operation:  metav1.ManagedFieldsOperationApply,
 				APIVersion: controlplanev1.GroupVersion.String(),
-				Time:       ptr.To(metav1.Now()),
+				Time:       new(metav1.Now()),
 				FieldsType: "FieldsV1",
 				FieldsV1: metav1.NewFieldsV1(trimSpaces(`{
 "f:metadata":{

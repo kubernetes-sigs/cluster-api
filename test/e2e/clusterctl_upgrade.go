@@ -1048,7 +1048,7 @@ func calculateExpectedMachinePoolMachineCount(ctx context.Context, c client.Clie
 			}
 
 			// Check if the InfraMachinePool has an infrastructureMachineKind field. If it does not, we should skip checking for MachinePool machines.
-			err = util.UnstructuredUnmarshalField(infraMachinePool, ptr.To(""), "status", "infrastructureMachineKind")
+			err = util.UnstructuredUnmarshalField(infraMachinePool, new(""), "status", "infrastructureMachineKind")
 			if err != nil && !errors.Is(err, util.ErrUnstructuredFieldNotFound) {
 				return 0, err
 			}
@@ -1147,7 +1147,7 @@ func deleteAllClustersAndWait(ctx context.Context, input deleteAllClustersAndWai
 		g.Expect(input.Client.Get(ctx, client.ObjectKey{Namespace: metav1.NamespaceSystem, Name: "kube-controller-manager"}, kubeControllerManagerLease)).To(Succeed())
 		// As soon as the kube-controller-manager detects it doesn't own the lease anymore it will restart.
 		// Once the current lease times out the kube-controller-manager will become leader again.
-		kubeControllerManagerLease.Spec.HolderIdentity = ptr.To("e2e-test-client")
+		kubeControllerManagerLease.Spec.HolderIdentity = new("e2e-test-client")
 		g.Expect(input.Client.Update(ctx, kubeControllerManagerLease)).To(Succeed())
 	}, 3*time.Minute, 3*time.Second).Should(Succeed(), "failed to steal lease from kube-controller-manager to trigger restart")
 

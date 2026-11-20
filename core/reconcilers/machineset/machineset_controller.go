@@ -1308,7 +1308,7 @@ func (r *Reconciler) startMoveMachines(ctx context.Context, s *scope, targetMSNa
 			Kind:       "MachineSet",
 			Name:       targetMS.Name,
 			UID:        targetMS.UID,
-			Controller: ptr.To(true),
+			Controller: new(true),
 		})
 
 		// Change machine's labels from current MS to target MS

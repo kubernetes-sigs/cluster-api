@@ -127,7 +127,7 @@ func (r *MachineBackendReconciler) ReconcileNormal(ctx context.Context, cluster 
 		conditions.IsTrue(dockerMachine, infrav1.DevMachineDockerCGroupsReadyCondition) &&
 		conditions.IsTrue(dockerMachine, infrav1.DevMachineDockerPreLoadedImagesReadyCondition) {
 		dockerMachine.Spec.ProviderID = externalMachine.ProviderID()
-		dockerMachine.Status.Initialization.Provisioned = ptr.To(true)
+		dockerMachine.Status.Initialization.Provisioned = new(true)
 	}
 
 	// Following task do not exist in a real infrastructure provider, they are specific of the docker backend only.

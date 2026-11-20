@@ -24,7 +24,6 @@ import (
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/utils/ptr"
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
@@ -99,14 +98,14 @@ func TestControlPlane(t *testing.T) {
 					InfrastructureRef: clusterv1.ContractVersionedObjectReference{Kind: "GenericInfrastructureMachine", APIGroup: clusterv1.GroupVersionInfrastructure.Group, Name: "m2"},
 				}},
 			"machine-3": &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{Name: "m3", DeletionTimestamp: ptr.To(metav1.Now())}, // deleted
+				ObjectMeta: metav1.ObjectMeta{Name: "m3", DeletionTimestamp: new(metav1.Now())}, // deleted
 				Spec: clusterv1.MachineSpec{
 					Version:           "v1.29.3", // not up-to-date
 					FailureDomain:     "three",
 					InfrastructureRef: clusterv1.ContractVersionedObjectReference{Kind: "GenericInfrastructureMachine", APIGroup: clusterv1.GroupVersionInfrastructure.Group, Name: "m3"},
 				}},
 			"machine-4": &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{Name: "m4", DeletionTimestamp: ptr.To(metav1.Now())}, // deleted
+				ObjectMeta: metav1.ObjectMeta{Name: "m4", DeletionTimestamp: new(metav1.Now())}, // deleted
 				Spec: clusterv1.MachineSpec{
 					Version:           "v1.31.0", // up-to-date
 					FailureDomain:     "two",
@@ -696,7 +695,7 @@ type machineOpt func(*clusterv1.Machine)
 func failureDomain(name string, controlPlane bool) clusterv1.FailureDomain {
 	return clusterv1.FailureDomain{
 		Name:         name,
-		ControlPlane: ptr.To(controlPlane),
+		ControlPlane: new(controlPlane),
 	}
 }
 

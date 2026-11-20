@@ -31,7 +31,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/apimachinery/pkg/util/validation/field"
-	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -98,7 +97,7 @@ func (webhook *MachineSet) Default(ctx context.Context, m *clusterv1.MachineSet)
 	if err != nil {
 		return err
 	}
-	m.Spec.Replicas = ptr.To[int32](replicas)
+	m.Spec.Replicas = new(replicas)
 
 	if m.Spec.Selector.MatchLabels == nil {
 		m.Spec.Selector.MatchLabels = make(map[string]string)

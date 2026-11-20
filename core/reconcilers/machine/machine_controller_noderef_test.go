@@ -29,7 +29,6 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/client-go/tools/record"
 	utilfeature "k8s.io/component-base/featuregate/testing"
-	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -206,7 +205,7 @@ func TestReconcileNode(t *testing.T) {
 					Labels: map[string]string{
 						clusterv1.ClusterNameLabel: "test-cluster",
 					},
-					DeletionTimestamp: ptr.To(metav1.Now()),
+					DeletionTimestamp: new(metav1.Now()),
 					Finalizers:        []string{"foo"},
 				},
 				Spec: clusterv1.MachineSpec{
@@ -331,7 +330,7 @@ func TestReconcileNode(t *testing.T) {
 				ClusterCache: clustercache.NewFakeClusterCache(c, client.ObjectKeyFromObject(cluster), watches...),
 				Client:       c,
 				recorder:     record.NewFakeRecorder(10),
-				predicateLog: ptr.To(logr.New(log.NullLogSink{})),
+				predicateLog: new(logr.New(log.NullLogSink{})),
 			}
 			s := &scope{cluster: cluster, machine: tc.machine}
 			result, err := r.reconcileNode(ctx, s)
@@ -572,7 +571,7 @@ func TestNodeLabelSync(t *testing.T) {
 		g.Expect(env.CreateAndWait(ctx, defaultKubeconfigSecret)).To(Succeed())
 		// Set InfrastructureReady to true so ClusterCache creates the clusterAccessor.
 		patch := client.MergeFrom(cluster.DeepCopy())
-		cluster.Status.Initialization.InfrastructureProvisioned = ptr.To(true)
+		cluster.Status.Initialization.InfrastructureProvisioned = new(true)
 		g.Expect(env.Status().Patch(ctx, cluster, patch)).To(Succeed())
 
 		g.Expect(env.Create(ctx, infraMachine)).To(Succeed())

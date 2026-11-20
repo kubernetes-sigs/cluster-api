@@ -261,7 +261,7 @@ func TestGetPodsForEviction(t *testing.T) {
 						OwnerReferences: []metav1.OwnerReference{
 							{
 								Kind:       "Deployment",
-								Controller: ptr.To(true),
+								Controller: new(true),
 							},
 						},
 					},
@@ -273,7 +273,7 @@ func TestGetPodsForEviction(t *testing.T) {
 						OwnerReferences: []metav1.OwnerReference{
 							{
 								Kind:       "DaemonSet",
-								Controller: ptr.To(true),
+								Controller: new(true),
 							},
 						},
 					},
@@ -289,7 +289,7 @@ func TestGetPodsForEviction(t *testing.T) {
 							{
 								Kind:       "DaemonSet",
 								Name:       "daemonset-does-not-exist",
-								Controller: ptr.To(true),
+								Controller: new(true),
 							},
 						},
 					},
@@ -305,7 +305,7 @@ func TestGetPodsForEviction(t *testing.T) {
 							{
 								Kind:       "DaemonSet",
 								Name:       "daemonset-does-exist",
-								Controller: ptr.To(true),
+								Controller: new(true),
 							},
 						},
 					},
@@ -413,7 +413,7 @@ func TestGetPodsForEviction(t *testing.T) {
 						OwnerReferences: []metav1.OwnerReference{
 							{
 								Kind:       "Deployment",
-								Controller: ptr.To(true),
+								Controller: new(true),
 							},
 						},
 					},
@@ -425,7 +425,7 @@ func TestGetPodsForEviction(t *testing.T) {
 						OwnerReferences: []metav1.OwnerReference{
 							{
 								Kind:       "Deployment",
-								Controller: ptr.To(true),
+								Controller: new(true),
 							},
 						},
 					},
@@ -450,7 +450,7 @@ func TestGetPodsForEviction(t *testing.T) {
 						OwnerReferences: []metav1.OwnerReference{
 							{
 								Kind:       "Deployment",
-								Controller: ptr.To(true),
+								Controller: new(true),
 							},
 						},
 					},
@@ -534,7 +534,7 @@ func TestGetPodsForEviction(t *testing.T) {
 						OwnerReferences: []metav1.OwnerReference{
 							{
 								Kind:       "Deployment",
-								Controller: ptr.To(true),
+								Controller: new(true),
 							},
 						},
 					},
@@ -606,7 +606,7 @@ func TestGetPodsForEviction(t *testing.T) {
 							{
 								Kind:       "DaemonSet",
 								Name:       "daemonset-does-not-exist",
-								Controller: ptr.To(true),
+								Controller: new(true),
 							},
 						},
 					},

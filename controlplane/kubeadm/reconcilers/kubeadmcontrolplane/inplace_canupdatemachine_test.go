@@ -233,13 +233,13 @@ func Test_canUpdateMachine(t *testing.T) {
 				if len(extensionHandlers) != 1 || extensionHandlers[0] != "test-update-extension" {
 					return canUpdateMachineResult{canUpdateMachine: false}, pkgerrors.Errorf("unexpected error")
 				}
-				return canUpdateMachineResult{canUpdateMachine: true, allowedOperations: ptr.To([]runtimehooksv1.MachineUpdateOperation{runtimehooksv1.MachineUpdateOperationUpdateInPlace}), messages: []string{"only in-place"}, retryAfter: now.Add(5 * time.Minute)}, nil
+				return canUpdateMachineResult{canUpdateMachine: true, allowedOperations: new([]runtimehooksv1.MachineUpdateOperation{runtimehooksv1.MachineUpdateOperationUpdateInPlace}), messages: []string{"only in-place"}, retryAfter: now.Add(5 * time.Minute)}, nil
 			},
 			wantCanExtensionsUpdateMachineCalled: true,
 			wantCanUpdateMachineResult: canUpdateMachineResult{
 				retryAfter:        now.Add(5 * time.Minute),
 				canUpdateMachine:  true,
-				allowedOperations: ptr.To([]runtimehooksv1.MachineUpdateOperation{runtimehooksv1.MachineUpdateOperationUpdateInPlace}),
+				allowedOperations: new([]runtimehooksv1.MachineUpdateOperation{runtimehooksv1.MachineUpdateOperationUpdateInPlace}),
 				messages:          []string{"only in-place"},
 			},
 			wantCacheEntry: &CanUpdateMachineCacheEntry{
@@ -247,7 +247,7 @@ func Test_canUpdateMachine(t *testing.T) {
 				KCPGeneration: kcpGeneration,
 				canUpdateMachineResult: canUpdateMachineResult{
 					canUpdateMachine:  true,
-					allowedOperations: ptr.To([]runtimehooksv1.MachineUpdateOperation{runtimehooksv1.MachineUpdateOperationUpdateInPlace}),
+					allowedOperations: new([]runtimehooksv1.MachineUpdateOperation{runtimehooksv1.MachineUpdateOperationUpdateInPlace}),
 					messages:          []string{"only in-place"},
 					retryAfter:        now.Add(5 * time.Minute),
 				},
@@ -264,12 +264,12 @@ func Test_canUpdateMachine(t *testing.T) {
 				if len(extensionHandlers) != 1 || extensionHandlers[0] != "test-update-extension" {
 					return canUpdateMachineResult{canUpdateMachine: false}, pkgerrors.Errorf("unexpected error")
 				}
-				return canUpdateMachineResult{allowedOperations: ptr.To([]runtimehooksv1.MachineUpdateOperation{}), messages: []string{"preflight check failed"}, reasons: []string{"no operation is allowed"}, retryAfter: now.Add(5 * time.Minute)}, nil
+				return canUpdateMachineResult{allowedOperations: new([]runtimehooksv1.MachineUpdateOperation{}), messages: []string{"preflight check failed"}, reasons: []string{"no operation is allowed"}, retryAfter: now.Add(5 * time.Minute)}, nil
 			},
 			wantCanExtensionsUpdateMachineCalled: true,
 			wantCanUpdateMachineResult: canUpdateMachineResult{
 				retryAfter:        now.Add(5 * time.Minute),
-				allowedOperations: ptr.To([]runtimehooksv1.MachineUpdateOperation{}),
+				allowedOperations: new([]runtimehooksv1.MachineUpdateOperation{}),
 				messages:          []string{"preflight check failed"},
 				reasons:           []string{"no operation is allowed"},
 			},
@@ -277,7 +277,7 @@ func Test_canUpdateMachine(t *testing.T) {
 				Machine:       machineKey,
 				KCPGeneration: kcpGeneration,
 				canUpdateMachineResult: canUpdateMachineResult{
-					allowedOperations: ptr.To([]runtimehooksv1.MachineUpdateOperation{}),
+					allowedOperations: new([]runtimehooksv1.MachineUpdateOperation{}),
 					messages:          []string{"preflight check failed"},
 					retryAfter:        now.Add(5 * time.Minute),
 					reasons:           []string{"no operation is allowed"},
@@ -467,13 +467,13 @@ func Test_canUpdateMachine(t *testing.T) {
 				KCPGeneration: kcpGeneration,
 				canUpdateMachineResult: canUpdateMachineResult{
 					retryAfter:        now.Add(2 * time.Minute),
-					allowedOperations: ptr.To([]runtimehooksv1.MachineUpdateOperation{}),
+					allowedOperations: new([]runtimehooksv1.MachineUpdateOperation{}),
 					messages:          []string{"cached message"},
 				},
 			},
 			wantCanExtensionsUpdateMachineCalled: false,
 			wantCanUpdateMachineResult: canUpdateMachineResult{
-				allowedOperations: ptr.To([]runtimehooksv1.MachineUpdateOperation{}),
+				allowedOperations: new([]runtimehooksv1.MachineUpdateOperation{}),
 				messages:          []string{"cached message"},
 				retryAfter:        now.Add(2 * time.Minute),
 			},
@@ -482,7 +482,7 @@ func Test_canUpdateMachine(t *testing.T) {
 				KCPGeneration: kcpGeneration,
 				canUpdateMachineResult: canUpdateMachineResult{
 					retryAfter:        now.Add(2 * time.Minute),
-					allowedOperations: ptr.To([]runtimehooksv1.MachineUpdateOperation{}),
+					allowedOperations: new([]runtimehooksv1.MachineUpdateOperation{}),
 					messages:          []string{"cached message"},
 				},
 			},
@@ -964,10 +964,10 @@ func Test_canExtensionsUpdateMachine(t *testing.T) {
 					InfrastructureMachinePatch: patchToUpdateInfraMachine,
 					BootstrapConfigPatch:       patchToUpdateKubeadmConfig,
 					AffectsAvailability:        new(false),
-					AllowedOperations:          ptr.To([]runtimehooksv1.MachineUpdateOperation{runtimehooksv1.MachineUpdateOperationReplace}),
+					AllowedOperations:          new([]runtimehooksv1.MachineUpdateOperation{runtimehooksv1.MachineUpdateOperationReplace}),
 				},
 			},
-			wantCanUpdateMachineResult: canUpdateMachineResult{canUpdateMachine: true, affectsAvailability: false, allowedOperations: ptr.To([]runtimehooksv1.MachineUpdateOperation{runtimehooksv1.MachineUpdateOperationReplace}), messages: []string{"only replace"}, retryAfter: now.Add(5 * time.Minute)},
+			wantCanUpdateMachineResult: canUpdateMachineResult{canUpdateMachine: true, affectsAvailability: false, allowedOperations: new([]runtimehooksv1.MachineUpdateOperation{runtimehooksv1.MachineUpdateOperationReplace}), messages: []string{"only replace"}, retryAfter: now.Add(5 * time.Minute)},
 		},
 		{
 			name: "Return false and allow InPlaceUpdate if allowedOperations contains only InPlaceUpdate and patches only account for some diffs",
@@ -985,12 +985,12 @@ func Test_canExtensionsUpdateMachine(t *testing.T) {
 					MachinePatch:               patchToUpdateMachine,
 					InfrastructureMachinePatch: emptyPatch,
 					BootstrapConfigPatch:       emptyPatch,
-					AllowedOperations:          ptr.To([]runtimehooksv1.MachineUpdateOperation{runtimehooksv1.MachineUpdateOperationUpdateInPlace}),
+					AllowedOperations:          new([]runtimehooksv1.MachineUpdateOperation{runtimehooksv1.MachineUpdateOperationUpdateInPlace}),
 				},
 			},
 			wantCanUpdateMachineResult: canUpdateMachineResult{
 				canUpdateMachine:  false,
-				allowedOperations: ptr.To([]runtimehooksv1.MachineUpdateOperation{runtimehooksv1.MachineUpdateOperationUpdateInPlace}),
+				allowedOperations: new([]runtimehooksv1.MachineUpdateOperation{runtimehooksv1.MachineUpdateOperationUpdateInPlace}),
 				messages:          []string{"only handled the Machine"},
 				reasons: []string{
 					`KubeadmConfig cannot be updated in-place: &unstructured.Unstructured{
@@ -1029,11 +1029,11 @@ func Test_canExtensionsUpdateMachine(t *testing.T) {
 					InfrastructureMachinePatch: patchToUpdateInfraMachine,
 					BootstrapConfigPatch:       patchToUpdateKubeadmConfig,
 					AffectsAvailability:        new(false),
-					AllowedOperations:          ptr.To([]runtimehooksv1.MachineUpdateOperation{}),
+					AllowedOperations:          new([]runtimehooksv1.MachineUpdateOperation{}),
 				},
 			},
 			wantCanUpdateMachineResult: canUpdateMachineResult{
-				allowedOperations: ptr.To([]runtimehooksv1.MachineUpdateOperation{}),
+				allowedOperations: new([]runtimehooksv1.MachineUpdateOperation{}),
 				messages:          []string{"preflight check failed"},
 				reasons:           []string{"no operation is allowed by extensions"},
 				retryAfter:        now.Add(5 * time.Minute),
@@ -1055,11 +1055,11 @@ func Test_canExtensionsUpdateMachine(t *testing.T) {
 					CommonRetryResponse: runtimehooksv1.CommonRetryResponse{CommonResponse: runtimehooksv1.CommonResponse{Status: runtimehooksv1.ResponseStatusSuccess, Message: "message of extension 1"}},
 					MachinePatch:        patchToUpdateMachine,
 					AffectsAvailability: new(false),
-					AllowedOperations:   ptr.To([]runtimehooksv1.MachineUpdateOperation{runtimehooksv1.MachineUpdateOperationUpdateInPlace}),
+					AllowedOperations:   new([]runtimehooksv1.MachineUpdateOperation{runtimehooksv1.MachineUpdateOperationUpdateInPlace}),
 				},
 				"test-update-extension-2": &runtimehooksv1.CanUpdateMachineResponse{
 					CommonRetryResponse: runtimehooksv1.CommonRetryResponse{CommonResponse: runtimehooksv1.CommonResponse{Status: runtimehooksv1.ResponseStatusSuccess, Message: "message of extension 2"}},
-					AllowedOperations:   ptr.To([]runtimehooksv1.MachineUpdateOperation{runtimehooksv1.MachineUpdateOperationReplace}),
+					AllowedOperations:   new([]runtimehooksv1.MachineUpdateOperation{runtimehooksv1.MachineUpdateOperationReplace}),
 				},
 			},
 			callExtensionExpectedChanges: map[string]func(runtime.Object){
@@ -1071,7 +1071,7 @@ func Test_canExtensionsUpdateMachine(t *testing.T) {
 				},
 			},
 			wantCanUpdateMachineResult: canUpdateMachineResult{
-				allowedOperations: ptr.To([]runtimehooksv1.MachineUpdateOperation{}),
+				allowedOperations: new([]runtimehooksv1.MachineUpdateOperation{}),
 				messages:          []string{"message of extension 1", "message of extension 2"},
 				reasons:           []string{"no operation is allowed by extensions"},
 				retryAfter:        now.Add(5 * time.Minute),
@@ -1093,7 +1093,7 @@ func Test_canExtensionsUpdateMachine(t *testing.T) {
 						CommonResponse:    runtimehooksv1.CommonResponse{Status: runtimehooksv1.ResponseStatusSuccess, Message: "waiting for the update plan"},
 						RetryAfterSeconds: 10,
 					},
-					AllowedOperations: ptr.To([]runtimehooksv1.MachineUpdateOperation{}),
+					AllowedOperations: new([]runtimehooksv1.MachineUpdateOperation{}),
 				},
 			},
 			wantCanUpdateMachineResult: canUpdateMachineResult{messages: []string{"waiting for the update plan"}, retryAfter: now.Add(10 * time.Second), retryAfterFromExtension: true},
@@ -1268,50 +1268,50 @@ func Test_intersectAllowedOperations(t *testing.T) {
 		{
 			name: "No opinion of a: b is returned",
 			a:    nil,
-			b:    ptr.To([]runtimehooksv1.MachineUpdateOperation{inPlaceUpdate}),
-			want: ptr.To([]runtimehooksv1.MachineUpdateOperation{inPlaceUpdate}),
+			b:    new([]runtimehooksv1.MachineUpdateOperation{inPlaceUpdate}),
+			want: new([]runtimehooksv1.MachineUpdateOperation{inPlaceUpdate}),
 		},
 		{
 			name: "No opinion of b: a is returned",
-			a:    ptr.To([]runtimehooksv1.MachineUpdateOperation{replace}),
+			a:    new([]runtimehooksv1.MachineUpdateOperation{replace}),
 			b:    nil,
-			want: ptr.To([]runtimehooksv1.MachineUpdateOperation{replace}),
+			want: new([]runtimehooksv1.MachineUpdateOperation{replace}),
 		},
 		{
 			name: "Empty list stays empty if the other one has no opinion",
-			a:    ptr.To([]runtimehooksv1.MachineUpdateOperation{}),
+			a:    new([]runtimehooksv1.MachineUpdateOperation{}),
 			b:    nil,
-			want: ptr.To([]runtimehooksv1.MachineUpdateOperation{}),
+			want: new([]runtimehooksv1.MachineUpdateOperation{}),
 		},
 		{
 			name: "Empty list blocks everything",
-			a:    ptr.To([]runtimehooksv1.MachineUpdateOperation{}),
-			b:    ptr.To([]runtimehooksv1.MachineUpdateOperation{inPlaceUpdate, replace}),
-			want: ptr.To([]runtimehooksv1.MachineUpdateOperation{}),
+			a:    new([]runtimehooksv1.MachineUpdateOperation{}),
+			b:    new([]runtimehooksv1.MachineUpdateOperation{inPlaceUpdate, replace}),
+			want: new([]runtimehooksv1.MachineUpdateOperation{}),
 		},
 		{
 			name: "Only operations allowed by both are returned",
-			a:    ptr.To([]runtimehooksv1.MachineUpdateOperation{inPlaceUpdate, replace}),
-			b:    ptr.To([]runtimehooksv1.MachineUpdateOperation{inPlaceUpdate}),
-			want: ptr.To([]runtimehooksv1.MachineUpdateOperation{inPlaceUpdate}),
+			a:    new([]runtimehooksv1.MachineUpdateOperation{inPlaceUpdate, replace}),
+			b:    new([]runtimehooksv1.MachineUpdateOperation{inPlaceUpdate}),
+			want: new([]runtimehooksv1.MachineUpdateOperation{inPlaceUpdate}),
 		},
 		{
 			name: "No operation in common",
-			a:    ptr.To([]runtimehooksv1.MachineUpdateOperation{inPlaceUpdate}),
-			b:    ptr.To([]runtimehooksv1.MachineUpdateOperation{replace}),
-			want: ptr.To([]runtimehooksv1.MachineUpdateOperation{}),
+			a:    new([]runtimehooksv1.MachineUpdateOperation{inPlaceUpdate}),
+			b:    new([]runtimehooksv1.MachineUpdateOperation{replace}),
+			want: new([]runtimehooksv1.MachineUpdateOperation{}),
 		},
 		{
 			name: "Unknown operations are ignored",
 			a:    nil,
-			b:    ptr.To([]runtimehooksv1.MachineUpdateOperation{"SomethingNew"}),
-			want: ptr.To([]runtimehooksv1.MachineUpdateOperation{}),
+			b:    new([]runtimehooksv1.MachineUpdateOperation{"SomethingNew"}),
+			want: new([]runtimehooksv1.MachineUpdateOperation{}),
 		},
 		{
 			name: "Duplicates are removed",
 			a:    nil,
-			b:    ptr.To([]runtimehooksv1.MachineUpdateOperation{replace, inPlaceUpdate, replace}),
-			want: ptr.To([]runtimehooksv1.MachineUpdateOperation{inPlaceUpdate, replace}),
+			b:    new([]runtimehooksv1.MachineUpdateOperation{replace, inPlaceUpdate, replace}),
+			want: new([]runtimehooksv1.MachineUpdateOperation{inPlaceUpdate, replace}),
 		},
 	}
 	for _, tt := range tests {
@@ -1340,11 +1340,11 @@ func Test_isOperationAllowed(t *testing.T) {
 	g.Expect(isOperationAllowed(nil, replace)).To(BeTrue())
 
 	// An empty list means that no operation is allowed.
-	noOperations := ptr.To([]runtimehooksv1.MachineUpdateOperation{})
+	noOperations := new([]runtimehooksv1.MachineUpdateOperation{})
 	g.Expect(isOperationAllowed(noOperations, inPlaceUpdate)).To(BeFalse())
 	g.Expect(isOperationAllowed(noOperations, replace)).To(BeFalse())
 
-	onlyInPlaceUpdate := ptr.To([]runtimehooksv1.MachineUpdateOperation{inPlaceUpdate})
+	onlyInPlaceUpdate := new([]runtimehooksv1.MachineUpdateOperation{inPlaceUpdate})
 	g.Expect(isOperationAllowed(onlyInPlaceUpdate, inPlaceUpdate)).To(BeTrue())
 	g.Expect(isOperationAllowed(onlyInPlaceUpdate, replace)).To(BeFalse())
 }
@@ -1464,10 +1464,10 @@ func Test_createRequest(t *testing.T) {
 	currentMachineCleanedUp.Status = clusterv1.MachineStatus{}                              // cleanupMachine drops status.
 	currentMachineWithFieldsSetByMachineController := currentMachine.DeepCopy()
 	currentMachineWithFieldsSetByMachineController.Spec.ProviderID = "test://provider-id"
-	currentMachineWithFieldsSetByMachineController.Spec.Bootstrap.DataSecretName = ptr.To("data-secret")
+	currentMachineWithFieldsSetByMachineController.Spec.Bootstrap.DataSecretName = new("data-secret")
 	currentMachineWithFieldsSetByMachineControllerCleanedUp := currentMachineCleanedUp.DeepCopy()
 	currentMachineWithFieldsSetByMachineControllerCleanedUp.Spec.ProviderID = "test://provider-id"
-	currentMachineWithFieldsSetByMachineControllerCleanedUp.Spec.Bootstrap.DataSecretName = ptr.To("data-secret")
+	currentMachineWithFieldsSetByMachineControllerCleanedUp.Spec.Bootstrap.DataSecretName = new("data-secret")
 
 	desiredMachine := currentMachine.DeepCopy()
 	desiredMachine.Spec.Version = "v1.31.0"
@@ -1476,7 +1476,7 @@ func Test_createRequest(t *testing.T) {
 	desiredMachineCleanedUp.Status = clusterv1.MachineStatus{}                              // cleanupMachine drops status.
 	desiredMachineWithFieldsSetByMachineControllerCleanedUp := desiredMachineCleanedUp.DeepCopy()
 	desiredMachineWithFieldsSetByMachineControllerCleanedUp.Spec.ProviderID = "test://provider-id"
-	desiredMachineWithFieldsSetByMachineControllerCleanedUp.Spec.Bootstrap.DataSecretName = ptr.To("data-secret")
+	desiredMachineWithFieldsSetByMachineControllerCleanedUp.Spec.Bootstrap.DataSecretName = new("data-secret")
 
 	currentKubeadmConfig := &bootstrapv1.KubeadmConfig{
 		ObjectMeta: metav1.ObjectMeta{
@@ -1502,7 +1502,7 @@ func Test_createRequest(t *testing.T) {
 				NodeRegistration: bootstrapv1.NodeRegistrationOptions{
 					KubeletExtraArgs: []bootstrapv1.Arg{{
 						Name:  "v",
-						Value: ptr.To("8"),
+						Value: new("8"),
 					}},
 				},
 			},
@@ -1707,7 +1707,7 @@ func Test_createRequest(t *testing.T) {
 				// Write additional fields like the Machine controller would do.
 				machineOrig := machine.DeepCopy()
 				machine.Spec.ProviderID = "test://provider-id"
-				machine.Spec.Bootstrap.DataSecretName = ptr.To("data-secret")
+				machine.Spec.Bootstrap.DataSecretName = new("data-secret")
 				return c.Patch(ctx, machine, client.MergeFrom(machineOrig))
 			},
 			wantReq: &runtimehooksv1.CanUpdateMachineRequest{

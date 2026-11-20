@@ -35,7 +35,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
-	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
@@ -129,7 +128,7 @@ func TestWatches(t *testing.T) {
 	g.Expect(env.CreateKubeconfigSecret(ctx, testCluster)).To(Succeed())
 	// Set InfrastructureReady to true so ClusterCache creates the clusterAccessor.
 	testClusterOriginal := client.MergeFrom(testCluster.DeepCopy())
-	testCluster.Status.Initialization.InfrastructureProvisioned = ptr.To(true)
+	testCluster.Status.Initialization.InfrastructureProvisioned = new(true)
 	g.Expect(env.Status().Patch(ctx, testCluster, testClusterOriginal)).To(Succeed())
 
 	g.Expect(env.Create(ctx, defaultBootstrap)).To(Succeed())
@@ -266,7 +265,7 @@ func TestWatchesDelete(t *testing.T) {
 			// the machine immediately after creation.
 			// This avoids going through reconcileExternal, which adds watches
 			// for the provider machine and the bootstrap config objects.
-			Paused: ptr.To(true),
+			Paused: new(true),
 			InfrastructureRef: clusterv1.ContractVersionedObjectReference{
 				APIGroup: builder.InfrastructureGroupVersion.Group,
 				Kind:     builder.GenericInfrastructureClusterKind,
@@ -333,7 +332,7 @@ func TestWatchesDelete(t *testing.T) {
 	g.Expect(env.Delete(ctx, machine)).To(Succeed())
 
 	// We unpause the cluster so the machine can be reconciled.
-	testCluster.Spec.Paused = ptr.To(false)
+	testCluster.Spec.Paused = new(false)
 	g.Expect(env.Update(ctx, testCluster)).To(Succeed())
 
 	// Wait for reconciliation to happen.
@@ -446,7 +445,7 @@ func TestMachine_Reconcile(t *testing.T) {
 	g.Expect(env.CreateKubeconfigSecret(ctx, testCluster)).To(Succeed())
 	// Set InfrastructureReady to true so ClusterCache creates the clusterAccessor.
 	testClusterOriginal := client.MergeFrom(testCluster.DeepCopy())
-	testCluster.Status.Initialization.InfrastructureProvisioned = ptr.To(true)
+	testCluster.Status.Initialization.InfrastructureProvisioned = new(true)
 	g.Expect(env.Status().Patch(ctx, testCluster, testClusterOriginal)).To(Succeed())
 
 	g.Expect(env.Create(ctx, infraMachine)).To(Succeed())
@@ -687,7 +686,7 @@ func TestMachineOwnerReference(t *testing.T) {
 					APIVersion: clusterv1.GroupVersion.String(),
 					Kind:       "MachineSet",
 					Name:       "valid-machineset",
-					Controller: ptr.To(true),
+					Controller: new(true),
 				},
 			},
 		},
@@ -719,7 +718,7 @@ func TestMachineOwnerReference(t *testing.T) {
 					APIVersion: "test.group",
 					Kind:       "KubeadmControlPlane",
 					Name:       "valid-controlplane",
-					Controller: ptr.To(true),
+					Controller: new(true),
 				},
 			},
 		},
@@ -763,7 +762,7 @@ func TestMachineOwnerReference(t *testing.T) {
 					APIVersion: clusterv1.GroupVersion.String(),
 					Kind:       "MachineSet",
 					Name:       "valid-machineset",
-					Controller: ptr.To(true),
+					Controller: new(true),
 				},
 			},
 		},
@@ -778,7 +777,7 @@ func TestMachineOwnerReference(t *testing.T) {
 					APIVersion: "test.group",
 					Kind:       "KubeadmControlPlane",
 					Name:       "valid-controlplane",
-					Controller: ptr.To(true),
+					Controller: new(true),
 				},
 			},
 		},
@@ -886,7 +885,7 @@ func TestReconcileRequest(t *testing.T) {
 						Kind:     "GenericInfrastructureMachine",
 						Name:     "infra-config1",
 					},
-					Bootstrap: clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
+					Bootstrap: clusterv1.Bootstrap{DataSecretName: new("data")},
 				},
 				Status: clusterv1.MachineStatus{
 					NodeRef: clusterv1.MachineNodeReference{
@@ -915,7 +914,7 @@ func TestReconcileRequest(t *testing.T) {
 						Kind:     "GenericInfrastructureMachine",
 						Name:     "infra-config1",
 					},
-					Bootstrap: clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
+					Bootstrap: clusterv1.Bootstrap{DataSecretName: new("data")},
 				},
 				Status: clusterv1.MachineStatus{
 					NodeRef: clusterv1.MachineNodeReference{
@@ -939,7 +938,7 @@ func TestReconcileRequest(t *testing.T) {
 						clusterv1.MachineControlPlaneLabel: "",
 					},
 					Finalizers:        []string{clusterv1.MachineFinalizer},
-					DeletionTimestamp: ptr.To(metav1.Now()),
+					DeletionTimestamp: new(metav1.Now()),
 				},
 				Spec: clusterv1.MachineSpec{
 					ClusterName: "test-cluster",
@@ -948,7 +947,7 @@ func TestReconcileRequest(t *testing.T) {
 						Kind:     "GenericInfrastructureMachine",
 						Name:     "infra-config1",
 					},
-					Bootstrap: clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
+					Bootstrap: clusterv1.Bootstrap{DataSecretName: new("data")},
 				},
 			},
 			expected: expected{
@@ -1048,7 +1047,7 @@ func TestMachineV1Beta1Conditions(t *testing.T) {
 		},
 		Status: clusterv1.ClusterStatus{
 			Initialization: clusterv1.ClusterInitializationStatus{
-				InfrastructureProvisioned: ptr.To(true),
+				InfrastructureProvisioned: new(true),
 			},
 			Conditions: []metav1.Condition{
 				{
@@ -1331,7 +1330,7 @@ func TestMachineV1Beta1Conditions(t *testing.T) {
 				ClusterCache:                clustercache.NewFakeClusterCache(clientFake, client.ObjectKey{Name: testCluster.Name, Namespace: testCluster.Namespace}),
 				DynamicCache:                dynamiccache.NewFakeDynamicCache(clientFake, setup.DynamicCacheOptions()),
 				controller:                  &fakeController{},
-				predicateLog:                ptr.To(logr.New(log.NullLogSink{})),
+				predicateLog:                new(logr.New(log.NullLogSink{})),
 				RemoteConditionsGracePeriod: 50 * time.Second,
 			}
 
@@ -1401,7 +1400,7 @@ func TestRemoveMachineFinalizerAfterDeleteReconcile(t *testing.T) {
 				Kind:     "GenericInfrastructureMachine",
 				Name:     "infra-config1",
 			},
-			Bootstrap: clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
+			Bootstrap: clusterv1.Bootstrap{DataSecretName: new("data")},
 		},
 		Status: clusterv1.MachineStatus{
 			Conditions: []metav1.Condition{{
@@ -1453,7 +1452,7 @@ func TestIsNodeDrainedAllowed(t *testing.T) {
 				Spec: clusterv1.MachineSpec{
 					ClusterName: "test-cluster",
 					// InfrastructureRef is not defined
-					Bootstrap: clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
+					Bootstrap: clusterv1.Bootstrap{DataSecretName: new("data")},
 				},
 				Status: clusterv1.MachineStatus{},
 			},
@@ -1471,7 +1470,7 @@ func TestIsNodeDrainedAllowed(t *testing.T) {
 				Spec: clusterv1.MachineSpec{
 					ClusterName:       "test-cluster",
 					InfrastructureRef: clusterv1.ContractVersionedObjectReference{},
-					Bootstrap:         clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
+					Bootstrap:         clusterv1.Bootstrap{DataSecretName: new("data")},
 				},
 				Status: clusterv1.MachineStatus{},
 			},
@@ -1489,7 +1488,7 @@ func TestIsNodeDrainedAllowed(t *testing.T) {
 				Spec: clusterv1.MachineSpec{
 					ClusterName:       "test-cluster",
 					InfrastructureRef: clusterv1.ContractVersionedObjectReference{},
-					Bootstrap:         clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
+					Bootstrap:         clusterv1.Bootstrap{DataSecretName: new("data")},
 				},
 				Status: clusterv1.MachineStatus{},
 			},
@@ -1506,7 +1505,7 @@ func TestIsNodeDrainedAllowed(t *testing.T) {
 				Spec: clusterv1.MachineSpec{
 					ClusterName:       "test-cluster",
 					InfrastructureRef: clusterv1.ContractVersionedObjectReference{},
-					Bootstrap:         clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
+					Bootstrap:         clusterv1.Bootstrap{DataSecretName: new("data")},
 				},
 				Status: clusterv1.MachineStatus{},
 			},
@@ -1528,7 +1527,7 @@ func TestIsNodeDrainedAllowed(t *testing.T) {
 				Spec: clusterv1.MachineSpec{
 					ClusterName:       "test-cluster",
 					InfrastructureRef: clusterv1.ContractVersionedObjectReference{},
-					Bootstrap:         clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
+					Bootstrap:         clusterv1.Bootstrap{DataSecretName: new("data")},
 				},
 				Status: clusterv1.MachineStatus{
 					Deletion: &clusterv1.MachineDeletionStatus{
@@ -1550,9 +1549,9 @@ func TestIsNodeDrainedAllowed(t *testing.T) {
 				Spec: clusterv1.MachineSpec{
 					ClusterName: "test-cluster",
 					// InfrastructureRef is not defined
-					Bootstrap: clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
+					Bootstrap: clusterv1.Bootstrap{DataSecretName: new("data")},
 					Deletion: clusterv1.MachineDeletionSpec{
-						NodeDrainTimeoutSeconds: ptr.To(int32(60)),
+						NodeDrainTimeoutSeconds: new(int32(60)),
 					},
 				},
 
@@ -1576,9 +1575,9 @@ func TestIsNodeDrainedAllowed(t *testing.T) {
 				Spec: clusterv1.MachineSpec{
 					ClusterName: "test-cluster",
 					// InfrastructureRef is not defined
-					Bootstrap: clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
+					Bootstrap: clusterv1.Bootstrap{DataSecretName: new("data")},
 					Deletion: clusterv1.MachineDeletionSpec{
-						NodeDrainTimeoutSeconds: ptr.To(int32(60)),
+						NodeDrainTimeoutSeconds: new(int32(60)),
 					},
 				},
 				Status: clusterv1.MachineStatus{
@@ -1601,7 +1600,7 @@ func TestIsNodeDrainedAllowed(t *testing.T) {
 				Spec: clusterv1.MachineSpec{
 					ClusterName: "test-cluster",
 					// InfrastructureRef is not defined
-					Bootstrap: clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
+					Bootstrap: clusterv1.Bootstrap{DataSecretName: new("data")},
 				},
 				Status: clusterv1.MachineStatus{
 					Deletion: &clusterv1.MachineDeletionStatus{
@@ -1716,7 +1715,7 @@ func TestDrainNode(t *testing.T) {
 							{
 								Kind:       "DaemonSet",
 								Name:       "daemonset-does-exist",
-								Controller: ptr.To(true),
+								Controller: new(true),
 							},
 						},
 					},
@@ -1754,7 +1753,7 @@ func TestDrainNode(t *testing.T) {
 						OwnerReferences: []metav1.OwnerReference{
 							{
 								Kind:       "Deployment",
-								Controller: ptr.To(true),
+								Controller: new(true),
 							},
 						},
 					},
@@ -1963,7 +1962,7 @@ func TestDrainNode_withCaching(t *testing.T) {
 				OwnerReferences: []metav1.OwnerReference{
 					{
 						Kind:       "Deployment",
-						Controller: ptr.To(true),
+						Controller: new(true),
 					},
 				},
 			},
@@ -2068,7 +2067,7 @@ func TestIsNodeVolumeDetachingAllowed(t *testing.T) {
 				Spec: clusterv1.MachineSpec{
 					ClusterName: "test-cluster",
 					// InfrastructureRef is not defined
-					Bootstrap: clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
+					Bootstrap: clusterv1.Bootstrap{DataSecretName: new("data")},
 				},
 				Status: clusterv1.MachineStatus{},
 			},
@@ -2086,7 +2085,7 @@ func TestIsNodeVolumeDetachingAllowed(t *testing.T) {
 				Spec: clusterv1.MachineSpec{
 					ClusterName:       "test-cluster",
 					InfrastructureRef: clusterv1.ContractVersionedObjectReference{},
-					Bootstrap:         clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
+					Bootstrap:         clusterv1.Bootstrap{DataSecretName: new("data")},
 				},
 				Status: clusterv1.MachineStatus{},
 			},
@@ -2104,7 +2103,7 @@ func TestIsNodeVolumeDetachingAllowed(t *testing.T) {
 				Spec: clusterv1.MachineSpec{
 					ClusterName:       "test-cluster",
 					InfrastructureRef: clusterv1.ContractVersionedObjectReference{},
-					Bootstrap:         clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
+					Bootstrap:         clusterv1.Bootstrap{DataSecretName: new("data")},
 				},
 				Status: clusterv1.MachineStatus{
 					Deletion: &clusterv1.MachineDeletionStatus{
@@ -2126,7 +2125,7 @@ func TestIsNodeVolumeDetachingAllowed(t *testing.T) {
 				Spec: clusterv1.MachineSpec{
 					ClusterName:       "test-cluster",
 					InfrastructureRef: clusterv1.ContractVersionedObjectReference{},
-					Bootstrap:         clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
+					Bootstrap:         clusterv1.Bootstrap{DataSecretName: new("data")},
 				},
 				Status: clusterv1.MachineStatus{},
 			},
@@ -2143,7 +2142,7 @@ func TestIsNodeVolumeDetachingAllowed(t *testing.T) {
 				Spec: clusterv1.MachineSpec{
 					ClusterName:       "test-cluster",
 					InfrastructureRef: clusterv1.ContractVersionedObjectReference{},
-					Bootstrap:         clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
+					Bootstrap:         clusterv1.Bootstrap{DataSecretName: new("data")},
 				},
 				Status: clusterv1.MachineStatus{},
 			},
@@ -2165,9 +2164,9 @@ func TestIsNodeVolumeDetachingAllowed(t *testing.T) {
 				Spec: clusterv1.MachineSpec{
 					ClusterName: "test-cluster",
 					// InfrastructureRef is not defined
-					Bootstrap: clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
+					Bootstrap: clusterv1.Bootstrap{DataSecretName: new("data")},
 					Deletion: clusterv1.MachineDeletionSpec{
-						NodeVolumeDetachTimeoutSeconds: ptr.To(int32(30)),
+						NodeVolumeDetachTimeoutSeconds: new(int32(30)),
 					},
 				},
 
@@ -2191,9 +2190,9 @@ func TestIsNodeVolumeDetachingAllowed(t *testing.T) {
 				Spec: clusterv1.MachineSpec{
 					ClusterName: "test-cluster",
 					// InfrastructureRef is not defined
-					Bootstrap: clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
+					Bootstrap: clusterv1.Bootstrap{DataSecretName: new("data")},
 					Deletion: clusterv1.MachineDeletionSpec{
-						NodeVolumeDetachTimeoutSeconds: ptr.To(int32(60)),
+						NodeVolumeDetachTimeoutSeconds: new(int32(60)),
 					},
 				},
 				Status: clusterv1.MachineStatus{
@@ -2216,7 +2215,7 @@ func TestIsNodeVolumeDetachingAllowed(t *testing.T) {
 				Spec: clusterv1.MachineSpec{
 					ClusterName: "test-cluster",
 					// InfrastructureRef is not defined
-					Bootstrap: clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
+					Bootstrap: clusterv1.Bootstrap{DataSecretName: new("data")},
 				},
 				Status: clusterv1.MachineStatus{
 					Deletion: &clusterv1.MachineDeletionStatus{
@@ -2420,7 +2419,7 @@ func TestShouldWaitForNodeVolumes(t *testing.T) {
 							{
 								Kind:       appsv1.SchemeGroupVersion.WithKind("DaemonSet").Kind,
 								Name:       "test-ds",
-								Controller: ptr.To(true),
+								Controller: new(true),
 							},
 						},
 					},
@@ -2522,7 +2521,7 @@ func TestShouldWaitForNodeVolumes(t *testing.T) {
 							{
 								Kind:       appsv1.SchemeGroupVersion.WithKind("DaemonSet").Kind,
 								Name:       "test-ds",
-								Controller: ptr.To(true),
+								Controller: new(true),
 							},
 						},
 					},
@@ -2572,7 +2571,7 @@ func TestShouldWaitForNodeVolumes(t *testing.T) {
 					ObjectMeta: metav1.ObjectMeta{
 						Name:              "test-pod",
 						Namespace:         "default",
-						DeletionTimestamp: ptr.To(metav1.NewTime(time.Now().Add(time.Hour * 24 * -1))),
+						DeletionTimestamp: new(metav1.NewTime(time.Now().Add(time.Hour * 24 * -1))),
 						Finalizers: []string{
 							"prevent-removal",
 						},
@@ -2741,7 +2740,7 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 				Spec: clusterv1.MachineSpec{
 					ClusterName: "test-cluster",
 					// InfrastructureRef is not defined
-					Bootstrap: clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
+					Bootstrap: clusterv1.Bootstrap{DataSecretName: new("data")},
 				},
 				Status: clusterv1.MachineStatus{},
 			},
@@ -2768,7 +2767,7 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 				Spec: clusterv1.MachineSpec{
 					ClusterName: "test-cluster",
 					// InfrastructureRef is not defined
-					Bootstrap: clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
+					Bootstrap: clusterv1.Bootstrap{DataSecretName: new("data")},
 				},
 				Status: clusterv1.MachineStatus{
 					NodeRef: clusterv1.MachineNodeReference{
@@ -2801,7 +2800,7 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 				Spec: clusterv1.MachineSpec{
 					ClusterName: "test-cluster",
 					// InfrastructureRef is not defined
-					Bootstrap: clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
+					Bootstrap: clusterv1.Bootstrap{DataSecretName: new("data")},
 				},
 				Status: clusterv1.MachineStatus{
 					NodeRef: clusterv1.MachineNodeReference{
@@ -2832,7 +2831,7 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 				Spec: clusterv1.MachineSpec{
 					ClusterName: "test-cluster",
 					// InfrastructureRef is not defined
-					Bootstrap: clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
+					Bootstrap: clusterv1.Bootstrap{DataSecretName: new("data")},
 				},
 				Status: clusterv1.MachineStatus{
 					NodeRef: clusterv1.MachineNodeReference{
@@ -2884,7 +2883,7 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 				Spec: clusterv1.MachineSpec{
 					ClusterName: "test-cluster",
 					// InfrastructureRef is not defined
-					Bootstrap: clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
+					Bootstrap: clusterv1.Bootstrap{DataSecretName: new("data")},
 				},
 				Status: clusterv1.MachineStatus{
 					NodeRef: clusterv1.MachineNodeReference{
@@ -2922,7 +2921,7 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 				Spec: clusterv1.MachineSpec{
 					ClusterName: "test-cluster",
 					// InfrastructureRef is not defined
-					Bootstrap: clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
+					Bootstrap: clusterv1.Bootstrap{DataSecretName: new("data")},
 				},
 				Status: clusterv1.MachineStatus{
 					NodeRef: clusterv1.MachineNodeReference{
@@ -2960,7 +2959,7 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 				Spec: clusterv1.MachineSpec{
 					ClusterName: "test-cluster",
 					// InfrastructureRef is not defined
-					Bootstrap: clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
+					Bootstrap: clusterv1.Bootstrap{DataSecretName: new("data")},
 				},
 				Status: clusterv1.MachineStatus{
 					NodeRef: clusterv1.MachineNodeReference{
@@ -2991,7 +2990,7 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 				Spec: clusterv1.MachineSpec{
 					ClusterName: "test-cluster",
 					// InfrastructureRef is not defined
-					Bootstrap: clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
+					Bootstrap: clusterv1.Bootstrap{DataSecretName: new("data")},
 				},
 				Status: clusterv1.MachineStatus{},
 			},
@@ -3066,7 +3065,7 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 				Spec: clusterv1.MachineSpec{
 					ClusterName: "test-cluster",
 					// InfrastructureRef is not defined
-					Bootstrap: clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
+					Bootstrap: clusterv1.Bootstrap{DataSecretName: new("data")},
 				},
 				Status: clusterv1.MachineStatus{
 					NodeRef: clusterv1.MachineNodeReference{
@@ -3086,7 +3085,7 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 				Spec: clusterv1.MachineSpec{
 					ClusterName: "test-cluster",
 					// InfrastructureRef is not defined
-					Bootstrap: clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
+					Bootstrap: clusterv1.Bootstrap{DataSecretName: new("data")},
 				},
 				Status: clusterv1.MachineStatus{
 					NodeRef: clusterv1.MachineNodeReference{
@@ -3227,7 +3226,7 @@ func TestNodeToMachine(t *testing.T) {
 	g.Expect(env.CreateKubeconfigSecret(ctx, testCluster)).To(Succeed())
 	// Set InfrastructureReady to true so ClusterCache creates the clusterAccessor.
 	testClusterOriginal := client.MergeFrom(testCluster.DeepCopy())
-	testCluster.Status.Initialization.InfrastructureProvisioned = ptr.To(true)
+	testCluster.Status.Initialization.InfrastructureProvisioned = new(true)
 	g.Expect(env.Status().Patch(ctx, testCluster, testClusterOriginal)).To(Succeed())
 
 	g.Expect(env.Create(ctx, defaultBootstrap)).To(Succeed())
@@ -3451,7 +3450,7 @@ func TestNodeDeletion(t *testing.T) {
 				Kind:     "GenericInfrastructureMachine",
 				Name:     "infra-config1",
 			},
-			Bootstrap: clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
+			Bootstrap: clusterv1.Bootstrap{DataSecretName: new("data")},
 		},
 		Status: clusterv1.MachineStatus{
 			NodeRef: clusterv1.MachineNodeReference{
@@ -3473,7 +3472,7 @@ func TestNodeDeletion(t *testing.T) {
 		Spec: clusterv1.MachineSpec{
 			ClusterName: "test-cluster",
 			// InfrastructureRef is not defined
-			Bootstrap: clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
+			Bootstrap: clusterv1.Bootstrap{DataSecretName: new("data")},
 		},
 		Status: clusterv1.MachineStatus{
 			NodeRef: clusterv1.MachineNodeReference{
@@ -3496,7 +3495,7 @@ func TestNodeDeletion(t *testing.T) {
 	}{
 		{
 			name:                   "should return no error when deletion is successful",
-			deletionTimeoutSeconds: ptr.To(int32(1)),
+			deletionTimeoutSeconds: new(int32(1)),
 			resultErr:              false,
 			expectNodeDeletion:     true,
 			expectStartTimeSet:     true,
@@ -3510,7 +3509,7 @@ func TestNodeDeletion(t *testing.T) {
 		},
 		{
 			name:                   "should return an error when timeout is not expired and node deletion fails",
-			deletionTimeoutSeconds: ptr.To(int32(60 * 60)),
+			deletionTimeoutSeconds: new(int32(60 * 60)),
 			resultErr:              true,
 			expectNodeDeletion:     false,
 			expectFinalizer:        true,
@@ -3526,7 +3525,7 @@ func TestNodeDeletion(t *testing.T) {
 		},
 		{
 			name:                   "should return an error when timeout is infinite and node deletion fails",
-			deletionTimeoutSeconds: ptr.To(int32(0)), // should lead to infinite timeout
+			deletionTimeoutSeconds: new(int32(0)), // should lead to infinite timeout
 			resultErr:              true,
 			expectNodeDeletion:     false,
 			expectFinalizer:        true,
@@ -3542,7 +3541,7 @@ func TestNodeDeletion(t *testing.T) {
 		},
 		{
 			name:                   "should retry when the timeout has not expired since node deletion started",
-			deletionTimeoutSeconds: ptr.To(int32(1)),
+			deletionTimeoutSeconds: new(int32(1)),
 			resultErr:              true,
 			expectNodeDeletion:     false,
 			expectFinalizer:        true,
@@ -3558,7 +3557,7 @@ func TestNodeDeletion(t *testing.T) {
 		},
 		{
 			name:                   "should not return an error when timeout is expired and node deletion fails",
-			deletionTimeoutSeconds: ptr.To(int32(1)),
+			deletionTimeoutSeconds: new(int32(1)),
 			nodeDeletionStartTime:  &metav1.Time{Time: deletionTime},
 			resultErr:              false,
 			expectNodeDeletion:     false,
@@ -3681,7 +3680,7 @@ func TestNodeDeletionWithoutNodeRefFallback(t *testing.T) {
 				Kind:     "GenericInfrastructureMachine",
 				Name:     "infra-config1",
 			},
-			Bootstrap:  clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
+			Bootstrap:  clusterv1.Bootstrap{DataSecretName: new("data")},
 			ProviderID: "test://id-1",
 		},
 	}
@@ -3699,7 +3698,7 @@ func TestNodeDeletionWithoutNodeRefFallback(t *testing.T) {
 		Spec: clusterv1.MachineSpec{
 			ClusterName: "test-cluster",
 			// InfrastructureRef is not defined
-			Bootstrap: clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
+			Bootstrap: clusterv1.Bootstrap{DataSecretName: new("data")},
 		},
 		Status: clusterv1.MachineStatus{
 			NodeRef: clusterv1.MachineNodeReference{
@@ -3718,7 +3717,7 @@ func TestNodeDeletionWithoutNodeRefFallback(t *testing.T) {
 	}{
 		{
 			name:                   "should return no error when the node exists and matches the provider id",
-			deletionTimeoutSeconds: ptr.To(int32(1)),
+			deletionTimeoutSeconds: new(int32(1)),
 			resultErr:              false,
 			expectNodeDeletion:     true,
 			expectDeletingReason:   clusterv1.MachineDeletingDeletionCompletedReason,

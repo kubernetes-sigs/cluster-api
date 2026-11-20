@@ -77,23 +77,23 @@ var (
 	// which is containing "hard-coded" tilt-provider.yaml files for the providers managed in the Cluster API repository.
 	providers = map[string]tiltProviderConfig{
 		"core": {
-			Context:           ptr.To("core"),
+			Context:           new("core"),
 			hardCodedProvider: true,
 		},
 		"kubeadm-bootstrap": {
-			Context:           ptr.To("bootstrap/kubeadm"),
+			Context:           new("bootstrap/kubeadm"),
 			hardCodedProvider: true,
 		},
 		"kubeadm-control-plane": {
-			Context:           ptr.To("controlplane/kubeadm"),
+			Context:           new("controlplane/kubeadm"),
 			hardCodedProvider: true,
 		},
 		"docker": {
-			Context:           ptr.To("test/infrastructure/docker"),
+			Context:           new("test/infrastructure/docker"),
 			hardCodedProvider: true,
 		},
 		"test-extension": {
-			Context:           ptr.To("test/extension"),
+			Context:           new("test/extension"),
 			hardCodedProvider: true,
 		},
 	}
@@ -165,7 +165,7 @@ func init() {
 func main() {
 	// Set clusterctl logger with a log level of 5.
 	// This makes it easier to see what clusterctl is doing and to debug it.
-	logf.SetLogger(logf.NewLogger(logf.WithThreshold(ptr.To(5))))
+	logf.SetLogger(logf.NewLogger(logf.WithThreshold(new(5))))
 
 	// Set controller-runtime logger as well.
 	ctrl.SetLogger(klog.Background())
@@ -225,19 +225,19 @@ func readTiltSettings(path string) (*tiltSettings, error) {
 // setTiltSettingsDefaults sets default values for tiltSettings info.
 func setTiltSettingsDefaults(ts *tiltSettings) {
 	if ts.DeployCertManager == nil {
-		ts.DeployCertManager = ptr.To(true)
+		ts.DeployCertManager = new(true)
 	}
 
 	for k := range ts.Debug {
 		p := ts.Debug[k]
 		if p.Continue == nil {
-			p.Continue = ptr.To(true)
+			p.Continue = new(true)
 		}
 		if p.Port == nil {
-			p.Port = ptr.To(0)
+			p.Port = new(0)
 		}
 		if p.ProfilerPort == nil {
-			p.ProfilerPort = ptr.To(0)
+			p.ProfilerPort = new(0)
 		}
 
 		ts.Debug[k] = p

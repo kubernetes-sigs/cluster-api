@@ -515,7 +515,7 @@ func GetActualReplicaCountForMachineSets(machineSets []*clusterv1.MachineSet) *i
 	var totalActualReplicas *int32
 	for _, ms := range machineSets {
 		if ms != nil && ms.Status.Replicas != nil {
-			totalActualReplicas = ptr.To(ptr.Deref(totalActualReplicas, 0) + *ms.Status.Replicas)
+			totalActualReplicas = new(ptr.Deref(totalActualReplicas, 0) + *ms.Status.Replicas)
 		}
 	}
 	return totalActualReplicas
@@ -573,7 +573,7 @@ func GetReadyReplicaCountForMachineSets(machineSets []*clusterv1.MachineSet) *in
 	var totalReadyReplicas *int32
 	for _, ms := range machineSets {
 		if ms != nil && ms.Status.ReadyReplicas != nil {
-			totalReadyReplicas = ptr.To(ptr.Deref(totalReadyReplicas, 0) + *ms.Status.ReadyReplicas)
+			totalReadyReplicas = new(ptr.Deref(totalReadyReplicas, 0) + *ms.Status.ReadyReplicas)
 		}
 	}
 	return totalReadyReplicas
@@ -585,7 +585,7 @@ func GetAvailableReplicaCountForMachineSets(machineSets []*clusterv1.MachineSet)
 	var totalAvailableReplicas *int32
 	for _, ms := range machineSets {
 		if ms != nil && ms.Status.AvailableReplicas != nil {
-			totalAvailableReplicas = ptr.To(ptr.Deref(totalAvailableReplicas, 0) + *ms.Status.AvailableReplicas)
+			totalAvailableReplicas = new(ptr.Deref(totalAvailableReplicas, 0) + *ms.Status.AvailableReplicas)
 		}
 	}
 	return totalAvailableReplicas
@@ -597,7 +597,7 @@ func GetUptoDateReplicaCountForMachineSets(machineSets []*clusterv1.MachineSet) 
 	var totalUpToDateReplicas *int32
 	for _, ms := range machineSets {
 		if ms != nil && ms.Status.UpToDateReplicas != nil {
-			totalUpToDateReplicas = ptr.To(ptr.Deref(totalUpToDateReplicas, 0) + *ms.Status.UpToDateReplicas)
+			totalUpToDateReplicas = new(ptr.Deref(totalUpToDateReplicas, 0) + *ms.Status.UpToDateReplicas)
 		}
 	}
 	return totalUpToDateReplicas

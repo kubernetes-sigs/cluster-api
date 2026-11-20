@@ -266,14 +266,14 @@ func Test_canUpdateMachineSetInPlace(t *testing.T) {
 				if len(extensionHandlers) != 1 || extensionHandlers[0] != "test-update-extension" {
 					return canUpdateMachineSetResult{canUpdateMachineSet: false}, pkgerrors.Errorf("unexpected error")
 				}
-				return canUpdateMachineSetResult{canUpdateMachineSet: true, allowedOperations: ptr.To([]runtimehooksv1.MachineUpdateOperation{runtimehooksv1.MachineUpdateOperationUpdateInPlace}), messages: []string{"only in-place"}, retryAfter: now.Add(5 * time.Minute)}, nil
+				return canUpdateMachineSetResult{canUpdateMachineSet: true, allowedOperations: new([]runtimehooksv1.MachineUpdateOperation{runtimehooksv1.MachineUpdateOperationUpdateInPlace}), messages: []string{"only in-place"}, retryAfter: now.Add(5 * time.Minute)}, nil
 			},
 			wantCanExtensionsUpdateMachineSetCalled: true,
-			wantCanUpdateMachineSetResult:           canUpdateMachineSetResult{canUpdateMachineSet: true, allowedOperations: ptr.To([]runtimehooksv1.MachineUpdateOperation{runtimehooksv1.MachineUpdateOperationUpdateInPlace}), messages: []string{"only in-place"}, retryAfter: now.Add(5 * time.Minute)},
+			wantCanUpdateMachineSetResult:           canUpdateMachineSetResult{canUpdateMachineSet: true, allowedOperations: new([]runtimehooksv1.MachineUpdateOperation{runtimehooksv1.MachineUpdateOperationUpdateInPlace}), messages: []string{"only in-place"}, retryAfter: now.Add(5 * time.Minute)},
 			wantCacheEntry: &CanUpdateMachineSetCacheEntry{
 				OldMS:                     client.ObjectKeyFromObject(oldMS),
 				NewMS:                     client.ObjectKeyFromObject(newMS),
-				canUpdateMachineSetResult: canUpdateMachineSetResult{canUpdateMachineSet: true, allowedOperations: ptr.To([]runtimehooksv1.MachineUpdateOperation{runtimehooksv1.MachineUpdateOperationUpdateInPlace}), messages: []string{"only in-place"}, retryAfter: now.Add(5 * time.Minute)},
+				canUpdateMachineSetResult: canUpdateMachineSetResult{canUpdateMachineSet: true, allowedOperations: new([]runtimehooksv1.MachineUpdateOperation{runtimehooksv1.MachineUpdateOperationUpdateInPlace}), messages: []string{"only in-place"}, retryAfter: now.Add(5 * time.Minute)},
 			},
 		},
 		{
@@ -291,14 +291,14 @@ func Test_canUpdateMachineSetInPlace(t *testing.T) {
 				if len(extensionHandlers) != 1 || extensionHandlers[0] != "test-update-extension" {
 					return canUpdateMachineSetResult{canUpdateMachineSet: false}, pkgerrors.Errorf("unexpected error")
 				}
-				return canUpdateMachineSetResult{allowedOperations: ptr.To([]runtimehooksv1.MachineUpdateOperation{}), messages: []string{"preflight check failed"}, reasons: []string{"no operation is allowed"}, retryAfter: now.Add(5 * time.Minute)}, nil
+				return canUpdateMachineSetResult{allowedOperations: new([]runtimehooksv1.MachineUpdateOperation{}), messages: []string{"preflight check failed"}, reasons: []string{"no operation is allowed"}, retryAfter: now.Add(5 * time.Minute)}, nil
 			},
 			wantCanExtensionsUpdateMachineSetCalled: true,
-			wantCanUpdateMachineSetResult:           canUpdateMachineSetResult{allowedOperations: ptr.To([]runtimehooksv1.MachineUpdateOperation{}), messages: []string{"preflight check failed"}, reasons: []string{"no operation is allowed"}, retryAfter: now.Add(5 * time.Minute)},
+			wantCanUpdateMachineSetResult:           canUpdateMachineSetResult{allowedOperations: new([]runtimehooksv1.MachineUpdateOperation{}), messages: []string{"preflight check failed"}, reasons: []string{"no operation is allowed"}, retryAfter: now.Add(5 * time.Minute)},
 			wantCacheEntry: &CanUpdateMachineSetCacheEntry{
 				OldMS:                     client.ObjectKeyFromObject(oldMS),
 				NewMS:                     client.ObjectKeyFromObject(newMS),
-				canUpdateMachineSetResult: canUpdateMachineSetResult{allowedOperations: ptr.To([]runtimehooksv1.MachineUpdateOperation{}), messages: []string{"preflight check failed"}, reasons: []string{"no operation is allowed"}, retryAfter: now.Add(5 * time.Minute)},
+				canUpdateMachineSetResult: canUpdateMachineSetResult{allowedOperations: new([]runtimehooksv1.MachineUpdateOperation{}), messages: []string{"preflight check failed"}, reasons: []string{"no operation is allowed"}, retryAfter: now.Add(5 * time.Minute)},
 			},
 		},
 
@@ -462,14 +462,14 @@ func Test_canUpdateMachineSetInPlace(t *testing.T) {
 			cacheEntry: &CanUpdateMachineSetCacheEntry{
 				OldMS:                     client.ObjectKeyFromObject(oldMS),
 				NewMS:                     client.ObjectKeyFromObject(newMS),
-				canUpdateMachineSetResult: canUpdateMachineSetResult{retryAfter: now.Add(2 * time.Minute), allowedOperations: ptr.To([]runtimehooksv1.MachineUpdateOperation{}), messages: []string{"cached message"}},
+				canUpdateMachineSetResult: canUpdateMachineSetResult{retryAfter: now.Add(2 * time.Minute), allowedOperations: new([]runtimehooksv1.MachineUpdateOperation{}), messages: []string{"cached message"}},
 			},
 			wantCanExtensionsUpdateMachineSetCalled: false,
-			wantCanUpdateMachineSetResult:           canUpdateMachineSetResult{retryAfter: now.Add(2 * time.Minute), allowedOperations: ptr.To([]runtimehooksv1.MachineUpdateOperation{}), messages: []string{"cached message"}},
+			wantCanUpdateMachineSetResult:           canUpdateMachineSetResult{retryAfter: now.Add(2 * time.Minute), allowedOperations: new([]runtimehooksv1.MachineUpdateOperation{}), messages: []string{"cached message"}},
 			wantCacheEntry: &CanUpdateMachineSetCacheEntry{
 				OldMS:                     client.ObjectKeyFromObject(oldMS),
 				NewMS:                     client.ObjectKeyFromObject(newMS),
-				canUpdateMachineSetResult: canUpdateMachineSetResult{retryAfter: now.Add(2 * time.Minute), allowedOperations: ptr.To([]runtimehooksv1.MachineUpdateOperation{}), messages: []string{"cached message"}},
+				canUpdateMachineSetResult: canUpdateMachineSetResult{retryAfter: now.Add(2 * time.Minute), allowedOperations: new([]runtimehooksv1.MachineUpdateOperation{}), messages: []string{"cached message"}},
 			},
 		},
 		{
@@ -1014,10 +1014,10 @@ func Test_canExtensionsUpdateMachineSet(t *testing.T) {
 					InfrastructureMachineTemplatePatch: patchToUpdateInfraMachineTemplate,
 					BootstrapConfigTemplatePatch:       patchToUpdateBootstrapConfigTemplate,
 					AffectsAvailability:                new(false),
-					AllowedOperations:                  ptr.To([]runtimehooksv1.MachineUpdateOperation{runtimehooksv1.MachineUpdateOperationReplace}),
+					AllowedOperations:                  new([]runtimehooksv1.MachineUpdateOperation{runtimehooksv1.MachineUpdateOperationReplace}),
 				},
 			},
-			wantCanUpdateMachineSetResult: canUpdateMachineSetResult{canUpdateMachineSet: true, affectsAvailability: false, allowedOperations: ptr.To([]runtimehooksv1.MachineUpdateOperation{runtimehooksv1.MachineUpdateOperationReplace}), messages: []string{"only replace"}, retryAfter: now.Add(5 * time.Minute)},
+			wantCanUpdateMachineSetResult: canUpdateMachineSetResult{canUpdateMachineSet: true, affectsAvailability: false, allowedOperations: new([]runtimehooksv1.MachineUpdateOperation{runtimehooksv1.MachineUpdateOperationReplace}), messages: []string{"only replace"}, retryAfter: now.Add(5 * time.Minute)},
 		},
 		{
 			name:  "Return false and allow InPlaceUpdate if allowedOperations contains only InPlaceUpdate and patches only account for some diffs",
@@ -1035,10 +1035,10 @@ func Test_canExtensionsUpdateMachineSet(t *testing.T) {
 					MachineSetPatch:                    patchToUpdateMachineSet,
 					InfrastructureMachineTemplatePatch: emptyPatch,
 					BootstrapConfigTemplatePatch:       emptyPatch,
-					AllowedOperations:                  ptr.To([]runtimehooksv1.MachineUpdateOperation{runtimehooksv1.MachineUpdateOperationUpdateInPlace}),
+					AllowedOperations:                  new([]runtimehooksv1.MachineUpdateOperation{runtimehooksv1.MachineUpdateOperationUpdateInPlace}),
 				},
 			},
-			wantCanUpdateMachineSetResult: canUpdateMachineSetResult{canUpdateMachineSet: false, allowedOperations: ptr.To([]runtimehooksv1.MachineUpdateOperation{runtimehooksv1.MachineUpdateOperationUpdateInPlace}), messages: []string{"only handled the MachineSet"}, reasons: wantReasonsSomePatches, retryAfter: now.Add(5 * time.Minute)},
+			wantCanUpdateMachineSetResult: canUpdateMachineSetResult{canUpdateMachineSet: false, allowedOperations: new([]runtimehooksv1.MachineUpdateOperation{runtimehooksv1.MachineUpdateOperationUpdateInPlace}), messages: []string{"only handled the MachineSet"}, reasons: wantReasonsSomePatches, retryAfter: now.Add(5 * time.Minute)},
 		},
 		{
 			name:  "Return no operation allowed if allowedOperations is an empty list (patches in the response are ignored)",
@@ -1057,10 +1057,10 @@ func Test_canExtensionsUpdateMachineSet(t *testing.T) {
 					InfrastructureMachineTemplatePatch: patchToUpdateInfraMachineTemplate,
 					BootstrapConfigTemplatePatch:       patchToUpdateBootstrapConfigTemplate,
 					AffectsAvailability:                new(false),
-					AllowedOperations:                  ptr.To([]runtimehooksv1.MachineUpdateOperation{}),
+					AllowedOperations:                  new([]runtimehooksv1.MachineUpdateOperation{}),
 				},
 			},
-			wantCanUpdateMachineSetResult: canUpdateMachineSetResult{allowedOperations: ptr.To([]runtimehooksv1.MachineUpdateOperation{}), messages: []string{"preflight check failed"}, reasons: []string{"no operation is allowed by extensions"}, retryAfter: now.Add(5 * time.Minute)},
+			wantCanUpdateMachineSetResult: canUpdateMachineSetResult{allowedOperations: new([]runtimehooksv1.MachineUpdateOperation{}), messages: []string{"preflight check failed"}, reasons: []string{"no operation is allowed by extensions"}, retryAfter: now.Add(5 * time.Minute)},
 		},
 		{
 			name: "Return no operation allowed as soon as the allowed operations of the extensions have no operation in common (following extensions are not called)",
@@ -1078,11 +1078,11 @@ func Test_canExtensionsUpdateMachineSet(t *testing.T) {
 					CommonRetryResponse: runtimehooksv1.CommonRetryResponse{CommonResponse: runtimehooksv1.CommonResponse{Status: runtimehooksv1.ResponseStatusSuccess, Message: "message of extension 1"}},
 					MachineSetPatch:     patchToUpdateMachineSet,
 					AffectsAvailability: new(false),
-					AllowedOperations:   ptr.To([]runtimehooksv1.MachineUpdateOperation{runtimehooksv1.MachineUpdateOperationUpdateInPlace}),
+					AllowedOperations:   new([]runtimehooksv1.MachineUpdateOperation{runtimehooksv1.MachineUpdateOperationUpdateInPlace}),
 				},
 				"test-update-extension-2": &runtimehooksv1.CanUpdateMachineSetResponse{
 					CommonRetryResponse: runtimehooksv1.CommonRetryResponse{CommonResponse: runtimehooksv1.CommonResponse{Status: runtimehooksv1.ResponseStatusSuccess, Message: "message of extension 2"}},
-					AllowedOperations:   ptr.To([]runtimehooksv1.MachineUpdateOperation{runtimehooksv1.MachineUpdateOperationReplace}),
+					AllowedOperations:   new([]runtimehooksv1.MachineUpdateOperation{runtimehooksv1.MachineUpdateOperationReplace}),
 				},
 			},
 			callExtensionExpectedChanges: map[string]func(runtime.Object){
@@ -1093,7 +1093,7 @@ func Test_canExtensionsUpdateMachineSet(t *testing.T) {
 					}
 				},
 			},
-			wantCanUpdateMachineSetResult: canUpdateMachineSetResult{allowedOperations: ptr.To([]runtimehooksv1.MachineUpdateOperation{}), messages: []string{"message of extension 1", "message of extension 2"}, reasons: []string{"no operation is allowed by extensions"}, retryAfter: now.Add(5 * time.Minute)},
+			wantCanUpdateMachineSetResult: canUpdateMachineSetResult{allowedOperations: new([]runtimehooksv1.MachineUpdateOperation{}), messages: []string{"message of extension 1", "message of extension 2"}, reasons: []string{"no operation is allowed by extensions"}, retryAfter: now.Add(5 * time.Minute)},
 		},
 		{
 			name:  "Ignore allowedOperations if the extension returns RetryAfterSeconds",
@@ -1108,7 +1108,7 @@ func Test_canExtensionsUpdateMachineSet(t *testing.T) {
 			callExtensionResponses: map[string]runtimehooksv1.ResponseObject{
 				"test-update-extension": &runtimehooksv1.CanUpdateMachineSetResponse{
 					CommonRetryResponse: runtimehooksv1.CommonRetryResponse{CommonResponse: runtimehooksv1.CommonResponse{Status: runtimehooksv1.ResponseStatusSuccess, Message: "waiting for the update plan"}, RetryAfterSeconds: 10},
-					AllowedOperations:   ptr.To([]runtimehooksv1.MachineUpdateOperation{}),
+					AllowedOperations:   new([]runtimehooksv1.MachineUpdateOperation{}),
 				},
 			},
 			wantCanUpdateMachineSetResult: canUpdateMachineSetResult{messages: []string{"waiting for the update plan"}, retryAfter: now.Add(10 * time.Second), retryAfterFromExtension: true},
@@ -1283,50 +1283,50 @@ func Test_intersectAllowedOperations(t *testing.T) {
 		{
 			name: "No opinion of a: b is returned",
 			a:    nil,
-			b:    ptr.To([]runtimehooksv1.MachineUpdateOperation{inPlaceUpdate}),
-			want: ptr.To([]runtimehooksv1.MachineUpdateOperation{inPlaceUpdate}),
+			b:    new([]runtimehooksv1.MachineUpdateOperation{inPlaceUpdate}),
+			want: new([]runtimehooksv1.MachineUpdateOperation{inPlaceUpdate}),
 		},
 		{
 			name: "No opinion of b: a is returned",
-			a:    ptr.To([]runtimehooksv1.MachineUpdateOperation{replace}),
+			a:    new([]runtimehooksv1.MachineUpdateOperation{replace}),
 			b:    nil,
-			want: ptr.To([]runtimehooksv1.MachineUpdateOperation{replace}),
+			want: new([]runtimehooksv1.MachineUpdateOperation{replace}),
 		},
 		{
 			name: "Empty list stays empty if the other one has no opinion",
-			a:    ptr.To([]runtimehooksv1.MachineUpdateOperation{}),
+			a:    new([]runtimehooksv1.MachineUpdateOperation{}),
 			b:    nil,
-			want: ptr.To([]runtimehooksv1.MachineUpdateOperation{}),
+			want: new([]runtimehooksv1.MachineUpdateOperation{}),
 		},
 		{
 			name: "Empty list blocks everything",
-			a:    ptr.To([]runtimehooksv1.MachineUpdateOperation{}),
-			b:    ptr.To([]runtimehooksv1.MachineUpdateOperation{inPlaceUpdate, replace}),
-			want: ptr.To([]runtimehooksv1.MachineUpdateOperation{}),
+			a:    new([]runtimehooksv1.MachineUpdateOperation{}),
+			b:    new([]runtimehooksv1.MachineUpdateOperation{inPlaceUpdate, replace}),
+			want: new([]runtimehooksv1.MachineUpdateOperation{}),
 		},
 		{
 			name: "Only operations allowed by both are returned",
-			a:    ptr.To([]runtimehooksv1.MachineUpdateOperation{inPlaceUpdate, replace}),
-			b:    ptr.To([]runtimehooksv1.MachineUpdateOperation{inPlaceUpdate}),
-			want: ptr.To([]runtimehooksv1.MachineUpdateOperation{inPlaceUpdate}),
+			a:    new([]runtimehooksv1.MachineUpdateOperation{inPlaceUpdate, replace}),
+			b:    new([]runtimehooksv1.MachineUpdateOperation{inPlaceUpdate}),
+			want: new([]runtimehooksv1.MachineUpdateOperation{inPlaceUpdate}),
 		},
 		{
 			name: "No operation in common",
-			a:    ptr.To([]runtimehooksv1.MachineUpdateOperation{inPlaceUpdate}),
-			b:    ptr.To([]runtimehooksv1.MachineUpdateOperation{replace}),
-			want: ptr.To([]runtimehooksv1.MachineUpdateOperation{}),
+			a:    new([]runtimehooksv1.MachineUpdateOperation{inPlaceUpdate}),
+			b:    new([]runtimehooksv1.MachineUpdateOperation{replace}),
+			want: new([]runtimehooksv1.MachineUpdateOperation{}),
 		},
 		{
 			name: "Unknown operations are ignored",
 			a:    nil,
-			b:    ptr.To([]runtimehooksv1.MachineUpdateOperation{"SomethingNew"}),
-			want: ptr.To([]runtimehooksv1.MachineUpdateOperation{}),
+			b:    new([]runtimehooksv1.MachineUpdateOperation{"SomethingNew"}),
+			want: new([]runtimehooksv1.MachineUpdateOperation{}),
 		},
 		{
 			name: "Duplicates are removed",
 			a:    nil,
-			b:    ptr.To([]runtimehooksv1.MachineUpdateOperation{replace, inPlaceUpdate, replace}),
-			want: ptr.To([]runtimehooksv1.MachineUpdateOperation{inPlaceUpdate, replace}),
+			b:    new([]runtimehooksv1.MachineUpdateOperation{replace, inPlaceUpdate, replace}),
+			want: new([]runtimehooksv1.MachineUpdateOperation{inPlaceUpdate, replace}),
 		},
 	}
 	for _, tt := range tests {
@@ -1355,11 +1355,11 @@ func Test_isOperationAllowed(t *testing.T) {
 	g.Expect(isOperationAllowed(nil, replace)).To(BeTrue())
 
 	// An empty list means that no operation is allowed.
-	noOperations := ptr.To([]runtimehooksv1.MachineUpdateOperation{})
+	noOperations := new([]runtimehooksv1.MachineUpdateOperation{})
 	g.Expect(isOperationAllowed(noOperations, inPlaceUpdate)).To(BeFalse())
 	g.Expect(isOperationAllowed(noOperations, replace)).To(BeFalse())
 
-	onlyInPlaceUpdate := ptr.To([]runtimehooksv1.MachineUpdateOperation{inPlaceUpdate})
+	onlyInPlaceUpdate := new([]runtimehooksv1.MachineUpdateOperation{inPlaceUpdate})
 	g.Expect(isOperationAllowed(onlyInPlaceUpdate, inPlaceUpdate)).To(BeTrue())
 	g.Expect(isOperationAllowed(onlyInPlaceUpdate, replace)).To(BeFalse())
 }

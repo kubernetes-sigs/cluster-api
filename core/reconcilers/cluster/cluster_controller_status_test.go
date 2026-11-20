@@ -24,7 +24,6 @@ import (
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/utils/ptr"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
@@ -75,7 +74,7 @@ func TestSetPhases(t *testing.T) {
 					Name: "test-cluster",
 				},
 				Status: clusterv1.ClusterStatus{
-					Initialization: clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: ptr.To(true)},
+					Initialization: clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: new(true)},
 				},
 				Spec: clusterv1.ClusterSpec{
 					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
@@ -102,7 +101,7 @@ func TestSetPhases(t *testing.T) {
 					},
 				},
 				Status: clusterv1.ClusterStatus{
-					Initialization: clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: ptr.To(true)},
+					Initialization: clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: new(true)},
 				},
 			},
 
@@ -124,7 +123,7 @@ func TestSetPhases(t *testing.T) {
 					},
 				},
 				Status: clusterv1.ClusterStatus{
-					Initialization: clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: ptr.To(true)}, // Note, this is automatically set when there is no cluster infrastructure (no-op).
+					Initialization: clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: new(true)}, // Note, this is automatically set when there is no cluster infrastructure (no-op).
 				},
 			},
 
@@ -139,7 +138,7 @@ func TestSetPhases(t *testing.T) {
 					Finalizers:        []string{clusterv1.ClusterFinalizer},
 				},
 				Status: clusterv1.ClusterStatus{
-					Initialization: clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: ptr.To(true)},
+					Initialization: clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: new(true)},
 				},
 				Spec: clusterv1.ClusterSpec{
 					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
@@ -197,11 +196,11 @@ func TestSetControlPlaneReplicas(t *testing.T) {
 			name:                    "set counters for cluster with control plane, reporting counters",
 			cluster:                 fakeCluster("c", controlPlaneRef{Name: "cp"}),
 			controlPlane:            fakeControlPlane("cp", desiredReplicas(3), currentReplicas(2), readyReplicas(1), availableReplicas(2), upToDateReplicas(0), statusVersions{{Version: "v1.31.1", Replicas: 2}, {Version: "v1.32.0", Replicas: 1}}),
-			expectDesiredReplicas:   ptr.To(int32(3)),
-			expectReplicas:          ptr.To(int32(2)),
-			expectReadyReplicas:     ptr.To(int32(1)),
-			expectAvailableReplicas: ptr.To(int32(2)),
-			expectUpToDateReplicas:  ptr.To(int32(0)),
+			expectDesiredReplicas:   new(int32(3)),
+			expectReplicas:          new(int32(2)),
+			expectReadyReplicas:     new(int32(1)),
+			expectAvailableReplicas: new(int32(2)),
+			expectUpToDateReplicas:  new(int32(0)),
 			expectVersions:          []clusterv1.StatusVersion{{Version: "v1.31.1", Replicas: 2}, {Version: "v1.32.0", Replicas: 1}},
 		},
 		{
@@ -225,11 +224,11 @@ func TestSetControlPlaneReplicas(t *testing.T) {
 				fakeMachine("cp4"),
 				fakeMachine("cp5"),
 			),
-			expectDesiredReplicas:   ptr.To(int32(5)),
-			expectReplicas:          ptr.To(int32(5)),
-			expectReadyReplicas:     ptr.To(int32(2)),
-			expectAvailableReplicas: ptr.To(int32(1)),
-			expectUpToDateReplicas:  ptr.To(int32(3)),
+			expectDesiredReplicas:   new(int32(5)),
+			expectReplicas:          new(int32(5)),
+			expectReadyReplicas:     new(int32(2)),
+			expectAvailableReplicas: new(int32(1)),
+			expectUpToDateReplicas:  new(int32(3)),
 		},
 	}
 	for _, tt := range tests {
@@ -315,11 +314,11 @@ func TestSetWorkersReplicas(t *testing.T) {
 				fakeMachine("m5", machineVersion("v1.29.0")), // not owned by the cluster
 			),
 			getDescendantsSucceeded: true,
-			expectDesiredReplicas:   ptr.To(int32(37)),
-			expectReplicas:          ptr.To(int32(40)),
-			expectReadyReplicas:     ptr.To(int32(41)),
-			expectAvailableReplicas: ptr.To(int32(45)),
-			expectUpToDateReplicas:  ptr.To(int32(46)),
+			expectDesiredReplicas:   new(int32(37)),
+			expectReplicas:          new(int32(40)),
+			expectReadyReplicas:     new(int32(41)),
+			expectAvailableReplicas: new(int32(45)),
+			expectUpToDateReplicas:  new(int32(46)),
 			expectVersions: []clusterv1.StatusVersion{
 				{Version: "v1.31.0", Replicas: 6},
 				{Version: "v1.32.0", Replicas: 31},
@@ -3197,13 +3196,13 @@ func (r infrastructureRef) ApplyToCluster(c *clusterv1.Cluster) {
 type infrastructureProvisioned bool
 
 func (r infrastructureProvisioned) ApplyToCluster(c *clusterv1.Cluster) {
-	c.Status.Initialization.InfrastructureProvisioned = ptr.To(bool(r))
+	c.Status.Initialization.InfrastructureProvisioned = new(bool(r))
 }
 
 type controlPlaneInitialized bool
 
 func (r controlPlaneInitialized) ApplyToCluster(c *clusterv1.Cluster) {
-	c.Status.Initialization.ControlPlaneInitialized = ptr.To(bool(r))
+	c.Status.Initialization.ControlPlaneInitialized = new(bool(r))
 }
 
 type desiredReplicas int32
@@ -3213,15 +3212,15 @@ func (r desiredReplicas) ApplyToControlPlane(cp *unstructured.Unstructured) {
 }
 
 func (r desiredReplicas) ApplyToMachinePool(mp *clusterv1.MachinePool) {
-	mp.Spec.Replicas = ptr.To(int32(r))
+	mp.Spec.Replicas = new(int32(r))
 }
 
 func (r desiredReplicas) ApplyToMachineDeployment(md *clusterv1.MachineDeployment) {
-	md.Spec.Replicas = ptr.To(int32(r))
+	md.Spec.Replicas = new(int32(r))
 }
 
 func (r desiredReplicas) ApplyToMachineSet(ms *clusterv1.MachineSet) {
-	ms.Spec.Replicas = ptr.To(int32(r))
+	ms.Spec.Replicas = new(int32(r))
 }
 
 type currentReplicas int32
@@ -3231,15 +3230,15 @@ func (r currentReplicas) ApplyToControlPlane(cp *unstructured.Unstructured) {
 }
 
 func (r currentReplicas) ApplyToMachinePool(mp *clusterv1.MachinePool) {
-	mp.Status.Replicas = ptr.To(int32(r))
+	mp.Status.Replicas = new(int32(r))
 }
 
 func (r currentReplicas) ApplyToMachineDeployment(md *clusterv1.MachineDeployment) {
-	md.Status.Replicas = ptr.To(int32(r))
+	md.Status.Replicas = new(int32(r))
 }
 
 func (r currentReplicas) ApplyToMachineSet(ms *clusterv1.MachineSet) {
-	ms.Status.Replicas = ptr.To(int32(r))
+	ms.Status.Replicas = new(int32(r))
 }
 
 type readyReplicas int32
@@ -3249,15 +3248,15 @@ func (r readyReplicas) ApplyToControlPlane(cp *unstructured.Unstructured) {
 }
 
 func (r readyReplicas) ApplyToMachinePool(mp *clusterv1.MachinePool) {
-	mp.Status.ReadyReplicas = ptr.To(int32(r))
+	mp.Status.ReadyReplicas = new(int32(r))
 }
 
 func (r readyReplicas) ApplyToMachineDeployment(md *clusterv1.MachineDeployment) {
-	md.Status.ReadyReplicas = ptr.To(int32(r))
+	md.Status.ReadyReplicas = new(int32(r))
 }
 
 func (r readyReplicas) ApplyToMachineSet(ms *clusterv1.MachineSet) {
-	ms.Status.ReadyReplicas = ptr.To(int32(r))
+	ms.Status.ReadyReplicas = new(int32(r))
 }
 
 type availableReplicas int32
@@ -3267,15 +3266,15 @@ func (r availableReplicas) ApplyToControlPlane(cp *unstructured.Unstructured) {
 }
 
 func (r availableReplicas) ApplyToMachinePool(mp *clusterv1.MachinePool) {
-	mp.Status.AvailableReplicas = ptr.To(int32(r))
+	mp.Status.AvailableReplicas = new(int32(r))
 }
 
 func (r availableReplicas) ApplyToMachineDeployment(md *clusterv1.MachineDeployment) {
-	md.Status.AvailableReplicas = ptr.To(int32(r))
+	md.Status.AvailableReplicas = new(int32(r))
 }
 
 func (r availableReplicas) ApplyToMachineSet(ms *clusterv1.MachineSet) {
-	ms.Status.AvailableReplicas = ptr.To(int32(r))
+	ms.Status.AvailableReplicas = new(int32(r))
 }
 
 type upToDateReplicas int32
@@ -3285,15 +3284,15 @@ func (r upToDateReplicas) ApplyToControlPlane(cp *unstructured.Unstructured) {
 }
 
 func (r upToDateReplicas) ApplyToMachinePool(mp *clusterv1.MachinePool) {
-	mp.Status.UpToDateReplicas = ptr.To(int32(r))
+	mp.Status.UpToDateReplicas = new(int32(r))
 }
 
 func (r upToDateReplicas) ApplyToMachineDeployment(md *clusterv1.MachineDeployment) {
-	md.Status.UpToDateReplicas = ptr.To(int32(r))
+	md.Status.UpToDateReplicas = new(int32(r))
 }
 
 func (r upToDateReplicas) ApplyToMachineSet(ms *clusterv1.MachineSet) {
-	ms.Status.UpToDateReplicas = ptr.To(int32(r))
+	ms.Status.UpToDateReplicas = new(int32(r))
 }
 
 type statusVersions []clusterv1.StatusVersion
@@ -3318,7 +3317,7 @@ type deleted bool
 
 func (s deleted) ApplyToCluster(c *clusterv1.Cluster) {
 	if s {
-		c.SetDeletionTimestamp(ptr.To(metav1.Time{Time: time.Now()}))
+		c.SetDeletionTimestamp(new(metav1.Time{Time: time.Now()}))
 		return
 	}
 	c.SetDeletionTimestamp(nil)

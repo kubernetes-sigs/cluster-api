@@ -26,7 +26,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilfeature "k8s.io/component-base/featuregate/testing"
-	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
@@ -86,7 +85,7 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 				Current: &scope.ClusterState{
 					Cluster: &clusterv1.Cluster{
 						Spec: clusterv1.ClusterSpec{
-							Paused: ptr.To(true),
+							Paused: new(true),
 						},
 					},
 				},
@@ -129,7 +128,7 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 							},
 						},
 						Spec: clusterv1.ClusterSpec{
-							Paused: ptr.To(true),
+							Paused: new(true),
 						},
 					},
 				},

@@ -24,7 +24,6 @@ import (
 
 	"k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
 	runtimeserializer "k8s.io/apimachinery/pkg/runtime/serializer"
-	"k8s.io/utils/ptr"
 	"sigs.k8s.io/randfill"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
@@ -64,7 +63,7 @@ func hubFailureDomain(in *clusterv1.FailureDomain, c randfill.Continue) {
 	c.FillNoCustom(in)
 
 	if in.ControlPlane == nil {
-		in.ControlPlane = ptr.To(false)
+		in.ControlPlane = new(false)
 	}
 }
 

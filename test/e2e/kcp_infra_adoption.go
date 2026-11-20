@@ -206,7 +206,7 @@ func KCPInfraAdoptionSpec(ctx context.Context, inputGetter func() KCPInfraAdopti
 		originalCluster := clusterResources.Cluster.DeepCopy()
 
 		clusterBeforePatch := originalCluster.DeepCopy()
-		originalCluster.Spec.Paused = ptr.To(true)
+		originalCluster.Spec.Paused = new(true)
 		Expect(input.BootstrapClusterProxy.GetClient().Patch(ctx, originalCluster, ctrlclient.MergeFrom(clusterBeforePatch))).To(Succeed(), "failed to patch Cluster")
 
 		log.Logf("Remove owner refs from cluster certificates")
@@ -260,7 +260,7 @@ func KCPInfraAdoptionSpec(ctx context.Context, inputGetter func() KCPInfraAdopti
 		newCluster.SetResourceVersion("")
 		newCluster.SetUID("")
 		newCluster.SetFinalizers([]string{})
-		newCluster.Spec.Paused = ptr.To(false)
+		newCluster.Spec.Paused = new(false)
 		newCluster.Spec.InfrastructureRef = clusterv1.ContractVersionedObjectReference{}
 		newCluster.Spec.ControlPlaneRef = clusterv1.ContractVersionedObjectReference{}
 		newCluster.Status = clusterv1.ClusterStatus{}
@@ -268,7 +268,7 @@ func KCPInfraAdoptionSpec(ctx context.Context, inputGetter func() KCPInfraAdopti
 			newCluster.Spec.Topology.ControlPlane.Metadata.Annotations = map[string]string{}
 		}
 		newCluster.Spec.Topology.ControlPlane.Metadata.Annotations[clusterv1.PausedAnnotation] = ""
-		newCluster.Spec.Topology.ControlPlane.HealthCheck.Enabled = ptr.To(false)
+		newCluster.Spec.Topology.ControlPlane.HealthCheck.Enabled = new(false)
 		Expect(newManagementClusterProxy.GetClient().Create(ctx, newCluster)).To(Succeed(), "failed to create new Cluster")
 
 		log.Logf("Wait for the control plane to exist")

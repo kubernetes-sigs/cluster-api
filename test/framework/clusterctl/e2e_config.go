@@ -38,7 +38,6 @@ import (
 	pkgerrors "github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/util/version"
 	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/utils/ptr"
 	"sigs.k8s.io/yaml"
 
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
@@ -813,7 +812,7 @@ func (c *E2EConfig) MustGetInt64PtrVariable(varName string) *int64 {
 
 	wCount, err := strconv.ParseInt(wCountStr, 10, 64)
 	Expect(err).ToNot(HaveOccurred())
-	return ptr.To[int64](wCount)
+	return new(wCount)
 }
 
 // MustGetInt32PtrVariable returns an Int32Ptr variable from the e2e config file.
@@ -825,7 +824,7 @@ func (c *E2EConfig) MustGetInt32PtrVariable(varName string) *int32 {
 
 	wCount, err := strconv.ParseUint(wCountStr, 10, 32)
 	Expect(err).ToNot(HaveOccurred())
-	return ptr.To[int32](int32(wCount))
+	return new(int32(wCount))
 }
 
 // GetProviderVersions returns the sorted list of versions defined for a provider.

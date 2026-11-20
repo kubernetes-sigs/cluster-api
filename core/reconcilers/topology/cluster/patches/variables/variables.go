@@ -25,7 +25,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/utils/ptr"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
@@ -184,7 +183,7 @@ func MachineDeployment(mdTopology *clusterv1.MachineDeploymentTopology, md *clus
 		},
 	}
 	if md.Spec.Replicas != nil {
-		builtin.MachineDeployment.Replicas = ptr.To[int64](int64(*md.Spec.Replicas))
+		builtin.MachineDeployment.Replicas = new(int64(*md.Spec.Replicas))
 	}
 	if md.Labels != nil || md.Annotations != nil {
 		builtin.MachineDeployment.Metadata = &runtimehooksv1.ObjectMeta{
@@ -238,7 +237,7 @@ func MachinePool(mpTopology *clusterv1.MachinePoolTopology, mp *clusterv1.Machin
 		},
 	}
 	if mp.Spec.Replicas != nil {
-		builtin.MachinePool.Replicas = ptr.To[int64](int64(*mp.Spec.Replicas))
+		builtin.MachinePool.Replicas = new(int64(*mp.Spec.Replicas))
 	}
 	if mp.Labels != nil || mp.Annotations != nil {
 		builtin.MachinePool.Metadata = &runtimehooksv1.ObjectMeta{

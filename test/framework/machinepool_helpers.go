@@ -229,7 +229,7 @@ func ScaleMachinePoolTopologyAndWait(ctx context.Context, input ScaleMachinePool
 	}
 	patchHelper, err := patch.NewHelper(input.Cluster, input.ClusterProxy.GetClient())
 	Expect(err).ToNot(HaveOccurred())
-	mpTopology.Replicas = ptr.To[int32](input.Replicas)
+	mpTopology.Replicas = new(input.Replicas)
 	input.Cluster.Spec.Topology.Workers.MachinePools[0] = mpTopology
 	Eventually(func() error {
 		return patchHelper.Patch(ctx, input.Cluster)

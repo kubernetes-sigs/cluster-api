@@ -31,7 +31,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
-	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
@@ -58,7 +57,7 @@ func TestUpdateEtcdConditions(t *testing.T) {
 			name: "retry retryable errors when KCP is not stable (e.g. scaling up)",
 			kcp: &controlplanev1.KubeadmControlPlane{
 				Spec: controlplanev1.KubeadmControlPlaneSpec{
-					Replicas: ptr.To(int32(3)),
+					Replicas: new(int32(3)),
 				},
 			},
 			machines: []*clusterv1.Machine{
@@ -79,7 +78,7 @@ func TestUpdateEtcdConditions(t *testing.T) {
 			name: "do not retry retryable errors when KCP is stable",
 			kcp: &controlplanev1.KubeadmControlPlane{
 				Spec: controlplanev1.KubeadmControlPlaneSpec{
-					Replicas: ptr.To(int32(1)),
+					Replicas: new(int32(1)),
 				},
 			},
 			machines: []*clusterv1.Machine{
@@ -100,7 +99,7 @@ func TestUpdateEtcdConditions(t *testing.T) {
 			name: "do not retry for other errors when KCP is scaling up",
 			kcp: &controlplanev1.KubeadmControlPlane{
 				Spec: controlplanev1.KubeadmControlPlaneSpec{
-					Replicas: ptr.To(int32(3)),
+					Replicas: new(int32(3)),
 				},
 			},
 			machines: []*clusterv1.Machine{

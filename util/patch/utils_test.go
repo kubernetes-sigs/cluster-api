@@ -40,7 +40,7 @@ func TestToUnstructured(t *testing.T) {
 				Namespace: "namespace-1",
 			},
 			Spec: clusterv1.ClusterSpec{
-				Paused: ptr.To(true),
+				Paused: new(true),
 			},
 		}
 		gvk := schema.GroupVersionKind{

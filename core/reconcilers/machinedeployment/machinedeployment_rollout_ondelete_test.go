@@ -626,7 +626,7 @@ func runOnDeleteTestCase(ctx context.Context, t *testing.T, tt onDeleteSequenceT
 				// Apply changes.
 				for _, ms := range current.machineSets {
 					if scaleIntent, ok := p.scaleIntents[ms.Name]; ok {
-						ms.Spec.Replicas = ptr.To(scaleIntent)
+						ms.Spec.Replicas = new(scaleIntent)
 					}
 				}
 
@@ -679,7 +679,7 @@ func runOnDeleteTestCase(ctx context.Context, t *testing.T, tt onDeleteSequenceT
 
 						if machinesToDelete[n].DeletionTimestamp.IsZero() {
 							fLogger.Logf("[User] Deleting machine %s", machinesToDelete[n].Name)
-							machinesToDelete[n].DeletionTimestamp = ptr.To(metav1.Now())
+							machinesToDelete[n].DeletionTimestamp = new(metav1.Now())
 						}
 					}
 				}

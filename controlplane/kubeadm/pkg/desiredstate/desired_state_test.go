@@ -29,7 +29,6 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
@@ -51,8 +50,8 @@ func Test_ComputeDesiredMachine(t *testing.T) {
 			Namespace: metav1.NamespaceDefault,
 		},
 	}
-	duration5s := ptr.To(int32(5))
-	duration10s := ptr.To(int32(10))
+	duration5s := new(int32(5))
+	duration10s := new(int32(10))
 	kcpMachineTemplateObjectMeta := clusterv1.ObjectMeta{
 		Labels: map[string]string{
 			"machineTemplateLabel": "machineTemplateLabelValue",
@@ -596,7 +595,7 @@ func Test_ComputeDesiredKubeadmConfig(t *testing.T) {
 						KubeletExtraArgs: []bootstrapv1.Arg{
 							{
 								Name:  "v",
-								Value: ptr.To("4"),
+								Value: new("4"),
 							},
 						},
 					},
@@ -606,7 +605,7 @@ func Test_ComputeDesiredKubeadmConfig(t *testing.T) {
 						KubeletExtraArgs: []bootstrapv1.Arg{
 							{
 								Name:  "v",
-								Value: ptr.To("8"),
+								Value: new("8"),
 							},
 						},
 					},

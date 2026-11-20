@@ -48,7 +48,7 @@ func TestClusterReconcileInfrastructure(t *testing.T) {
 			Namespace: "test-namespace",
 		},
 		Status: clusterv1.ClusterStatus{
-			Initialization: clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: ptr.To(true)},
+			Initialization: clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: new(true)},
 		},
 		Spec: clusterv1.ClusterSpec{
 			ControlPlaneEndpoint: clusterv1.APIEndpoint{
@@ -68,7 +68,7 @@ func TestClusterReconcileInfrastructure(t *testing.T) {
 			Namespace: "test-namespace",
 		},
 		Status: clusterv1.ClusterStatus{
-			Initialization: clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: ptr.To(true)},
+			Initialization: clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: new(true)},
 		},
 		Spec: clusterv1.ClusterSpec{
 			InfrastructureRef: clusterv1.ContractVersionedObjectReference{
@@ -100,7 +100,7 @@ func TestClusterReconcileInfrastructure(t *testing.T) {
 			name: "requeue if unable to get infrastructure ref and cluster did not yet reported infrastructure ready",
 			cluster: func() *clusterv1.Cluster {
 				c := cluster.DeepCopy()
-				c.Status.Initialization.InfrastructureProvisioned = ptr.To(false)
+				c.Status.Initialization.InfrastructureProvisioned = new(false)
 				return c
 			}(),
 			expectErr:    false,
@@ -212,7 +212,7 @@ func TestClusterReconcileInfrastructure(t *testing.T) {
 			name: "do not reconcile if infra config is marked for deletion",
 			cluster: func() *clusterv1.Cluster {
 				c := clusterNoEndpoint.DeepCopy()
-				c.Status.Initialization.InfrastructureProvisioned = ptr.To(false)
+				c.Status.Initialization.InfrastructureProvisioned = new(false)
 				return c
 			}(),
 			infraRef: map[string]any{
@@ -265,7 +265,7 @@ func TestClusterReconcileInfrastructure(t *testing.T) {
 					Controller:      externalfake.Controller{},
 					Cache:           &informertest.FakeInformers{},
 					Scheme:          c.Scheme(),
-					PredicateLogger: ptr.To(logr.New(log.NullLogSink{})),
+					PredicateLogger: new(logr.New(log.NullLogSink{})),
 				},
 			}
 
@@ -294,7 +294,7 @@ func TestClusterReconcileControlPlane(t *testing.T) {
 			Namespace: "test-namespace",
 		},
 		Status: clusterv1.ClusterStatus{
-			Initialization: clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: ptr.To(true)},
+			Initialization: clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: new(true)},
 		},
 		Spec: clusterv1.ClusterSpec{
 			ControlPlaneEndpoint: clusterv1.APIEndpoint{
@@ -314,7 +314,7 @@ func TestClusterReconcileControlPlane(t *testing.T) {
 			Namespace: "test-namespace",
 		},
 		Status: clusterv1.ClusterStatus{
-			Initialization: clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: ptr.To(true)},
+			Initialization: clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: new(true)},
 		},
 		Spec: clusterv1.ClusterSpec{
 			ControlPlaneRef: clusterv1.ContractVersionedObjectReference{
@@ -348,7 +348,7 @@ func TestClusterReconcileControlPlane(t *testing.T) {
 			name: "returns error if unable to get control plane ref and cluster already reported  control plane ready",
 			cluster: func() *clusterv1.Cluster {
 				c := cluster.DeepCopy()
-				c.Status.Initialization.ControlPlaneInitialized = ptr.To(true)
+				c.Status.Initialization.ControlPlaneInitialized = new(true)
 				return c
 			}(),
 			expectErr: true,
@@ -470,7 +470,7 @@ func TestClusterReconcileControlPlane(t *testing.T) {
 			name: "do not allows to change control plane ready and control plane endpoint once set",
 			cluster: func() *clusterv1.Cluster {
 				c := cluster.DeepCopy()
-				c.Status.Initialization.ControlPlaneInitialized = ptr.To(true)
+				c.Status.Initialization.ControlPlaneInitialized = new(true)
 				return c
 			}(),
 			cpRef: map[string]any{
@@ -553,7 +553,7 @@ func TestClusterReconcileControlPlane(t *testing.T) {
 					Controller:      externalfake.Controller{},
 					Cache:           &informertest.FakeInformers{},
 					Scheme:          c.Scheme(),
-					PredicateLogger: ptr.To(logr.New(log.NullLogSink{})),
+					PredicateLogger: new(logr.New(log.NullLogSink{})),
 				},
 			}
 
@@ -668,7 +668,7 @@ func TestClusterReconcilePhases_reconcileFailureDomains(t *testing.T) {
 			Namespace: "test-namespace",
 		},
 		Status: clusterv1.ClusterStatus{
-			Initialization: clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: ptr.To(true)},
+			Initialization: clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: new(true)},
 		},
 		Spec: clusterv1.ClusterSpec{
 			ControlPlaneEndpoint: clusterv1.APIEndpoint{
@@ -686,7 +686,7 @@ func TestClusterReconcilePhases_reconcileFailureDomains(t *testing.T) {
 	newFailureDomain := []clusterv1.FailureDomain{
 		{
 			Name:         "newdomain",
-			ControlPlane: ptr.To(false),
+			ControlPlane: new(false),
 			Attributes: map[string]string{
 				"attribute1": "value1",
 			},
@@ -696,7 +696,7 @@ func TestClusterReconcilePhases_reconcileFailureDomains(t *testing.T) {
 	newFailureDomainUpdated := []clusterv1.FailureDomain{
 		{
 			Name:         "newdomain",
-			ControlPlane: ptr.To(false),
+			ControlPlane: new(false),
 			Attributes: map[string]string{
 				"attribute2": "value2",
 			},
@@ -709,7 +709,7 @@ func TestClusterReconcilePhases_reconcileFailureDomains(t *testing.T) {
 	oldFailureDomain := []clusterv1.FailureDomain{
 		{
 			Name:         "olddomain",
-			ControlPlane: ptr.To(false),
+			ControlPlane: new(false),
 			Attributes: map[string]string{
 				"attribute1": "value1",
 			},
@@ -826,7 +826,7 @@ func TestClusterReconcilePhases_reconcileFailureDomains(t *testing.T) {
 					Controller:      externalfake.Controller{},
 					Cache:           &informertest.FakeInformers{},
 					Scheme:          c.Scheme(),
-					PredicateLogger: ptr.To(logr.New(log.NullLogSink{})),
+					PredicateLogger: new(logr.New(log.NullLogSink{})),
 				},
 			}
 

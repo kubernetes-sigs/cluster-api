@@ -26,7 +26,6 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
-	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
 
@@ -144,10 +143,10 @@ func TestPatch(t *testing.T) {
 				ClusterName: "cluster-1",
 				Version:     "v1.25.0",
 				Deletion: clusterv1.MachineDeletionSpec{
-					NodeDrainTimeoutSeconds: ptr.To(int32(10)),
+					NodeDrainTimeoutSeconds: new(int32(10)),
 				},
 				Bootstrap: clusterv1.Bootstrap{
-					DataSecretName: ptr.To("data-secret"),
+					DataSecretName: new("data-secret"),
 				},
 				InfrastructureRef: clusterv1.ContractVersionedObjectReference{
 					APIGroup: builder.InfrastructureGroupVersion.Group,
@@ -180,7 +179,7 @@ func TestPatch(t *testing.T) {
 		g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(originalObject), originalObject)).To(Succeed())
 		// Modify the object
 		modifiedObject := initialObject.DeepCopy()
-		modifiedObject.Spec.Deletion.NodeDrainTimeoutSeconds = ptr.To(int32(5))
+		modifiedObject.Spec.Deletion.NodeDrainTimeoutSeconds = new(int32(5))
 		// Compute request identifier before the update, so we can later verify that the update call was not cached with this identifier.
 		modifiedUnstructured, err := ssa.PrepareModified(env.Scheme(), modifiedObject)
 		g.Expect(err).ToNot(HaveOccurred())
@@ -217,7 +216,7 @@ func TestPatch(t *testing.T) {
 		g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(originalObject), originalObject)).To(Succeed())
 		// Modify the object
 		modifiedObject = initialObject.DeepCopy()
-		modifiedObject.Spec.Deletion.NodeDrainTimeoutSeconds = ptr.To(int32(5))
+		modifiedObject.Spec.Deletion.NodeDrainTimeoutSeconds = new(int32(5))
 		// Compute request identifier, so we can later verify that the update call was cached.
 		modifiedUnstructured, err = ssa.PrepareModified(env.Scheme(), modifiedObject)
 		g.Expect(err).ToNot(HaveOccurred())

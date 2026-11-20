@@ -84,7 +84,7 @@ func TestMachineDeploymentReconciler(t *testing.T) {
 
 		// Set InfrastructureReady to true so ClusterCache creates the clusterAccessor.
 		patch := client.MergeFrom(cluster.DeepCopy())
-		cluster.Status.Initialization.InfrastructureProvisioned = ptr.To(true)
+		cluster.Status.Initialization.InfrastructureProvisioned = new(true)
 		cluster.Status.Deprecated = &clusterv1.ClusterDeprecatedStatus{
 			V1Beta1: &clusterv1.ClusterV1Beta1DeprecatedStatus{
 				Conditions: clusterv1.Conditions{
@@ -162,7 +162,7 @@ func TestMachineDeploymentReconciler(t *testing.T) {
 							Name:     "md-template",
 						},
 						Bootstrap: clusterv1.Bootstrap{
-							DataSecretName: ptr.To("data-secret-name"),
+							DataSecretName: new("data-secret-name"),
 						},
 					},
 				},
@@ -325,7 +325,7 @@ func TestMachineDeploymentReconciler(t *testing.T) {
 		t.Log("Scaling the MachineDeployment to 3 replicas")
 		desiredMachineDeploymentReplicas := int32(3)
 		modifyFunc := func(d *clusterv1.MachineDeployment) {
-			d.Spec.Replicas = ptr.To[int32](desiredMachineDeploymentReplicas)
+			d.Spec.Replicas = new(desiredMachineDeploymentReplicas)
 		}
 		g.Expect(updateMachineDeployment(ctx, env, deployment, modifyFunc)).To(Succeed())
 		g.Eventually(func() int {
@@ -899,16 +899,16 @@ func TestReconciler_reconcileDelete(t *testing.T) {
 	md.Finalizers = []string{
 		clusterv1.MachineDeploymentFinalizer,
 	}
-	md.DeletionTimestamp = ptr.To(metav1.Now())
+	md.DeletionTimestamp = new(metav1.Now())
 	md.Spec.Selector = metav1.LabelSelector{
 		MatchLabels: labels,
 	}
 	md.Spec.Template.Spec.Deletion = clusterv1.MachineDeletionSpec{
-		NodeDrainTimeoutSeconds:        ptr.To(int32(10)),
-		NodeVolumeDetachTimeoutSeconds: ptr.To(int32(20)),
-		NodeDeletionTimeoutSeconds:     ptr.To(int32(30)),
+		NodeDrainTimeoutSeconds:        new(int32(10)),
+		NodeVolumeDetachTimeoutSeconds: new(int32(20)),
+		NodeDeletionTimeoutSeconds:     new(int32(30)),
 	}
-	md.Spec.Template.Spec.MinReadySeconds = ptr.To(int32(40))
+	md.Spec.Template.Spec.MinReadySeconds = new(int32(40))
 	md.Spec.Template.Spec.ReadinessGates = []clusterv1.MachineReadinessGate{{ConditionType: "foo"}}
 	md.Spec.Template.Spec.Taints = []clusterv1.MachineTaint{{
 		Key:         "taint-key",
@@ -924,11 +924,11 @@ func TestReconciler_reconcileDelete(t *testing.T) {
 	deletingMS := builder.MachineSet("default", "ms0-deleting").WithClusterName("test").WithLabels(labels).Build()
 	deletingMS.SetOwnerReferences([]metav1.OwnerReference{*metav1.NewControllerRef(md, machineDeploymentKind)})
 	deletingMS.Finalizers = []string{clusterv1.MachineSetFinalizer}
-	deletingMS.DeletionTimestamp = ptr.To(metav1.Now())
+	deletingMS.DeletionTimestamp = new(metav1.Now())
 	deletingMS.Spec.Template.Spec.Deletion = clusterv1.MachineDeletionSpec{
-		NodeDrainTimeoutSeconds:        ptr.To(int32(1)),
-		NodeVolumeDetachTimeoutSeconds: ptr.To(int32(2)),
-		NodeDeletionTimeoutSeconds:     ptr.To(int32(3)),
+		NodeDrainTimeoutSeconds:        new(int32(1)),
+		NodeVolumeDetachTimeoutSeconds: new(int32(2)),
+		NodeDeletionTimeoutSeconds:     new(int32(3)),
 	}
 	notDeletingMS := deletingMS.DeepCopy()
 	notDeletingMS.Name = "ms1-not-deleting"

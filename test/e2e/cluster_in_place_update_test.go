@@ -20,7 +20,6 @@ package e2e
 
 import (
 	. "github.com/onsi/ginkgo/v2"
-	"k8s.io/utils/ptr"
 )
 
 var _ = Describe("When in-place updating a workload cluster using ClusterClass", Label("ClusterClass"), func() {
@@ -31,7 +30,7 @@ var _ = Describe("When in-place updating a workload cluster using ClusterClass",
 			BootstrapClusterProxy: bootstrapClusterProxy,
 			ArtifactFolder:        artifactFolder,
 			SkipCleanup:           skipCleanup,
-			Flavor:                ptr.To("in-memory-topology"),
+			Flavor:                new("in-memory-topology"),
 			// The runtime extension gets deployed to the test-extension-system namespace and is exposed
 			// by the test-extension-webhook-service.
 			// The below values are used when creating the cluster-wide ExtensionConfig to refer

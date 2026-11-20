@@ -27,7 +27,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/utils/ptr"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
@@ -50,7 +49,7 @@ func TestGenerate(t *testing.T) {
 							APIVersion: clusterv1.GroupVersionControlPlane.String(),
 							Kind:       "ControlPlaneTemplate",
 							MatchResources: clusterv1.PatchSelectorMatch{
-								ControlPlane: ptr.To(true),
+								ControlPlane: new(true),
 							},
 						},
 						JSONPatches: []clusterv1.JSONPatch{
@@ -199,7 +198,7 @@ func TestGenerate(t *testing.T) {
 							APIVersion: clusterv1.GroupVersionControlPlane.String(),
 							Kind:       "ControlPlaneTemplate",
 							MatchResources: clusterv1.PatchSelectorMatch{
-								ControlPlane: ptr.To(true),
+								ControlPlane: new(true),
 							},
 						},
 						JSONPatches: []clusterv1.JSONPatch{
@@ -490,7 +489,7 @@ func TestMatchesSelector(t *testing.T) {
 				APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 				Kind:       "AzureClusterTemplate",
 				MatchResources: clusterv1.PatchSelectorMatch{
-					InfrastructureCluster: ptr.To(true),
+					InfrastructureCluster: new(true),
 				},
 			},
 			match: true,
@@ -544,7 +543,7 @@ func TestMatchesSelector(t *testing.T) {
 				APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 				Kind:       "AzureClusterTemplate",
 				MatchResources: clusterv1.PatchSelectorMatch{
-					InfrastructureCluster: ptr.To(false),
+					InfrastructureCluster: new(false),
 				},
 			},
 			match: false,
@@ -572,7 +571,7 @@ func TestMatchesSelector(t *testing.T) {
 				APIVersion: clusterv1.GroupVersionControlPlane.String(),
 				Kind:       "ControlPlaneTemplate",
 				MatchResources: clusterv1.PatchSelectorMatch{
-					ControlPlane: ptr.To(true),
+					ControlPlane: new(true),
 				},
 			},
 			match: true,
@@ -626,7 +625,7 @@ func TestMatchesSelector(t *testing.T) {
 				APIVersion: clusterv1.GroupVersionControlPlane.String(),
 				Kind:       "ControlPlaneTemplate",
 				MatchResources: clusterv1.PatchSelectorMatch{
-					ControlPlane: ptr.To(false),
+					ControlPlane: new(false),
 				},
 			},
 			match: false,
@@ -654,7 +653,7 @@ func TestMatchesSelector(t *testing.T) {
 				APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 				Kind:       "AzureMachineTemplate",
 				MatchResources: clusterv1.PatchSelectorMatch{
-					ControlPlane: ptr.To(true),
+					ControlPlane: new(true),
 				},
 			},
 			match: true,
@@ -682,7 +681,7 @@ func TestMatchesSelector(t *testing.T) {
 				APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 				Kind:       "AzureMachineTemplate",
 				MatchResources: clusterv1.PatchSelectorMatch{
-					ControlPlane: ptr.To(true),
+					ControlPlane: new(true),
 				},
 			},
 			match: true,
@@ -1292,7 +1291,7 @@ func TestMatchesSelector(t *testing.T) {
 				APIVersion: clusterv1.GroupVersionControlPlane.String(),
 				Kind:       "ControlPlaneTemplate",
 				MatchResources: clusterv1.PatchSelectorMatch{
-					ControlPlane: ptr.To(true),
+					ControlPlane: new(true),
 				},
 			},
 			match: false,

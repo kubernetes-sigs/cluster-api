@@ -150,7 +150,7 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 				Controller:      externalfake.Controller{},
 				Cache:           &informertest.FakeInformers{},
 				Scheme:          fakeClient.Scheme(),
-				PredicateLogger: ptr.To(logr.New(log.NullLogSink{})),
+				PredicateLogger: new(logr.New(log.NullLogSink{})),
 			},
 		}
 
@@ -194,7 +194,7 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 				Controller:      externalfake.Controller{},
 				Cache:           &informertest.FakeInformers{},
 				Scheme:          fakeClient.Scheme(),
-				PredicateLogger: ptr.To(logr.New(log.NullLogSink{})),
+				PredicateLogger: new(logr.New(log.NullLogSink{})),
 			},
 		}
 
@@ -235,7 +235,7 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 				Controller:      externalfake.Controller{},
 				Cache:           &informertest.FakeInformers{},
 				Scheme:          fakeClient.Scheme(),
-				PredicateLogger: ptr.To(logr.New(log.NullLogSink{})),
+				PredicateLogger: new(logr.New(log.NullLogSink{})),
 			},
 		}
 
@@ -292,7 +292,7 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 				Controller:      externalfake.Controller{},
 				Cache:           &informertest.FakeInformers{},
 				Scheme:          fakeClient.Scheme(),
-				PredicateLogger: ptr.To(logr.New(log.NullLogSink{})),
+				PredicateLogger: new(logr.New(log.NullLogSink{})),
 			},
 		}
 
@@ -365,7 +365,7 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 				Controller:      externalfake.Controller{},
 				Cache:           &informertest.FakeInformers{},
 				Scheme:          fakeClient.Scheme(),
-				PredicateLogger: ptr.To(logr.New(log.NullLogSink{})),
+				PredicateLogger: new(logr.New(log.NullLogSink{})),
 			},
 		}
 
@@ -416,7 +416,7 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 				Controller:      externalfake.Controller{},
 				Cache:           &informertest.FakeInformers{},
 				Scheme:          fakeClient.Scheme(),
-				PredicateLogger: ptr.To(logr.New(log.NullLogSink{})),
+				PredicateLogger: new(logr.New(log.NullLogSink{})),
 			},
 		}
 
@@ -470,7 +470,7 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 				Controller:      externalfake.Controller{},
 				Cache:           &informertest.FakeInformers{},
 				Scheme:          fakeClient.Scheme(),
-				PredicateLogger: ptr.To(logr.New(log.NullLogSink{})),
+				PredicateLogger: new(logr.New(log.NullLogSink{})),
 			},
 		}
 
@@ -541,7 +541,7 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 				Controller:      externalfake.Controller{},
 				Cache:           &informertest.FakeInformers{},
 				Scheme:          fakeClient.Scheme(),
-				PredicateLogger: ptr.To(logr.New(log.NullLogSink{})),
+				PredicateLogger: new(logr.New(log.NullLogSink{})),
 			},
 		}
 
@@ -618,7 +618,7 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 				Controller:      externalfake.Controller{},
 				Cache:           &informertest.FakeInformers{},
 				Scheme:          fakeClient.Scheme(),
-				PredicateLogger: ptr.To(logr.New(log.NullLogSink{})),
+				PredicateLogger: new(logr.New(log.NullLogSink{})),
 			},
 		}
 
@@ -682,7 +682,7 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 				ReadyReplicas: 1,
 			},
 		}
-		machinePool.Status.Replicas = ptr.To(int32(1))
+		machinePool.Status.Replicas = new(int32(1))
 
 		fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(defaultCluster, defaultKubeconfigSecret, machinePool, bootstrapConfig, infraConfig, builder.TestBootstrapConfigCRD, builder.TestInfrastructureMachineTemplateCRD).Build()
 		r := &Reconciler{
@@ -693,7 +693,7 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 				Controller:      externalfake.Controller{},
 				Cache:           &informertest.FakeInformers{},
 				Scheme:          fakeClient.Scheme(),
-				PredicateLogger: ptr.To(logr.New(log.NullLogSink{})),
+				PredicateLogger: new(logr.New(log.NullLogSink{})),
 			},
 		}
 
@@ -779,7 +779,7 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 				ReadyReplicas: 1,
 			},
 		}
-		machinePool.Status.Replicas = ptr.To(int32(1))
+		machinePool.Status.Replicas = new(int32(1))
 
 		fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(defaultCluster, defaultKubeconfigSecret, machinePool, bootstrapConfig, infraConfig, builder.TestBootstrapConfigCRD, builder.TestInfrastructureMachineTemplateCRD).Build()
 		r := &Reconciler{
@@ -790,7 +790,7 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 				Controller:      externalfake.Controller{},
 				Cache:           &informertest.FakeInformers{},
 				Scheme:          fakeClient.Scheme(),
-				PredicateLogger: ptr.To(logr.New(log.NullLogSink{})),
+				PredicateLogger: new(logr.New(log.NullLogSink{})),
 			},
 		}
 
@@ -1004,14 +1004,14 @@ func TestReconcileMachinePoolBootstrap(t *testing.T) {
 									Kind:     builder.TestBootstrapConfigKind,
 									Name:     "bootstrap-config1",
 								},
-								DataSecretName: ptr.To("data"),
+								DataSecretName: new("data"),
 							},
 						},
 					},
 				},
 				Status: clusterv1.MachinePoolStatus{
 					Initialization: clusterv1.MachinePoolInitializationStatus{
-						BootstrapDataSecretCreated: ptr.To(true),
+						BootstrapDataSecretCreated: new(true),
 					},
 				},
 			},
@@ -1047,14 +1047,14 @@ func TestReconcileMachinePoolBootstrap(t *testing.T) {
 					Template: clusterv1.MachineTemplateSpec{
 						Spec: clusterv1.MachineSpec{
 							Bootstrap: clusterv1.Bootstrap{
-								DataSecretName: ptr.To("data"),
+								DataSecretName: new("data"),
 							},
 						},
 					},
 				},
 				Status: clusterv1.MachinePoolStatus{
 					Initialization: clusterv1.MachinePoolInitializationStatus{
-						BootstrapDataSecretCreated: ptr.To(true),
+						BootstrapDataSecretCreated: new(true),
 					},
 				},
 			},
@@ -1095,14 +1095,14 @@ func TestReconcileMachinePoolBootstrap(t *testing.T) {
 									Kind:     builder.TestBootstrapConfigKind,
 									Name:     "bootstrap-config1",
 								},
-								DataSecretName: ptr.To("data"),
+								DataSecretName: new("data"),
 							},
 						},
 					},
 				},
 				Status: clusterv1.MachinePoolStatus{
 					Initialization: clusterv1.MachinePoolInitializationStatus{
-						BootstrapDataSecretCreated: ptr.To(false),
+						BootstrapDataSecretCreated: new(false),
 					},
 				},
 			},
@@ -1168,7 +1168,7 @@ func TestReconcileMachinePoolBootstrap(t *testing.T) {
 					Controller:      externalfake.Controller{},
 					Cache:           &informertest.FakeInformers{},
 					Scheme:          fakeClient.Scheme(),
-					PredicateLogger: ptr.To(logr.New(log.NullLogSink{})),
+					PredicateLogger: new(logr.New(log.NullLogSink{})),
 				},
 			}
 
@@ -1300,8 +1300,8 @@ func TestReconcileMachinePoolInfrastructure(t *testing.T) {
 				},
 				Status: clusterv1.MachinePoolStatus{
 					Initialization: clusterv1.MachinePoolInitializationStatus{
-						InfrastructureProvisioned:  ptr.To(true),
-						BootstrapDataSecretCreated: ptr.To(true),
+						InfrastructureProvisioned:  new(true),
+						BootstrapDataSecretCreated: new(true),
 					},
 					NodeRefs: []corev1.ObjectReference{{Kind: "Node", Name: "machinepool-test-node"}},
 				},
@@ -1471,7 +1471,7 @@ func TestReconcileMachinePoolInfrastructure(t *testing.T) {
 			name: "infrastructure provisioned does not flip back to false when the infrastructure config reports not provisioned",
 			machinepool: func() *clusterv1.MachinePool {
 				mp := defaultMachinePool.DeepCopy()
-				mp.Status.Initialization.InfrastructureProvisioned = ptr.To(true)
+				mp.Status.Initialization.InfrastructureProvisioned = new(true)
 				return mp
 			}(),
 			infraConfig: map[string]any{
@@ -1519,7 +1519,7 @@ func TestReconcileMachinePoolInfrastructure(t *testing.T) {
 					Controller:      externalfake.Controller{},
 					Cache:           &informertest.FakeInformers{},
 					Scheme:          fakeClient.Scheme(),
-					PredicateLogger: ptr.To(logr.New(log.NullLogSink{})),
+					PredicateLogger: new(logr.New(log.NullLogSink{})),
 				},
 			}
 
@@ -1612,7 +1612,7 @@ func TestReconcileMachinePoolMachines(t *testing.T) {
 					Controller:      externalfake.Controller{},
 					Cache:           &informertest.FakeInformers{},
 					Scheme:          env.Scheme(),
-					PredicateLogger: ptr.To(logr.New(log.NullLogSink{})),
+					PredicateLogger: new(logr.New(log.NullLogSink{})),
 				},
 				controller: externalfake.Controller{},
 			}
@@ -1683,7 +1683,7 @@ func TestReconcileMachinePoolMachines(t *testing.T) {
 					Controller:      externalfake.Controller{},
 					Cache:           &informertest.FakeInformers{},
 					Scheme:          env.Scheme(),
-					PredicateLogger: ptr.To(logr.New(log.NullLogSink{})),
+					PredicateLogger: new(logr.New(log.NullLogSink{})),
 				},
 				controller: externalfake.Controller{},
 			}
@@ -2064,7 +2064,7 @@ func TestReconcileMachinePoolScaleToFromZero(t *testing.T) {
 				Controller:      externalfake.Controller{},
 				Cache:           &informertest.FakeInformers{},
 				Scheme:          fakeClient.Scheme(),
-				PredicateLogger: ptr.To(logr.New(log.NullLogSink{})),
+				PredicateLogger: new(logr.New(log.NullLogSink{})),
 			},
 			controller: externalfake.Controller{},
 		}
@@ -2134,7 +2134,7 @@ func TestReconcileMachinePoolScaleToFromZero(t *testing.T) {
 				Controller:      externalfake.Controller{},
 				Cache:           &informertest.FakeInformers{},
 				Scheme:          fakeClient.Scheme(),
-				PredicateLogger: ptr.To(logr.New(log.NullLogSink{})),
+				PredicateLogger: new(logr.New(log.NullLogSink{})),
 			},
 		}
 
@@ -2186,7 +2186,7 @@ func TestReconcileMachinePoolScaleToFromZero(t *testing.T) {
 				Controller:      externalfake.Controller{},
 				Cache:           &informertest.FakeInformers{},
 				Scheme:          fakeClient.Scheme(),
-				PredicateLogger: ptr.To(logr.New(log.NullLogSink{})),
+				PredicateLogger: new(logr.New(log.NullLogSink{})),
 			},
 		}
 
@@ -2234,7 +2234,7 @@ func TestReconcileMachinePoolScaleToFromZero(t *testing.T) {
 				Controller:      externalfake.Controller{},
 				Cache:           &informertest.FakeInformers{},
 				Scheme:          fakeClient.Scheme(),
-				PredicateLogger: ptr.To(logr.New(log.NullLogSink{})),
+				PredicateLogger: new(logr.New(log.NullLogSink{})),
 			},
 		}
 
@@ -2304,7 +2304,7 @@ func TestReconcileMachinePoolScaleToFromZero(t *testing.T) {
 				Controller:      externalfake.Controller{},
 				Cache:           &informertest.FakeInformers{},
 				Scheme:          fakeClient.Scheme(),
-				PredicateLogger: ptr.To(logr.New(log.NullLogSink{})),
+				PredicateLogger: new(logr.New(log.NullLogSink{})),
 			},
 		}
 
@@ -2390,7 +2390,7 @@ func getMachinePool(replicas int, mpName, clusterName, nsName string) clusterv1.
 		},
 		Spec: clusterv1.MachinePoolSpec{
 			ClusterName: clusterName,
-			Replicas:    ptr.To[int32](int32(replicas)),
+			Replicas:    new(int32(replicas)),
 			Template: clusterv1.MachineTemplateSpec{
 				Spec: clusterv1.MachineSpec{
 					ClusterName: clusterName,
@@ -2639,7 +2639,7 @@ func TestComputeDesiredMachine(t *testing.T) {
 			expectedSpec := clusterv1.MachineSpec{
 				ClusterName: mp.Spec.ClusterName,
 				Bootstrap: clusterv1.Bootstrap{
-					DataSecretName: ptr.To(""),
+					DataSecretName: new(""),
 				},
 				InfrastructureRef: clusterv1.ContractVersionedObjectReference{
 					APIGroup: infraGVK.Group,

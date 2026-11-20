@@ -108,7 +108,7 @@ func Test_triggerInPlaceUpdate(t *testing.T) {
 				NodeRegistration: bootstrapv1.NodeRegistrationOptions{
 					KubeletExtraArgs: []bootstrapv1.Arg{{
 						Name:  "v",
-						Value: ptr.To("8"),
+						Value: new("8"),
 					}},
 				},
 			},

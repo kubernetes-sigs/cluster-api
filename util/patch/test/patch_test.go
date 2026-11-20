@@ -391,7 +391,7 @@ func TestPatchHelper(t *testing.T) {
 				g.Expect(err).ToNot(HaveOccurred())
 
 				t.Log("Changing the object spec, status, and adding Ready=True condition")
-				obj.Spec.Paused = ptr.To(true)
+				obj.Spec.Paused = new(true)
 				obj.Spec.ControlPlaneEndpoint.Host = "test://endpoint"
 				obj.Spec.ControlPlaneEndpoint.Port = 8443
 				obj.Status.Phase = "Provisioning"
@@ -727,7 +727,7 @@ func TestPatchHelper(t *testing.T) {
 			g.Expect(err).ToNot(HaveOccurred())
 
 			t.Log("Updating the object spec")
-			obj.Spec.Paused = ptr.To(true)
+			obj.Spec.Paused = new(true)
 			obj.Spec.InfrastructureRef = clusterv1.ContractVersionedObjectReference{
 				APIGroup: clusterv1.GroupVersionInfrastructure.Group,
 				Kind:     builder.TestInfrastructureClusterKind,
@@ -775,7 +775,7 @@ func TestPatchHelper(t *testing.T) {
 			g.Expect(err).ToNot(HaveOccurred())
 
 			t.Log("Updating the object status")
-			obj.Status.Initialization.InfrastructureProvisioned = ptr.To(true)
+			obj.Status.Initialization.InfrastructureProvisioned = new(true)
 
 			t.Log("Patching the object")
 			g.Expect(patcher.Patch(ctx, obj)).To(Succeed())
@@ -816,7 +816,7 @@ func TestPatchHelper(t *testing.T) {
 			g.Expect(err).ToNot(HaveOccurred())
 
 			t.Log("Updating the object spec")
-			obj.Spec.Paused = ptr.To(true)
+			obj.Spec.Paused = new(true)
 			obj.Spec.InfrastructureRef = clusterv1.ContractVersionedObjectReference{
 				APIGroup: clusterv1.GroupVersionInfrastructure.Group,
 				Kind:     builder.TestInfrastructureClusterKind,
@@ -824,7 +824,7 @@ func TestPatchHelper(t *testing.T) {
 			}
 
 			t.Log("Updating the object status")
-			obj.Status.Initialization.InfrastructureProvisioned = ptr.To(true)
+			obj.Status.Initialization.InfrastructureProvisioned = new(true)
 
 			t.Log("Setting Ready condition")
 			conditions.Set(obj, metav1.Condition{Type: "Ready", Status: metav1.ConditionTrue, Reason: "AllGood", LastTransitionTime: now})
@@ -913,7 +913,7 @@ func TestPatchHelper(t *testing.T) {
 					Spec: clusterv1.MachineSpec{
 						ClusterName: "test1",
 						Bootstrap: clusterv1.Bootstrap{
-							DataSecretName: ptr.To("data-secret"),
+							DataSecretName: new("data-secret"),
 						},
 						InfrastructureRef: clusterv1.ContractVersionedObjectReference{
 							APIGroup: builder.InfrastructureGroupVersion.Group,
@@ -1092,7 +1092,7 @@ func TestPatchHelper(t *testing.T) {
 					Spec: clusterv1.MachineSpec{
 						ClusterName: "test1",
 						Bootstrap: clusterv1.Bootstrap{
-							DataSecretName: ptr.To("data-secret"),
+							DataSecretName: new("data-secret"),
 						},
 						InfrastructureRef: clusterv1.ContractVersionedObjectReference{
 							APIGroup: builder.InfrastructureGroupVersion.Group,

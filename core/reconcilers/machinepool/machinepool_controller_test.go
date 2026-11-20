@@ -360,12 +360,12 @@ func TestReconcileMachinePoolRequest(t *testing.T) {
 								Kind:     builder.TestInfrastructureMachinePoolKind,
 								Name:     "infra-config1",
 							},
-							Bootstrap: clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
+							Bootstrap: clusterv1.Bootstrap{DataSecretName: new("data")},
 						},
 					},
 				},
 				Status: clusterv1.MachinePoolStatus{
-					Replicas: ptr.To(int32(1)),
+					Replicas: new(int32(1)),
 					Deprecated: &clusterv1.MachinePoolDeprecatedStatus{
 						V1Beta1: &clusterv1.MachinePoolV1Beta1DeprecatedStatus{
 							ReadyReplicas: 1,
@@ -411,9 +411,9 @@ func TestReconcileMachinePoolRequest(t *testing.T) {
 								Kind:     builder.TestInfrastructureMachinePoolKind,
 								Name:     "infra-config1-already-deleted", // Use an InfrastructureMachinePool that doesn't exist, so reconcileDelete doesn't get stuck on deletion
 							},
-							Bootstrap: clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
+							Bootstrap: clusterv1.Bootstrap{DataSecretName: new("data")},
 							Deletion: clusterv1.MachineDeletionSpec{
-								NodeDeletionTimeoutSeconds: ptr.To(int32(10 * 60)),
+								NodeDeletionTimeoutSeconds: new(int32(10 * 60)),
 							},
 						},
 					},
@@ -475,9 +475,9 @@ func TestReconcileMachinePoolRequest(t *testing.T) {
 								Kind:     builder.TestInfrastructureMachinePoolKind,
 								Name:     "infra-config1-already-deleted", // Use an InfrastructureMachinePool that doesn't exist, so reconcileDelete doesn't get stuck on deletion
 							},
-							Bootstrap: clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
+							Bootstrap: clusterv1.Bootstrap{DataSecretName: new("data")},
 							Deletion: clusterv1.MachineDeletionSpec{
-								NodeDeletionTimeoutSeconds: ptr.To(int32(10 * 60)),
+								NodeDeletionTimeoutSeconds: new(int32(10 * 60)),
 							},
 						},
 					},
@@ -539,9 +539,9 @@ func TestReconcileMachinePoolRequest(t *testing.T) {
 								Kind:     builder.TestInfrastructureMachinePoolKind,
 								Name:     "infra-config1-already-deleted", // Use an InfrastructureMachinePool that doesn't exist, so reconcileDelete doesn't get stuck on deletion
 							},
-							Bootstrap: clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
+							Bootstrap: clusterv1.Bootstrap{DataSecretName: new("data")},
 							Deletion: clusterv1.MachineDeletionSpec{
-								NodeDeletionTimeoutSeconds: ptr.To(int32(10)), // timeout passed
+								NodeDeletionTimeoutSeconds: new(int32(10)), // timeout passed
 							},
 						},
 					},
@@ -616,7 +616,7 @@ func TestReconcileMachinePoolRequest(t *testing.T) {
 					Controller:      externalfake.Controller{},
 					Cache:           &informertest.FakeInformers{},
 					Scheme:          clientFake.Scheme(),
-					PredicateLogger: ptr.To(logr.New(log.NullLogSink{})),
+					PredicateLogger: new(logr.New(log.NullLogSink{})),
 				},
 			}
 
@@ -679,7 +679,7 @@ func TestMachinePoolNodeDeleteTimeoutPassed(t *testing.T) {
 					Template: clusterv1.MachineTemplateSpec{
 						Spec: clusterv1.MachineSpec{
 							Deletion: clusterv1.MachineDeletionSpec{
-								NodeDeletionTimeoutSeconds: ptr.To(int32(0)),
+								NodeDeletionTimeoutSeconds: new(int32(0)),
 							},
 						},
 					},
@@ -699,7 +699,7 @@ func TestMachinePoolNodeDeleteTimeoutPassed(t *testing.T) {
 					Template: clusterv1.MachineTemplateSpec{
 						Spec: clusterv1.MachineSpec{
 							Deletion: clusterv1.MachineDeletionSpec{
-								NodeDeletionTimeoutSeconds: ptr.To(int32(60)),
+								NodeDeletionTimeoutSeconds: new(int32(60)),
 							},
 						},
 					},
@@ -719,7 +719,7 @@ func TestMachinePoolNodeDeleteTimeoutPassed(t *testing.T) {
 					Template: clusterv1.MachineTemplateSpec{
 						Spec: clusterv1.MachineSpec{
 							Deletion: clusterv1.MachineDeletionSpec{
-								NodeDeletionTimeoutSeconds: ptr.To(int32(10)),
+								NodeDeletionTimeoutSeconds: new(int32(10)),
 							},
 						},
 					},
@@ -893,7 +893,7 @@ func TestRemoveMachinePoolFinalizerAfterDeleteReconcile(t *testing.T) {
 						Kind:     builder.TestInfrastructureMachinePoolKind,
 						Name:     "infra-config1",
 					},
-					Bootstrap: clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
+					Bootstrap: clusterv1.Bootstrap{DataSecretName: new("data")},
 				},
 			},
 		},
@@ -1048,7 +1048,7 @@ func TestMachinePoolConditions(t *testing.T) {
 					{Name: "node-1"},
 					{Name: "azure-node-4"},
 				}
-				mp.Status.Replicas = ptr.To(int32(2))
+				mp.Status.Replicas = new(int32(2))
 				if mp.Status.Deprecated == nil {
 					mp.Status.Deprecated = &clusterv1.MachinePoolDeprecatedStatus{}
 				}
@@ -1211,7 +1211,7 @@ func TestMachinePoolConditions(t *testing.T) {
 					Controller:      externalfake.Controller{},
 					Cache:           &informertest.FakeInformers{},
 					Scheme:          clientFake.Scheme(),
-					PredicateLogger: ptr.To(logr.New(log.NullLogSink{})),
+					PredicateLogger: new(logr.New(log.NullLogSink{})),
 				},
 			}
 

@@ -18,7 +18,6 @@ package tree
 
 import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/utils/ptr"
 )
 
 // AddObjectOption define an option for the ObjectTree Add operation.
@@ -48,7 +47,7 @@ type GroupVersionKind schema.GroupVersionKind
 
 // ApplyToAdd applies the given options.
 func (n GroupVersionKind) ApplyToAdd(options *addObjectOptions) {
-	options.GroupVersionKind = ptr.To(schema.GroupVersionKind(n))
+	options.GroupVersionKind = new(schema.GroupVersionKind(n))
 }
 
 // The ObjectMetaName option defines the meta name that should be used for the object in the presentation layer,

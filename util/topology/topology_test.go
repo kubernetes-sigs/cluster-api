@@ -23,7 +23,6 @@ import (
 	admissionv1 "k8s.io/api/admission/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
@@ -44,25 +43,25 @@ func TestIsDryRunRequest(t *testing.T) {
 		},
 		{
 			name: "false - dryRun pointer is false",
-			req:  admission.Request{AdmissionRequest: admissionv1.AdmissionRequest{DryRun: ptr.To(false)}},
+			req:  admission.Request{AdmissionRequest: admissionv1.AdmissionRequest{DryRun: new(false)}},
 			obj:  nil,
 			want: false,
 		},
 		{
 			name: "false - nil obj",
-			req:  admission.Request{AdmissionRequest: admissionv1.AdmissionRequest{DryRun: ptr.To(true)}},
+			req:  admission.Request{AdmissionRequest: admissionv1.AdmissionRequest{DryRun: new(true)}},
 			obj:  nil,
 			want: false,
 		},
 		{
 			name: "false - no annotations",
-			req:  admission.Request{AdmissionRequest: admissionv1.AdmissionRequest{DryRun: ptr.To(true)}},
+			req:  admission.Request{AdmissionRequest: admissionv1.AdmissionRequest{DryRun: new(true)}},
 			obj:  &unstructured.Unstructured{},
 			want: false,
 		},
 		{
 			name: "false - annotation not set",
-			req:  admission.Request{AdmissionRequest: admissionv1.AdmissionRequest{DryRun: ptr.To(true)}},
+			req:  admission.Request{AdmissionRequest: admissionv1.AdmissionRequest{DryRun: new(true)}},
 			obj: &unstructured.Unstructured{Object: map[string]any{
 				"metadata": map[string]any{
 					"annotations": map[string]any{},
@@ -72,7 +71,7 @@ func TestIsDryRunRequest(t *testing.T) {
 		},
 		{
 			name: "true",
-			req:  admission.Request{AdmissionRequest: admissionv1.AdmissionRequest{DryRun: ptr.To(true)}},
+			req:  admission.Request{AdmissionRequest: admissionv1.AdmissionRequest{DryRun: new(true)}},
 			obj: &unstructured.Unstructured{Object: map[string]any{
 				"metadata": map[string]any{
 					"annotations": map[string]any{

@@ -30,7 +30,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	utilfeature "k8s.io/component-base/featuregate/testing"
-	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -107,8 +106,8 @@ func TestReconcileInPlaceUpdate(t *testing.T) {
 				machine := newTestMachine()
 				machine.Annotations[clusterv1.UpdateInProgressAnnotation] = ""
 				machine.Annotations[runtimev1.PendingHooksAnnotation] = runtimecatalog.HookName(runtimehooksv1.UpdateMachine)
-				machine.Status.Initialization.InfrastructureProvisioned = ptr.To(true)
-				machine.Status.Initialization.BootstrapDataSecretCreated = ptr.To(true)
+				machine.Status.Initialization.InfrastructureProvisioned = new(true)
+				machine.Status.Initialization.BootstrapDataSecretCreated = new(true)
 				machine.Status.NodeRef = clusterv1.MachineNodeReference{Name: "foo"}
 				return machine
 			}(),
@@ -439,8 +438,8 @@ func newInPlaceUpdatingTestMachine(additionalAnnotations map[string]string) *clu
 		Kind:     infraMachineGVK.Kind,
 		Name:     "infra",
 	}
-	machine.Status.Initialization.InfrastructureProvisioned = ptr.To(true)
-	machine.Status.Initialization.BootstrapDataSecretCreated = ptr.To(true)
+	machine.Status.Initialization.InfrastructureProvisioned = new(true)
+	machine.Status.Initialization.BootstrapDataSecretCreated = new(true)
 	machine.Status.NodeRef = clusterv1.MachineNodeReference{Name: "foo"}
 	return machine
 }

@@ -191,7 +191,7 @@ func AddScaleUpDeploymentAndWait(ctx context.Context, input AddScaleUpDeployment
 			},
 		},
 		Spec: appsv1.DeploymentSpec{
-			Replicas: ptr.To[int32](int32(replicas)),
+			Replicas: new(int32(replicas)),
 			Selector: &metav1.LabelSelector{
 				MatchLabels: map[string]string{
 					"app": "scale-up",

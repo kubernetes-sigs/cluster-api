@@ -245,8 +245,8 @@ func ClusterUpgradeWithRuntimeSDKSpec(ctx context.Context, inputGetter func() Cl
 				Namespace:                namespace.Name,
 				ClusterName:              clusterName,
 				KubernetesVersion:        fromVersion,
-				ControlPlaneMachineCount: ptr.To[int64](controlPlaneMachineCount),
-				WorkerMachineCount:       ptr.To[int64](workerMachineCount),
+				ControlPlaneMachineCount: new(controlPlaneMachineCount),
+				WorkerMachineCount:       new(workerMachineCount),
 				ClusterctlVariables:      variables,
 			},
 			PreWaitForCluster: func() {

@@ -355,7 +355,7 @@ func TestMatchesKubeadmConfig(t *testing.T) {
 							KubeletExtraArgs: []bootstrapv1.Arg{
 								{
 									Name:  "v",
-									Value: ptr.To("8"),
+									Value: new("8"),
 								},
 							},
 						},
@@ -409,7 +409,7 @@ func TestMatchesKubeadmConfig(t *testing.T) {
 							KubeletExtraArgs: []bootstrapv1.Arg{
 								{
 									Name:  "v",
-									Value: ptr.To("8"),
+									Value: new("8"),
 								},
 							},
 						},
@@ -1645,7 +1645,7 @@ func TestMatchesInfraMachine(t *testing.T) {
 		kcp := &controlplanev1.KubeadmControlPlane{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace:         "default",
-				DeletionTimestamp: ptr.To(metav1.Now()), // deleting.
+				DeletionTimestamp: new(metav1.Now()), // deleting.
 			},
 			Spec: controlplanev1.KubeadmControlPlaneSpec{
 				MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
@@ -2075,7 +2075,7 @@ func TestOmittableFieldsClusterConfiguration(t *testing.T) {
 					Local: bootstrapv1.LocalEtcd{
 						DataDir:        "/var/lib/etcd", // Setting a field to avoid differences because empty object is omitted in one of the cases.
 						ExtraArgs:      []bootstrapv1.Arg{},
-						ExtraEnvs:      ptr.To([]bootstrapv1.EnvVar{}),
+						ExtraEnvs:      new([]bootstrapv1.EnvVar{}),
 						ServerCertSANs: []string{},
 						PeerCertSANs:   []string{},
 					},
@@ -2086,18 +2086,18 @@ func TestOmittableFieldsClusterConfiguration(t *testing.T) {
 				APIServer: bootstrapv1.APIServer{
 					ExtraArgs:    []bootstrapv1.Arg{},
 					ExtraVolumes: []bootstrapv1.HostPathMount{},
-					ExtraEnvs:    ptr.To([]bootstrapv1.EnvVar{}),
+					ExtraEnvs:    new([]bootstrapv1.EnvVar{}),
 					CertSANs:     []string{},
 				},
 				ControllerManager: bootstrapv1.ControllerManager{
 					ExtraArgs:    []bootstrapv1.Arg{},
 					ExtraVolumes: []bootstrapv1.HostPathMount{},
-					ExtraEnvs:    ptr.To([]bootstrapv1.EnvVar{}),
+					ExtraEnvs:    new([]bootstrapv1.EnvVar{}),
 				},
 				Scheduler: bootstrapv1.Scheduler{
 					ExtraArgs:    []bootstrapv1.Arg{},
 					ExtraVolumes: []bootstrapv1.HostPathMount{},
-					ExtraEnvs:    ptr.To([]bootstrapv1.EnvVar{}),
+					ExtraEnvs:    new([]bootstrapv1.EnvVar{}),
 				},
 				FeatureGates: map[string]bool{},
 			},
@@ -2168,7 +2168,7 @@ func TestOmittableFieldsInitConfiguration(t *testing.T) {
 			A: bootstrapv1.InitConfiguration{
 				BootstrapTokens: []bootstrapv1.BootstrapToken{},
 				NodeRegistration: bootstrapv1.NodeRegistrationOptions{
-					Taints:                ptr.To([]corev1.Taint{}),
+					Taints:                new([]corev1.Taint{}),
 					KubeletExtraArgs:      []bootstrapv1.Arg{},
 					IgnorePreflightErrors: []string{},
 				},
@@ -2177,7 +2177,7 @@ func TestOmittableFieldsInitConfiguration(t *testing.T) {
 			B: bootstrapv1.InitConfiguration{
 				BootstrapTokens: nil,
 				NodeRegistration: bootstrapv1.NodeRegistrationOptions{
-					Taints:                ptr.To([]corev1.Taint{}), // Special serialization, i.e. intentionally a pointer to a slice to preserve []
+					Taints:                new([]corev1.Taint{}), // Special serialization, i.e. intentionally a pointer to a slice to preserve []
 					KubeletExtraArgs:      nil,
 					IgnorePreflightErrors: nil,
 				},
@@ -2235,7 +2235,7 @@ func TestOmittableFieldsJoinConfiguration(t *testing.T) {
 			name: "Test omittable fields",
 			A: bootstrapv1.JoinConfiguration{
 				NodeRegistration: bootstrapv1.NodeRegistrationOptions{
-					Taints:                ptr.To([]corev1.Taint{}),
+					Taints:                new([]corev1.Taint{}),
 					KubeletExtraArgs:      []bootstrapv1.Arg{},
 					IgnorePreflightErrors: []string{},
 				},
@@ -2266,7 +2266,7 @@ func TestOmittableFieldsJoinConfiguration(t *testing.T) {
 			},
 			B: bootstrapv1.JoinConfiguration{
 				NodeRegistration: bootstrapv1.NodeRegistrationOptions{
-					Taints:                ptr.To([]corev1.Taint{}), // Special serialization, i.e. intentionally a pointer to a slice to preserve []
+					Taints:                new([]corev1.Taint{}), // Special serialization, i.e. intentionally a pointer to a slice to preserve []
 					KubeletExtraArgs:      nil,
 					IgnorePreflightErrors: nil,
 				},

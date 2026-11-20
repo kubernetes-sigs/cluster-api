@@ -31,7 +31,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/klog/v2"
-	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	addonsv1 "sigs.k8s.io/cluster-api/api/addons/v1beta2"
@@ -150,11 +149,11 @@ var (
 	machineHealthCheckKind = "MachineHealthCheck"
 
 	clusterOwner                = metav1.OwnerReference{Kind: clusterKind, APIVersion: coreGroupVersion}
-	clusterController           = metav1.OwnerReference{Kind: clusterKind, APIVersion: coreGroupVersion, Controller: ptr.To(true)}
+	clusterController           = metav1.OwnerReference{Kind: clusterKind, APIVersion: coreGroupVersion, Controller: new(true)}
 	clusterClassOwner           = metav1.OwnerReference{Kind: clusterClassKind, APIVersion: coreGroupVersion}
-	machineDeploymentController = metav1.OwnerReference{Kind: machineDeploymentKind, APIVersion: coreGroupVersion, Controller: ptr.To(true)}
-	machineSetController        = metav1.OwnerReference{Kind: machineSetKind, APIVersion: coreGroupVersion, Controller: ptr.To(true)}
-	machineController           = metav1.OwnerReference{Kind: machineKind, APIVersion: coreGroupVersion, Controller: ptr.To(true)}
+	machineDeploymentController = metav1.OwnerReference{Kind: machineDeploymentKind, APIVersion: coreGroupVersion, Controller: new(true)}
+	machineSetController        = metav1.OwnerReference{Kind: machineSetKind, APIVersion: coreGroupVersion, Controller: new(true)}
+	machineController           = metav1.OwnerReference{Kind: machineKind, APIVersion: coreGroupVersion, Controller: new(true)}
 )
 
 // CoreOwnerReferenceAssertion maps Cluster API core types to functions which return an error if the passed
@@ -198,7 +197,7 @@ var (
 	clusterResourceSetBindingKind = "ClusterResourceSetBinding"
 	machinePoolKind               = "MachinePool"
 
-	machinePoolController = metav1.OwnerReference{Kind: machinePoolKind, APIVersion: clusterv1.GroupVersion.String(), Controller: ptr.To(true)}
+	machinePoolController = metav1.OwnerReference{Kind: machinePoolKind, APIVersion: clusterv1.GroupVersion.String(), Controller: new(true)}
 
 	clusterResourceSetOwner = metav1.OwnerReference{Kind: clusterResourceSetKind, APIVersion: addonsv1.GroupVersion.String()}
 )
@@ -250,7 +249,7 @@ var (
 
 	kubeadmControlPlaneGroupVersion = controlplanev1.GroupVersion.String()
 
-	kubeadmControlPlaneController = metav1.OwnerReference{Kind: kubeadmControlPlaneKind, APIVersion: kubeadmControlPlaneGroupVersion, Controller: ptr.To(true)}
+	kubeadmControlPlaneController = metav1.OwnerReference{Kind: kubeadmControlPlaneKind, APIVersion: kubeadmControlPlaneGroupVersion, Controller: new(true)}
 )
 
 // KubeadmControlPlaneOwnerReferenceAssertions maps Kubeadm control plane types to functions which return an error if the passed
@@ -283,7 +282,7 @@ var (
 	kubeadmConfigTemplateKind = "KubeadmConfigTemplate"
 
 	kubeadmConfigGroupVersion = bootstrapv1.GroupVersion.String()
-	kubeadmConfigController   = metav1.OwnerReference{Kind: kubeadmConfigKind, APIVersion: kubeadmConfigGroupVersion, Controller: ptr.To(true)}
+	kubeadmConfigController   = metav1.OwnerReference{Kind: kubeadmConfigKind, APIVersion: kubeadmConfigGroupVersion, Controller: new(true)}
 )
 
 // KubeadmBootstrapOwnerReferenceAssertions maps KubeadmBootstrap types to functions which return an error if the passed OwnerReferences

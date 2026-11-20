@@ -27,7 +27,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/klog/v2"
-	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
@@ -101,10 +100,10 @@ func setReplicas(_ context.Context, ms *clusterv1.MachineSet, machines []*cluste
 		}
 	}
 
-	ms.Status.Replicas = ptr.To(int32(len(machines)))
-	ms.Status.ReadyReplicas = ptr.To(readyReplicas)
-	ms.Status.AvailableReplicas = ptr.To(availableReplicas)
-	ms.Status.UpToDateReplicas = ptr.To(upToDateReplicas)
+	ms.Status.Replicas = new(int32(len(machines)))
+	ms.Status.ReadyReplicas = new(readyReplicas)
+	ms.Status.AvailableReplicas = new(availableReplicas)
+	ms.Status.UpToDateReplicas = new(upToDateReplicas)
 	ms.Status.Versions = internalversion.VersionsFromMachines(machines)
 }
 

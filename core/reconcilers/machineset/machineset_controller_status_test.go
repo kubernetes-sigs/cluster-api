@@ -316,7 +316,7 @@ func Test_setScalingUpCondition(t *testing.T) {
 	scalingUpMachineSetWith3Replicas.Spec.Replicas = ptr.To[int32](3)
 
 	deletingMachineSetWith3Replicas := defaultMachineSet.DeepCopy()
-	deletingMachineSetWith3Replicas.DeletionTimestamp = ptr.To(metav1.Now())
+	deletingMachineSetWith3Replicas.DeletionTimestamp = new(metav1.Now())
 	deletingMachineSetWith3Replicas.Spec.Replicas = ptr.To[int32](3)
 
 	tests := []struct {
@@ -491,7 +491,7 @@ func Test_setScalingDownCondition(t *testing.T) {
 
 	deletingMachineSet := machineSet.DeepCopy()
 	deletingMachineSet.Spec.Replicas = ptr.To[int32](1)
-	deletingMachineSet.DeletionTimestamp = ptr.To(metav1.Now())
+	deletingMachineSet.DeletionTimestamp = new(metav1.Now())
 
 	tests := []struct {
 		name                                      string
@@ -1276,7 +1276,7 @@ func withOwnerMachineSet(msName string) fakeMachinesOption {
 				APIVersion: clusterv1.GroupVersion.String(),
 				Kind:       "MachineSet",
 				Name:       msName,
-				Controller: ptr.To(true),
+				Controller: new(true),
 			},
 		}
 	}
@@ -1296,13 +1296,13 @@ func withMachineFinalizer() fakeMachinesOption {
 
 func withDeletionTimestamp() fakeMachinesOption {
 	return func(m *clusterv1.Machine) {
-		m.DeletionTimestamp = ptr.To(metav1.Time{Time: time.Now()})
+		m.DeletionTimestamp = new(metav1.Time{Time: time.Now()})
 	}
 }
 
 func withStaleDeletionTimestamp() fakeMachinesOption {
 	return func(m *clusterv1.Machine) {
-		m.DeletionTimestamp = ptr.To(metav1.Time{Time: time.Now().Add(-1 * time.Hour)})
+		m.DeletionTimestamp = new(metav1.Time{Time: time.Now().Add(-1 * time.Hour)})
 	}
 }
 

@@ -504,7 +504,7 @@ func TestReconcile_callAfterControlPlaneInitialized(t *testing.T) {
 					APIVersion: builder.InfrastructureGroupVersion.String(),
 					Manager:    "manager",
 					Operation:  "Apply",
-					Time:       ptr.To(metav1.Now()),
+					Time:       new(metav1.Now()),
 					FieldsType: "FieldsV1",
 				},
 			})
@@ -1224,7 +1224,7 @@ func TestReconcile_callAfterClusterUpgrade(t *testing.T) {
 			wantHookToBeCalled: true,
 			wantRetryAfter:     time.Second * time.Duration(blockingResponse.RetryAfterSeconds),
 			wantError:          false,
-			wantHookCacheEntry: ptr.To(cache.NewHookEntry(&clusterv1.Cluster{
+			wantHookCacheEntry: new(cache.NewHookEntry(&clusterv1.Cluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "test-ns",
 					Name:      "test-cluster",
@@ -1281,7 +1281,7 @@ func TestReconcile_callAfterClusterUpgrade(t *testing.T) {
 					APIVersion: builder.InfrastructureGroupVersion.String(),
 					Manager:    "manager",
 					Operation:  "Apply",
-					Time:       ptr.To(metav1.Now()),
+					Time:       new(metav1.Now()),
 					FieldsType: "FieldsV1",
 				},
 			})
@@ -1370,7 +1370,7 @@ func TestReconcileCluster(t *testing.T) {
 		}).
 		Build()
 	// Pausing the Cluster so the reconciler running in the background does not reconcile the Cluster for us.
-	cluster1.Spec.Paused = ptr.To(true)
+	cluster1.Spec.Paused = new(true)
 	cluster1WithReferencesLabelsAnnotations := builder.Cluster(metav1.NamespaceDefault, "cluster1").
 		WithLabels(map[string]string{
 			clusterv1.ClusterNameLabel:          "cluster1",
@@ -1864,7 +1864,7 @@ func testReconcileControlPlane(t *testing.T, controlPlaneContractVersion string)
 				}).
 				Build()
 			// Pausing the Cluster so the reconciler running in the background does not reconcile the Cluster for us.
-			cluster.Spec.Paused = ptr.To(true)
+			cluster.Spec.Paused = new(true)
 			g.Expect(env.CreateAndWait(ctx, cluster)).To(Succeed())
 
 			s := scope.New(cluster)
@@ -2115,14 +2115,14 @@ func TestReconcileControlPlaneMachineHealthCheck(t *testing.T) {
 				{
 					Type:           corev1.NodeReady,
 					Status:         corev1.ConditionUnknown,
-					TimeoutSeconds: ptr.To(int32(5 * 60)),
+					TimeoutSeconds: new(int32(5 * 60)),
 				},
 			},
 			UnhealthyMachineConditions: []clusterv1.UnhealthyMachineCondition{
 				{
 					Type:           controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition,
 					Status:         metav1.ConditionUnknown,
-					TimeoutSeconds: ptr.To(int32(5 * 60)),
+					TimeoutSeconds: new(int32(5 * 60)),
 				},
 			},
 		},
@@ -3007,7 +3007,7 @@ func TestReconcileMachinePools(t *testing.T) {
 						wantMachinePoolState.Object.Spec.Template.Spec.Bootstrap.ConfigRef.Name = gotMachinePool.Spec.Template.Spec.Bootstrap.ConfigRef.Name
 					}
 					// expect default value for the node deletion timeout.
-					wantMachinePoolState.Object.Spec.Template.Spec.Deletion.NodeDeletionTimeoutSeconds = ptr.To(int32(10))
+					wantMachinePoolState.Object.Spec.Template.Spec.Deletion.NodeDeletionTimeoutSeconds = new(int32(10))
 
 					// Compare MachinePool.
 					// Note: We're intentionally only comparing Spec as otherwise we would have to account for
@@ -3640,14 +3640,14 @@ func TestReconcileMachineDeploymentMachineHealthCheck(t *testing.T) {
 			{
 				Type:           corev1.NodeReady,
 				Status:         corev1.ConditionUnknown,
-				TimeoutSeconds: ptr.To(int32(5 * 60)),
+				TimeoutSeconds: new(int32(5 * 60)),
 			},
 		}).
 		WithUnhealthyMachineConditions([]clusterv1.UnhealthyMachineCondition{
 			{
 				Type:           controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition,
 				Status:         metav1.ConditionUnknown,
-				TimeoutSeconds: ptr.To(int32(5 * 60)),
+				TimeoutSeconds: new(int32(5 * 60)),
 			},
 		}).
 		WithClusterName("cluster1")
@@ -3848,7 +3848,7 @@ func TestReconcileState(t *testing.T) {
 			}).
 			Build()
 		// Pausing the Cluster so the reconciler running in the background does not reconcile the Cluster for us.
-		currentCluster.Spec.Paused = ptr.To(true)
+		currentCluster.Spec.Paused = new(true)
 
 		infrastructureCluster := builder.TestInfrastructureCluster(metav1.NamespaceDefault, "infrastructure-cluster1").Build()
 		controlPlane := builder.TestControlPlane(metav1.NamespaceDefault, "controlplane-cluster1").Build()
@@ -3920,7 +3920,7 @@ func TestReconcileState(t *testing.T) {
 			}).
 			Build()
 		// Pausing the Cluster so the reconciler running in the background does not reconcile the Cluster for us.
-		currentCluster.Spec.Paused = ptr.To(true)
+		currentCluster.Spec.Paused = new(true)
 
 		infrastructureCluster := builder.TestInfrastructureCluster(metav1.NamespaceDefault, "infrastructure-cluster1").Build()
 		controlPlane := builder.TestControlPlane(metav1.NamespaceDefault, "controlplane-cluster1").Build()
@@ -3993,7 +3993,7 @@ func TestReconcileState(t *testing.T) {
 			WithInfrastructureCluster(infrastructureCluster).
 			Build()
 		// Pausing the Cluster so the reconciler running in the background does not reconcile the Cluster for us.
-		currentCluster.Spec.Paused = ptr.To(true)
+		currentCluster.Spec.Paused = new(true)
 
 		desiredCluster := builder.Cluster(metav1.NamespaceDefault, "cluster1").
 			WithTopology(&clusterv1.Topology{
@@ -4120,14 +4120,14 @@ func TestReconciler_reconcileMachineHealthCheck(t *testing.T) {
 			{
 				Type:           corev1.NodeReady,
 				Status:         corev1.ConditionUnknown,
-				TimeoutSeconds: ptr.To(int32(5 * 60)),
+				TimeoutSeconds: new(int32(5 * 60)),
 			},
 		}).
 		WithUnhealthyMachineConditions([]clusterv1.UnhealthyMachineCondition{
 			{
 				Type:           controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition,
 				Status:         metav1.ConditionUnknown,
-				TimeoutSeconds: ptr.To(int32(5 * 60)),
+				TimeoutSeconds: new(int32(5 * 60)),
 			},
 		}).
 		WithClusterName("cluster1")
@@ -4152,26 +4152,26 @@ func TestReconciler_reconcileMachineHealthCheck(t *testing.T) {
 				{
 					Type:           corev1.NodeReady,
 					Status:         corev1.ConditionUnknown,
-					TimeoutSeconds: ptr.To(int32(1000 * 60)),
+					TimeoutSeconds: new(int32(1000 * 60)),
 				},
 			}).WithUnhealthyMachineConditions([]clusterv1.UnhealthyMachineCondition{
 				{
 					Type:           controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition,
 					Status:         metav1.ConditionUnknown,
-					TimeoutSeconds: ptr.To(int32(1000 * 60)),
+					TimeoutSeconds: new(int32(1000 * 60)),
 				},
 			}).Build(),
 			want: mhcBuilder.DeepCopy().WithUnhealthyNodeConditions([]clusterv1.UnhealthyNodeCondition{
 				{
 					Type:           corev1.NodeReady,
 					Status:         corev1.ConditionUnknown,
-					TimeoutSeconds: ptr.To(int32(1000 * 60)),
+					TimeoutSeconds: new(int32(1000 * 60)),
 				},
 			}).WithUnhealthyMachineConditions([]clusterv1.UnhealthyMachineCondition{
 				{
 					Type:           controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition,
 					Status:         metav1.ConditionUnknown,
-					TimeoutSeconds: ptr.To(int32(1000 * 60)),
+					TimeoutSeconds: new(int32(1000 * 60)),
 				},
 			}).Build(),
 		},

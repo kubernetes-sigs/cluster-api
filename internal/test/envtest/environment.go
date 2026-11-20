@@ -382,7 +382,7 @@ func newEnvironment(ctx context.Context, scheme *runtime.Scheme, additionalCRDDi
 
 	options := manager.Options{
 		Controller: config.Controller{
-			UsePriorityQueue: ptr.To[bool](features.Gates.Enabled(features.PriorityQueue)),
+			UsePriorityQueue: new(features.Gates.Enabled(features.PriorityQueue)),
 		},
 		Scheme: scheme,
 		Metrics: metricsserver.Options{

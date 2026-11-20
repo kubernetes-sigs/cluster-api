@@ -31,7 +31,7 @@ var _ = Describe("When testing the machinery for scale testing using in-memory b
 			ClusterctlConfigPath:              clusterctlConfigPath,
 			BootstrapClusterProxy:             bootstrapClusterProxy,
 			ArtifactFolder:                    artifactFolder,
-			Flavor:                            ptr.To("in-memory-scale"),
+			Flavor:                            new("in-memory-scale"),
 			DumpResources:                     true,
 			SkipCleanup:                       skipCleanup,
 			ClusterCount:                      ptr.To[int64](10),
@@ -41,8 +41,8 @@ var _ = Describe("When testing the machinery for scale testing using in-memory b
 			WorkerPerMachineDeploymentCount:   ptr.To[int64](3),
 			AdditionalClusterClassCount:       ptr.To[int64](4),
 			ClusterClassName:                  "in-memory",
-			DeployClusterInSeparateNamespaces: ptr.To[bool](false),
-			UseCrossNamespaceClusterClass:     ptr.To[bool](false),
+			DeployClusterInSeparateNamespaces: new(false),
+			UseCrossNamespaceClusterClass:     new(false),
 			// The runtime extension gets deployed to the test-extension-system namespace and is exposed
 			// by the test-extension-webhook-service.
 			// The below values are used when creating the cluster-wide ExtensionConfig to refer

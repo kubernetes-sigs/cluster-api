@@ -37,7 +37,6 @@ import (
 	toolscache "k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/workqueue"
-	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	ctrlcache "sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -115,7 +114,7 @@ func TestReconcile(t *testing.T) {
 
 	// Set Cluster.Status.InfrastructureReady == true
 	patch := client.MergeFrom(testCluster.DeepCopy())
-	testCluster.Status.Initialization.InfrastructureProvisioned = ptr.To(true)
+	testCluster.Status.Initialization.InfrastructureProvisioned = new(true)
 	g.Expect(env.Status().Patch(ctx, testCluster, patch)).To(Succeed())
 
 	// Exclude from clustercache by changing the label
@@ -832,7 +831,7 @@ func createCluster(g Gomega, testCluster testCluster) {
 	}
 
 	patch := client.MergeFrom(cluster.DeepCopy())
-	cluster.Status.Initialization.InfrastructureProvisioned = ptr.To(true)
+	cluster.Status.Initialization.InfrastructureProvisioned = new(true)
 	g.Expect(env.Status().Patch(ctx, cluster, patch)).To(Succeed())
 }
 
@@ -885,7 +884,7 @@ func TestSetupWithManagerAppliesClusterFilter(t *testing.T) {
 		MaxConcurrentReconciles: 1,
 		// Has to be skipped as other tests in this package also register a "clustercache" controller
 		// with the same manager.
-		SkipNameValidation: ptr.To(true),
+		SkipNameValidation: new(true),
 	})
 	g.Expect(err).ToNot(HaveOccurred())
 	internalCC, ok := cc.(*clusterCache)

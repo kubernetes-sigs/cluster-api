@@ -29,7 +29,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/util/retry"
 	"k8s.io/klog/v2"
-	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 
@@ -185,7 +184,7 @@ func MigrateManagedFields(ctx context.Context, c WriterWithScheme, object client
 		Manager:    metadataFieldManager,
 		Operation:  metav1.ManagedFieldsOperationApply,
 		APIVersion: objectGVK.GroupVersion().String(),
-		Time:       ptr.To(metav1.Now()),
+		Time:       new(metav1.Now()),
 		FieldsType: "FieldsV1",
 		FieldsV1:   metav1.NewFieldsV1(`{"f:metadata":{"f:name":{}}}`),
 	})

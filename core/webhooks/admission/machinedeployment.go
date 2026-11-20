@@ -31,7 +31,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/apimachinery/pkg/util/validation/field"
-	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
@@ -95,7 +94,7 @@ func (webhook *MachineDeployment) Default(ctx context.Context, m *clusterv1.Mach
 	if err != nil {
 		return err
 	}
-	m.Spec.Replicas = ptr.To[int32](replicas)
+	m.Spec.Replicas = new(replicas)
 
 	if m.Spec.Selector.MatchLabels == nil {
 		m.Spec.Selector.MatchLabels = make(map[string]string)
@@ -112,10 +111,10 @@ func (webhook *MachineDeployment) Default(ctx context.Context, m *clusterv1.Mach
 	// Default RollingUpdate strategy only if strategy type is RollingUpdate.
 	if m.Spec.Rollout.Strategy.Type == clusterv1.RollingUpdateMachineDeploymentStrategyType {
 		if m.Spec.Rollout.Strategy.RollingUpdate.MaxSurge == nil {
-			m.Spec.Rollout.Strategy.RollingUpdate.MaxSurge = ptr.To(intstr.FromInt32(1))
+			m.Spec.Rollout.Strategy.RollingUpdate.MaxSurge = new(intstr.FromInt32(1))
 		}
 		if m.Spec.Rollout.Strategy.RollingUpdate.MaxUnavailable == nil {
-			m.Spec.Rollout.Strategy.RollingUpdate.MaxUnavailable = ptr.To(intstr.FromInt32(0))
+			m.Spec.Rollout.Strategy.RollingUpdate.MaxUnavailable = new(intstr.FromInt32(0))
 		}
 	}
 

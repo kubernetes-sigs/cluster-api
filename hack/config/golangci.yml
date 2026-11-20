@@ -328,9 +328,6 @@ linters:
       no-unaliased: true
     loggercheck:
       no-printf-like: true
-    modernize:
-      disable:
-        - newexpr # ~ 1637 findings
     nolintlint:
       require-specific: true
       allow-unused: false

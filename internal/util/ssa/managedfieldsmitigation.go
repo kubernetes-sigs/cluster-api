@@ -116,7 +116,7 @@ func MigrateClusterAndMitigateManagedFieldsIssue(ctx context.Context, c client.C
 			Manager:    patchManager,
 			Operation:  metav1.ManagedFieldsOperationUpdate,
 			APIVersion: clusterv1.GroupVersion.String(),
-			Time:       ptr.To(metav1.Now()),
+			Time:       new(metav1.Now()),
 			FieldsType: "FieldsV1",
 			FieldsV1:   metav1.NewFieldsV1(`{"f:metadata":{"f:name":{}}}`),
 		})
@@ -224,7 +224,7 @@ func MitigateManagedFieldsIssue(ctx context.Context, c WriterWithScheme, obj cli
 			Manager:    fieldManager,
 			Operation:  metav1.ManagedFieldsOperationApply,
 			APIVersion: objGVK.GroupVersion().String(),
-			Time:       ptr.To(metav1.Now()),
+			Time:       new(metav1.Now()),
 			FieldsType: "FieldsV1",
 			FieldsV1:   metav1.NewFieldsV1(string(fieldsV1)),
 		})

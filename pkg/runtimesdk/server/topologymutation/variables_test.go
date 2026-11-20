@@ -21,7 +21,6 @@ import (
 
 	. "github.com/onsi/gomega"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	"k8s.io/utils/ptr"
 
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
 )
@@ -259,7 +258,7 @@ func Test_GetVariableObjectWithNestedType(t *testing.T) {
 			expectedErr:           false,
 			object:                &Network{},
 			expectedVariableObject: &Network{
-				Ipv6Primary: ptr.To(true),
+				Ipv6Primary: new(true),
 				AddressesFromPools: &[]AddressesFromPool{
 					{
 						Name: "name",

@@ -20,7 +20,6 @@ package e2e
 
 import (
 	. "github.com/onsi/ginkgo/v2"
-	"k8s.io/utils/ptr"
 )
 
 var _ = Describe("When a worker joins with kubeadm with an older version than the control plane", Label("ClusterClass"), func() {
@@ -31,7 +30,7 @@ var _ = Describe("When a worker joins with kubeadm with an older version than th
 			BootstrapClusterProxy:  bootstrapClusterProxy,
 			ArtifactFolder:         artifactFolder,
 			SkipCleanup:            skipCleanup,
-			InfrastructureProvider: ptr.To("docker"),
+			InfrastructureProvider: new("docker"),
 			Flavor:                 "topology-kubeadm-version",
 			// The runtime extension gets deployed to the test-extension-system namespace and is exposed
 			// by the test-extension-webhook-service.

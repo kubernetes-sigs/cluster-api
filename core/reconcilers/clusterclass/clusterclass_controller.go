@@ -371,7 +371,7 @@ func (r *Reconciler) reconcileVariables(ctx context.Context, s *scope) (ctrl.Res
 func addNewStatusVariable(variable clusterv1.ClusterClassVariable, from string) *clusterv1.ClusterClassStatusVariable {
 	return &clusterv1.ClusterClassStatusVariable{
 		Name:                variable.Name,
-		DefinitionsConflict: ptr.To(false),
+		DefinitionsConflict: new(false),
 		Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 			{
 				From:                      from,
@@ -399,7 +399,7 @@ func addDefinitionToExistingStatusVariable(variable clusterv1.ClusterClassVariab
 		if ptr.Deref(currentDefinition.Required, false) != ptr.Deref(newVariableDefinition.Required, false) ||
 			!reflect.DeepEqual(dropFalsePtrBool(&currentDefinition.Schema.OpenAPIV3Schema), dropFalsePtrBool(&newVariableDefinition.Schema.OpenAPIV3Schema)) ||
 			!reflect.DeepEqual(currentDefinition.DeprecatedV1Beta1Metadata, newVariableDefinition.DeprecatedV1Beta1Metadata) {
-			combinedVariable.DefinitionsConflict = ptr.To(true)
+			combinedVariable.DefinitionsConflict = new(true)
 		}
 	}
 	return combinedVariable

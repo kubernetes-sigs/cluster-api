@@ -323,7 +323,7 @@ func TestComputeControlPlaneInfrastructureMachineTemplate(t *testing.T) {
 		currentInfrastructureMachineTemplate := builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cluster1-template1").Build()
 
 		controlPlane := builder.ControlPlane(metav1.NamespaceDefault, "controlplane").Build()
-		err := contract.ControlPlane().MachineTemplate().InfrastructureRef().Set(controlPlane, ptr.To(contract.ObjToContractVersionedObjectReference(currentInfrastructureMachineTemplate)))
+		err := contract.ControlPlane().MachineTemplate().InfrastructureRef().Set(controlPlane, new(contract.ObjToContractVersionedObjectReference(currentInfrastructureMachineTemplate)))
 		g.Expect(err).ToNot(HaveOccurred())
 
 		// aggregating current cluster objects into ClusterState (simulating getCurrentState)
@@ -1653,7 +1653,7 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 									APIVersion: builder.InfrastructureGroupVersion.String(),
 									Manager:    "manager",
 									Operation:  "Apply",
-									Time:       ptr.To(metav1.Now()),
+									Time:       new(metav1.Now()),
 									FieldsType: "FieldsV1",
 								},
 							},
@@ -1830,12 +1830,12 @@ func TestComputeMachineDeployment(t *testing.T) {
 		{
 			Type:           corev1.NodeReady,
 			Status:         corev1.ConditionUnknown,
-			TimeoutSeconds: ptr.To(int32(5 * 60)),
+			TimeoutSeconds: new(int32(5 * 60)),
 		},
 		{
 			Type:           corev1.NodeReady,
 			Status:         corev1.ConditionFalse,
-			TimeoutSeconds: ptr.To(int32(5 * 60)),
+			TimeoutSeconds: new(int32(5 * 60)),
 		},
 	}
 
@@ -1843,16 +1843,16 @@ func TestComputeMachineDeployment(t *testing.T) {
 		{
 			Type:           controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition,
 			Status:         metav1.ConditionUnknown,
-			TimeoutSeconds: ptr.To(int32(5 * 60)),
+			TimeoutSeconds: new(int32(5 * 60)),
 		},
 		{
 			Type:           controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition,
 			Status:         metav1.ConditionFalse,
-			TimeoutSeconds: ptr.To(int32(5 * 60)),
+			TimeoutSeconds: new(int32(5 * 60)),
 		},
 	}
 
-	nodeTimeoutDuration := ptr.To(int32(1))
+	nodeTimeoutDuration := new(int32(1))
 
 	clusterClassFailureDomain := "A"
 	clusterClassDuration := int32(20)
@@ -1865,7 +1865,7 @@ func TestComputeMachineDeployment(t *testing.T) {
 	}
 	clusterClassHealthCheck := clusterv1.MachineDeploymentClassHealthCheck{
 		Remediation: clusterv1.MachineDeploymentClassHealthCheckRemediation{
-			MaxInFlight: ptr.To(intstr.FromInt32(5)),
+			MaxInFlight: new(intstr.FromInt32(5)),
 		},
 	}
 	clusterClassDeletionOrder := clusterv1.NewestMachineSetDeletionOrder
@@ -1931,7 +1931,7 @@ func TestComputeMachineDeployment(t *testing.T) {
 					Checks: clusterv1.MachineDeploymentClassHealthCheckChecks{
 						UnhealthyNodeConditions:    unhealthyNodeConditions,
 						UnhealthyMachineConditions: unhealthyMachineConditions,
-						NodeStartupTimeoutSeconds:  ptr.To(int32(1)),
+						NodeStartupTimeoutSeconds:  new(int32(1)),
 					},
 				},
 			},
@@ -1950,7 +1950,7 @@ func TestComputeMachineDeployment(t *testing.T) {
 	}
 	topologyHealthCheck := clusterv1.MachineDeploymentTopologyHealthCheck{
 		Remediation: clusterv1.MachineDeploymentTopologyHealthCheckRemediation{
-			MaxInFlight: ptr.To(intstr.FromInt32(1)),
+			MaxInFlight: new(intstr.FromInt32(1)),
 		},
 	}
 	topologyDeletionOrder := clusterv1.OldestMachineSetDeletionOrder
@@ -2140,7 +2140,7 @@ func TestComputeMachineDeployment(t *testing.T) {
 						Checks: clusterv1.MachineDeploymentClassHealthCheckChecks{
 							UnhealthyNodeConditions:    unhealthyNodeConditions,
 							UnhealthyMachineConditions: unhealthyMachineConditions,
-							NodeStartupTimeoutSeconds:  ptr.To(int32(1)),
+							NodeStartupTimeoutSeconds:  new(int32(1)),
 						},
 					},
 				},
@@ -2191,7 +2191,7 @@ func TestComputeMachineDeployment(t *testing.T) {
 						Checks: clusterv1.MachineDeploymentClassHealthCheckChecks{
 							UnhealthyNodeConditions:    unhealthyNodeConditions,
 							UnhealthyMachineConditions: unhealthyMachineConditions,
-							NodeStartupTimeoutSeconds:  ptr.To(int32(1)),
+							NodeStartupTimeoutSeconds:  new(int32(1)),
 						},
 					},
 				},
@@ -2356,7 +2356,7 @@ func TestComputeMachineDeployment(t *testing.T) {
 				name:                        "use machine deployment's spec.template.spec.version if one of the machine deployments is upgrading, concurrency limit reached",
 				upgradingMachineDeployments: []string{"upgrading-md1"},
 				upgradeConcurrency:          "1",
-				currentMDVersion:            ptr.To("v1.2.2"),
+				currentMDVersion:            new("v1.2.2"),
 				topologyVersion:             "v1.2.3",
 				upgradePlan:                 []string{"v1.2.3"},
 				expectedVersion:             "v1.2.2",
@@ -2365,7 +2365,7 @@ func TestComputeMachineDeployment(t *testing.T) {
 				name:                        "use cluster.spec.topology.version if one of the machine deployments is upgrading, concurrency limit not reached",
 				upgradingMachineDeployments: []string{"upgrading-md1"},
 				upgradeConcurrency:          "2",
-				currentMDVersion:            ptr.To("v1.2.2"),
+				currentMDVersion:            new("v1.2.2"),
 				topologyVersion:             "v1.2.3",
 				upgradePlan:                 []string{"v1.2.3"},
 				expectedVersion:             "v1.2.3",
@@ -2768,7 +2768,7 @@ func TestComputeMachinePool(t *testing.T) {
 				name:                  "use machine pool's spec.template.spec.version if one of the machine pools is upgrading, concurrency limit reached",
 				upgradingMachinePools: []string{"upgrading-mp1"},
 				upgradeConcurrency:    "1",
-				currentMPVersion:      ptr.To("v1.2.2"),
+				currentMPVersion:      new("v1.2.2"),
 				topologyVersion:       "v1.2.3",
 				upgradePlan:           []string{"v1.2.3"},
 				expectedVersion:       "v1.2.2",
@@ -2777,7 +2777,7 @@ func TestComputeMachinePool(t *testing.T) {
 				name:                  "use cluster.spec.topology.version if one of the machine pools is upgrading, concurrency limit not reached",
 				upgradingMachinePools: []string{"upgrading-mp1"},
 				upgradeConcurrency:    "2",
-				currentMPVersion:      ptr.To("v1.2.2"),
+				currentMPVersion:      new("v1.2.2"),
 				topologyVersion:       "v1.2.3",
 				upgradePlan:           []string{"v1.2.3"},
 				expectedVersion:       "v1.2.3",
@@ -2810,7 +2810,7 @@ func TestComputeMachinePool(t *testing.T) {
 						WithVersion(*tt.currentMPVersion).
 						WithStatus(clusterv1.MachinePoolStatus{
 							ObservedGeneration: 2,
-							Replicas:           ptr.To(int32(2)),
+							Replicas:           new(int32(2)),
 							Deprecated: &clusterv1.MachinePoolDeprecatedStatus{
 								V1Beta1: &clusterv1.MachinePoolV1Beta1DeprecatedStatus{
 									ReadyReplicas:     2,
@@ -3775,30 +3775,30 @@ func Test_computeMachineHealthCheck(t *testing.T) {
 			{
 				Type:           corev1.NodeReady,
 				Status:         corev1.ConditionUnknown,
-				TimeoutSeconds: ptr.To(int32(5 * 60)),
+				TimeoutSeconds: new(int32(5 * 60)),
 			},
 			{
 				Type:           corev1.NodeReady,
 				Status:         corev1.ConditionFalse,
-				TimeoutSeconds: ptr.To(int32(5 * 60)),
+				TimeoutSeconds: new(int32(5 * 60)),
 			},
 		},
 		UnhealthyMachineConditions: []clusterv1.UnhealthyMachineCondition{
 			{
 				Type:           controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition,
 				Status:         metav1.ConditionUnknown,
-				TimeoutSeconds: ptr.To(int32(5 * 60)),
+				TimeoutSeconds: new(int32(5 * 60)),
 			},
 			{
 				Type:           controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition,
 				Status:         metav1.ConditionFalse,
-				TimeoutSeconds: ptr.To(int32(5 * 60)),
+				TimeoutSeconds: new(int32(5 * 60)),
 			},
 		},
 		UnhealthyExpressions: []clusterv1.UnhealthyExpression{
 			{Expression: "node.has_condition('Ready','False')"},
 		},
-		NodeStartupTimeoutSeconds: ptr.To(int32(1)),
+		NodeStartupTimeoutSeconds: new(int32(1)),
 	}
 	selector := &metav1.LabelSelector{MatchLabels: map[string]string{
 		"foo": "bar",
@@ -3828,30 +3828,30 @@ func Test_computeMachineHealthCheck(t *testing.T) {
 					{
 						Type:           corev1.NodeReady,
 						Status:         corev1.ConditionUnknown,
-						TimeoutSeconds: ptr.To(int32(5 * 60)),
+						TimeoutSeconds: new(int32(5 * 60)),
 					},
 					{
 						Type:           corev1.NodeReady,
 						Status:         corev1.ConditionFalse,
-						TimeoutSeconds: ptr.To(int32(5 * 60)),
+						TimeoutSeconds: new(int32(5 * 60)),
 					},
 				},
 				UnhealthyMachineConditions: []clusterv1.UnhealthyMachineCondition{
 					{
 						Type:           controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition,
 						Status:         metav1.ConditionUnknown,
-						TimeoutSeconds: ptr.To(int32(5 * 60)),
+						TimeoutSeconds: new(int32(5 * 60)),
 					},
 					{
 						Type:           controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition,
 						Status:         metav1.ConditionFalse,
-						TimeoutSeconds: ptr.To(int32(5 * 60)),
+						TimeoutSeconds: new(int32(5 * 60)),
 					},
 				},
 				UnhealthyExpressions: []clusterv1.UnhealthyExpression{
 					{Expression: "node.has_condition('Ready','False')"},
 				},
-				NodeStartupTimeoutSeconds: ptr.To(int32(1)),
+				NodeStartupTimeoutSeconds: new(int32(1)),
 			},
 		},
 	}

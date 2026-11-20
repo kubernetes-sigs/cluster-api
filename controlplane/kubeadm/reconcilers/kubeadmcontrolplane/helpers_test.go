@@ -33,7 +33,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/resourceversion"
 	"k8s.io/client-go/tools/record"
-	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
@@ -342,7 +341,7 @@ func TestCloneConfigsAndGenerateMachineAndSyncMachines(t *testing.T) {
 						KubeletExtraArgs: []bootstrapv1.Arg{
 							{
 								Name:  "v",
-								Value: ptr.To("8"),
+								Value: new("8"),
 							},
 						},
 					},
@@ -888,8 +887,8 @@ func TestKubeadmControlPlaneReconciler_adoptKubeconfigSecret(t *testing.T) {
 		UID:                "5",
 		Kind:               "OtherController",
 		APIVersion:         clusterv1.GroupVersion.String(),
-		Controller:         ptr.To(true),
-		BlockOwnerDeletion: ptr.To(true),
+		Controller:         new(true),
+		BlockOwnerDeletion: new(true),
 	}
 
 	// A KubeadmConfig secret created by CAPI controllers with no owner references.
@@ -933,8 +932,8 @@ func TestKubeadmControlPlaneReconciler_adoptKubeconfigSecret(t *testing.T) {
 				UID:                kcp.UID,
 				Kind:               "KubeadmControlPlane",
 				APIVersion:         controlplanev1.GroupVersion.String(),
-				Controller:         ptr.To(true),
-				BlockOwnerDeletion: ptr.To(true),
+				Controller:         new(true),
+				BlockOwnerDeletion: new(true),
 			},
 		},
 		{
@@ -945,8 +944,8 @@ func TestKubeadmControlPlaneReconciler_adoptKubeconfigSecret(t *testing.T) {
 				UID:                kcp.UID,
 				Kind:               "KubeadmControlPlane",
 				APIVersion:         controlplanev1.GroupVersion.String(),
-				Controller:         ptr.To(true),
-				BlockOwnerDeletion: ptr.To(true),
+				Controller:         new(true),
+				BlockOwnerDeletion: new(true),
 			},
 		},
 		{

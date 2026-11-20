@@ -21,7 +21,6 @@ import (
 
 	. "github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/utils/ptr"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
@@ -103,7 +102,7 @@ func TestInfrastructureCluster(t *testing.T) {
 		failureDomains := []clusterv1.FailureDomain{
 			{
 				Name:         "domain1",
-				ControlPlane: ptr.To(true),
+				ControlPlane: new(true),
 				Attributes: map[string]string{
 					"key1": "value1",
 					"key2": "value2",
@@ -111,7 +110,7 @@ func TestInfrastructureCluster(t *testing.T) {
 			},
 			{
 				Name:         "domain2",
-				ControlPlane: ptr.To(false),
+				ControlPlane: new(false),
 				Attributes: map[string]string{
 					"key3": "value3",
 					"key4": "value4",
@@ -155,14 +154,14 @@ func TestInfrastructureCluster(t *testing.T) {
 		g.Expect(got).To(BeComparableTo([]clusterv1.FailureDomain{
 			{
 				Name:         "newdomain",
-				ControlPlane: ptr.To(true),
+				ControlPlane: new(true),
 				Attributes: map[string]string{
 					"attribute2": "value2",
 				},
 			},
 			{
 				Name:         "oldDomain",
-				ControlPlane: ptr.To(true),
+				ControlPlane: new(true),
 				Attributes: map[string]string{
 					"attribute1": "value1",
 				},
@@ -198,14 +197,14 @@ func TestInfrastructureCluster(t *testing.T) {
 		g.Expect(got).To(BeComparableTo([]clusterv1.FailureDomain{
 			{
 				Name:         "newdomain",
-				ControlPlane: ptr.To(true),
+				ControlPlane: new(true),
 				Attributes: map[string]string{
 					"attribute2": "value2",
 				},
 			},
 			{
 				Name:         "oldDomain",
-				ControlPlane: ptr.To(true),
+				ControlPlane: new(true),
 				Attributes: map[string]string{
 					"attribute1": "value1",
 				},

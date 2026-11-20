@@ -34,7 +34,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	intstrutil "k8s.io/apimachinery/pkg/util/intstr"
-	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -268,19 +267,19 @@ func patchKubeadmControlPlaneTemplate(ctx context.Context, obj runtime.Object, t
 		}
 		obj.Spec.Template.ObjectMeta.Annotations["top-level-annotation-1"] = "top-level-annotation-value-1"
 
-		obj.Spec.Template.Spec.KubeadmConfigSpec.ClusterConfiguration.APIServer.ExtraArgs = append(obj.Spec.Template.Spec.KubeadmConfigSpec.ClusterConfiguration.APIServer.ExtraArgs, bootstrapv1.Arg{Name: "v", Value: ptr.To("2")})
+		obj.Spec.Template.Spec.KubeadmConfigSpec.ClusterConfiguration.APIServer.ExtraArgs = append(obj.Spec.Template.Spec.KubeadmConfigSpec.ClusterConfiguration.APIServer.ExtraArgs, bootstrapv1.Arg{Name: "v", Value: new("2")})
 
-		obj.Spec.Template.Spec.KubeadmConfigSpec.ClusterConfiguration.ControllerManager.ExtraArgs = append(obj.Spec.Template.Spec.KubeadmConfigSpec.ClusterConfiguration.ControllerManager.ExtraArgs, bootstrapv1.Arg{Name: "v", Value: ptr.To("2")})
+		obj.Spec.Template.Spec.KubeadmConfigSpec.ClusterConfiguration.ControllerManager.ExtraArgs = append(obj.Spec.Template.Spec.KubeadmConfigSpec.ClusterConfiguration.ControllerManager.ExtraArgs, bootstrapv1.Arg{Name: "v", Value: new("2")})
 
-		obj.Spec.Template.Spec.KubeadmConfigSpec.ClusterConfiguration.Scheduler.ExtraArgs = append(obj.Spec.Template.Spec.KubeadmConfigSpec.ClusterConfiguration.Scheduler.ExtraArgs, bootstrapv1.Arg{Name: "v", Value: ptr.To("2")})
+		obj.Spec.Template.Spec.KubeadmConfigSpec.ClusterConfiguration.Scheduler.ExtraArgs = append(obj.Spec.Template.Spec.KubeadmConfigSpec.ClusterConfiguration.Scheduler.ExtraArgs, bootstrapv1.Arg{Name: "v", Value: new("2")})
 
 		obj.Spec.Template.Spec.KubeadmConfigSpec.InitConfiguration.NodeRegistration.KubeletExtraArgs = append(obj.Spec.Template.Spec.KubeadmConfigSpec.InitConfiguration.NodeRegistration.KubeletExtraArgs,
-			bootstrapv1.Arg{Name: "v", Value: ptr.To("2")},
-			bootstrapv1.Arg{Name: "node-labels", Value: ptr.To(fmt.Sprintf("kubernetesVersion=%s", strings.ReplaceAll(cpVersion, "+", "_")))},
+			bootstrapv1.Arg{Name: "v", Value: new("2")},
+			bootstrapv1.Arg{Name: "node-labels", Value: new(fmt.Sprintf("kubernetesVersion=%s", strings.ReplaceAll(cpVersion, "+", "_")))},
 		)
 		obj.Spec.Template.Spec.KubeadmConfigSpec.JoinConfiguration.NodeRegistration.KubeletExtraArgs = append(obj.Spec.Template.Spec.KubeadmConfigSpec.JoinConfiguration.NodeRegistration.KubeletExtraArgs,
-			bootstrapv1.Arg{Name: "v", Value: ptr.To("2")},
-			bootstrapv1.Arg{Name: "node-labels", Value: ptr.To(fmt.Sprintf("kubernetesVersion=%s", strings.ReplaceAll(cpVersion, "+", "_")))},
+			bootstrapv1.Arg{Name: "v", Value: new("2")},
+			bootstrapv1.Arg{Name: "node-labels", Value: new(fmt.Sprintf("kubernetesVersion=%s", strings.ReplaceAll(cpVersion, "+", "_")))},
 		)
 	}
 
@@ -390,7 +389,7 @@ func patchKubeadmConfigTemplate(_ context.Context, obj runtime.Object, templateV
 		}
 		obj.Spec.Template.Spec.JoinConfiguration.NodeRegistration.KubeletExtraArgs["v"] = "2"
 	case *bootstrapv1.KubeadmConfigTemplate:
-		obj.Spec.Template.Spec.JoinConfiguration.NodeRegistration.KubeletExtraArgs = append(obj.Spec.Template.Spec.JoinConfiguration.NodeRegistration.KubeletExtraArgs, bootstrapv1.Arg{Name: "v", Value: ptr.To("2")})
+		obj.Spec.Template.Spec.JoinConfiguration.NodeRegistration.KubeletExtraArgs = append(obj.Spec.Template.Spec.JoinConfiguration.NodeRegistration.KubeletExtraArgs, bootstrapv1.Arg{Name: "v", Value: new("2")})
 	}
 
 	files := []fileVariable{}
@@ -662,7 +661,7 @@ func (h *ExtensionHandlers) DiscoverVariables(ctx context.Context, _ *runtimehoo
 	resp.Variables = []clusterv1.ClusterClassVariable{
 		{
 			Name:     "kubeadmControlPlaneMaxSurge",
-			Required: ptr.To(false),
+			Required: new(false),
 			Schema: clusterv1.VariableSchema{
 				OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 					Type:        "string",
@@ -680,7 +679,7 @@ func (h *ExtensionHandlers) DiscoverVariables(ctx context.Context, _ *runtimehoo
 		},
 		{
 			Name:     "etcdImageTag",
-			Required: ptr.To(false),
+			Required: new(false),
 			Schema: clusterv1.VariableSchema{
 				OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 					Type:    "string",
@@ -690,7 +689,7 @@ func (h *ExtensionHandlers) DiscoverVariables(ctx context.Context, _ *runtimehoo
 		},
 		{
 			Name:     "files",
-			Required: ptr.To(false),
+			Required: new(false),
 			Schema: clusterv1.VariableSchema{
 				OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 					Type: "array",
@@ -713,7 +712,7 @@ func (h *ExtensionHandlers) DiscoverVariables(ctx context.Context, _ *runtimehoo
 		},
 		{
 			Name:     "preKubeadmCommands",
-			Required: ptr.To(false),
+			Required: new(false),
 			Schema: clusterv1.VariableSchema{
 				OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 					Type: "array",
@@ -725,7 +724,7 @@ func (h *ExtensionHandlers) DiscoverVariables(ctx context.Context, _ *runtimehoo
 		},
 		{
 			Name:     "kubeadmConfigTemplateAnnotations",
-			Required: ptr.To(false),
+			Required: new(false),
 			Schema: clusterv1.VariableSchema{
 				OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 					Type: "object",
@@ -738,7 +737,7 @@ func (h *ExtensionHandlers) DiscoverVariables(ctx context.Context, _ *runtimehoo
 		// This variable must be set in the Cluster as it has no default value and is required.
 		{
 			Name:     "imageRepository",
-			Required: ptr.To(true),
+			Required: new(true),
 			Schema: clusterv1.VariableSchema{
 				OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 					Type:    "string",

@@ -338,12 +338,12 @@ func TestReconcileBootstrap(t *testing.T) {
 							Kind:     "GenericBootstrapConfig",
 							Name:     "bootstrap-config1",
 						},
-						DataSecretName: ptr.To("secret-data"),
+						DataSecretName: new("secret-data"),
 					},
 				},
 				Status: clusterv1.MachineStatus{
 					Initialization: clusterv1.MachineInitializationStatus{
-						BootstrapDataSecretCreated: ptr.To(true),
+						BootstrapDataSecretCreated: new(true),
 					},
 				},
 			},
@@ -375,7 +375,7 @@ func TestReconcileBootstrap(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:              "deleting-machine",
 					Namespace:         metav1.NamespaceDefault,
-					DeletionTimestamp: ptr.To(metav1.Now()),
+					DeletionTimestamp: new(metav1.Now()),
 					Finalizers:        []string{"foo"},
 				},
 				Spec: clusterv1.MachineSpec{
@@ -385,12 +385,12 @@ func TestReconcileBootstrap(t *testing.T) {
 							Kind:     "GenericBootstrapConfig",
 							Name:     "bootstrap-config1",
 						},
-						DataSecretName: ptr.To("secret-data"),
+						DataSecretName: new("secret-data"),
 					},
 				},
 				Status: clusterv1.MachineStatus{
 					Initialization: clusterv1.MachineInitializationStatus{
-						BootstrapDataSecretCreated: ptr.To(true),
+						BootstrapDataSecretCreated: new(true),
 					},
 				},
 			},
@@ -907,7 +907,7 @@ func TestReconcileInfrastructure(t *testing.T) {
 				},
 				Status: clusterv1.MachineStatus{
 					Initialization: clusterv1.MachineInitializationStatus{
-						InfrastructureProvisioned: ptr.To(true),
+						InfrastructureProvisioned: new(true),
 					},
 					Addresses: []clusterv1.MachineAddress{
 						{
@@ -971,7 +971,7 @@ func TestReconcileInfrastructure(t *testing.T) {
 				},
 				Status: clusterv1.MachineStatus{
 					Initialization: clusterv1.MachineInitializationStatus{
-						InfrastructureProvisioned: ptr.To(true),
+						InfrastructureProvisioned: new(true),
 					},
 					Addresses: []clusterv1.MachineAddress{
 						{
@@ -1033,7 +1033,7 @@ func TestReconcileInfrastructure(t *testing.T) {
 				},
 				Status: clusterv1.MachineStatus{
 					Initialization: clusterv1.MachineInitializationStatus{
-						InfrastructureProvisioned: ptr.To(true),
+						InfrastructureProvisioned: new(true),
 					},
 				},
 			},
@@ -1063,7 +1063,7 @@ func TestReconcileInfrastructure(t *testing.T) {
 				},
 				Status: clusterv1.MachineStatus{
 					Initialization: clusterv1.MachineInitializationStatus{
-						InfrastructureProvisioned: ptr.To(true),
+						InfrastructureProvisioned: new(true),
 					},
 				},
 			},
@@ -1086,7 +1086,7 @@ func TestReconcileInfrastructure(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:              "deleting-machine",
 					Namespace:         metav1.NamespaceDefault,
-					DeletionTimestamp: ptr.To(metav1.Now()),
+					DeletionTimestamp: new(metav1.Now()),
 					Finalizers:        []string{"foo"},
 				},
 				Spec: clusterv1.MachineSpec{
@@ -1098,7 +1098,7 @@ func TestReconcileInfrastructure(t *testing.T) {
 				},
 				Status: clusterv1.MachineStatus{
 					Initialization: clusterv1.MachineInitializationStatus{
-						InfrastructureProvisioned: ptr.To(false),
+						InfrastructureProvisioned: new(false),
 					},
 				},
 			},
@@ -1115,7 +1115,7 @@ func TestReconcileInfrastructure(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:              "deleting-machine",
 					Namespace:         metav1.NamespaceDefault,
-					DeletionTimestamp: ptr.To(metav1.Now()),
+					DeletionTimestamp: new(metav1.Now()),
 					Finalizers:        []string{"foo"},
 				},
 				Spec: clusterv1.MachineSpec{
@@ -1127,7 +1127,7 @@ func TestReconcileInfrastructure(t *testing.T) {
 				},
 				Status: clusterv1.MachineStatus{
 					Initialization: clusterv1.MachineInitializationStatus{
-						InfrastructureProvisioned: ptr.To(true),
+						InfrastructureProvisioned: new(true),
 					},
 				},
 			},

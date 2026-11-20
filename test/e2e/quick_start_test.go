@@ -90,7 +90,7 @@ var _ = Describe("When following the Cluster API quick-start with ClusterClass [
 			BootstrapClusterProxy: bootstrapClusterProxy,
 			ArtifactFolder:        artifactFolder,
 			SkipCleanup:           skipCleanup,
-			Flavor:                ptr.To("topology"),
+			Flavor:                new("topology"),
 			PostMachinesProvisioned: func(proxy framework.ClusterProxy, namespace, clusterName string) {
 				// This check ensures that owner references are resilient - i.e. correctly re-reconciled - when removed.
 				By("Checking that owner references are resilient")
@@ -145,7 +145,7 @@ var _ = Describe("When following the Cluster API quick-start with v1beta1 Cluste
 			BootstrapClusterProxy: bootstrapClusterProxy,
 			ArtifactFolder:        artifactFolder,
 			SkipCleanup:           skipCleanup,
-			Flavor:                ptr.To("topology-runtimesdk-v1beta1"),
+			Flavor:                new("topology-runtimesdk-v1beta1"),
 			// The runtime extension gets deployed to the test-extension-system namespace and is exposed
 			// by the test-extension-webhook-service.
 			// The below values are used when creating the cluster-wide ExtensionConfig to refer
@@ -179,7 +179,7 @@ var _ = Describe("When following the Cluster API quick-start with IPv6 [IPv6]", 
 			BootstrapClusterProxy: bootstrapClusterProxy,
 			ArtifactFolder:        artifactFolder,
 			SkipCleanup:           skipCleanup,
-			Flavor:                ptr.To("ipv6"),
+			Flavor:                new("ipv6"),
 		}
 	})
 })
@@ -192,7 +192,7 @@ var _ = Describe("When following the Cluster API quick-start with Ignition", fun
 			BootstrapClusterProxy: bootstrapClusterProxy,
 			ArtifactFolder:        artifactFolder,
 			SkipCleanup:           skipCleanup,
-			Flavor:                ptr.To("ignition"),
+			Flavor:                new("ignition"),
 		}
 	})
 })
@@ -205,7 +205,7 @@ var _ = Describe("When following the Cluster API quick-start with dualstack and 
 			BootstrapClusterProxy: bootstrapClusterProxy,
 			ArtifactFolder:        artifactFolder,
 			SkipCleanup:           skipCleanup,
-			Flavor:                ptr.To("topology-dualstack-ipv4-primary"),
+			Flavor:                new("topology-dualstack-ipv4-primary"),
 			PostMachinesProvisioned: func(proxy framework.ClusterProxy, namespace, clusterName string) {
 				By("Running kubetest dualstack tests")
 				// Start running the dualstack test suite from kubetest.
@@ -231,7 +231,7 @@ var _ = Describe("When following the Cluster API quick-start with dualstack and 
 			BootstrapClusterProxy: bootstrapClusterProxy,
 			ArtifactFolder:        artifactFolder,
 			SkipCleanup:           skipCleanup,
-			Flavor:                ptr.To("topology-dualstack-ipv6-primary"),
+			Flavor:                new("topology-dualstack-ipv6-primary"),
 			PostMachinesProvisioned: func(proxy framework.ClusterProxy, namespace, clusterName string) {
 				By("Running kubetest dualstack tests")
 				// Start running the dualstack test suite from kubetest.
@@ -257,7 +257,7 @@ var _ = Describe("When following the Cluster API quick-start with ClusterClass w
 			BootstrapClusterProxy: bootstrapClusterProxy,
 			ArtifactFolder:        artifactFolder,
 			SkipCleanup:           skipCleanup,
-			Flavor:                ptr.To("topology-kcp-only"),
+			Flavor:                new("topology-kcp-only"),
 			// Note: the used template is not using the corresponding variable
 			WorkerMachineCount: ptr.To[int64](0),
 		}

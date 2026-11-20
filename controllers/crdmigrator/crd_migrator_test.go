@@ -37,7 +37,6 @@ import (
 	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/apimachinery/pkg/util/sets"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
-	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	ctrlcache "sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -434,8 +433,8 @@ func createManagerWithCRDMigrator(skipCRDMigrationPhases []Phase, crdMigratorCon
 	clusterSecretCacheSelector := labels.NewSelector().Add(*req)
 	options := manager.Options{
 		Controller: config.Controller{
-			SkipNameValidation: ptr.To(true), // Has to be skipped as we create multiple controllers with the same name.
-			UsePriorityQueue:   ptr.To(features.Gates.Enabled(features.PriorityQueue)),
+			SkipNameValidation: new(true), // Has to be skipped as we create multiple controllers with the same name.
+			UsePriorityQueue:   new(features.Gates.Enabled(features.PriorityQueue)),
 		},
 		Scheme: scheme,
 		Metrics: metricsserver.Options{

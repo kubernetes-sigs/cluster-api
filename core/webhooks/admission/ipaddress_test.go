@@ -23,7 +23,6 @@ import (
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
@@ -54,13 +53,13 @@ func TestIPAddressValidateCreate(t *testing.T) {
 				ClaimRef: ipamv1.IPAddressClaimReference{Name: claim.Name},
 				PoolRef:  claim.Spec.PoolRef,
 				Address:  "10.0.0.1",
-				Prefix:   ptr.To(int32(24)),
+				Prefix:   new(int32(24)),
 				Gateway:  "10.0.0.254",
 			},
 		}
 		if v6 {
 			addr.Spec.Address = "42::1"
-			addr.Spec.Prefix = ptr.To(int32(64))
+			addr.Spec.Prefix = new(int32(64))
 			addr.Spec.Gateway = "42::ffff"
 		}
 		fn(&addr)
@@ -88,7 +87,7 @@ func TestIPAddressValidateCreate(t *testing.T) {
 		{
 			name: "a prefix that is negative should be rejected",
 			ip: getAddress(false, func(addr *ipamv1.IPAddress) {
-				addr.Spec.Prefix = ptr.To(int32(-1))
+				addr.Spec.Prefix = new(int32(-1))
 			}),
 			extraObjs: []client.Object{claim},
 			expectErr: true,
@@ -96,7 +95,7 @@ func TestIPAddressValidateCreate(t *testing.T) {
 		{
 			name: "a prefix that is too large for v4 should be rejected",
 			ip: getAddress(false, func(addr *ipamv1.IPAddress) {
-				addr.Spec.Prefix = ptr.To(int32(64))
+				addr.Spec.Prefix = new(int32(64))
 			}),
 			extraObjs: []client.Object{claim},
 			expectErr: true,
@@ -104,7 +103,7 @@ func TestIPAddressValidateCreate(t *testing.T) {
 		{
 			name: "a prefix that is too large for v6 should be rejected",
 			ip: getAddress(true, func(addr *ipamv1.IPAddress) {
-				addr.Spec.Prefix = ptr.To(int32(256))
+				addr.Spec.Prefix = new(int32(256))
 			}),
 			extraObjs: []client.Object{claim},
 			expectErr: true,
@@ -171,7 +170,7 @@ func TestIPAddressValidateUpdate(t *testing.T) {
 				ClaimRef: ipamv1.IPAddressClaimReference{},
 				PoolRef:  ipamv1.IPPoolReference{},
 				Address:  "10.0.0.1",
-				Prefix:   ptr.To(int32(24)),
+				Prefix:   new(int32(24)),
 				Gateway:  "10.0.0.254",
 			},
 		}

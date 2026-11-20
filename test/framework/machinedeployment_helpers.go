@@ -388,9 +388,9 @@ func UpgradeMachineDeploymentInPlaceMutableFieldsAndWait(ctx context.Context, in
 			deployment.Spec.Template.Annotations = map[string]string{}
 		}
 		deployment.Spec.Template.Annotations["new-annotation"] = "new-annotation-value"
-		deployment.Spec.Template.Spec.Deletion.NodeDrainTimeoutSeconds = ptr.To(rand.Int31n(20))        //nolint:gosec
-		deployment.Spec.Template.Spec.Deletion.NodeDeletionTimeoutSeconds = ptr.To(rand.Int31n(20))     //nolint:gosec
-		deployment.Spec.Template.Spec.Deletion.NodeVolumeDetachTimeoutSeconds = ptr.To(rand.Int31n(20)) //nolint:gosec
+		deployment.Spec.Template.Spec.Deletion.NodeDrainTimeoutSeconds = new(rand.Int31n(20))        //nolint:gosec
+		deployment.Spec.Template.Spec.Deletion.NodeDeletionTimeoutSeconds = new(rand.Int31n(20))     //nolint:gosec
+		deployment.Spec.Template.Spec.Deletion.NodeVolumeDetachTimeoutSeconds = new(rand.Int31n(20)) //nolint:gosec
 		Eventually(func() error {
 			return patchHelper.Patch(ctx, deployment)
 		}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to patch in-place mutable fields of MachineDeployment %s", klog.KObj(deployment))
@@ -521,7 +521,7 @@ func ScaleAndWaitMachineDeployment(ctx context.Context, input ScaleAndWaitMachin
 	log.Logf("Scaling machine deployment %s from %d to %d replicas", klog.KObj(input.MachineDeployment), *input.MachineDeployment.Spec.Replicas, input.Replicas)
 	patchHelper, err := patch.NewHelper(input.MachineDeployment, input.ClusterProxy.GetClient())
 	Expect(err).ToNot(HaveOccurred())
-	input.MachineDeployment.Spec.Replicas = ptr.To[int32](input.Replicas)
+	input.MachineDeployment.Spec.Replicas = new(input.Replicas)
 	Eventually(func() error {
 		return patchHelper.Patch(ctx, input.MachineDeployment)
 	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to scale machine deployment %s", klog.KObj(input.MachineDeployment))
@@ -579,7 +579,7 @@ func ScaleAndWaitMachineDeploymentV1Beta1(ctx context.Context, input ScaleAndWai
 	log.Logf("Scaling machine deployment %s from %d to %d replicas", klog.KObj(input.MachineDeployment), *input.MachineDeployment.Spec.Replicas, input.Replicas)
 	patchHelper, err := patch.NewHelper(input.MachineDeployment, input.ClusterProxy.GetClient())
 	Expect(err).ToNot(HaveOccurred())
-	input.MachineDeployment.Spec.Replicas = ptr.To[int32](input.Replicas)
+	input.MachineDeployment.Spec.Replicas = new(input.Replicas)
 	Eventually(func() error {
 		return patchHelper.Patch(ctx, input.MachineDeployment)
 	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to scale machine deployment %s", klog.KObj(input.MachineDeployment))
@@ -642,7 +642,7 @@ func ScaleAndWaitMachineDeploymentTopology(ctx context.Context, input ScaleAndWa
 	}
 	patchHelper, err := patch.NewHelper(input.Cluster, input.ClusterProxy.GetClient())
 	Expect(err).ToNot(HaveOccurred())
-	mdTopology.Replicas = ptr.To[int32](input.Replicas)
+	mdTopology.Replicas = new(input.Replicas)
 	input.Cluster.Spec.Topology.Workers.MachineDeployments[0] = mdTopology
 	Eventually(func() error {
 		return patchHelper.Patch(ctx, input.Cluster)
@@ -721,7 +721,7 @@ func ScaleAndWaitMachineDeploymentTopologyV1Beta1(ctx context.Context, input Sca
 	}
 	patchHelper, err := patch.NewHelper(input.Cluster, input.ClusterProxy.GetClient())
 	Expect(err).ToNot(HaveOccurred())
-	mdTopology.Replicas = ptr.To[int32](input.Replicas)
+	mdTopology.Replicas = new(input.Replicas)
 	input.Cluster.Spec.Topology.Workers.MachineDeployments[0] = mdTopology
 	Eventually(func() error {
 		return patchHelper.Patch(ctx, input.Cluster)

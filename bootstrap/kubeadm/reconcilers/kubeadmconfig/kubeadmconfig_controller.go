@@ -306,7 +306,7 @@ func (r *Reconciler) reconcile(ctx context.Context, scope *Scope, cluster *clust
 	// Reconcile status for machines that already have a secret reference, but our status isn't up to date.
 	// This case solves the pivoting scenario (or a backup restore) which doesn't preserve the status subresource on objects.
 	case configOwner.DataSecretName() != nil && (!ptr.Deref(config.Status.Initialization.DataSecretCreated, false) || config.Status.DataSecretName == ""):
-		config.Status.Initialization.DataSecretCreated = ptr.To(true)
+		config.Status.Initialization.DataSecretCreated = new(true)
 		config.Status.DataSecretName = *configOwner.DataSecretName()
 		v1beta1conditions.MarkTrue(config, bootstrapv1.DataSecretAvailableV1Beta1Condition)
 		conditions.Set(scope.Config, metav1.Condition{
@@ -714,7 +714,7 @@ func (r *Reconciler) joinWorker(ctx context.Context, scope *Scope) (ctrl.Result,
 	// is initialized by ClusterAPI.
 	joinConfiguration := scope.Config.Spec.JoinConfiguration.DeepCopy()
 	if !taints.HasTaint(ptr.Deref(joinConfiguration.NodeRegistration.Taints, []corev1.Taint{}), clusterv1.NodeUninitializedTaint) {
-		joinConfiguration.NodeRegistration.Taints = ptr.To(append(ptr.Deref(joinConfiguration.NodeRegistration.Taints, []corev1.Taint{}), clusterv1.NodeUninitializedTaint))
+		joinConfiguration.NodeRegistration.Taints = new(append(ptr.Deref(joinConfiguration.NodeRegistration.Taints, []corev1.Taint{}), clusterv1.NodeUninitializedTaint))
 	}
 
 	// NOTE: It is not required to provide in input ClusterConfiguration because only clusterConfiguration.APIServer.TimeoutForControlPlane
@@ -1324,7 +1324,7 @@ func (r *Reconciler) reconcileDiscovery(ctx context.Context, cluster *clusterv1.
 	// If the BootstrapToken does not contain any CACertHashes then force skip CA Verification
 	if len(config.Spec.JoinConfiguration.Discovery.BootstrapToken.CACertHashes) == 0 {
 		log.Info("No CAs were provided. Falling back to insecure discover method by skipping CA Cert validation")
-		config.Spec.JoinConfiguration.Discovery.BootstrapToken.UnsafeSkipCAVerification = ptr.To(true)
+		config.Spec.JoinConfiguration.Discovery.BootstrapToken.UnsafeSkipCAVerification = new(true)
 		updated = true
 	}
 
@@ -1413,22 +1413,22 @@ func (r *Reconciler) computeClusterConfigurationAndAdditionalData(cluster *clust
 	}
 
 	// Use Cluster.Name
-	data.ClusterName = ptr.To(cluster.Name)
+	data.ClusterName = new(cluster.Name)
 
 	// Use ClusterNetwork settings, if defined
 	if cluster.Spec.ClusterNetwork.ServiceDomain != "" {
-		data.DNSDomain = ptr.To(cluster.Spec.ClusterNetwork.ServiceDomain)
+		data.DNSDomain = new(cluster.Spec.ClusterNetwork.ServiceDomain)
 	}
 	if len(cluster.Spec.ClusterNetwork.Services.CIDRBlocks) > 0 {
-		data.ServiceSubnet = ptr.To(cluster.Spec.ClusterNetwork.Services.String())
+		data.ServiceSubnet = new(cluster.Spec.ClusterNetwork.Services.String())
 	}
 	if len(cluster.Spec.ClusterNetwork.Pods.CIDRBlocks) > 0 {
-		data.PodSubnet = ptr.To(cluster.Spec.ClusterNetwork.Pods.String())
+		data.PodSubnet = new(cluster.Spec.ClusterNetwork.Pods.String())
 	}
 
 	// Use Version from machine, if defined
 	if machine.Spec.Version != "" {
-		data.KubernetesVersion = ptr.To(machine.Spec.Version)
+		data.KubernetesVersion = new(machine.Spec.Version)
 	}
 
 	// Use ControlPlaneComponentHealthCheckSeconds from init configuration
@@ -1464,7 +1464,7 @@ func (r *Reconciler) storeBootstrapData(ctx context.Context, scope *Scope, data 
 					Kind:       "KubeadmConfig",
 					Name:       scope.Config.Name,
 					UID:        scope.Config.UID,
-					Controller: ptr.To(true),
+					Controller: new(true),
 				},
 			},
 		},
@@ -1487,7 +1487,7 @@ func (r *Reconciler) storeBootstrapData(ctx context.Context, scope *Scope, data 
 		}
 	}
 	scope.Config.Status.DataSecretName = secret.Name
-	scope.Config.Status.Initialization.DataSecretCreated = ptr.To(true)
+	scope.Config.Status.Initialization.DataSecretCreated = new(true)
 	v1beta1conditions.MarkTrue(scope.Config, bootstrapv1.DataSecretAvailableV1Beta1Condition)
 	conditions.Set(scope.Config, metav1.Condition{
 		Type:   bootstrapv1.KubeadmConfigDataSecretAvailableCondition,
@@ -1514,7 +1514,7 @@ func (r *Reconciler) ensureBootstrapSecretOwnersRef(ctx context.Context, scope *
 		Kind:       "KubeadmConfig",
 		UID:        scope.Config.UID,
 		Name:       scope.Config.Name,
-		Controller: ptr.To(true),
+		Controller: new(true),
 	}
 
 	// No op if ownership is already set and up to date.

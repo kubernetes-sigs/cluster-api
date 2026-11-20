@@ -99,10 +99,10 @@ func TestKubeVersionToKubeadmAPIGroupVersion(t *testing.T) {
 func TestMarshalClusterConfigurationForVersion(t *testing.T) {
 	data := &upstream.AdditionalData{
 		// KubernetesVersion is going to be set on a test bases.
-		ClusterName:                             ptr.To("mycluster"),
-		DNSDomain:                               ptr.To("myDNSDomain"),
-		ServiceSubnet:                           ptr.To("myServiceSubnet"),
-		PodSubnet:                               ptr.To("myPodSubnet"),
+		ClusterName:                             new("mycluster"),
+		DNSDomain:                               new("myDNSDomain"),
+		ServiceSubnet:                           new("myServiceSubnet"),
+		PodSubnet:                               new("myPodSubnet"),
 		ControlPlaneComponentHealthCheckSeconds: ptr.To[int32](30),
 	}
 
@@ -146,7 +146,7 @@ func TestMarshalClusterConfigurationForVersion(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			data.KubernetesVersion = ptr.To(fmt.Sprintf("v%s", tt.args.version.String()))
+			data.KubernetesVersion = new(fmt.Sprintf("v%s", tt.args.version.String()))
 			got, err := MarshalClusterConfigurationForVersion(tt.args.capiObj, tt.args.version, data)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
@@ -294,11 +294,11 @@ func TestUnmarshalClusterConfiguration(t *testing.T) {
 				ControlPlaneEndpoint: "myControlPlaneEndpoint:6443",
 			},
 			wantUpstreamData: &upstream.AdditionalData{
-				KubernetesVersion: ptr.To("v1.31.1"),
-				ClusterName:       ptr.To("mycluster"),
-				DNSDomain:         ptr.To("myDNSDomain"),
-				ServiceSubnet:     ptr.To("myServiceSubnet"),
-				PodSubnet:         ptr.To("myPodSubnet"),
+				KubernetesVersion: new("v1.31.1"),
+				ClusterName:       new("mycluster"),
+				DNSDomain:         new("myDNSDomain"),
+				ServiceSubnet:     new("myServiceSubnet"),
+				PodSubnet:         new("myPodSubnet"),
 			},
 			wantErr: false,
 		},

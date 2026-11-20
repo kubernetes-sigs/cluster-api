@@ -271,10 +271,10 @@ func ScaleSpec(ctx context.Context, inputGetter func() ScaleSpecInput) {
 			input.AdditionalClusterClassCount, ptr.To[int64](0),
 		)
 		deployClusterInSeparateNamespaces = *cmp.Or(variableAsBool(input.E2EConfig.GetVariableOrEmpty(scaleDeployClusterInSeparateNamespaces)),
-			input.DeployClusterInSeparateNamespaces, ptr.To[bool](false),
+			input.DeployClusterInSeparateNamespaces, new(false),
 		)
 		useCrossNamespaceClusterClass := *cmp.Or(variableAsBool(input.E2EConfig.GetVariableOrEmpty(scaleUseCrossNamespaceClusterClass)),
-			input.UseCrossNamespaceClusterClass, ptr.To[bool](false),
+			input.UseCrossNamespaceClusterClass, new(false),
 		)
 		if useCrossNamespaceClusterClass {
 			Expect(deployClusterInSeparateNamespaces).To(BeTrue(), "deployClusterInSeparateNamespaces must be "+
@@ -1063,7 +1063,7 @@ func variableAsInt64(variableValue string) *int64 {
 	variableValueInt, err := strconv.ParseInt(variableValue, 10, 64)
 	Expect(err).ToNot(HaveOccurred())
 
-	return ptr.To[int64](variableValueInt)
+	return new(variableValueInt)
 }
 
 func variableAsBool(variableValue string) *bool {
@@ -1074,5 +1074,5 @@ func variableAsBool(variableValue string) *bool {
 	variableValueBool, err := strconv.ParseBool(variableValue)
 	Expect(err).ToNot(HaveOccurred())
 
-	return ptr.To[bool](variableValueBool)
+	return new(variableValueBool)
 }

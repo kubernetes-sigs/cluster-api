@@ -25,7 +25,6 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
@@ -53,7 +52,7 @@ func TestRequestItemBuilder(t *testing.T) {
 						APIVersion: builder.InfrastructureGroupVersion.String(),
 						Manager:    "manager",
 						Operation:  "Apply",
-						Time:       ptr.To(metav1.Now()),
+						Time:       new(metav1.Now()),
 						FieldsType: "FieldsV1",
 					},
 				})

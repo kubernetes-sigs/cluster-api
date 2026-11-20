@@ -434,7 +434,7 @@ func (c *ControlPlaneContract) IsScaling(obj *unstructured.Unstructured, contrac
 			//     If before/after of the field is the same (i.e. 0), there is no diff and thus also no patch to set it to 0.
 			unavailableReplicas = ptr.To[int64](0)
 		}
-		availableReplicas = ptr.To(*desiredReplicas - int32(*unavailableReplicas))
+		availableReplicas = new(*desiredReplicas - int32(*unavailableReplicas))
 	} else {
 		availableReplicas, err = c.AvailableReplicas().Get(obj)
 		if err != nil {

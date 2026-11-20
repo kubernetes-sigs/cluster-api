@@ -80,9 +80,9 @@ func Test_setReplicas(t *testing.T) {
 				fakeMachineSet("ms3"),
 			},
 			expectReplicas:          9,
-			expectReadyReplicas:     ptr.To(int32(7)),
-			expectAvailableReplicas: ptr.To(int32(5)),
-			expectUpToDateReplicas:  ptr.To(int32(4)),
+			expectReadyReplicas:     new(int32(7)),
+			expectAvailableReplicas: new(int32(5)),
+			expectUpToDateReplicas:  new(int32(4)),
 			expectVersions: []clusterv1.StatusVersion{
 				{Version: "v1.31.1", Replicas: 4},
 				{Version: "v1.32.0", Replicas: 5},
@@ -136,7 +136,7 @@ func Test_setAvailableCondition(t *testing.T) {
 		{
 			name: "status.v1beta2 not set",
 			machineDeployment: &clusterv1.MachineDeployment{
-				Spec: clusterv1.MachineDeploymentSpec{Replicas: ptr.To(int32(5))},
+				Spec: clusterv1.MachineDeploymentSpec{Replicas: new(int32(5))},
 			},
 			getAndAdoptMachineSetsForDeploymentSucceeded: true,
 			expectCondition: metav1.Condition{
@@ -150,18 +150,18 @@ func Test_setAvailableCondition(t *testing.T) {
 			name: "all the expected replicas are available",
 			machineDeployment: &clusterv1.MachineDeployment{
 				Spec: clusterv1.MachineDeploymentSpec{
-					Replicas: ptr.To(int32(5)),
+					Replicas: new(int32(5)),
 					Rollout: clusterv1.MachineDeploymentRolloutSpec{
 						Strategy: clusterv1.MachineDeploymentRolloutStrategy{
 							Type: clusterv1.RollingUpdateMachineDeploymentStrategyType,
 							RollingUpdate: clusterv1.MachineDeploymentRolloutStrategyRollingUpdate{
-								MaxSurge:       ptr.To(intstr.FromInt32(1)),
-								MaxUnavailable: ptr.To(intstr.FromInt32(0)),
+								MaxSurge:       new(intstr.FromInt32(1)),
+								MaxUnavailable: new(intstr.FromInt32(0)),
 							},
 						},
 					},
 				},
-				Status: clusterv1.MachineDeploymentStatus{AvailableReplicas: ptr.To(int32(5))},
+				Status: clusterv1.MachineDeploymentStatus{AvailableReplicas: new(int32(5))},
 			},
 			getAndAdoptMachineSetsForDeploymentSucceeded: true,
 			expectCondition: metav1.Condition{
@@ -174,18 +174,18 @@ func Test_setAvailableCondition(t *testing.T) {
 			name: "some replicas are not available, but within MaxUnavailable range",
 			machineDeployment: &clusterv1.MachineDeployment{
 				Spec: clusterv1.MachineDeploymentSpec{
-					Replicas: ptr.To(int32(5)),
+					Replicas: new(int32(5)),
 					Rollout: clusterv1.MachineDeploymentRolloutSpec{
 						Strategy: clusterv1.MachineDeploymentRolloutStrategy{
 							Type: clusterv1.RollingUpdateMachineDeploymentStrategyType,
 							RollingUpdate: clusterv1.MachineDeploymentRolloutStrategyRollingUpdate{
-								MaxSurge:       ptr.To(intstr.FromInt32(1)),
-								MaxUnavailable: ptr.To(intstr.FromInt32(1)),
+								MaxSurge:       new(intstr.FromInt32(1)),
+								MaxUnavailable: new(intstr.FromInt32(1)),
 							},
 						},
 					},
 				},
-				Status: clusterv1.MachineDeploymentStatus{AvailableReplicas: ptr.To(int32(4))},
+				Status: clusterv1.MachineDeploymentStatus{AvailableReplicas: new(int32(4))},
 			},
 			getAndAdoptMachineSetsForDeploymentSucceeded: true,
 			expectCondition: metav1.Condition{
@@ -198,18 +198,18 @@ func Test_setAvailableCondition(t *testing.T) {
 			name: "some replicas are not available, more than MaxUnavailable",
 			machineDeployment: &clusterv1.MachineDeployment{
 				Spec: clusterv1.MachineDeploymentSpec{
-					Replicas: ptr.To(int32(5)),
+					Replicas: new(int32(5)),
 					Rollout: clusterv1.MachineDeploymentRolloutSpec{
 						Strategy: clusterv1.MachineDeploymentRolloutStrategy{
 							Type: clusterv1.RollingUpdateMachineDeploymentStrategyType,
 							RollingUpdate: clusterv1.MachineDeploymentRolloutStrategyRollingUpdate{
-								MaxSurge:       ptr.To(intstr.FromInt32(1)),
-								MaxUnavailable: ptr.To(intstr.FromInt32(1)),
+								MaxSurge:       new(intstr.FromInt32(1)),
+								MaxUnavailable: new(intstr.FromInt32(1)),
 							},
 						},
 					},
 				},
-				Status: clusterv1.MachineDeploymentStatus{AvailableReplicas: ptr.To(int32(3))},
+				Status: clusterv1.MachineDeploymentStatus{AvailableReplicas: new(int32(3))},
 			},
 			getAndAdoptMachineSetsForDeploymentSucceeded: true,
 			expectCondition: metav1.Condition{
@@ -223,21 +223,21 @@ func Test_setAvailableCondition(t *testing.T) {
 			name: "When deleting, don't show required replicas",
 			machineDeployment: &clusterv1.MachineDeployment{
 				ObjectMeta: metav1.ObjectMeta{
-					DeletionTimestamp: ptr.To(metav1.Now()),
+					DeletionTimestamp: new(metav1.Now()),
 				},
 				Spec: clusterv1.MachineDeploymentSpec{
-					Replicas: ptr.To(int32(5)),
+					Replicas: new(int32(5)),
 					Rollout: clusterv1.MachineDeploymentRolloutSpec{
 						Strategy: clusterv1.MachineDeploymentRolloutStrategy{
 							Type: clusterv1.RollingUpdateMachineDeploymentStrategyType,
 							RollingUpdate: clusterv1.MachineDeploymentRolloutStrategyRollingUpdate{
-								MaxSurge:       ptr.To(intstr.FromInt32(1)),
-								MaxUnavailable: ptr.To(intstr.FromInt32(1)),
+								MaxSurge:       new(intstr.FromInt32(1)),
+								MaxUnavailable: new(intstr.FromInt32(1)),
 							},
 						},
 					},
 				},
-				Status: clusterv1.MachineDeploymentStatus{AvailableReplicas: ptr.To(int32(0))},
+				Status: clusterv1.MachineDeploymentStatus{AvailableReplicas: new(int32(0))},
 			},
 			getAndAdoptMachineSetsForDeploymentSucceeded: true,
 			expectCondition: metav1.Condition{
@@ -366,7 +366,7 @@ func Test_setRollingOutCondition(t *testing.T) {
 			name: "paused MachineDeployment with a not up-to-date machine surfaces the rollout as paused",
 			machineDeployment: &clusterv1.MachineDeployment{
 				Spec: clusterv1.MachineDeploymentSpec{
-					Paused: ptr.To(true),
+					Paused: new(true),
 				},
 			},
 			machines: []*clusterv1.Machine{
@@ -575,7 +575,7 @@ func Test_setScalingUpCondition(t *testing.T) {
 	machineDeploymentWith3Replicas.Spec.Replicas = ptr.To[int32](3)
 
 	deletingMachineDeploymentWith3Replicas := machineDeploymentWith0Replicas.DeepCopy()
-	deletingMachineDeploymentWith3Replicas.DeletionTimestamp = ptr.To(metav1.Now())
+	deletingMachineDeploymentWith3Replicas.DeletionTimestamp = new(metav1.Now())
 	deletingMachineDeploymentWith3Replicas.Spec.Replicas = ptr.To[int32](3)
 
 	tests := []struct {
@@ -812,7 +812,7 @@ func Test_setScalingDownCondition(t *testing.T) {
 
 	deletingMachineDeployment := defaultMachineDeployment.DeepCopy()
 	deletingMachineDeployment.Spec.Replicas = ptr.To[int32](1)
-	deletingMachineDeployment.DeletionTimestamp = ptr.To(metav1.Now())
+	deletingMachineDeployment.DeletionTimestamp = new(metav1.Now())
 
 	tests := []struct {
 		name                                         string
@@ -1468,25 +1468,25 @@ func fakeMachineSet(name string, options ...fakeMachineSetOption) *clusterv1.Mac
 
 func withStatusReplicas(n int32) fakeMachineSetOption {
 	return func(ms *clusterv1.MachineSet) {
-		ms.Status.Replicas = ptr.To(n)
+		ms.Status.Replicas = new(n)
 	}
 }
 
 func withStatusV1beta2ReadyReplicas(n int32) fakeMachineSetOption {
 	return func(ms *clusterv1.MachineSet) {
-		ms.Status.ReadyReplicas = ptr.To(n)
+		ms.Status.ReadyReplicas = new(n)
 	}
 }
 
 func withStatusV1beta2AvailableReplicas(n int32) fakeMachineSetOption {
 	return func(ms *clusterv1.MachineSet) {
-		ms.Status.AvailableReplicas = ptr.To(n)
+		ms.Status.AvailableReplicas = new(n)
 	}
 }
 
 func withStatusV1beta2UpToDateReplicas(n int32) fakeMachineSetOption {
 	return func(ms *clusterv1.MachineSet) {
-		ms.Status.UpToDateReplicas = ptr.To(n)
+		ms.Status.UpToDateReplicas = new(n)
 	}
 }
 
@@ -1518,7 +1518,7 @@ func withCreationTimestamp(t time.Time) fakeMachinesOption {
 
 func withStaleDeletion() fakeMachinesOption {
 	return func(m *clusterv1.Machine) {
-		m.DeletionTimestamp = ptr.To(metav1.Time{Time: time.Now().Add(-1 * time.Hour)})
+		m.DeletionTimestamp = new(metav1.Time{Time: time.Now().Add(-1 * time.Hour)})
 	}
 }
 

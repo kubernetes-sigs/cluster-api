@@ -939,7 +939,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 		g.Expect(patchHelper.Patch(ctx, cluster)).To(Succeed())
 
 		mhc := newMachineHealthCheck(cluster.Namespace, cluster.Name)
-		mhc.Spec.Checks.NodeStartupTimeoutSeconds = ptr.To(int32(5 * 60 * 60))
+		mhc.Spec.Checks.NodeStartupTimeoutSeconds = new(int32(5 * 60 * 60))
 
 		g.Expect(env.Create(ctx, mhc)).To(Succeed())
 		defer func(do ...client.Object) {
@@ -1011,7 +1011,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 		cluster := createCluster(g, ns.Name)
 
 		mhc := newMachineHealthCheck(cluster.Namespace, cluster.Name)
-		mhc.Spec.Checks.NodeStartupTimeoutSeconds = ptr.To(int32(10))
+		mhc.Spec.Checks.NodeStartupTimeoutSeconds = new(int32(10))
 
 		g.Expect(env.Create(ctx, mhc)).To(Succeed())
 		defer func(do ...client.Object) {
@@ -1086,7 +1086,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 		cluster := createCluster(g, ns.Name)
 
 		mhc := newMachineHealthCheck(cluster.Namespace, cluster.Name)
-		mhc.Spec.Checks.NodeStartupTimeoutSeconds = ptr.To(int32(10))
+		mhc.Spec.Checks.NodeStartupTimeoutSeconds = new(int32(10))
 
 		g.Expect(env.Create(ctx, mhc)).To(Succeed())
 		defer func(do ...client.Object) {
@@ -1338,7 +1338,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 			{
 				Type:           controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition,
 				Status:         metav1.ConditionFalse,
-				TimeoutSeconds: ptr.To(int32(5 * 60)),
+				TimeoutSeconds: new(int32(5 * 60)),
 			},
 		}
 
@@ -1499,7 +1499,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 					Spec: clusterv1.MachineSpec{
 						ClusterName: cluster.Name,
 						Bootstrap: clusterv1.Bootstrap{
-							DataSecretName: ptr.To("test-data-secret-name"),
+							DataSecretName: new("test-data-secret-name"),
 						},
 						InfrastructureRef: clusterv1.ContractVersionedObjectReference{
 							APIGroup: clusterv1.GroupVersionInfrastructure.Group,
@@ -1528,7 +1528,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 		}, timeout, 100*time.Millisecond).Should(Equal(1))
 
 		// Create the MachineHealthCheck instance.
-		mhc.Spec.Checks.NodeStartupTimeoutSeconds = ptr.To(int32(1))
+		mhc.Spec.Checks.NodeStartupTimeoutSeconds = new(int32(1))
 
 		g.Expect(env.Create(ctx, mhc)).To(Succeed())
 		// defer cleanup for all the objects that have been created
@@ -2461,7 +2461,7 @@ func TestIsAllowedRemediation(t *testing.T) {
 			mhc := &clusterv1.MachineHealthCheck{
 				Spec: clusterv1.MachineHealthCheckSpec{
 					Checks: clusterv1.MachineHealthCheckChecks{
-						NodeStartupTimeoutSeconds: ptr.To(int32(0)),
+						NodeStartupTimeoutSeconds: new(int32(0)),
 					},
 					Remediation: clusterv1.MachineHealthCheckRemediation{
 						TriggerIf: clusterv1.MachineHealthCheckRemediationTriggerIf{
@@ -2470,8 +2470,8 @@ func TestIsAllowedRemediation(t *testing.T) {
 					},
 				},
 				Status: clusterv1.MachineHealthCheckStatus{
-					ExpectedMachines:   ptr.To(tc.expectedMachines),
-					CurrentHealthy:     ptr.To(tc.currentHealthy),
+					ExpectedMachines:   new(tc.expectedMachines),
+					CurrentHealthy:     new(tc.currentHealthy),
 					ObservedGeneration: tc.observedGeneration,
 				},
 			}
@@ -2539,7 +2539,7 @@ func TestGetMaxUnhealthy(t *testing.T) {
 					},
 				},
 				Status: clusterv1.MachineHealthCheckStatus{
-					ExpectedMachines: ptr.To(tc.actualMachineCount),
+					ExpectedMachines: new(tc.actualMachineCount),
 				},
 			}
 
@@ -2591,7 +2591,7 @@ func createCluster(g *WithT, namespaceName string) *clusterv1.Cluster {
 	patchHelper, err := patch.NewHelper(cluster, env.Client)
 	g.Expect(err).ToNot(HaveOccurred())
 
-	cluster.Status.Initialization.InfrastructureProvisioned = ptr.To(true)
+	cluster.Status.Initialization.InfrastructureProvisioned = new(true)
 	conditions.Set(cluster, metav1.Condition{
 		Type:   clusterv1.ClusterInfrastructureReadyCondition,
 		Status: metav1.ConditionTrue,
@@ -2625,13 +2625,13 @@ func newRunningMachine(c *clusterv1.Cluster, labels map[string]string) *clusterv
 		Spec: clusterv1.MachineSpec{
 			ClusterName: c.Name,
 			Bootstrap: clusterv1.Bootstrap{
-				DataSecretName: ptr.To("data-secret-name"),
+				DataSecretName: new("data-secret-name"),
 			},
 		},
 		Status: clusterv1.MachineStatus{
 			Initialization: clusterv1.MachineInitializationStatus{
-				InfrastructureProvisioned:  ptr.To(true),
-				BootstrapDataSecretCreated: ptr.To(true),
+				InfrastructureProvisioned:  new(true),
+				BootstrapDataSecretCreated: new(true),
 			},
 			Phase:              string(clusterv1.MachinePhaseRunning),
 			ObservedGeneration: 1,
@@ -2875,12 +2875,12 @@ func newMachineHealthCheck(namespace, clusterName string) *clusterv1.MachineHeal
 				},
 			},
 			Checks: clusterv1.MachineHealthCheckChecks{
-				NodeStartupTimeoutSeconds: ptr.To(int32(1)),
+				NodeStartupTimeoutSeconds: new(int32(1)),
 				UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
 					{
 						Type:           corev1.NodeReady,
 						Status:         corev1.ConditionUnknown,
-						TimeoutSeconds: ptr.To(int32(5 * 60)),
+						TimeoutSeconds: new(int32(5 * 60)),
 					},
 				},
 			},

@@ -208,9 +208,9 @@ func ClusterClassRolloutSpec(ctx context.Context, inputGetter func() ClusterClas
 					"Cluster.topology.controlPlane.newAnnotation": "Cluster.topology.controlPlane.newAnnotationValue",
 				}
 				topology.Rollout.After = metav1.NewTime(time.Now().Add(24 * time.Hour))
-				topology.Deletion.NodeDrainTimeoutSeconds = ptr.To(rand.Int31n(20))        //nolint:gosec
-				topology.Deletion.NodeDeletionTimeoutSeconds = ptr.To(rand.Int31n(20))     //nolint:gosec
-				topology.Deletion.NodeVolumeDetachTimeoutSeconds = ptr.To(rand.Int31n(20)) //nolint:gosec
+				topology.Deletion.NodeDrainTimeoutSeconds = new(rand.Int31n(20))        //nolint:gosec
+				topology.Deletion.NodeDeletionTimeoutSeconds = new(rand.Int31n(20))     //nolint:gosec
+				topology.Deletion.NodeVolumeDetachTimeoutSeconds = new(rand.Int31n(20)) //nolint:gosec
 			},
 			WaitForControlPlane: input.E2EConfig.GetIntervals(specName, "wait-control-plane"),
 		})
@@ -226,10 +226,10 @@ func ClusterClassRolloutSpec(ctx context.Context, inputGetter func() ClusterClas
 				topology.Metadata.Annotations = map[string]string{
 					"Cluster.topology.machineDeployment.newAnnotation": "Cluster.topology.machineDeployment.newAnnotationValue",
 				}
-				topology.Deletion.NodeDrainTimeoutSeconds = ptr.To(rand.Int31n(20))        //nolint:gosec
-				topology.Deletion.NodeDeletionTimeoutSeconds = ptr.To(rand.Int31n(20))     //nolint:gosec
-				topology.Deletion.NodeVolumeDetachTimeoutSeconds = ptr.To(rand.Int31n(20)) //nolint:gosec
-				topology.MinReadySeconds = ptr.To[int32](rand.Int31n(20))                  //nolint:gosec
+				topology.Deletion.NodeDrainTimeoutSeconds = new(rand.Int31n(20))        //nolint:gosec
+				topology.Deletion.NodeDeletionTimeoutSeconds = new(rand.Int31n(20))     //nolint:gosec
+				topology.Deletion.NodeVolumeDetachTimeoutSeconds = new(rand.Int31n(20)) //nolint:gosec
+				topology.MinReadySeconds = new(rand.Int31n(20))                         //nolint:gosec
 				topology.Rollout.After = metav1.NewTime(time.Now().Add(24 * time.Hour))
 				topology.Rollout.Strategy = clusterv1.MachineDeploymentTopologyRolloutStrategy{
 					Type: clusterv1.RollingUpdateMachineDeploymentStrategyType,
@@ -257,10 +257,10 @@ func ClusterClassRolloutSpec(ctx context.Context, inputGetter func() ClusterClas
 				topology.Metadata.Annotations = map[string]string{
 					"Cluster.topology.machinePool.newAnnotation": "Cluster.topology.machinePool.newAnnotationValue",
 				}
-				topology.Deletion.NodeDrainTimeoutSeconds = ptr.To(rand.Int31n(20))        //nolint:gosec
-				topology.Deletion.NodeDeletionTimeoutSeconds = ptr.To(rand.Int31n(20))     //nolint:gosec
-				topology.Deletion.NodeVolumeDetachTimeoutSeconds = ptr.To(rand.Int31n(20)) //nolint:gosec
-				topology.MinReadySeconds = ptr.To[int32](rand.Int31n(20))                  //nolint:gosec
+				topology.Deletion.NodeDrainTimeoutSeconds = new(rand.Int31n(20))        //nolint:gosec
+				topology.Deletion.NodeDeletionTimeoutSeconds = new(rand.Int31n(20))     //nolint:gosec
+				topology.Deletion.NodeVolumeDetachTimeoutSeconds = new(rand.Int31n(20)) //nolint:gosec
+				topology.MinReadySeconds = new(rand.Int31n(20))                         //nolint:gosec
 			},
 			WaitForMachinePools: input.E2EConfig.GetIntervals(specName, "wait-machine-pool-nodes"),
 		})

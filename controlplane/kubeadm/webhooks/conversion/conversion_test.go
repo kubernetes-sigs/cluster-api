@@ -29,7 +29,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	runtimeserializer "k8s.io/apimachinery/pkg/runtime/serializer"
-	"k8s.io/utils/ptr"
 	"sigs.k8s.io/randfill"
 
 	bootstrapv1beta1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta1"
@@ -137,43 +136,43 @@ func hubKubeadmConfigSpec(in *bootstrapv1.KubeadmConfigSpec, c randfill.Continue
 
 	for i, arg := range in.ClusterConfiguration.APIServer.ExtraArgs {
 		if arg.Value == nil {
-			arg.Value = ptr.To("")
+			arg.Value = new("")
 		}
 		in.ClusterConfiguration.APIServer.ExtraArgs[i] = arg
 	}
 	for i, arg := range in.ClusterConfiguration.ControllerManager.ExtraArgs {
 		if arg.Value == nil {
-			arg.Value = ptr.To("")
+			arg.Value = new("")
 		}
 		in.ClusterConfiguration.ControllerManager.ExtraArgs[i] = arg
 	}
 	for i, arg := range in.ClusterConfiguration.Scheduler.ExtraArgs {
 		if arg.Value == nil {
-			arg.Value = ptr.To("")
+			arg.Value = new("")
 		}
 		in.ClusterConfiguration.Scheduler.ExtraArgs[i] = arg
 	}
 	for i, arg := range in.ClusterConfiguration.Etcd.Local.ExtraArgs {
 		if arg.Value == nil {
-			arg.Value = ptr.To("")
+			arg.Value = new("")
 		}
 		in.ClusterConfiguration.Etcd.Local.ExtraArgs[i] = arg
 	}
 	for i, arg := range in.InitConfiguration.NodeRegistration.KubeletExtraArgs {
 		if arg.Value == nil {
-			arg.Value = ptr.To("")
+			arg.Value = new("")
 		}
 		in.InitConfiguration.NodeRegistration.KubeletExtraArgs[i] = arg
 	}
 	for i, arg := range in.JoinConfiguration.NodeRegistration.KubeletExtraArgs {
 		if arg.Value == nil {
-			arg.Value = ptr.To("")
+			arg.Value = new("")
 		}
 		in.JoinConfiguration.NodeRegistration.KubeletExtraArgs[i] = arg
 	}
 	for i, p := range in.DiskSetup.Partitions {
 		if p.Layout == nil {
-			p.Layout = ptr.To(false) // Layout is a required field and nil does not round trip
+			p.Layout = new(false) // Layout is a required field and nil does not round trip
 		}
 		in.DiskSetup.Partitions[i] = p
 	}
@@ -250,11 +249,11 @@ func hubKubeadmControlPlaneStatus(in *controlplanev1.KubeadmControlPlaneStatus, 
 	// nil becomes &0 after hub => spoke => hub conversion
 	// This is acceptable as usually Replicas is set and controllers using older apiVersions are not writing MachineSet status.
 	if in.Replicas == nil {
-		in.Replicas = ptr.To(int32(0))
+		in.Replicas = new(int32(0))
 	}
 
 	if in.LastRemediation.RetryCount == nil {
-		in.LastRemediation.RetryCount = ptr.To(int32(0)) // RetryCount is a required field and nil does not round trip
+		in.LastRemediation.RetryCount = new(int32(0)) // RetryCount is a required field and nil does not round trip
 	}
 }
 
@@ -277,7 +276,7 @@ func spokeAPIServer(in *bootstrapv1beta1.APIServer, c randfill.Continue) {
 	c.FillNoCustom(in)
 
 	if in.TimeoutForControlPlane != nil {
-		in.TimeoutForControlPlane = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
+		in.TimeoutForControlPlane = new(metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
 	}
 }
 
@@ -285,7 +284,7 @@ func spokeDiscovery(in *bootstrapv1beta1.Discovery, c randfill.Continue) {
 	c.FillNoCustom(in)
 
 	if in.Timeout != nil {
-		in.Timeout = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
+		in.Timeout = new(metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
 	}
 	if in.File != nil {
 		if in.File.KubeConfig != nil {
@@ -423,7 +422,7 @@ func spokeRemediationStrategy(in *controlplanev1beta1.RemediationStrategy, c ran
 	c.FillNoCustom(in)
 
 	if in.MinHealthyPeriod != nil {
-		in.MinHealthyPeriod = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
+		in.MinHealthyPeriod = new(metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
 	}
 	in.RetryPeriod = metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second}
 }
@@ -432,13 +431,13 @@ func spokeKubeadmControlPlaneMachineTemplate(in *controlplanev1beta1.KubeadmCont
 	c.FillNoCustom(in)
 
 	if in.NodeDrainTimeout != nil {
-		in.NodeDrainTimeout = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
+		in.NodeDrainTimeout = new(metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
 	}
 	if in.NodeVolumeDetachTimeout != nil {
-		in.NodeVolumeDetachTimeout = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
+		in.NodeVolumeDetachTimeout = new(metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
 	}
 	if in.NodeDeletionTimeout != nil {
-		in.NodeDeletionTimeout = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
+		in.NodeDeletionTimeout = new(metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
 	}
 }
 
@@ -446,13 +445,13 @@ func spokeKubeadmControlPlaneTemplateMachineTemplate(in *controlplanev1beta1.Kub
 	c.FillNoCustom(in)
 
 	if in.NodeDrainTimeout != nil {
-		in.NodeDrainTimeout = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
+		in.NodeDrainTimeout = new(metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
 	}
 	if in.NodeVolumeDetachTimeout != nil {
-		in.NodeVolumeDetachTimeout = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
+		in.NodeVolumeDetachTimeout = new(metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
 	}
 	if in.NodeDeletionTimeout != nil {
-		in.NodeDeletionTimeout = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
+		in.NodeDeletionTimeout = new(metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
 	}
 }
 
@@ -460,7 +459,7 @@ func spokeBootstrapToken(in *bootstrapv1beta1.BootstrapToken, c randfill.Continu
 	c.FillNoCustom(in)
 
 	if in.TTL != nil {
-		in.TTL = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
+		in.TTL = new(metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
 	}
 	if reflect.DeepEqual(in.Expires, &metav1.Time{}) {
 		in.Expires = nil

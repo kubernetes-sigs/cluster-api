@@ -95,7 +95,7 @@ func TestKubeadmControlPlaneReconciler_RolloutStrategy_ScaleUp(t *testing.T) {
 	cluster.UID = types.UID(util.RandomString(10))
 	cluster.Spec.ControlPlaneEndpoint.Host = Host
 	cluster.Spec.ControlPlaneEndpoint.Port = 6443
-	cluster.Status.Initialization.InfrastructureProvisioned = ptr.To(true)
+	cluster.Status.Initialization.InfrastructureProvisioned = new(true)
 	kcp.UID = types.UID(util.RandomString(10))
 	kcp.Spec.Replicas = ptr.To[int32](1)
 	kcp.Spec.KubeadmConfigSpec.ClusterConfiguration.DNS = bootstrapv1.DNS{
@@ -342,22 +342,22 @@ func Test_rollingUpdate(t *testing.T) {
 		return canUpdateMachineResult{canUpdateMachine: false, affectsAvailability: false}, nil
 	}
 	canUpdateMachineNoOperationAllowedFunc := func(_ context.Context, _ *clusterv1.Machine, _ pkg.UpToDateResult) (canUpdateMachineResult, error) {
-		return canUpdateMachineResult{allowedOperations: ptr.To([]runtimehooksv1.MachineUpdateOperation{}), messages: []string{"preflight check failed"}, retryAfter: now.Add(canUpdateMachineCacheDuration)}, nil
+		return canUpdateMachineResult{allowedOperations: new([]runtimehooksv1.MachineUpdateOperation{}), messages: []string{"preflight check failed"}, retryAfter: now.Add(canUpdateMachineCacheDuration)}, nil
 	}
 	canUpdateMachineNoOperationAllowedWithoutMessageFunc := func(_ context.Context, _ *clusterv1.Machine, _ pkg.UpToDateResult) (canUpdateMachineResult, error) {
-		return canUpdateMachineResult{allowedOperations: ptr.To([]runtimehooksv1.MachineUpdateOperation{}), retryAfter: now.Add(canUpdateMachineCacheDuration)}, nil
+		return canUpdateMachineResult{allowedOperations: new([]runtimehooksv1.MachineUpdateOperation{}), retryAfter: now.Add(canUpdateMachineCacheDuration)}, nil
 	}
 	canUpdateMachineTrueOnlyInPlaceAndDoesNotAffectAvailabilityFunc := func(_ context.Context, _ *clusterv1.Machine, _ pkg.UpToDateResult) (canUpdateMachineResult, error) {
-		return canUpdateMachineResult{canUpdateMachine: true, affectsAvailability: false, allowedOperations: ptr.To([]runtimehooksv1.MachineUpdateOperation{runtimehooksv1.MachineUpdateOperationUpdateInPlace}), retryAfter: now.Add(canUpdateMachineCacheDuration)}, nil
+		return canUpdateMachineResult{canUpdateMachine: true, affectsAvailability: false, allowedOperations: new([]runtimehooksv1.MachineUpdateOperation{runtimehooksv1.MachineUpdateOperationUpdateInPlace}), retryAfter: now.Add(canUpdateMachineCacheDuration)}, nil
 	}
 	canUpdateMachineTrueOnlyInPlaceAndAffectsAvailabilityFunc := func(_ context.Context, _ *clusterv1.Machine, _ pkg.UpToDateResult) (canUpdateMachineResult, error) {
-		return canUpdateMachineResult{canUpdateMachine: true, affectsAvailability: true, allowedOperations: ptr.To([]runtimehooksv1.MachineUpdateOperation{runtimehooksv1.MachineUpdateOperationUpdateInPlace}), retryAfter: now.Add(canUpdateMachineCacheDuration)}, nil
+		return canUpdateMachineResult{canUpdateMachine: true, affectsAvailability: true, allowedOperations: new([]runtimehooksv1.MachineUpdateOperation{runtimehooksv1.MachineUpdateOperationUpdateInPlace}), retryAfter: now.Add(canUpdateMachineCacheDuration)}, nil
 	}
 	canUpdateMachineFalseOnlyInPlaceFunc := func(_ context.Context, _ *clusterv1.Machine, _ pkg.UpToDateResult) (canUpdateMachineResult, error) {
-		return canUpdateMachineResult{canUpdateMachine: false, allowedOperations: ptr.To([]runtimehooksv1.MachineUpdateOperation{runtimehooksv1.MachineUpdateOperationUpdateInPlace}), retryAfter: now.Add(canUpdateMachineCacheDuration)}, nil
+		return canUpdateMachineResult{canUpdateMachine: false, allowedOperations: new([]runtimehooksv1.MachineUpdateOperation{runtimehooksv1.MachineUpdateOperationUpdateInPlace}), retryAfter: now.Add(canUpdateMachineCacheDuration)}, nil
 	}
 	canUpdateMachineTrueOnlyReplaceFunc := func(_ context.Context, _ *clusterv1.Machine, _ pkg.UpToDateResult) (canUpdateMachineResult, error) {
-		return canUpdateMachineResult{canUpdateMachine: true, affectsAvailability: false, allowedOperations: ptr.To([]runtimehooksv1.MachineUpdateOperation{runtimehooksv1.MachineUpdateOperationReplace})}, nil
+		return canUpdateMachineResult{canUpdateMachine: true, affectsAvailability: false, allowedOperations: new([]runtimehooksv1.MachineUpdateOperation{runtimehooksv1.MachineUpdateOperationReplace})}, nil
 	}
 	canUpdateMachineRequeueAfterFunc := func(_ context.Context, _ *clusterv1.Machine, _ pkg.UpToDateResult) (canUpdateMachineResult, error) {
 		return canUpdateMachineResult{canUpdateMachine: false, affectsAvailability: false, retryAfter: now.Add(7 * time.Second), retryAfterFromExtension: true}, nil
@@ -874,11 +874,11 @@ func Test_rollingUpdate(t *testing.T) {
 						}(),
 					},
 					Spec: controlplanev1.KubeadmControlPlaneSpec{
-						Replicas: ptr.To(tt.desiredReplicas),
+						Replicas: new(tt.desiredReplicas),
 						Rollout: controlplanev1.KubeadmControlPlaneRolloutSpec{
 							Strategy: controlplanev1.KubeadmControlPlaneRolloutStrategy{
 								RollingUpdate: controlplanev1.KubeadmControlPlaneRolloutStrategyRollingUpdate{
-									MaxSurge: ptr.To(intstr.FromInt32(tt.maxSurge)),
+									MaxSurge: new(intstr.FromInt32(tt.maxSurge)),
 								},
 							},
 						},
@@ -1310,11 +1310,11 @@ func Test_rollingUpdateSequences(t *testing.T) {
 						}(),
 					},
 					Spec: controlplanev1.KubeadmControlPlaneSpec{
-						Replicas: ptr.To(tt.desiredReplicas),
+						Replicas: new(tt.desiredReplicas),
 						Rollout: controlplanev1.KubeadmControlPlaneRolloutSpec{
 							Strategy: controlplanev1.KubeadmControlPlaneRolloutStrategy{
 								RollingUpdate: controlplanev1.KubeadmControlPlaneRolloutStrategyRollingUpdate{
-									MaxSurge: ptr.To(intstr.FromInt32(tt.maxSurge)),
+									MaxSurge: new(intstr.FromInt32(tt.maxSurge)),
 								},
 							},
 						},

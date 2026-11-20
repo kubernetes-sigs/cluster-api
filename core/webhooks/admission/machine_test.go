@@ -21,7 +21,6 @@ import (
 
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/utils/ptr"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/core/webhooks/admission/testutil"
@@ -65,12 +64,12 @@ func TestMachineBootstrapValidation(t *testing.T) {
 		},
 		{
 			name:      "should not return error if dataSecretName is set",
-			bootstrap: clusterv1.Bootstrap{DataSecretName: ptr.To("test")},
+			bootstrap: clusterv1.Bootstrap{DataSecretName: new("test")},
 			expectErr: false,
 		},
 		{
 			name:      "should not return error if dataSecretName is set",
-			bootstrap: clusterv1.Bootstrap{DataSecretName: ptr.To("")},
+			bootstrap: clusterv1.Bootstrap{DataSecretName: new("")},
 			expectErr: false,
 		},
 		{
@@ -202,7 +201,7 @@ func TestMachineVersionValidation(t *testing.T) {
 			m := &clusterv1.Machine{
 				Spec: clusterv1.MachineSpec{
 					Version:   tt.version,
-					Bootstrap: clusterv1.Bootstrap{DataSecretName: ptr.To("test")},
+					Bootstrap: clusterv1.Bootstrap{DataSecretName: new("test")},
 				},
 			}
 			webhook := &Machine{}

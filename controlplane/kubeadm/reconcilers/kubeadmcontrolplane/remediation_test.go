@@ -443,7 +443,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 				},
 				Status: controlplanev1.KubeadmControlPlaneStatus{
 					Initialization: controlplanev1.KubeadmControlPlaneInitializationStatus{
-						ControlPlaneInitialized: utilptr.To(true),
+						ControlPlaneInitialized: new(true),
 					},
 				},
 			},
@@ -626,7 +626,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 					Version:  "v1.19.1",
 					Remediation: controlplanev1.KubeadmControlPlaneRemediationSpec{
 						MaxRetry:                utilptr.To[int32](3),
-						MinHealthyPeriodSeconds: utilptr.To(minHealthyPeriod),
+						MinHealthyPeriodSeconds: new(minHealthyPeriod),
 					},
 					MachineTemplate: machineTemplate,
 				},
@@ -768,7 +768,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 		t.Cleanup(func() { g.Expect(env.DeleteAndWait(context.Background(), controlPlane.KCP)).To(Succeed()) })
 		controlPlane.KCP.Status = controlplanev1.KubeadmControlPlaneStatus{
 			Initialization: controlplanev1.KubeadmControlPlaneInitializationStatus{
-				ControlPlaneInitialized: utilptr.To(true),
+				ControlPlaneInitialized: new(true),
 			},
 		}
 		g.Expect(env.Status().Update(ctx, controlPlane.KCP)).To(Succeed())
@@ -811,7 +811,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 		t.Cleanup(func() { g.Expect(env.DeleteAndWait(context.Background(), controlPlane.KCP)).To(Succeed()) })
 		controlPlane.KCP.Status = controlplanev1.KubeadmControlPlaneStatus{
 			Initialization: controlplanev1.KubeadmControlPlaneInitializationStatus{
-				ControlPlaneInitialized: utilptr.To(true),
+				ControlPlaneInitialized: new(true),
 			},
 		}
 		g.Expect(env.Status().Update(ctx, controlPlane.KCP)).To(Succeed())
@@ -842,7 +842,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 					Namespace: ns.Name,
 				},
 				Spec: controlplanev1.KubeadmControlPlaneSpec{
-					Replicas:        utilptr.To(int32(3)),
+					Replicas:        new(int32(3)),
 					Version:         "v1.37.0",
 					MachineTemplate: machineTemplate,
 				},
@@ -854,7 +854,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 		t.Cleanup(func() { g.Expect(env.DeleteAndWait(context.Background(), controlPlane.KCP)).To(Succeed()) })
 		controlPlane.KCP.Status = controlplanev1.KubeadmControlPlaneStatus{
 			Initialization: controlplanev1.KubeadmControlPlaneInitializationStatus{
-				ControlPlaneInitialized: utilptr.To(true),
+				ControlPlaneInitialized: new(true),
 			},
 		}
 		g.Expect(env.Status().Update(ctx, controlPlane.KCP)).To(Succeed())
@@ -886,7 +886,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 					Namespace: ns.Name,
 				},
 				Spec: controlplanev1.KubeadmControlPlaneSpec{
-					Replicas:        utilptr.To(int32(3)),
+					Replicas:        new(int32(3)),
 					Version:         "v1.37.0",
 					MachineTemplate: machineTemplate,
 				},
@@ -898,7 +898,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 		t.Cleanup(func() { g.Expect(env.DeleteAndWait(context.Background(), controlPlane.KCP)).To(Succeed()) })
 		controlPlane.KCP.Status = controlplanev1.KubeadmControlPlaneStatus{
 			Initialization: controlplanev1.KubeadmControlPlaneInitializationStatus{
-				ControlPlaneInitialized: utilptr.To(true),
+				ControlPlaneInitialized: new(true),
 			},
 		}
 		g.Expect(env.Status().Update(ctx, controlPlane.KCP)).To(Succeed())
@@ -942,7 +942,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 		t.Cleanup(func() { g.Expect(env.DeleteAndWait(context.Background(), controlPlane.KCP)).To(Succeed()) })
 		controlPlane.KCP.Status = controlplanev1.KubeadmControlPlaneStatus{
 			Initialization: controlplanev1.KubeadmControlPlaneInitializationStatus{
-				ControlPlaneInitialized: utilptr.To(true),
+				ControlPlaneInitialized: new(true),
 			},
 		}
 		g.Expect(env.Status().Update(ctx, controlPlane.KCP)).To(Succeed())
@@ -996,7 +996,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 		t.Cleanup(func() { g.Expect(env.DeleteAndWait(context.Background(), controlPlane.KCP)).To(Succeed()) })
 		controlPlane.KCP.Status = controlplanev1.KubeadmControlPlaneStatus{
 			Initialization: controlplanev1.KubeadmControlPlaneInitializationStatus{
-				ControlPlaneInitialized: utilptr.To(true),
+				ControlPlaneInitialized: new(true),
 			},
 		}
 		g.Expect(env.Status().Update(ctx, controlPlane.KCP)).To(Succeed())
@@ -1049,7 +1049,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 		t.Cleanup(func() { g.Expect(env.DeleteAndWait(context.Background(), controlPlane.KCP)).To(Succeed()) })
 		controlPlane.KCP.Status = controlplanev1.KubeadmControlPlaneStatus{
 			Initialization: controlplanev1.KubeadmControlPlaneInitializationStatus{
-				ControlPlaneInitialized: utilptr.To(false),
+				ControlPlaneInitialized: new(false),
 			},
 		}
 		g.Expect(env.Status().Update(ctx, controlPlane.KCP)).To(Succeed())
@@ -1113,7 +1113,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 		t.Cleanup(func() { g.Expect(env.DeleteAndWait(context.Background(), controlPlane.KCP)).To(Succeed()) })
 		controlPlane.KCP.Status = controlplanev1.KubeadmControlPlaneStatus{
 			Initialization: controlplanev1.KubeadmControlPlaneInitializationStatus{
-				ControlPlaneInitialized: utilptr.To(false),
+				ControlPlaneInitialized: new(false),
 			},
 		}
 		g.Expect(env.Status().Update(ctx, controlPlane.KCP)).To(Succeed())
@@ -1219,7 +1219,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 		t.Cleanup(func() { g.Expect(env.DeleteAndWait(context.Background(), controlPlane.KCP)).To(Succeed()) })
 		controlPlane.KCP.Status = controlplanev1.KubeadmControlPlaneStatus{
 			Initialization: controlplanev1.KubeadmControlPlaneInitializationStatus{
-				ControlPlaneInitialized: utilptr.To(true),
+				ControlPlaneInitialized: new(true),
 			},
 		}
 		g.Expect(env.Status().Update(ctx, controlPlane.KCP)).To(Succeed())
@@ -1286,7 +1286,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 		t.Cleanup(func() { g.Expect(env.DeleteAndWait(context.Background(), controlPlane.KCP)).To(Succeed()) })
 		controlPlane.KCP.Status = controlplanev1.KubeadmControlPlaneStatus{
 			Initialization: controlplanev1.KubeadmControlPlaneInitializationStatus{
-				ControlPlaneInitialized: utilptr.To(true),
+				ControlPlaneInitialized: new(true),
 			},
 		}
 		g.Expect(env.Status().Update(ctx, controlPlane.KCP)).To(Succeed())
@@ -1340,7 +1340,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 					Namespace: ns.Name,
 				},
 				Spec: controlplanev1.KubeadmControlPlaneSpec{
-					Replicas:        utilptr.To(int32(3)),
+					Replicas:        new(int32(3)),
 					Version:         "v1.19.1",
 					MachineTemplate: machineTemplate,
 				},
@@ -1353,7 +1353,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 		t.Cleanup(func() { g.Expect(env.DeleteAndWait(context.Background(), controlPlane.KCP)).To(Succeed()) })
 		controlPlane.KCP.Status = controlplanev1.KubeadmControlPlaneStatus{
 			Initialization: controlplanev1.KubeadmControlPlaneInitializationStatus{
-				ControlPlaneInitialized: utilptr.To(true),
+				ControlPlaneInitialized: new(true),
 			},
 		}
 		g.Expect(env.Status().Update(ctx, controlPlane.KCP)).To(Succeed())
@@ -1421,7 +1421,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 		t.Cleanup(func() { g.Expect(env.DeleteAndWait(context.Background(), controlPlane.KCP)).To(Succeed()) })
 		controlPlane.KCP.Status = controlplanev1.KubeadmControlPlaneStatus{
 			Initialization: controlplanev1.KubeadmControlPlaneInitializationStatus{
-				ControlPlaneInitialized: utilptr.To(true),
+				ControlPlaneInitialized: new(true),
 			},
 		}
 		g.Expect(env.Status().Update(ctx, controlPlane.KCP)).To(Succeed())
@@ -1476,7 +1476,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 					Namespace: ns.Name,
 				},
 				Spec: controlplanev1.KubeadmControlPlaneSpec{
-					Replicas:        utilptr.To(int32(3)),
+					Replicas:        new(int32(3)),
 					Version:         "v1.19.1",
 					MachineTemplate: machineTemplate,
 				},
@@ -1489,7 +1489,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 		t.Cleanup(func() { g.Expect(env.DeleteAndWait(context.Background(), controlPlane.KCP)).To(Succeed()) })
 		controlPlane.KCP.Status = controlplanev1.KubeadmControlPlaneStatus{
 			Initialization: controlplanev1.KubeadmControlPlaneInitializationStatus{
-				ControlPlaneInitialized: utilptr.To(true),
+				ControlPlaneInitialized: new(true),
 			},
 		}
 		g.Expect(env.Status().Update(ctx, controlPlane.KCP)).To(Succeed())
@@ -1555,7 +1555,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 		t.Cleanup(func() { g.Expect(env.DeleteAndWait(context.Background(), controlPlane.KCP)).To(Succeed()) })
 		controlPlane.KCP.Status = controlplanev1.KubeadmControlPlaneStatus{
 			Initialization: controlplanev1.KubeadmControlPlaneInitializationStatus{
-				ControlPlaneInitialized: utilptr.To(false),
+				ControlPlaneInitialized: new(false),
 			},
 		}
 		g.Expect(env.Status().Update(ctx, controlPlane.KCP)).To(Succeed())
@@ -1671,7 +1671,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 		t.Cleanup(func() { g.Expect(env.DeleteAndWait(context.Background(), controlPlane.KCP)).To(Succeed()) })
 		controlPlane.KCP.Status = controlplanev1.KubeadmControlPlaneStatus{
 			Initialization: controlplanev1.KubeadmControlPlaneInitializationStatus{
-				ControlPlaneInitialized: utilptr.To(true),
+				ControlPlaneInitialized: new(true),
 			},
 		}
 		g.Expect(env.Status().Update(ctx, controlPlane.KCP)).To(Succeed())
@@ -1790,7 +1790,7 @@ func TestCheckRetryLimits(t *testing.T) {
 			name:                "MinHealthyPeriodSeconds not expired, MaxRetry reached: remediation is blocked",
 			remediationSpec:     controlplanev1.KubeadmControlPlaneRemediationSpec{MaxRetry: utilptr.To[int32](3), MinHealthyPeriodSeconds: utilptr.To(4 * controlplanev1.DefaultMinHealthyPeriodSeconds)},
 			lastRemediation:     &RemediationData{Machine: "m0", Timestamp: metav1.Time{Time: remediationTime.Add(-2 * defaultMinHealthyPeriod)}, RetryCount: 3},
-			unhealthySince:      utilptr.To(remediationTime.Add(-defaultMinHealthyPeriod)),
+			unhealthySince:      new(remediationTime.Add(-defaultMinHealthyPeriod)),
 			wantCanRemediate:    false,
 			wantRetryCount:      3,
 			wantConditionReason: controlplanev1.KubeadmControlPlaneMachineCannotBeRemediatedReason,
@@ -1799,7 +1799,7 @@ func TestCheckRetryLimits(t *testing.T) {
 			name:                "MinHealthyPeriodSeconds elapsed since last remediation, MaxRetry reached: remediation stays blocked",
 			remediationSpec:     controlplanev1.KubeadmControlPlaneRemediationSpec{MaxRetry: utilptr.To[int32](3), MinHealthyPeriodSeconds: utilptr.To[int32](5 * 60)},
 			lastRemediation:     &RemediationData{Machine: "m0", Timestamp: metav1.Time{Time: remediationTime.Add(-10 * time.Minute)}, RetryCount: 3},
-			unhealthySince:      utilptr.To(remediationTime.Add(-8 * time.Minute)),
+			unhealthySince:      new(remediationTime.Add(-8 * time.Minute)),
 			wantCanRemediate:    false,
 			wantRetryCount:      3,
 			wantConditionReason: controlplanev1.KubeadmControlPlaneMachineCannotBeRemediatedReason,
@@ -1813,7 +1813,7 @@ func TestCheckRetryLimits(t *testing.T) {
 			name:             "MinHealthyPeriodSeconds expired, MaxRetry not reached: retry counter is reset",
 			remediationSpec:  controlplanev1.KubeadmControlPlaneRemediationSpec{MaxRetry: utilptr.To[int32](3), MinHealthyPeriodSeconds: utilptr.To[int32](5 * 60)},
 			lastRemediation:  &RemediationData{Machine: "m0", Timestamp: metav1.Time{Time: remediationTime.Add(-10 * time.Minute)}, RetryCount: 2},
-			unhealthySince:   utilptr.To(remediationTime),
+			unhealthySince:   new(remediationTime),
 			wantCanRemediate: true,
 			wantRetryCount:   0,
 		},
@@ -1821,7 +1821,7 @@ func TestCheckRetryLimits(t *testing.T) {
 			name:             "MinHealthyPeriodSeconds expired, MaxRetry reached: retry counter is reset",
 			remediationSpec:  controlplanev1.KubeadmControlPlaneRemediationSpec{MaxRetry: utilptr.To[int32](3), MinHealthyPeriodSeconds: utilptr.To[int32](5 * 60)},
 			lastRemediation:  &RemediationData{Machine: "m0", Timestamp: metav1.Time{Time: remediationTime.Add(-10 * time.Minute)}, RetryCount: 3},
-			unhealthySince:   utilptr.To(remediationTime),
+			unhealthySince:   new(remediationTime),
 			wantCanRemediate: true,
 			wantRetryCount:   0,
 		},
@@ -1829,7 +1829,7 @@ func TestCheckRetryLimits(t *testing.T) {
 			name:             "MinHealthyPeriodSeconds expired exactly when the machine is marked unhealthy, MaxRetry reached: retry counter is reset",
 			remediationSpec:  controlplanev1.KubeadmControlPlaneRemediationSpec{MaxRetry: utilptr.To[int32](3)},
 			lastRemediation:  &RemediationData{Machine: "m0", Timestamp: metav1.Time{Time: remediationTime.Add(-2 * defaultMinHealthyPeriod)}, RetryCount: 3},
-			unhealthySince:   utilptr.To(remediationTime.Add(-defaultMinHealthyPeriod)),
+			unhealthySince:   new(remediationTime.Add(-defaultMinHealthyPeriod)),
 			wantCanRemediate: true,
 			wantRetryCount:   0,
 		},
@@ -2009,7 +2009,7 @@ func TestReconcileUnhealthyMachinesSequences(t *testing.T) {
 		t.Cleanup(func() { g.Expect(env.DeleteAndWait(context.Background(), controlPlane.KCP)).To(Succeed()) })
 		controlPlane.KCP.Status = controlplanev1.KubeadmControlPlaneStatus{
 			Initialization: controlplanev1.KubeadmControlPlaneInitializationStatus{
-				ControlPlaneInitialized: utilptr.To(false),
+				ControlPlaneInitialized: new(false),
 			},
 		}
 		g.Expect(env.Status().Update(ctx, controlPlane.KCP)).To(Succeed())
@@ -2135,7 +2135,7 @@ func TestReconcileUnhealthyMachinesSequences(t *testing.T) {
 		t.Cleanup(func() { g.Expect(env.DeleteAndWait(context.Background(), controlPlane.KCP)).To(Succeed()) })
 		controlPlane.KCP.Status = controlplanev1.KubeadmControlPlaneStatus{
 			Initialization: controlplanev1.KubeadmControlPlaneInitializationStatus{
-				ControlPlaneInitialized: utilptr.To(true),
+				ControlPlaneInitialized: new(true),
 			},
 		}
 		g.Expect(env.Status().Update(ctx, controlPlane.KCP)).To(Succeed())
@@ -2264,7 +2264,7 @@ func TestReconcileUnhealthyMachinesSequences(t *testing.T) {
 		t.Cleanup(func() { g.Expect(env.DeleteAndWait(context.Background(), controlPlane.KCP)).To(Succeed()) })
 		controlPlane.KCP.Status = controlplanev1.KubeadmControlPlaneStatus{
 			Initialization: controlplanev1.KubeadmControlPlaneInitializationStatus{
-				ControlPlaneInitialized: utilptr.To(true),
+				ControlPlaneInitialized: new(true),
 			},
 		}
 		g.Expect(env.Status().Update(ctx, controlPlane.KCP)).To(Succeed())
@@ -3360,7 +3360,7 @@ func getMachine(namespace, name string, options ...machineOption) *clusterv1.Mac
 				Name:     "inframachine",
 			},
 			Bootstrap: clusterv1.Bootstrap{
-				DataSecretName: utilptr.To("secret"),
+				DataSecretName: new("secret"),
 			},
 		},
 	}
@@ -3401,7 +3401,7 @@ func getDeletingMachine(namespace, name string, options ...machineOption) *clust
 		Spec: clusterv1.MachineSpec{
 			ClusterName: "cluster",
 			Bootstrap: clusterv1.Bootstrap{
-				DataSecretName: utilptr.To("secret"),
+				DataSecretName: new("secret"),
 			},
 		},
 	}

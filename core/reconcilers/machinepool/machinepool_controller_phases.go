@@ -129,7 +129,7 @@ func (r *Reconciler) reconcileExternalBootstrap(ctx context.Context, m *clusterv
 		Kind:       "MachinePool",
 		Name:       m.Name,
 		UID:        m.UID,
-		Controller: ptr.To(true),
+		Controller: new(true),
 	}
 
 	if util.HasExactOwnerRef(obj.GetOwnerReferences(), desiredOwnerRef) &&
@@ -229,7 +229,7 @@ func (r *Reconciler) reconcileExternal(ctx context.Context, m *clusterv1.Machine
 		if m.Status.Deprecated.V1Beta1 == nil {
 			m.Status.Deprecated.V1Beta1 = &clusterv1.MachinePoolV1Beta1DeprecatedStatus{}
 		}
-		m.Status.Deprecated.V1Beta1.FailureMessage = ptr.To(
+		m.Status.Deprecated.V1Beta1.FailureMessage = new(
 			fmt.Sprintf("Failure detected from referenced resource %v with name %q: %s",
 				obj.GroupVersionKind(), obj.GetName(), failureMessage),
 		)
@@ -268,7 +268,7 @@ func (r *Reconciler) reconcileBootstrap(ctx context.Context, s *scope) (ctrl.Res
 			if m.Status.Deprecated.V1Beta1 == nil {
 				m.Status.Deprecated.V1Beta1 = &clusterv1.MachinePoolV1Beta1DeprecatedStatus{}
 			}
-			m.Status.Deprecated.V1Beta1.FailureMessage = ptr.To(
+			m.Status.Deprecated.V1Beta1.FailureMessage = new(
 				fmt.Sprintf("Failure detected from referenced resource %s %s: %s",
 					bootstrapConfigGVK.Kind, obj.GetName(), failureMessage),
 			)
@@ -290,7 +290,7 @@ func (r *Reconciler) reconcileBootstrap(ctx context.Context, s *scope) (ctrl.Res
 
 		if !dataSecretCreated {
 			log.Info("Waiting for bootstrap provider to generate data secret and report status.ready", bootstrapConfigGVK.Kind, klog.KObj(bootstrapConfig))
-			m.Status.Initialization.BootstrapDataSecretCreated = ptr.To(dataSecretCreated)
+			m.Status.Initialization.BootstrapDataSecretCreated = new(dataSecretCreated)
 			return ctrl.Result{}, nil
 		}
 
@@ -303,13 +303,13 @@ func (r *Reconciler) reconcileBootstrap(ctx context.Context, s *scope) (ctrl.Res
 		}
 
 		m.Spec.Template.Spec.Bootstrap.DataSecretName = new(secretName)
-		m.Status.Initialization.BootstrapDataSecretCreated = ptr.To(true)
+		m.Status.Initialization.BootstrapDataSecretCreated = new(true)
 		return ctrl.Result{}, nil
 	}
 
 	// If dataSecretName is set without a ConfigRef, this means the user brought their own bootstrap data.
 	if m.Spec.Template.Spec.Bootstrap.DataSecretName != nil {
-		m.Status.Initialization.BootstrapDataSecretCreated = ptr.To(true)
+		m.Status.Initialization.BootstrapDataSecretCreated = new(true)
 		v1beta1conditions.MarkTrue(m, clusterv1.BootstrapReadyV1Beta1Condition)
 		return ctrl.Result{}, nil
 	}
@@ -338,7 +338,7 @@ func (r *Reconciler) reconcileInfrastructure(ctx context.Context, s *scope) (ctr
 					mp.Status.Deprecated.V1Beta1 = &clusterv1.MachinePoolV1Beta1DeprecatedStatus{}
 				}
 				mp.Status.Deprecated.V1Beta1.FailureReason = ptr.To(capierrors.InvalidConfigurationMachinePoolError)
-				mp.Status.Deprecated.V1Beta1.FailureMessage = ptr.To(fmt.Sprintf("MachinePool infrastructure resource %s %s has been deleted after being ready",
+				mp.Status.Deprecated.V1Beta1.FailureMessage = new(fmt.Sprintf("MachinePool infrastructure resource %s %s has been deleted after being ready",
 					mp.Spec.Template.Spec.InfrastructureRef.Kind, klog.KRef(mp.Namespace, mp.Spec.Template.Spec.InfrastructureRef.Name)))
 			}
 			v1beta1conditions.MarkFalse(mp, clusterv1.InfrastructureReadyV1Beta1Condition, clusterv1.IncorrectExternalRefV1Beta1Reason, clusterv1.ConditionSeverityError, "%s", fmt.Sprintf("could not find infra reference of kind %s with name %s", mp.Spec.Template.Spec.InfrastructureRef.Kind, mp.Spec.Template.Spec.InfrastructureRef.Name))
@@ -373,7 +373,7 @@ func (r *Reconciler) reconcileInfrastructure(ctx context.Context, s *scope) (ctr
 
 	// Note: initialization.infrastructureProvisioned is never updated after provisioning is completed,
 	// even if the InfraMachinePool later reports not provisioned (e.g. while scaling).
-	mp.Status.Initialization.InfrastructureProvisioned = ptr.To(provisioned || ptr.Deref(mp.Status.Initialization.InfrastructureProvisioned, false))
+	mp.Status.Initialization.InfrastructureProvisioned = new(provisioned || ptr.Deref(mp.Status.Initialization.InfrastructureProvisioned, false))
 
 	// Report a summary of current status of the infrastructure object defined for this machine pool.
 	v1beta1conditions.SetMirror(mp, clusterv1.InfrastructureReadyV1Beta1Condition,
@@ -598,7 +598,7 @@ func (r *Reconciler) computeDesiredMachine(mp *clusterv1.MachinePool, infraMachi
 		Spec: clusterv1.MachineSpec{
 			ClusterName: mp.Spec.ClusterName,
 			Bootstrap: clusterv1.Bootstrap{
-				DataSecretName: ptr.To(""),
+				DataSecretName: new(""),
 			},
 			InfrastructureRef: infraRef,
 			Version:           kubernetesVersion,

@@ -22,7 +22,6 @@ import (
 	"github.com/google/go-cmp/cmp"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	. "sigs.k8s.io/controller-runtime/pkg/envtest/komega"
@@ -63,12 +62,12 @@ func TestGetBlueprint(t *testing.T) {
 		Build()
 	cpMachineHealthCheck := clusterv1.ControlPlaneClassHealthCheck{
 		Checks: clusterv1.ControlPlaneClassHealthCheckChecks{
-			NodeStartupTimeoutSeconds: ptr.To(int32(1)),
+			NodeStartupTimeoutSeconds: new(int32(1)),
 		},
 	}
 	mdMachineHealthCheck := clusterv1.MachineDeploymentClassHealthCheck{
 		Checks: clusterv1.MachineDeploymentClassHealthCheckChecks{
-			NodeStartupTimeoutSeconds: ptr.To(int32(1)),
+			NodeStartupTimeoutSeconds: new(int32(1)),
 		},
 	}
 

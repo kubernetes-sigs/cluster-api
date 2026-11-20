@@ -46,7 +46,7 @@ func TestMachineSetDefault(t *testing.T) {
 				Spec: clusterv1.MachineSpec{
 					Version: "1.19.10",
 					Bootstrap: clusterv1.Bootstrap{
-						DataSecretName: ptr.To("data-secret"),
+						DataSecretName: new("data-secret"),
 					},
 				},
 			},
@@ -82,12 +82,12 @@ func TestMachineSetBootstrapValidation(t *testing.T) {
 		},
 		{
 			name:      "should not return error if dataSecretName is set",
-			bootstrap: clusterv1.Bootstrap{DataSecretName: ptr.To("test")},
+			bootstrap: clusterv1.Bootstrap{DataSecretName: new("test")},
 			expectErr: false,
 		},
 		{
 			name:      "should not return error if dataSecretName is set",
-			bootstrap: clusterv1.Bootstrap{DataSecretName: ptr.To("")},
+			bootstrap: clusterv1.Bootstrap{DataSecretName: new("")},
 			expectErr: false,
 		},
 		{
@@ -344,7 +344,7 @@ func TestMachineSetLabelSelectorMatchValidation(t *testing.T) {
 						},
 						Spec: clusterv1.MachineSpec{
 							Bootstrap: clusterv1.Bootstrap{
-								DataSecretName: ptr.To("data-secret"),
+								DataSecretName: new("data-secret"),
 							},
 						},
 					},
@@ -403,7 +403,7 @@ func TestMachineSetClusterNameImmutable(t *testing.T) {
 						Spec: clusterv1.MachineSpec{
 							ClusterName: tt.newClusterName,
 							Bootstrap: clusterv1.Bootstrap{
-								DataSecretName: ptr.To("data-secret"),
+								DataSecretName: new("data-secret"),
 							},
 						},
 					},
@@ -417,7 +417,7 @@ func TestMachineSetClusterNameImmutable(t *testing.T) {
 						Spec: clusterv1.MachineSpec{
 							ClusterName: tt.oldClusterName,
 							Bootstrap: clusterv1.Bootstrap{
-								DataSecretName: ptr.To("data-secret"),
+								DataSecretName: new("data-secret"),
 							},
 						},
 					},
@@ -467,7 +467,7 @@ func TestMachineSetClusterNamesEqual(t *testing.T) {
 						Spec: clusterv1.MachineSpec{
 							ClusterName: tt.specTemplateSpecClusterName,
 							Bootstrap: clusterv1.Bootstrap{
-								DataSecretName: ptr.To("data-secret"),
+								DataSecretName: new("data-secret"),
 							},
 						},
 					},
@@ -528,7 +528,7 @@ func TestMachineSetVersionValidation(t *testing.T) {
 						Spec: clusterv1.MachineSpec{
 							Version: tt.version,
 							Bootstrap: clusterv1.Bootstrap{
-								DataSecretName: ptr.To("data-secret"),
+								DataSecretName: new("data-secret"),
 							},
 						},
 					},
@@ -719,7 +719,7 @@ func TestMachineSetMachineNamingValidation(t *testing.T) {
 					Template: clusterv1.MachineTemplateSpec{
 						Spec: clusterv1.MachineSpec{
 							Bootstrap: clusterv1.Bootstrap{
-								DataSecretName: ptr.To("data-secret"),
+								DataSecretName: new("data-secret"),
 							},
 						},
 					},

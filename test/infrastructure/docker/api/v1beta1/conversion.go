@@ -178,7 +178,7 @@ func Convert_v1beta1_DevClusterStatus_To_v1beta2_DevClusterStatus(in *DevCluster
 			domain := in.FailureDomains[name]
 			out.FailureDomains = append(out.FailureDomains, clusterv1.FailureDomain{
 				Name:         name,
-				ControlPlane: ptr.To(domain.ControlPlane),
+				ControlPlane: new(domain.ControlPlane),
 				Attributes:   domain.Attributes,
 			})
 		}
@@ -345,7 +345,7 @@ func Convert_v1beta1_DockerClusterBackendSpec_To_v1beta2_DockerClusterBackendSpe
 			domain := in.FailureDomains[name]
 			out.FailureDomains = append(out.FailureDomains, clusterv1.FailureDomain{
 				Name:         name,
-				ControlPlane: ptr.To(domain.ControlPlane),
+				ControlPlane: new(domain.ControlPlane),
 				Attributes:   domain.Attributes,
 			})
 		}

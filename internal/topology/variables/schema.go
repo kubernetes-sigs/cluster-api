@@ -56,7 +56,7 @@ func convertToAPIExtensionsJSONSchemaProps(schema *clusterv1.JSONSchemaProps, fl
 	// apiextensions.JSONSchemaProps only allows setting XPreserveUnknownFields
 	// to true or undefined, false is forbidden.
 	if ptr.Deref(schema.XPreserveUnknownFields, false) {
-		props.XPreserveUnknownFields = ptr.To(true)
+		props.XPreserveUnknownFields = new(true)
 	}
 
 	if schema.Default != nil && schema.Default.Raw != nil {
@@ -221,7 +221,7 @@ func convertToAPIExtensionsXValidations(validationRules []clusterv1.ValidationRu
 	for _, validationRule := range validationRules {
 		var reason *apiextensions.FieldValueErrorReason
 		if validationRule.Reason != "" {
-			reason = ptr.To(apiextensions.FieldValueErrorReason(validationRule.Reason))
+			reason = new(apiextensions.FieldValueErrorReason(validationRule.Reason))
 		}
 
 		apiExtValidationRules = append(

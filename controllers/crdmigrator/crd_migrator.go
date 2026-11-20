@@ -37,7 +37,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/util/retry"
 	"k8s.io/klog/v2"
-	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -479,7 +478,7 @@ func (r *CRDMigrator) reconcileCleanupManagedFields(ctx context.Context, crd *ap
 					Manager:    obj.GetManagedFields()[0].Manager,
 					Operation:  obj.GetManagedFields()[0].Operation,
 					APIVersion: schema.GroupVersion{Group: crd.Spec.Group, Version: storageVersion}.String(),
-					Time:       ptr.To(metav1.Now()),
+					Time:       new(metav1.Now()),
 					FieldsType: "FieldsV1",
 					FieldsV1:   metav1.NewFieldsV1(`{"f:metadata":{"f:name":{}}}`),
 				})

@@ -103,7 +103,7 @@ func MachinePoolSpec(ctx context.Context, inputGetter func() MachinePoolInput) {
 				ClusterName:              fmt.Sprintf("%s-%s", specName, util.RandomString(6)),
 				KubernetesVersion:        input.E2EConfig.MustGetVariable(KubernetesVersion),
 				ControlPlaneMachineCount: ptr.To[int64](1),
-				WorkerMachineCount:       ptr.To[int64](int64(workerMachineCount)),
+				WorkerMachineCount:       new(int64(workerMachineCount)),
 			},
 			ControlPlaneWaiters:          input.ControlPlaneWaiters,
 			WaitForClusterIntervals:      input.E2EConfig.GetIntervals(specName, "wait-cluster"),

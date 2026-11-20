@@ -1509,7 +1509,7 @@ func (c *ControlPlaneBuilder) WithInfrastructureMachineTemplate(t *unstructured.
 			panic(err)
 		}
 	} else {
-		err := contract.ControlPlane().MachineTemplate().InfrastructureRef().Set(c.obj, ptr.To(objToRef(t)))
+		err := contract.ControlPlane().MachineTemplate().InfrastructureRef().Set(c.obj, new(objToRef(t)))
 		if err != nil {
 			panic(err)
 		}
@@ -1594,7 +1594,7 @@ func (c *TestControlPlaneBuilder) WithInfrastructureMachineTemplate(t *unstructu
 			panic(err)
 		}
 	} else {
-		err := contract.ControlPlane().MachineTemplate().InfrastructureRef().Set(c.obj, ptr.To(objToRef(t)))
+		err := contract.ControlPlane().MachineTemplate().InfrastructureRef().Set(c.obj, new(objToRef(t)))
 		if err != nil {
 			panic(err)
 		}

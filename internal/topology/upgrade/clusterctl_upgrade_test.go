@@ -288,7 +288,7 @@ func createT1ClusterClass(g *WithT, ns *corev1.Namespace, ct1 client.Client) *cl
 			Template: testt1v1beta1.TestResourceTemplateResource{
 				Spec: testt1v1beta1.TestResourceSpec{
 					BoolToPtrBool:      true,
-					PtrStringToString:  ptr.To("Something"),
+					PtrStringToString:  new("Something"),
 					Int32ToPtrInt32:    int32(4),
 					DurationToPtrInt32: metav1.Duration{Duration: 5 * time.Second},
 					// Note: BoolRemoved tests if the removal of KubeadmConfig UseExperimentalRetryJoin triggers rollouts.
@@ -406,8 +406,8 @@ func createT1ClusterClass(g *WithT, ns *corev1.Namespace, ct1 client.Client) *cl
 								APIVersion: testt1v1beta1.GroupVersion.String(),
 								Kind:       "TestResourceTemplate",
 								MatchResources: clusterv1.PatchSelectorMatch{
-									InfrastructureCluster: ptr.To(true),
-									ControlPlane:          ptr.To(true),
+									InfrastructureCluster: new(true),
+									ControlPlane:          new(true),
 									MachineDeploymentClass: &clusterv1.PatchSelectorMatchMachineDeploymentClass{
 										Names: []string{machineDeploymentClass1.Class},
 									},
@@ -435,8 +435,8 @@ func createT1ClusterClass(g *WithT, ns *corev1.Namespace, ct1 client.Client) *cl
 								APIVersion: testt1v1beta1.GroupVersion.String(),
 								Kind:       "TestResourceTemplate",
 								MatchResources: clusterv1.PatchSelectorMatch{
-									InfrastructureCluster: ptr.To(false),
-									ControlPlane:          ptr.To(false),
+									InfrastructureCluster: new(false),
+									ControlPlane:          new(false),
 									MachineDeploymentClass: &clusterv1.PatchSelectorMatchMachineDeploymentClass{
 										Names: []string{machineDeploymentClass1.Class},
 									},
@@ -482,7 +482,7 @@ func createT2ClusterClass(g *WithT, ns *corev1.Namespace, ct2 client.Client) *cl
 		Spec: testt2v1beta2.TestResourceTemplateSpec{
 			Template: testt2v1beta2.TestResourceTemplateResource{
 				Spec: testt2v1beta2.TestResourceSpec{
-					BoolToPtrBool:      ptr.To(true),
+					BoolToPtrBool:      new(true),
 					PtrStringToString:  "Something",
 					Int32ToPtrInt32:    ptr.To[int32](4),
 					DurationToPtrInt32: ptr.To[int32](5),
@@ -597,8 +597,8 @@ func createT2ClusterClass(g *WithT, ns *corev1.Namespace, ct2 client.Client) *cl
 								APIVersion: testt2v1beta2.GroupVersion.String(),
 								Kind:       "TestResourceTemplate",
 								MatchResources: clusterv1.PatchSelectorMatch{
-									InfrastructureCluster: ptr.To(true),
-									ControlPlane:          ptr.To(true),
+									InfrastructureCluster: new(true),
+									ControlPlane:          new(true),
 									MachineDeploymentClass: &clusterv1.PatchSelectorMatchMachineDeploymentClass{
 										Names: []string{machineDeploymentClass1.Class},
 									},
@@ -1302,7 +1302,7 @@ func newMutatingWebhookConfigurationForCustomDefaulter(ns *corev1.Namespace, gvr
 			{
 				Name: fmt.Sprintf("%s.%s.test.cluster.x-k8s.io", ns.Name, gvr.Resource),
 				ClientConfig: admissionv1.WebhookClientConfig{
-					URL:      ptr.To(fmt.Sprintf("https://%s%s", net.JoinHostPort(webhookHost, strconv.Itoa(webhookServer.Options.Port)), webhookPath)),
+					URL:      new(fmt.Sprintf("https://%s%s", net.JoinHostPort(webhookHost, strconv.Itoa(webhookServer.Options.Port)), webhookPath)),
 					CABundle: caBundle,
 				},
 				Rules: []admissionv1.RuleWithOperations{
@@ -1362,7 +1362,7 @@ func addOrReplaceConversionWebhookHandler(ctx context.Context, c client.Client, 
 		Strategy: "Webhook",
 		Webhook: &apiextensionsv1.WebhookConversion{
 			ClientConfig: &apiextensionsv1.WebhookClientConfig{
-				URL:      ptr.To(fmt.Sprintf("https://%s%s", net.JoinHostPort(webhookHost, strconv.Itoa(webhookServer.Options.Port)), webhookPath)),
+				URL:      new(fmt.Sprintf("https://%s%s", net.JoinHostPort(webhookHost, strconv.Itoa(webhookServer.Options.Port)), webhookPath)),
 				CABundle: caBundle,
 			},
 			ConversionReviewVersions: []string{"v1"},

@@ -407,7 +407,7 @@ func ScaleAndWaitControlPlane(ctx context.Context, input ScaleAndWaitControlPlan
 	patchHelper, err := patch.NewHelper(input.ControlPlane, input.ClusterProxy.GetClient())
 	Expect(err).ToNot(HaveOccurred())
 	scaleBefore := ptr.Deref(input.ControlPlane.Spec.Replicas, 0)
-	input.ControlPlane.Spec.Replicas = ptr.To[int32](input.Replicas)
+	input.ControlPlane.Spec.Replicas = new(input.Replicas)
 	log.Logf("Scaling controlplane %s from %v to %v replicas", klog.KObj(input.ControlPlane), scaleBefore, input.Replicas)
 	Eventually(func() error {
 		return patchHelper.Patch(ctx, input.ControlPlane)

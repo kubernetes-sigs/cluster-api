@@ -201,7 +201,7 @@ func (w *Workload) UpdateClusterConfiguration(ctx context.Context, version semve
 		desiredKubernetesVersion := fmt.Sprintf("v%s", version.String())
 		currentKubernetesVersion := ptr.Deref(currentUpstreamData.KubernetesVersion, "")
 		if currentKubernetesVersion != desiredKubernetesVersion {
-			updatedUpstreamData.KubernetesVersion = ptr.To(desiredKubernetesVersion)
+			updatedUpstreamData.KubernetesVersion = new(desiredKubernetesVersion)
 		}
 
 		if !reflect.DeepEqual(currentObj, updatedObj) || !reflect.DeepEqual(currentUpstreamData, updatedUpstreamData) {

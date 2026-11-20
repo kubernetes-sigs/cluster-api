@@ -17,6 +17,8 @@ limitations under the License.
 package ssa
 
 import (
+	"slices"
+
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
 	"sigs.k8s.io/cluster-api/internal/contract"
@@ -114,15 +116,7 @@ type FilterIntentInput struct {
 // IsPathAllowed returns true when the Path is one of the AllowedPaths.
 func IsPathAllowed(allowedPaths []contract.Path) func(path contract.Path) bool {
 	return func(path contract.Path) bool {
-		for _, p := range allowedPaths {
-			// NOTE: we allow everything Equal or one IsParentOf one of the allowed paths.
-			// e.g. if allowed Path is metadata.labels, we allow both metadata and metadata.labels;
-			// this is required because allowed Path is called recursively.
-			if path.Overlaps(p) {
-				return true
-			}
-		}
-		return false
+		return slices.ContainsFunc(allowedPaths, path.Overlaps)
 	}
 }
 
@@ -137,11 +131,6 @@ func IsPathNotAllowed(allowedPaths []contract.Path) func(path contract.Path) boo
 // IsPathIgnored returns true when the Path is one of the IgnorePaths.
 func IsPathIgnored(ignorePaths []contract.Path) func(path contract.Path) bool {
 	return func(path contract.Path) bool {
-		for _, p := range ignorePaths {
-			if path.Equal(p) {
-				return true
-			}
-		}
-		return false
+		return slices.ContainsFunc(ignorePaths, path.Equal)
 	}
 }

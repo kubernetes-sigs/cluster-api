@@ -44,6 +44,7 @@ linters:
     - makezero # append to slices initialized with non-zero length
     - mirror # suggests alternative bytes/strings functions to avoid allocations
     - misspell # spelling
+    - modernize # suggests simplifications to Go code, using modern language and library features.
     - nakedret # naked returns (named return parameters and an empty return)
     - nilerr # returning nil after checking err is not nil
     - nilnesserr # returning a different nil error after checking err is not nil
@@ -327,6 +328,10 @@ linters:
       no-unaliased: true
     loggercheck:
       no-printf-like: true
+    modernize:
+      disable:
+        - any # ~ 2203 findings
+        - newexpr # ~ 1637 findings
     nolintlint:
       require-specific: true
       allow-unused: false

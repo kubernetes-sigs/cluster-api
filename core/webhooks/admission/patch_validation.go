@@ -530,8 +530,8 @@ var builtinVariables = sets.Set[string]{}.Insert(
 func validateIndexAccess(jsonPatch clusterv1.JSONPatch, path *field.Path) field.ErrorList {
 	var allErrs field.ErrorList
 
-	pathParts := strings.Split(jsonPatch.Path, "/")
-	for _, part := range pathParts {
+	pathParts := strings.SplitSeq(jsonPatch.Path, "/")
+	for part := range pathParts {
 		// Check if the path segment is a valid number. If an error is thrown continue to the next segment.
 		index, err := strconv.Atoi(part)
 		if err != nil {

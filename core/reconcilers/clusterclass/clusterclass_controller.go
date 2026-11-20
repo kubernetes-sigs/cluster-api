@@ -539,9 +539,10 @@ func matchNamespace(ctx context.Context, c client.Client, selector labels.Select
 
 func cacheKeyFunc(extensionName, extensionConfigResourceVersion string, request runtimehooksv1.RequestObject) string {
 	// Note: registration.Name is identical to the value of the patch.External.DiscoverVariablesExtension field in the ClusterClass.
-	s := fmt.Sprintf("%s-%s", extensionName, extensionConfigResourceVersion)
+	var s strings.Builder
+	fmt.Fprintf(&s, "%s-%s", extensionName, extensionConfigResourceVersion)
 	for k, v := range request.GetSettings() {
-		s += fmt.Sprintf(",%s=%s", k, v)
+		fmt.Fprintf(&s, ",%s=%s", k, v)
 	}
-	return s
+	return s.String()
 }

@@ -20,6 +20,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"maps"
 	"strings"
 	"testing"
 	"time"
@@ -3733,17 +3734,13 @@ func assertNestedFieldUnset(g *WithT, obj *unstructured.Unstructured, fields ...
 
 func duplicateMachineDeploymentsState(s scope.MachineDeploymentsStateMap) scope.MachineDeploymentsStateMap {
 	n := make(scope.MachineDeploymentsStateMap)
-	for k, v := range s {
-		n[k] = v
-	}
+	maps.Copy(n, s)
 	return n
 }
 
 func duplicateMachinePoolsState(s scope.MachinePoolsStateMap) scope.MachinePoolsStateMap {
 	n := make(scope.MachinePoolsStateMap)
-	for k, v := range s {
-		n[k] = v
-	}
+	maps.Copy(n, s)
 	return n
 }
 

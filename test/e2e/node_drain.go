@@ -19,6 +19,7 @@ package e2e
 import (
 	"context"
 	"fmt"
+	"maps"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -279,9 +280,7 @@ func NodeDrainTimeoutSpec(ctx context.Context, inputGetter func() NodeDrainTimeo
 				NodeSelector:         map[string]string{nodeOwnerLabelKey: "KubeadmControlPlane-" + controlplane.Name},
 				ModifyDeployment: func(deployment *appsv1.Deployment) {
 					deployment.Spec.Template.Finalizers = []string{"test.cluster.x-k8s.io/block"}
-					for k, v := range deploymentLabels {
-						deployment.Spec.Template.Labels[k] = v
-					}
+					maps.Copy(deployment.Spec.Template.Labels, deploymentLabels)
 				},
 				WaitForDeploymentAvailableInterval: input.E2EConfig.GetIntervals(specName, "wait-deployment-available"),
 			})
@@ -294,9 +293,7 @@ func NodeDrainTimeoutSpec(ctx context.Context, inputGetter func() NodeDrainTimeo
 					NodeSelector:         map[string]string{nodeOwnerLabelKey: "MachineDeployment-" + md.Name},
 					ModifyDeployment: func(deployment *appsv1.Deployment) {
 						deployment.Spec.Template.Finalizers = []string{"test.cluster.x-k8s.io/block"}
-						for k, v := range deploymentLabels {
-							deployment.Spec.Template.Labels[k] = v
-						}
+						maps.Copy(deployment.Spec.Template.Labels, deploymentLabels)
 					},
 					WaitForDeploymentAvailableInterval: input.E2EConfig.GetIntervals(specName, "wait-deployment-available"),
 				})

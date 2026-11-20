@@ -190,8 +190,8 @@ func generateInjectScriptJSONPatch(sourceTemplate []byte, objectKind, objectName
 
 // checkIfArraysAlreadyExist check is the 'files' and 'preKubeadmCommands' arrays already exist below jsonPatchPathPrefix.
 func checkIfArraysAlreadyExist(sourceTemplate []byte, objectKind, objectName, jsonPatchPathPrefix string) (bool, bool, error) {
-	yamlDocs := strings.Split(string(sourceTemplate), "---")
-	for _, yamlDoc := range yamlDocs {
+	yamlDocs := strings.SplitSeq(string(sourceTemplate), "---")
+	for yamlDoc := range yamlDocs {
 		if yamlDoc == "" {
 			continue
 		}

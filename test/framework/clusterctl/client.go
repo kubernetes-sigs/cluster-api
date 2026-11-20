@@ -100,8 +100,7 @@ func InitWithBinary(ctx context.Context, binary string, input InitInput) {
 	_ = os.WriteFile(filepath.Join(input.LogFolder, "clusterctl-init.log"), out, 0644) //nolint:gosec // this is a log file to be shared via prow artifacts
 	var stdErr string
 	if err != nil {
-		var exitErr *exec.ExitError
-		if errors.As(err, &exitErr) {
+		if exitErr, ok := errors.AsType[*exec.ExitError](err); ok {
 			stdErr = string(exitErr.Stderr)
 		}
 	}
@@ -211,8 +210,7 @@ func UpgradeWithBinary(ctx context.Context, binary string, input UpgradeInput) e
 	_ = os.WriteFile(filepath.Join(input.LogFolder, "clusterctl-upgrade.log"), out, 0644) //nolint:gosec // this is a log file to be shared via prow artifacts
 	var stdErr string
 	if err != nil {
-		var exitErr *exec.ExitError
-		if errors.As(err, &exitErr) {
+		if exitErr, ok := errors.AsType[*exec.ExitError](err); ok {
 			stdErr = string(exitErr.Stderr)
 		}
 		return fmt.Errorf("failed to run clusterctl upgrade apply:\nstdout:\n%s\nstderr:\n%s", string(out), stdErr)
@@ -383,8 +381,7 @@ func ConfigClusterWithBinary(ctx context.Context, clusterctlBinaryPath string, i
 	_ = os.WriteFile(filepath.Join(input.LogFolder, fmt.Sprintf("%s-cluster-template.yaml", input.ClusterName)), out, 0644) //nolint:gosec // this is a log file to be shared via prow artifacts
 	var stdErr string
 	if err != nil {
-		var exitErr *exec.ExitError
-		if errors.As(err, &exitErr) {
+		if exitErr, ok := errors.AsType[*exec.ExitError](err); ok {
 			stdErr = string(exitErr.Stderr)
 		}
 	}

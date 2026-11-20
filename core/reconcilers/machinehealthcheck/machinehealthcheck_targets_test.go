@@ -18,6 +18,7 @@ package machinehealthcheck
 
 import (
 	"fmt"
+	"maps"
 	"testing"
 	"time"
 
@@ -851,9 +852,7 @@ func TestHealthCheckTargets(t *testing.T) {
 func newTestMachine(name, namespace, clusterName, nodeName string, labels map[string]string) *clusterv1.Machine {
 	// Copy the labels so that the map is unique to each test Machine
 	l := make(map[string]string)
-	for k, v := range labels {
-		l[k] = v
-	}
+	maps.Copy(l, labels)
 	l[clusterv1.ClusterNameLabel] = clusterName
 
 	bootstrap := "bootstrap"
@@ -912,9 +911,7 @@ func newTestUnhealthyNode(name string, condition corev1.NodeConditionType, statu
 func newTestUnhealthyMachine(name, namespace, clusterName, nodeName string, labels map[string]string, condition string, status metav1.ConditionStatus, reason string, now time.Time, unhealthyDuration time.Duration) *clusterv1.Machine {
 	// Copy the labels so that the map is unique to each test Machine
 	l := make(map[string]string)
-	for k, v := range labels {
-		l[k] = v
-	}
+	maps.Copy(l, labels)
 	l[clusterv1.ClusterNameLabel] = clusterName
 
 	bootstrap := "bootstrap"

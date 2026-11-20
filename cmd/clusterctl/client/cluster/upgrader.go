@@ -19,6 +19,7 @@ package cluster
 import (
 	"context"
 	"fmt"
+	"slices"
 	"sort"
 	"strings"
 	"time"
@@ -180,8 +181,8 @@ func (u *providerUpgrader) ApplyPlan(ctx context.Context, opts UpgradeOptions, c
 
 	// Make sure there is something to upgrade, clear providers that do not
 	// need it
-	for i := len(upgradePlan.Providers) - 1; i >= 0; i-- {
-		if upgradePlan.Providers[i].NextVersion == "" {
+	for i, v := range slices.Backward(upgradePlan.Providers) {
+		if v.NextVersion == "" {
 			// Remove this from our plan
 			upgradePlan.Providers = append(upgradePlan.Providers[:i], upgradePlan.Providers[i+1:]...)
 		}

@@ -17,6 +17,7 @@ limitations under the License.
 package labels
 
 import (
+	"maps"
 	"regexp"
 	"testing"
 
@@ -331,19 +332,13 @@ func TestGetManagedLabels(t *testing.T) {
 
 	exampleRegex := regexp.MustCompile(`foo`)
 	defaultAndRegexLabels := map[string]string{}
-	for k, v := range defaultLabels {
-		defaultAndRegexLabels[k] = v
-	}
+	maps.Copy(defaultAndRegexLabels, defaultLabels)
 	defaultAndRegexLabels["foo"] = "bar"
 	defaultAndRegexLabels["wrong.test.foo.com"] = ""
 
 	allLabels := map[string]string{}
-	for k, v := range defaultLabels {
-		allLabels[k] = v
-	}
-	for k, v := range additionalLabels {
-		allLabels[k] = v
-	}
+	maps.Copy(allLabels, defaultLabels)
+	maps.Copy(allLabels, additionalLabels)
 
 	tests := []struct {
 		name                        string

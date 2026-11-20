@@ -24,6 +24,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"maps"
 	"net"
 	"net/http"
 	"net/url"
@@ -588,12 +589,8 @@ func cloneAndAddSettings(request runtimehooksv1.RequestObject, registrationSetti
 	// Create a deepcopy object to avoid side-effects on the request object.
 	request = request.DeepCopyObject().(runtimehooksv1.RequestObject)
 	settings := map[string]string{}
-	for k, v := range registrationSettings {
-		settings[k] = v
-	}
-	for k, v := range request.GetSettings() {
-		settings[k] = v
-	}
+	maps.Copy(settings, registrationSettings)
+	maps.Copy(settings, request.GetSettings())
 	request.SetSettings(settings)
 	return request
 }

@@ -116,10 +116,7 @@ func (c *Conn) armDeadlineTimerLocked() {
 		return
 	}
 
-	d := time.Until(deadline)
-	if d < 0 {
-		d = 0
-	}
+	d := max(time.Until(deadline), 0)
 	c.deadlineTimer = time.AfterFunc(d, func() {
 		_ = c.Close()
 	})

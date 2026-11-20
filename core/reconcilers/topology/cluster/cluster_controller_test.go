@@ -21,6 +21,7 @@ import (
 	"errors"
 	"fmt"
 	"maps"
+	"slices"
 	"testing"
 	"time"
 
@@ -1066,8 +1067,8 @@ func setupTestEnvForIntegrationTests(ns *corev1.Namespace) (func() error, error)
 	}
 	cleanup := func() error {
 		// Delete Objects in reverse, because we cannot delete a ClusterCLass if it is still used by a Cluster.
-		for i := len(initObjs) - 1; i >= 0; i-- {
-			if err := env.CleanupAndWait(ctx, initObjs[i]); err != nil {
+		for _, initObj := range slices.Backward(initObjs) {
+			if err := env.CleanupAndWait(ctx, initObj); err != nil {
 				return err
 			}
 		}

@@ -20,6 +20,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"maps"
 	"sort"
 	"testing"
 	"time"
@@ -2848,9 +2849,7 @@ func createMachinesWithNodes(
 
 func newMachineHealthCheckWithLabels(name, namespace, cluster string, labels map[string]string) *clusterv1.MachineHealthCheck {
 	l := make(map[string]string, len(labels))
-	for k, v := range labels {
-		l[k] = v
-	}
+	maps.Copy(l, labels)
 	l[clusterv1.ClusterNameLabel] = cluster
 
 	mhc := newMachineHealthCheck(namespace, cluster)

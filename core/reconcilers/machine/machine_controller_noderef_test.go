@@ -18,6 +18,7 @@ package machine
 
 import (
 	"fmt"
+	"maps"
 	"testing"
 	"time"
 
@@ -504,9 +505,7 @@ func TestNodeLabelSync(t *testing.T) {
 			clusterv1.NodeRestrictionLabelDomain + "/anything":                    "valueFromMachine",
 			"custom-prefix." + clusterv1.NodeRestrictionLabelDomain + "/anything": "valueFromMachine",
 		}
-		for k, v := range managedMachineLabels {
-			machine.Labels[k] = v
-		}
+		maps.Copy(machine.Labels, managedMachineLabels)
 		// The expectation is that these labels will not be synced to the Node.
 		unmanagedMachineLabels := map[string]string{
 			"foo":                               "",
@@ -516,9 +515,7 @@ func TestNodeLabelSync(t *testing.T) {
 			"company.xyz/node-restriction.kubernetes.io": "not-managed",
 			"gpu-node-restriction.kubernetes.io":         "not-managed",
 		}
-		for k, v := range unmanagedMachineLabels {
-			machine.Labels[k] = v
-		}
+		maps.Copy(machine.Labels, unmanagedMachineLabels)
 
 		// Create Node.
 		node := &corev1.Node{
@@ -557,17 +554,13 @@ func TestNodeLabelSync(t *testing.T) {
 			clusterv1.NodeRestrictionLabelDomain + "/anything":                    "valueFromNode",
 			"custom-prefix." + clusterv1.NodeRestrictionLabelDomain + "/anything": "valueFromNode",
 		}
-		for k, v := range managedNodeLabelsToBeOverWritten {
-			node.Labels[k] = v
-		}
+		maps.Copy(node.Labels, managedNodeLabelsToBeOverWritten)
 		// The expectation is that these labels will be preserved by the node label sync.
 		unmanagedNodeLabelsToBePreserved := map[string]string{
 			"node-role.kubernetes.io/control-plane": "",
 			"label":                                 "valueFromNode",
 		}
-		for k, v := range unmanagedNodeLabelsToBePreserved {
-			node.Labels[k] = v
-		}
+		maps.Copy(node.Labels, unmanagedNodeLabelsToBePreserved)
 
 		g.Expect(env.Create(ctx, node)).To(Succeed())
 		defer func() {

@@ -1057,10 +1057,7 @@ func indentIfMultiline(m string, maxLines int) string {
 	if strings.Contains(m, "\n") {
 		msg += "\n"
 		lines := strings.Split(fmt.Sprintf("...\n%s", m), "\n")
-		start := len(lines) - maxLines
-		if start < 0 {
-			start = 0
-		}
+		start := max(len(lines)-maxLines, 0)
 		lines = lines[start:]
 		prefix := "  * "
 		for i, l := range lines {

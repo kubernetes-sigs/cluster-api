@@ -20,6 +20,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/go-logr/logr"
 	pkgerrors "github.com/pkg/errors"
@@ -191,25 +192,25 @@ func flatten(entry logEntry) (string, error) {
 			values[k] = v
 		}
 	}
-	str := ""
+	var str strings.Builder
 	if entry.Prefix != "" {
-		str += fmt.Sprintf("[%s] ", entry.Prefix)
+		fmt.Fprintf(&str, "[%s] ", entry.Prefix)
 	}
-	str += msgValue
+	str.WriteString(msgValue)
 	if errorValue != nil {
 		if msgValue != "" {
-			str += ": "
+			str.WriteString(": ")
 		}
-		str += errorValue.Error()
+		str.WriteString(errorValue.Error())
 	}
 	for _, k := range keys {
 		prettyValue, err := pretty(values[k])
 		if err != nil {
 			return "", err
 		}
-		str += fmt.Sprintf(" %s=%s", k, prettyValue)
+		fmt.Fprintf(&str, " %s=%s", k, prettyValue)
 	}
-	return str, nil
+	return str.String(), nil
 }
 
 func pretty(value interface{}) (string, error) {

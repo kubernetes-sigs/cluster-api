@@ -111,8 +111,8 @@ func unsafeUnstructuredCopy(obj *unstructured.Unstructured, focus patchType, clu
 }
 
 var (
-	clusterv1ConditionsType = reflect.TypeOf(clusterv1.Conditions{})
-	metav1ConditionsType    = reflect.TypeOf([]metav1.Condition{})
+	clusterv1ConditionsType = reflect.TypeFor[clusterv1.Conditions]()
+	metav1ConditionsType    = reflect.TypeFor[[]metav1.Condition]()
 )
 
 func identifyConditionsFieldsPath(obj runtime.Object) ([]string, []string, error) {

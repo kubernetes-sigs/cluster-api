@@ -27,6 +27,7 @@ import (
 	"io"
 	"net/netip"
 	"os"
+	"slices"
 	"strings"
 	"time"
 
@@ -736,10 +737,8 @@ func (d *dockerRuntime) mountFuse(info dockersystem.Info) bool {
 			return false
 		}
 		for _, f := range sliceSlice {
-			for _, ff := range f {
-				if ff == "name=rootless" {
-					return true
-				}
+			if slices.Contains(f, "name=rootless") {
+				return true
 			}
 		}
 	}

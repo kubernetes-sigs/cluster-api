@@ -247,11 +247,12 @@ func operationID(gvh runtimecatalog.GroupVersionHook) string {
 
 	split := strings.Split(shortAPIGroup, ".")
 
-	res := split[0]
+	var res strings.Builder
+	res.WriteString(split[0])
 	for i := 1; i < len(split); i++ {
-		res += strings.ToTitle(split[i][:1]) + split[i][1:]
+		res.WriteString(strings.ToTitle(split[i][:1]) + split[i][1:])
 	}
-	res += strings.ToTitle(gvh.Version[:1]) + gvh.Version[1:] + strings.ToTitle(gvh.Hook[:1]) + gvh.Hook[1:]
+	res.WriteString(strings.ToTitle(gvh.Version[:1]) + gvh.Version[1:] + strings.ToTitle(gvh.Hook[:1]) + gvh.Hook[1:])
 
-	return res
+	return res.String()
 }

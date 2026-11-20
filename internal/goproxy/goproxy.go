@@ -120,7 +120,7 @@ func (g *Client) GetVersions(ctx context.Context, gomodulePath string) (semver.V
 			break
 		}
 
-		for _, s := range strings.Split(string(rawResponse), "\n") {
+		for s := range strings.SplitSeq(string(rawResponse), "\n") {
 			if s == "" {
 				continue
 			}

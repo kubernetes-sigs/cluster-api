@@ -19,6 +19,7 @@ package machinedeployment
 import (
 	"context"
 	"fmt"
+	"maps"
 	"sort"
 
 	pkgerrors "github.com/pkg/errors"
@@ -88,9 +89,7 @@ func (r *Reconciler) sync(ctx context.Context, reconcileStartTime metav1.Time, m
 // cloneStringMap clones a string map.
 func cloneStringMap(in map[string]string) map[string]string {
 	out := map[string]string{}
-	for k, v := range in {
-		out[k] = v
-	}
+	maps.Copy(out, in)
 	return out
 }
 
@@ -262,13 +261,10 @@ func (r *Reconciler) syncDeploymentStatus(allMSs []*clusterv1.MachineSet, newMS 
 func calculateV1Beta1Status(allMSs []*clusterv1.MachineSet, newMS *clusterv1.MachineSet, deployment *clusterv1.MachineDeployment) {
 	availableReplicas := mdutil.GetV1Beta1AvailableReplicaCountForMachineSets(allMSs)
 	totalReplicas := mdutil.GetReplicaCountForMachineSets(allMSs)
-	unavailableReplicas := totalReplicas - availableReplicas
-
-	// If unavailableReplicas is negative, then that means the Deployment has more available replicas running than
-	// desired, e.g. whenever it scales down. In such a case we should simply default unavailableReplicas to zero.
-	if unavailableReplicas < 0 {
-		unavailableReplicas = 0
-	}
+	unavailableReplicas := max(
+		// If unavailableReplicas is negative, then that means the Deployment has more available replicas running than
+		// desired, e.g. whenever it scales down. In such a case we should simply default unavailableReplicas to zero.
+		totalReplicas-availableReplicas, 0)
 
 	if deployment.Status.Deprecated == nil {
 		deployment.Status.Deprecated = &clusterv1.MachineDeploymentDeprecatedStatus{}

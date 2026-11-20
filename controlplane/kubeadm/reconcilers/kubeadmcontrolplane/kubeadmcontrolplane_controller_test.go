@@ -23,6 +23,7 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"fmt"
+	"maps"
 	"math/big"
 	"path"
 	"sync"
@@ -2095,9 +2096,7 @@ func TestKubeadmControlPlaneReconciler_syncMachines(t *testing.T) {
 	g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(updatedInPlaceMutatingMachine), updatedInPlaceMutatingMachine)).To(Succeed())
 	g.Expect(updatedInPlaceMutatingMachine.Labels).To(Equal(expectedLabels))
 	expectedAnnotations := map[string]string{}
-	for k, v := range kcp.Spec.MachineTemplate.ObjectMeta.Annotations {
-		expectedAnnotations[k] = v
-	}
+	maps.Copy(expectedAnnotations, kcp.Spec.MachineTemplate.ObjectMeta.Annotations)
 	// The pre-terminate annotation should always be added
 	expectedAnnotations[controlplanev1.PreTerminateHookCleanupAnnotation] = ""
 	g.Expect(updatedInPlaceMutatingMachine.Annotations).To(Equal(expectedAnnotations))

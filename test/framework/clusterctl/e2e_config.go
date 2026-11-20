@@ -20,12 +20,14 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"maps"
 	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
 	"regexp"
 	"runtime"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -262,13 +264,9 @@ func (c *E2EConfig) DeepCopy() *E2EConfig {
 	out.Providers = make([]ProviderConfig, len(c.Providers))
 	copy(out.Providers, c.Providers)
 	out.Variables = make(map[string]string, len(c.Variables))
-	for key, val := range c.Variables {
-		out.Variables[key] = val
-	}
+	maps.Copy(out.Variables, c.Variables)
 	out.Intervals = make(map[string][]string, len(c.Intervals))
-	for key, val := range c.Intervals {
-		out.Intervals[key] = val
-	}
+	maps.Copy(out.Intervals, c.Intervals)
 	return out
 }
 
@@ -750,12 +748,7 @@ func (c *E2EConfig) getProviders(t clusterctlv1.ProviderType) []string {
 }
 
 func (c *E2EConfig) HasDockerProvider() bool {
-	for _, i := range c.InfrastructureProviders() {
-		if i == "docker" {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(c.InfrastructureProviders(), "docker")
 }
 
 // GetIntervals returns the intervals to be applied to a Eventually operation.

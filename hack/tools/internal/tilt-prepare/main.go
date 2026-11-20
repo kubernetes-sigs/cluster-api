@@ -25,6 +25,7 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"maps"
 	"os"
 	"os/exec"
 	"path"
@@ -336,9 +337,7 @@ func tiltResources(ctx context.Context, ts *tiltSettings) error {
 			return pkgerrors.Wrapf(err, "failed to load tilt-provider.yaml/json from %s", p)
 		}
 
-		for name, config := range tiltProviderConfigs {
-			providers[name] = config
-		}
+		maps.Copy(providers, tiltProviderConfigs)
 	}
 
 	enableCore := false

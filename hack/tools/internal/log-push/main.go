@@ -28,6 +28,7 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"maps"
 	"net/http"
 	"net/url"
 	"os"
@@ -305,7 +306,7 @@ func prepareLogsForLoki(ld LogData, logJSONAdditionalLabels []string) ([]LokiStr
 	metadata["filename"] = ld.fileName
 
 	allStreams := []LokiStream{}
-	for _, logLine := range strings.Split(string(ld.logs), "\n") {
+	for logLine := range strings.SplitSeq(string(ld.logs), "\n") {
 		// SKip if the log line is empty.
 		if logLine == "" {
 			continue
@@ -317,9 +318,7 @@ func prepareLogsForLoki(ld LogData, logJSONAdditionalLabels []string) ([]LokiStr
 
 		// Copy the metadata into logLineMetadata.
 		logLineMetadata := map[string]string{}
-		for k, v := range metadata {
-			logLineMetadata[k] = v
-		}
+		maps.Copy(logLineMetadata, metadata)
 
 		parsedLogLine, err := fastjson.Parse(logLine)
 		// We intentionally silently ignore the error, otherwise we

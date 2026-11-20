@@ -555,12 +555,12 @@ func transformControlPlaneAndEtcdConditions(messages []string) []string {
 	for _, m := range messages {
 		// Summary message are in the form of "* Condition: Message"; the following code
 		// figure out if this is a control plane condition.
-		sep := strings.Index(m, ":")
-		if sep == -1 {
+		before, after, ok := strings.Cut(m, ":")
+		if !ok {
 			out = append(out, m)
 			continue
 		}
-		c, msg := m[:sep], m[sep+1:]
+		c, msg := before, after
 		if !isControlPlaneCondition(c) {
 			// If the condition isn't a control plane condition, add to the output the message as is.
 			out = append(out, m)

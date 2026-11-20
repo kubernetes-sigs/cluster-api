@@ -1585,9 +1585,7 @@ func templateToObject(in templateToInput) (*unstructured.Unstructured, error) {
 	// NOTE: The cluster label is added at creation time so this object could be read by the ClusterTopology
 	// controller immediately after creation, even before other controllers are going to add the label (if missing).
 	labels := map[string]string{}
-	for k, v := range in.labels {
-		labels[k] = v
-	}
+	maps.Copy(labels, in.labels)
 	labels[clusterv1.ClusterNameLabel] = in.cluster.Name
 	labels[clusterv1.ClusterTopologyOwnedLabel] = ""
 
@@ -1645,9 +1643,7 @@ func templateToTemplate(in templateToInput) (*unstructured.Unstructured, error) 
 	if labels == nil {
 		labels = map[string]string{}
 	}
-	for k, v := range in.labels {
-		labels[k] = v
-	}
+	maps.Copy(labels, in.labels)
 	labels[clusterv1.ClusterNameLabel] = in.cluster.Name
 	labels[clusterv1.ClusterTopologyOwnedLabel] = ""
 	template.SetLabels(labels)
@@ -1658,9 +1654,7 @@ func templateToTemplate(in templateToInput) (*unstructured.Unstructured, error) 
 	if annotations == nil {
 		annotations = map[string]string{}
 	}
-	for k, v := range in.annotations {
-		annotations[k] = v
-	}
+	maps.Copy(annotations, in.annotations)
 	if in.templateClonedFromRef != nil {
 		annotations[clusterv1.TemplateClonedFromNameAnnotation] = in.templateClonedFromRef.Name
 		annotations[clusterv1.TemplateClonedFromGroupKindAnnotation] = in.templateClonedFromRef.GroupVersionKind().GroupKind().String()

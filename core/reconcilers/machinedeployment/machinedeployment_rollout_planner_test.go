@@ -1166,8 +1166,8 @@ func (l *fileLogger) Logf(format string, args ...interface{}) {
 	s := strings.TrimSuffix(fmt.Sprintf(format, args...), "\n")
 	sb := &strings.Builder{}
 	if strings.Contains(s, "\n") {
-		lines := strings.Split(s, "\n")
-		for _, line := range lines {
+		lines := strings.SplitSeq(s, "\n")
+		for line := range lines {
 			indent := "  "
 			if strings.HasPrefix(line, "[") {
 				indent = ""

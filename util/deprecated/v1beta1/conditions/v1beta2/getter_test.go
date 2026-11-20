@@ -623,9 +623,9 @@ func TestIsMethods(t *testing.T) {
 
 type objectWithValueGetter struct {
 	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
-	Spec              objectWithValueGetterSpec   `json:"spec,omitempty"`
-	Status            objectWithValueGetterStatus `json:"status,omitempty"`
+	metav1.ObjectMeta `json:"metadata,omitzero"`
+	Spec              objectWithValueGetterSpec   `json:"spec,omitzero"`
+	Status            objectWithValueGetterStatus `json:"status,omitzero"`
 }
 
 type objectWithValueGetterSpec struct {

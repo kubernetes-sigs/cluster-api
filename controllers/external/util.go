@@ -19,6 +19,7 @@ package external
 import (
 	"context"
 	"errors"
+	"maps"
 	"strings"
 
 	pkgerrors "github.com/pkg/errors"
@@ -213,9 +214,7 @@ func GenerateTemplate(in *GenerateTemplateInput) (*unstructured.Unstructured, er
 	if annotations == nil {
 		annotations = map[string]string{}
 	}
-	for key, value := range in.Annotations {
-		annotations[key] = value
-	}
+	maps.Copy(annotations, in.Annotations)
 	switch {
 	case in.TemplateRef != nil && in.TemplateName == "" && in.TemplateGroupKind.Empty():
 		annotations[clusterv1.TemplateClonedFromNameAnnotation] = in.TemplateRef.Name
@@ -236,9 +235,7 @@ func GenerateTemplate(in *GenerateTemplateInput) (*unstructured.Unstructured, er
 	if labels == nil {
 		labels = map[string]string{}
 	}
-	for key, value := range in.Labels {
-		labels[key] = value
-	}
+	maps.Copy(labels, in.Labels)
 	labels[clusterv1.ClusterNameLabel] = in.ClusterName
 	to.SetLabels(labels)
 

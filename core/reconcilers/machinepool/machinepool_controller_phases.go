@@ -20,6 +20,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"maps"
 	"reflect"
 	"time"
 
@@ -611,18 +612,14 @@ func (r *Reconciler) computeDesiredMachine(mp *clusterv1.MachinePool, infraMachi
 		machine.SetUID(existingMachine.UID)
 	}
 
-	for k, v := range mp.Spec.Template.Annotations {
-		machine.Annotations[k] = v
-	}
+	maps.Copy(machine.Annotations, mp.Spec.Template.Annotations)
 
 	// Set the labels from machinePool.Spec.Template.Labels as labels for the new Machine.
 	// Note: We can't just set `machinePool.Spec.Template.Labels` directly and thus "share" the labels
 	// map between Machine and machinePool.Spec.Template.Labels. This would mean that adding the
 	// MachinePoolNameLabel later on the Machine would also add the labels to machinePool.Spec.Template.Labels
 	// and thus modify the labels of the MachinePool.
-	for k, v := range mp.Spec.Template.Labels {
-		machine.Labels[k] = v
-	}
+	maps.Copy(machine.Labels, mp.Spec.Template.Labels)
 
 	// Enforce that the MachinePoolNameLabel and ClusterNameLabel are present on the Machine.
 	machine.Labels[clusterv1.MachinePoolNameLabel] = format.MustFormatValue(mp.Name)

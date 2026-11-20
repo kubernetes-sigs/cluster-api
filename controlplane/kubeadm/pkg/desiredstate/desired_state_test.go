@@ -18,6 +18,7 @@ package desiredstate
 
 import (
 	"fmt"
+	"maps"
 	"testing"
 
 	"github.com/blang/semver/v4"
@@ -512,9 +513,7 @@ func Test_ComputeDesiredMachine(t *testing.T) {
 				g.Expect(desiredMachine.UID).To(Equal(machineUID))
 				// Verify annotations.
 				expectedAnnotations := map[string]string{}
-				for k, v := range kcpMachineTemplateObjectMeta.Annotations {
-					expectedAnnotations[k] = v
-				}
+				maps.Copy(expectedAnnotations, kcpMachineTemplateObjectMeta.Annotations)
 				expectedAnnotations[controlplanev1.RemediationForAnnotation] = remediationData
 				// The pre-terminate annotation should always be added
 				expectedAnnotations[controlplanev1.PreTerminateHookCleanupAnnotation] = ""
@@ -548,9 +547,7 @@ func Test_ComputeDesiredMachine(t *testing.T) {
 				}
 				// Verify annotations.
 				expectedAnnotations := map[string]string{}
-				for k, v := range kcpMachineTemplateObjectMeta.Annotations {
-					expectedAnnotations[k] = v
-				}
+				maps.Copy(expectedAnnotations, kcpMachineTemplateObjectMeta.Annotations)
 				// The pre-terminate annotation should always be added
 				expectedAnnotations[controlplanev1.PreTerminateHookCleanupAnnotation] = ""
 				g.Expect(desiredMachine.Annotations).To(Equal(expectedAnnotations))
@@ -564,9 +561,7 @@ func Test_ComputeDesiredMachine(t *testing.T) {
 			// Verify that the machineTemplate.ObjectMeta has been propagated to the Machine.
 			// Verify labels.
 			expectedLabels := map[string]string{}
-			for k, v := range kcpMachineTemplateObjectMeta.Labels {
-				expectedLabels[k] = v
-			}
+			maps.Copy(expectedLabels, kcpMachineTemplateObjectMeta.Labels)
 			expectedLabels[clusterv1.ClusterNameLabel] = cluster.Name
 			expectedLabels[clusterv1.MachineControlPlaneLabel] = ""
 			expectedLabels[clusterv1.MachineControlPlaneNameLabel] = tt.kcp.Name

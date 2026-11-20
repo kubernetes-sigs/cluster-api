@@ -242,10 +242,7 @@ func (blder *Builder) Build(ctx context.Context, r reconcile.TypedReconciler[rec
 	}
 
 	// Sets the rate limit interval.
-	rateLimitInterval := time.Second
-	if blder.rateLimitInterval > time.Second {
-		rateLimitInterval = blder.rateLimitInterval
-	}
+	rateLimitInterval := max(blder.rateLimitInterval, time.Second)
 
 	var queueRateLimiter *typedItemExponentialFailureRateLimiter[reconcile.Request]
 	if features.Gates.Enabled(features.ReconcilerRateLimiting) {

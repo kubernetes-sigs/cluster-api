@@ -19,9 +19,11 @@ package e2e
 import (
 	"context"
 	"fmt"
+	"maps"
 	"math/rand"
 	"os"
 	"path/filepath"
+	"slices"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -1289,13 +1291,11 @@ type unionMap map[string]string
 
 // union merges maps.
 // NOTE: In case a key exists in multiple maps, the value of the first map is preserved.
-func union(maps ...map[string]string) unionMap {
+func union(mapss ...map[string]string) unionMap {
 	res := make(map[string]string)
 
-	for i := len(maps) - 1; i >= 0; i-- {
-		for k, v := range maps[i] {
-			res[k] = v
-		}
+	for _, m := range slices.Backward(mapss) {
+		maps.Copy(res, m)
 	}
 
 	return res
@@ -1659,12 +1659,8 @@ func modifyMachinePoolViaClusterAndWait(ctx context.Context, input modifyMachine
 
 func expectMapsToBeEquivalent(g Gomega, m1, m2 map[string]string, ignoreKeys ...string) {
 	m1Copy, m2Copy := map[string]string{}, map[string]string{}
-	for k, v := range m1 {
-		m1Copy[k] = v
-	}
-	for k, v := range m2 {
-		m2Copy[k] = v
-	}
+	maps.Copy(m1Copy, m1)
+	maps.Copy(m2Copy, m2)
 	for _, key := range ignoreKeys {
 		delete(m1Copy, key)
 		delete(m2Copy, key)

@@ -18,6 +18,7 @@ package repository
 
 import (
 	"fmt"
+	"maps"
 	"sort"
 	"strings"
 
@@ -547,9 +548,7 @@ func addCommonLabels(objs []unstructured.Unstructured, provider config.Provider)
 		if labels == nil {
 			labels = map[string]string{}
 		}
-		for k, v := range getCommonLabels(provider) {
-			labels[k] = v
-		}
+		maps.Copy(labels, getCommonLabels(provider))
 		o.SetLabels(labels)
 	}
 

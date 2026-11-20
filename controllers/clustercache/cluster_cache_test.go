@@ -867,8 +867,7 @@ func getCounterMetric(metricFamilyName, controllerName string) (float64, error) 
 
 func TestSetupWithManagerAppliesClusterFilter(t *testing.T) {
 	g := NewWithT(t)
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	filter := func(cluster *clusterv1.Cluster) bool {
 		return cluster.Labels["cluster.x-k8s.io/included-in-clustercache-tests"] == "true"

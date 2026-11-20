@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"maps"
+	"slices"
 	"sort"
 	"strings"
 
@@ -149,10 +150,8 @@ func GetContractVersionForVersion(ctx context.Context, c client.Reader, gk schem
 			continue
 		}
 
-		for _, v := range strings.Split(labelValue, "_") {
-			if v == version {
-				return strings.TrimPrefix(labelKey, contractPrefix), nil
-			}
+		if slices.Contains(strings.Split(labelValue, "_"), version) {
+			return strings.TrimPrefix(labelKey, contractPrefix), nil
 		}
 	}
 

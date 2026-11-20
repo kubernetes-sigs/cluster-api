@@ -116,11 +116,11 @@ func (c *Catalog) AddHook(gv schema.GroupVersion, hookFunc Hook, hookMeta *HookM
 	}
 
 	// Create request and response objects based on the input types.
-	request, ok := reflect.New(t.In(0).Elem()).Interface().(runtime.Object)
+	request, ok := reflect.TypeAssert[runtime.Object](reflect.New(t.In(0).Elem()))
 	if !ok {
 		panic("Hook request (first parameter) must be a runtime.Object")
 	}
-	response, ok := reflect.New(t.In(1).Elem()).Interface().(runtime.Object)
+	response, ok := reflect.TypeAssert[runtime.Object](reflect.New(t.In(1).Elem()))
 	if !ok {
 		panic("Hook response (second parameter) must be a runtime.Object")
 	}

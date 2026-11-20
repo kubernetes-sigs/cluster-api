@@ -68,12 +68,13 @@ func (i *CreateRepositoryInput) RegisterClusterResourceSetConfigMapTransformatio
 
 	i.FileTransformations = append(i.FileTransformations, func(template []byte) ([]byte, error) {
 		oldData := fmt.Sprintf("data: ${%s}", envSubstVar)
-		newData := "data:\n"
-		newData += "  resources: |\n"
-		for _, l := range strings.Split(string(manifestData), "\n") {
-			newData += strings.Repeat(" ", 4) + l + "\n"
+		var newData strings.Builder
+		newData.WriteString("data:\n")
+		newData.WriteString("  resources: |\n")
+		for l := range strings.SplitSeq(string(manifestData), "\n") {
+			newData.WriteString(strings.Repeat(" ", 4) + l + "\n")
 		}
-		return bytes.ReplaceAll(template, []byte(oldData), []byte(newData)), nil
+		return bytes.ReplaceAll(template, []byte(oldData), []byte(newData.String())), nil
 	})
 }
 

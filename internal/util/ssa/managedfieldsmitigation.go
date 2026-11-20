@@ -330,12 +330,7 @@ func computeManagedFields(obj client.Object, objGVK schema.GroupVersionKind) ([]
 
 func isManager(managers ...string) func(entry metav1.ManagedFieldsEntry) bool {
 	return func(entry metav1.ManagedFieldsEntry) bool {
-		for _, manager := range managers {
-			if entry.Manager == manager {
-				return true
-			}
-		}
-		return false
+		return slices.Contains(managers, entry.Manager)
 	}
 }
 

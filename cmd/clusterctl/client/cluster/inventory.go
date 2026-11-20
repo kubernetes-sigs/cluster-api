@@ -19,6 +19,7 @@ package cluster
 import (
 	"context"
 	"fmt"
+	"slices"
 	"time"
 
 	pkgerrors "github.com/pkg/errors"
@@ -454,10 +455,8 @@ func (p *inventoryClient) CheckCAPIContract(ctx context.Context, options ...Chec
 			if version.Name == p.currentContractVersion {
 				return nil
 			}
-			for _, allowedContract := range opt.AllowCAPIContracts {
-				if version.Name == allowedContract {
-					return nil
-				}
+			if slices.Contains(opt.AllowCAPIContracts, version.Name) {
+				return nil
 			}
 			return pkgerrors.Errorf("this version of clusterctl could be used only with %q management clusters, %q detected", p.currentContractVersion, version.Name)
 		}

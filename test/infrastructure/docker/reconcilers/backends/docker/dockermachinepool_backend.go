@@ -19,6 +19,7 @@ package docker
 import (
 	"context"
 	"fmt"
+	"maps"
 	"math/rand"
 	"sort"
 
@@ -527,17 +528,13 @@ func createDockerContainer(ctx context.Context, name string, cluster *clusterv1.
 	// NOTE: FailureDomains don't mean much in CAPD since it's all local, but we are setting a label on
 	// each container, so we can check placement.
 	labels := map[string]string{}
-	for k, v := range labelFilters {
-		labels[k] = v
-	}
+	maps.Copy(labels, labelFilters)
 
 	if len(machinePool.Spec.FailureDomains) > 0 {
 		// For MachinePools placement is expected to be managed by the underlying infrastructure primitive, but
 		// given that there is no such an thing in CAPD, we are picking a random failure domain.
 		randomIndex := rand.Intn(len(machinePool.Spec.FailureDomains)) //nolint:gosec
-		for k, v := range docker.FailureDomainLabel(machinePool.Spec.FailureDomains[randomIndex]) {
-			labels[k] = v
-		}
+		maps.Copy(labels, docker.FailureDomainLabel(machinePool.Spec.FailureDomains[randomIndex]))
 	}
 
 	// If re-entering the reconcile loop and reaching this point, the container is expected to be running. If it is not, delete it so we can try to create it again.

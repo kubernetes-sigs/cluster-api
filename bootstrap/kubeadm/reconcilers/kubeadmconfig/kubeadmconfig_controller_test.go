@@ -946,7 +946,7 @@ func TestBootstrapDataFormat(t *testing.T) {
 			case bootstrapv1.CloudConfig, "":
 				// Verify the bootstrap data is valid YAML.
 				// TODO: Verify the YAML document is valid cloud-config?
-				var out interface{}
+				var out any
 				err = yaml.Unmarshal(data, &out)
 				g.Expect(err).ToNot(HaveOccurred())
 			case bootstrapv1.Ignition:

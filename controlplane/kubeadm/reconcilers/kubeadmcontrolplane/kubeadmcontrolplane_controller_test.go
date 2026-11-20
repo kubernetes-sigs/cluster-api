@@ -1171,16 +1171,16 @@ func TestReconcileInitializeControlPlane(t *testing.T) {
 	g.Expect(patchHelper.Patch(ctx, cluster)).To(Succeed())
 
 	genericInfrastructureMachineTemplate := &unstructured.Unstructured{
-		Object: map[string]interface{}{
+		Object: map[string]any{
 			"kind":       builder.GenericInfrastructureMachineTemplateKind,
 			"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
-			"metadata": map[string]interface{}{
+			"metadata": map[string]any{
 				"name":      "infra-foo",
 				"namespace": cluster.Namespace,
 			},
-			"spec": map[string]interface{}{
-				"template": map[string]interface{}{
-					"spec": map[string]interface{}{
+			"spec": map[string]any{
+				"template": map[string]any{
+					"spec": map[string]any{
 						"hello": "world",
 					},
 				},
@@ -1419,16 +1419,16 @@ func TestReconcileInitializeControlPlane_withUserCA(t *testing.T) {
 	g.Expect(env.CreateAndWait(ctx, certSecret)).To(Succeed())
 
 	genericInfrastructureMachineTemplate := &unstructured.Unstructured{
-		Object: map[string]interface{}{
+		Object: map[string]any{
 			"kind":       builder.GenericInfrastructureMachineTemplateKind,
 			"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
-			"metadata": map[string]interface{}{
+			"metadata": map[string]any{
 				"name":      "infra-foo",
 				"namespace": cluster.Namespace,
 			},
-			"spec": map[string]interface{}{
-				"template": map[string]interface{}{
-					"spec": map[string]interface{}{
+			"spec": map[string]any{
+				"template": map[string]any{
+					"spec": map[string]any{
 						"hello": "world",
 					},
 				},
@@ -1760,22 +1760,22 @@ func TestKubeadmControlPlaneReconciler_syncMachines(t *testing.T) {
 	duration10s := ptr.To(int32(10))
 
 	// Existing InfraMachine
-	infraMachineSpec := map[string]interface{}{
+	infraMachineSpec := map[string]any{
 		"infra-field": "infra-value",
 	}
 	existingInfraMachine := &unstructured.Unstructured{
-		Object: map[string]interface{}{
+		Object: map[string]any{
 			"kind":       "GenericInfrastructureMachine",
 			"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
-			"metadata": map[string]interface{}{
+			"metadata": map[string]any{
 				"name":      "existing-inframachine",
 				"namespace": testCluster.Namespace,
-				"labels": map[string]interface{}{
+				"labels": map[string]any{
 					"preserved-label": "preserved-value",
 					"dropped-label":   "dropped-value",
 					"modified-label":  "modified-value",
 				},
-				"annotations": map[string]interface{}{
+				"annotations": map[string]any{
 					"preserved-annotation": "preserved-value",
 					"dropped-annotation":   "dropped-value",
 					"modified-annotation":  "modified-value",
@@ -5189,16 +5189,16 @@ func createClusterWithControlPlane(namespace string) (*clusterv1.Cluster, *contr
 	}
 
 	genericMachineTemplate := &unstructured.Unstructured{
-		Object: map[string]interface{}{
+		Object: map[string]any{
 			"kind":       builder.GenericInfrastructureMachineTemplateKind,
 			"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
-			"metadata": map[string]interface{}{
+			"metadata": map[string]any{
 				"name":      "infra-foo",
 				"namespace": namespace,
 			},
-			"spec": map[string]interface{}{
-				"template": map[string]interface{}{
-					"spec": map[string]interface{}{
+			"spec": map[string]any{
+				"template": map[string]any{
+					"spec": map[string]any{
 						"hello": "world",
 					},
 				},

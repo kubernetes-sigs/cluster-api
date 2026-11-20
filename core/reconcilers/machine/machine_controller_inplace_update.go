@@ -520,7 +520,7 @@ func cleanupMachine(machine *clusterv1.Machine) *clusterv1.Machine {
 
 func cleanupUnstructured(u *unstructured.Unstructured) *unstructured.Unstructured {
 	cleanedUpU := &unstructured.Unstructured{
-		Object: map[string]interface{}{
+		Object: map[string]any{
 			"apiVersion": u.GetAPIVersion(),
 			"kind":       u.GetKind(),
 			"spec":       u.Object["spec"],

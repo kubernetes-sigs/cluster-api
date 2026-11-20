@@ -82,7 +82,7 @@ func TestClusterReconcileInfrastructure(t *testing.T) {
 	tests := []struct {
 		name         string
 		cluster      *clusterv1.Cluster
-		infraRef     map[string]interface{}
+		infraRef     map[string]any
 		expectErr    bool
 		expectResult ctrl.Result
 		check        func(g *GomegaWithT, in *clusterv1.Cluster)
@@ -125,10 +125,10 @@ func TestClusterReconcileInfrastructure(t *testing.T) {
 		{
 			name:    "returns no error if infrastructure is marked ready on cluster",
 			cluster: cluster.DeepCopy(),
-			infraRef: map[string]interface{}{
+			infraRef: map[string]any{
 				"kind":       "GenericInfrastructureMachine",
 				"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
-				"metadata": map[string]interface{}{
+				"metadata": map[string]any{
 					"name":              "test",
 					"namespace":         "test-namespace",
 					"deletionTimestamp": "sometime",
@@ -139,15 +139,15 @@ func TestClusterReconcileInfrastructure(t *testing.T) {
 		{
 			name:    "returns no error if the control plane endpoint is not yet set",
 			cluster: clusterNoEndpoint.DeepCopy(),
-			infraRef: map[string]interface{}{
+			infraRef: map[string]any{
 				"kind":       "GenericInfrastructureMachine",
 				"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
-				"metadata": map[string]interface{}{
+				"metadata": map[string]any{
 					"name":              "test",
 					"namespace":         "test-namespace",
 					"deletionTimestamp": "sometime",
 				},
-				"status": map[string]interface{}{
+				"status": map[string]any{
 					"ready": true,
 				},
 			},
@@ -156,21 +156,21 @@ func TestClusterReconcileInfrastructure(t *testing.T) {
 		{
 			name:    "should propagate the control plane endpoint once set",
 			cluster: clusterNoEndpoint.DeepCopy(),
-			infraRef: map[string]interface{}{
+			infraRef: map[string]any{
 				"kind":       "GenericInfrastructureMachine",
 				"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
-				"metadata": map[string]interface{}{
+				"metadata": map[string]any{
 					"name":              "test",
 					"namespace":         "test-namespace",
 					"deletionTimestamp": "sometime",
 				},
-				"spec": map[string]interface{}{
-					"controlPlaneEndpoint": map[string]interface{}{
+				"spec": map[string]any{
+					"controlPlaneEndpoint": map[string]any{
 						"host": "example.com",
 						"port": int64(6443),
 					},
 				},
-				"status": map[string]interface{}{
+				"status": map[string]any{
 					"ready": true,
 				},
 			},
@@ -183,21 +183,21 @@ func TestClusterReconcileInfrastructure(t *testing.T) {
 		{
 			name:    "do not allows to change infrastructure ready and control plane endpoint once set",
 			cluster: cluster.DeepCopy(),
-			infraRef: map[string]interface{}{
+			infraRef: map[string]any{
 				"kind":       "GenericInfrastructureMachine",
 				"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
-				"metadata": map[string]interface{}{
+				"metadata": map[string]any{
 					"name":              "test",
 					"namespace":         "test-namespace",
 					"deletionTimestamp": "sometime",
 				},
-				"spec": map[string]interface{}{
-					"controlPlaneEndpoint": map[string]interface{}{
+				"spec": map[string]any{
+					"controlPlaneEndpoint": map[string]any{
 						"host": "example.com",
 						"port": int64(6443),
 					},
 				},
-				"status": map[string]interface{}{
+				"status": map[string]any{
 					"ready": false,
 				},
 			},
@@ -215,22 +215,22 @@ func TestClusterReconcileInfrastructure(t *testing.T) {
 				c.Status.Initialization.InfrastructureProvisioned = ptr.To(false)
 				return c
 			}(),
-			infraRef: map[string]interface{}{
+			infraRef: map[string]any{
 				"kind":       "GenericInfrastructureMachine",
 				"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
-				"metadata": map[string]interface{}{
+				"metadata": map[string]any{
 					"name":              "test",
 					"namespace":         "test-namespace",
-					"finalizers":        []interface{}{"test"},
+					"finalizers":        []any{"test"},
 					"deletionTimestamp": "2020-01-01T00:00:00Z",
 				},
-				"spec": map[string]interface{}{
-					"controlPlaneEndpoint": map[string]interface{}{
+				"spec": map[string]any{
+					"controlPlaneEndpoint": map[string]any{
 						"host": "example.com",
 						"port": int64(6443),
 					},
 				},
-				"status": map[string]interface{}{
+				"status": map[string]any{
 					"ready": true,
 				},
 			},
@@ -328,7 +328,7 @@ func TestClusterReconcileControlPlane(t *testing.T) {
 	tests := []struct {
 		name         string
 		cluster      *clusterv1.Cluster
-		cpRef        map[string]interface{}
+		cpRef        map[string]any
 		expectErr    bool
 		expectResult ctrl.Result
 		check        func(g *GomegaWithT, in *clusterv1.Cluster)
@@ -367,10 +367,10 @@ func TestClusterReconcileControlPlane(t *testing.T) {
 		{
 			name:    "returns no error if control plane ref is marked for deletion",
 			cluster: cluster.DeepCopy(),
-			cpRef: map[string]interface{}{
+			cpRef: map[string]any{
 				"kind":       "GenericControlPlane",
 				"apiVersion": clusterv1.GroupVersionControlPlane.String(),
-				"metadata": map[string]interface{}{
+				"metadata": map[string]any{
 					"name":              "test",
 					"namespace":         "test-namespace",
 					"deletionTimestamp": "sometime",
@@ -381,13 +381,13 @@ func TestClusterReconcileControlPlane(t *testing.T) {
 		{
 			name:    "returns no error if control plane has the paused annotation",
 			cluster: cluster.DeepCopy(),
-			cpRef: map[string]interface{}{
+			cpRef: map[string]any{
 				"kind":       "GenericControlPlane",
 				"apiVersion": clusterv1.GroupVersionControlPlane.String(),
-				"metadata": map[string]interface{}{
+				"metadata": map[string]any{
 					"name":      "test",
 					"namespace": "test-namespace",
-					"annotations": map[string]interface{}{
+					"annotations": map[string]any{
 						"cluster.x-k8s.io/paused": "true",
 					},
 				},
@@ -397,15 +397,15 @@ func TestClusterReconcileControlPlane(t *testing.T) {
 		{
 			name:    "returns no error if the control plane endpoint is not yet set",
 			cluster: clusterNoEndpoint.DeepCopy(),
-			cpRef: map[string]interface{}{
+			cpRef: map[string]any{
 				"kind":       "GenericControlPlane",
 				"apiVersion": clusterv1.GroupVersionControlPlane.String(),
-				"metadata": map[string]interface{}{
+				"metadata": map[string]any{
 					"name":              "test",
 					"namespace":         "test-namespace",
 					"deletionTimestamp": "sometime",
 				},
-				"status": map[string]interface{}{
+				"status": map[string]any{
 					"ready": true,
 				},
 			},
@@ -414,22 +414,22 @@ func TestClusterReconcileControlPlane(t *testing.T) {
 		{
 			name:    "should propagate the control plane endpoint if set",
 			cluster: clusterNoEndpoint.DeepCopy(),
-			cpRef: map[string]interface{}{
+			cpRef: map[string]any{
 				"kind":       "GenericControlPlane",
 				"apiVersion": clusterv1.GroupVersionControlPlane.String(),
-				"metadata": map[string]interface{}{
+				"metadata": map[string]any{
 					"name":              "test",
 					"namespace":         "test-namespace",
 					"deletionTimestamp": "sometime",
 				},
-				"spec": map[string]interface{}{
-					"controlPlaneEndpoint": map[string]interface{}{
+				"spec": map[string]any{
+					"controlPlaneEndpoint": map[string]any{
 						"host": "example.com",
 						"port": int64(6443),
 					},
 				},
-				"status": map[string]interface{}{
-					"initialization": map[string]interface{}{
+				"status": map[string]any{
+					"initialization": map[string]any{
 						"controlPlaneInitialized": true,
 					},
 				},
@@ -443,17 +443,17 @@ func TestClusterReconcileControlPlane(t *testing.T) {
 		{
 			name:    "should propagate the initialized and ready conditions",
 			cluster: clusterNoEndpoint.DeepCopy(),
-			cpRef: map[string]interface{}{
+			cpRef: map[string]any{
 				"kind":       "GenericControlPlane",
 				"apiVersion": clusterv1.GroupVersionControlPlane.String(),
-				"metadata": map[string]interface{}{
+				"metadata": map[string]any{
 					"name":              "test",
 					"namespace":         "test-namespace",
 					"deletionTimestamp": "sometime",
 				},
-				"spec": map[string]interface{}{},
-				"status": map[string]interface{}{
-					"initialization": map[string]interface{}{
+				"spec": map[string]any{},
+				"status": map[string]any{
+					"initialization": map[string]any{
 						"controlPlaneInitialized": true,
 					},
 				},
@@ -473,21 +473,21 @@ func TestClusterReconcileControlPlane(t *testing.T) {
 				c.Status.Initialization.ControlPlaneInitialized = ptr.To(true)
 				return c
 			}(),
-			cpRef: map[string]interface{}{
+			cpRef: map[string]any{
 				"kind":       "GenericControlPlane",
 				"apiVersion": clusterv1.GroupVersionControlPlane.String(),
-				"metadata": map[string]interface{}{
+				"metadata": map[string]any{
 					"name":              "test",
 					"namespace":         "test-namespace",
 					"deletionTimestamp": "sometime",
 				},
-				"spec": map[string]interface{}{
-					"controlPlaneEndpoint": map[string]interface{}{
+				"spec": map[string]any{
+					"controlPlaneEndpoint": map[string]any{
 						"host": "example.com",
 						"port": int64(6443),
 					},
 				},
-				"status": map[string]interface{}{
+				"status": map[string]any{
 					"ready":       false,
 					"initialized": false,
 				},
@@ -502,22 +502,22 @@ func TestClusterReconcileControlPlane(t *testing.T) {
 		{
 			name:    "do not reconcile if control plane is marked for deletion",
 			cluster: clusterNoEndpoint.DeepCopy(),
-			cpRef: map[string]interface{}{
+			cpRef: map[string]any{
 				"kind":       "GenericControlPlane",
 				"apiVersion": clusterv1.GroupVersionControlPlane.String(),
-				"metadata": map[string]interface{}{
+				"metadata": map[string]any{
 					"name":              "test",
 					"namespace":         "test-namespace",
-					"finalizers":        []interface{}{"test"},
+					"finalizers":        []any{"test"},
 					"deletionTimestamp": "2020-01-01T00:00:00Z",
 				},
-				"spec": map[string]interface{}{
-					"controlPlaneEndpoint": map[string]interface{}{
+				"spec": map[string]any{
+					"controlPlaneEndpoint": map[string]any{
 						"host": "example.com",
 						"port": int64(6443),
 					},
 				},
-				"status": map[string]interface{}{
+				"status": map[string]any{
 					"ready":       true,
 					"initialized": true,
 				},
@@ -722,7 +722,7 @@ func TestClusterReconcilePhases_reconcileFailureDomains(t *testing.T) {
 	tests := []struct {
 		name                 string
 		cluster              *clusterv1.Cluster
-		infraRef             map[string]interface{}
+		infraRef             map[string]any
 		contract             string
 		expectFailureDomains []clusterv1.FailureDomain
 		expectErr            bool
@@ -844,27 +844,27 @@ func TestClusterReconcilePhases_reconcileFailureDomains(t *testing.T) {
 	}
 }
 
-func generateInfraCluster(withFailureDomain bool) map[string]interface{} {
-	infraRef := map[string]interface{}{
+func generateInfraCluster(withFailureDomain bool) map[string]any {
+	infraRef := map[string]any{
 		"kind":       "GenericInfrastructureCluster",
 		"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
-		"metadata": map[string]interface{}{
+		"metadata": map[string]any{
 			"name":              "test",
 			"namespace":         "test-namespace",
 			"deletionTimestamp": "sometime",
 		},
-		"status": map[string]interface{}{
+		"status": map[string]any{
 			"ready": true,
 		},
 	}
 
 	if withFailureDomain {
-		infraRef["status"] = map[string]interface{}{
-			"failureDomains": []interface{}{
-				map[string]interface{}{
+		infraRef["status"] = map[string]any{
+			"failureDomains": []any{
+				map[string]any{
 					"name":         "newdomain",
 					"controlPlane": false,
-					"attributes": map[string]interface{}{
+					"attributes": map[string]any{
 						"attribute1": "value1",
 					},
 				},
@@ -876,26 +876,26 @@ func generateInfraCluster(withFailureDomain bool) map[string]interface{} {
 	return infraRef
 }
 
-func generateInfraClusterV1Beta1(withFailureDomain bool) map[string]interface{} {
-	infraRef := map[string]interface{}{
+func generateInfraClusterV1Beta1(withFailureDomain bool) map[string]any {
+	infraRef := map[string]any{
 		"kind":       "GenericInfrastructureCluster",
 		"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
-		"metadata": map[string]interface{}{
+		"metadata": map[string]any{
 			"name":              "test",
 			"namespace":         "test-namespace",
 			"deletionTimestamp": "sometime",
 		},
-		"status": map[string]interface{}{
+		"status": map[string]any{
 			"ready": true,
 		},
 	}
 
 	if withFailureDomain {
-		infraRef["status"] = map[string]interface{}{
-			"failureDomains": map[string]interface{}{
-				"newdomain": map[string]interface{}{
+		infraRef["status"] = map[string]any{
+			"failureDomains": map[string]any{
+				"newdomain": map[string]any{
 					"controlPlane": false,
-					"attributes": map[string]interface{}{
+					"attributes": map[string]any{
 						"attribute1": "value1",
 					},
 				},
@@ -932,10 +932,10 @@ func TestEnsureOwnerRefAndLabel(t *testing.T) {
 				},
 			},
 			obj: &unstructured.Unstructured{
-				Object: map[string]interface{}{
+				Object: map[string]any{
 					"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
 					"kind":       "GenericInfrastructureCluster",
-					"metadata": map[string]interface{}{
+					"metadata": map[string]any{
 						"name":      "test-infra",
 						"namespace": "test-namespace",
 					},
@@ -954,10 +954,10 @@ func TestEnsureOwnerRefAndLabel(t *testing.T) {
 				Spec: clusterv1.ClusterSpec{},
 			},
 			obj: &unstructured.Unstructured{
-				Object: map[string]interface{}{
+				Object: map[string]any{
 					"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
 					"kind":       "GenericInfrastructureCluster",
-					"metadata": map[string]interface{}{
+					"metadata": map[string]any{
 						"name":      "test-infra",
 						"namespace": "test-namespace",
 					},

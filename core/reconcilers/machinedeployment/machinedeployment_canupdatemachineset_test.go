@@ -651,17 +651,17 @@ func Test_canExtensionsUpdateMachineSet(t *testing.T) {
 	desiredMachineSet.Spec.Template.Spec.InfrastructureRef.Name = "infrastructure-machine-template-2"
 
 	currentBootstrapConfigTemplate := &unstructured.Unstructured{
-		Object: map[string]interface{}{
+		Object: map[string]any{
 			"apiVersion": builder.BootstrapGroupVersion.String(),
 			"kind":       builder.TestBootstrapConfigTemplateKind,
-			"metadata": map[string]interface{}{
+			"metadata": map[string]any{
 				"name":            "bootstrap-config-template-1",
 				"namespace":       metav1.NamespaceDefault,
 				"resourceVersion": "2", // This is set so we can verify cleanupUnstructured later.
 			},
-			"spec": map[string]interface{}{
-				"template": map[string]interface{}{
-					"spec": map[string]interface{}{
+			"spec": map[string]any{
+				"template": map[string]any{
+					"spec": map[string]any{
 						"hello": "world BootstrapConfigTemplate",
 					},
 				},
@@ -673,17 +673,17 @@ func Test_canExtensionsUpdateMachineSet(t *testing.T) {
 	_ = unstructured.SetNestedField(desiredBootstrapConfigTemplate.Object, "in-place updated world BootstrapConfigTemplate", "spec", "template", "spec", "hello")
 
 	currentInfraMachineTemplate := &unstructured.Unstructured{
-		Object: map[string]interface{}{
+		Object: map[string]any{
 			"apiVersion": builder.InfrastructureGroupVersion.String(),
 			"kind":       builder.TestInfrastructureMachineTemplateKind,
-			"metadata": map[string]interface{}{
+			"metadata": map[string]any{
 				"name":            "infrastructure-machine-template-1",
 				"namespace":       metav1.NamespaceDefault,
 				"resourceVersion": "2", // This is set so we can verify cleanupUnstructured later.
 			},
-			"spec": map[string]interface{}{
-				"template": map[string]interface{}{
-					"spec": map[string]interface{}{
+			"spec": map[string]any{
+				"template": map[string]any{
+					"spec": map[string]any{
 						"hello": "world InfraMachineTemplate",
 					},
 				},
@@ -1500,16 +1500,16 @@ func Test_createRequest(t *testing.T) {
 
 	newTemplate := func(kind, apiVersion, name, hello string) *unstructured.Unstructured {
 		return &unstructured.Unstructured{
-			Object: map[string]interface{}{
+			Object: map[string]any{
 				"apiVersion": apiVersion,
 				"kind":       kind,
-				"metadata": map[string]interface{}{
+				"metadata": map[string]any{
 					"name":      name,
 					"namespace": metav1.NamespaceDefault,
-					"labels": map[string]interface{}{
+					"labels": map[string]any{
 						"label-1": "label-value-1",
 					},
-					"annotations": map[string]interface{}{
+					"annotations": map[string]any{
 						"annotation-1": "annotation-value-1",
 					},
 					// Fields that must not be part of the request.
@@ -1517,14 +1517,14 @@ func Test_createRequest(t *testing.T) {
 					"resourceVersion": "2",
 					"generation":      int64(4),
 				},
-				"spec": map[string]interface{}{
-					"template": map[string]interface{}{
-						"spec": map[string]interface{}{
+				"spec": map[string]any{
+					"template": map[string]any{
+						"spec": map[string]any{
 							"hello": hello,
 						},
 					},
 				},
-				"status": map[string]interface{}{
+				"status": map[string]any{
 					"ready": true,
 				},
 			},
@@ -1532,16 +1532,16 @@ func Test_createRequest(t *testing.T) {
 	}
 	cleanedUp := func(u *unstructured.Unstructured) *unstructured.Unstructured {
 		return &unstructured.Unstructured{
-			Object: map[string]interface{}{
+			Object: map[string]any{
 				"apiVersion": u.GetAPIVersion(),
 				"kind":       u.GetKind(),
-				"metadata": map[string]interface{}{
+				"metadata": map[string]any{
 					"name":      u.GetName(),
 					"namespace": u.GetNamespace(),
-					"labels": map[string]interface{}{
+					"labels": map[string]any{
 						"label-1": "label-value-1",
 					},
-					"annotations": map[string]interface{}{
+					"annotations": map[string]any{
 						"annotation-1": "annotation-value-1",
 					},
 				},
@@ -1656,16 +1656,16 @@ func Test_applyPatchesToRequest(t *testing.T) {
 	patchedMachineSet.Spec.Template.Spec.Version = "v1.31.0"
 
 	currentBootstrapConfigTemplate := &unstructured.Unstructured{
-		Object: map[string]interface{}{
+		Object: map[string]any{
 			"apiVersion": builder.BootstrapGroupVersion.String(),
 			"kind":       builder.TestBootstrapConfigTemplateKind,
-			"metadata": map[string]interface{}{
+			"metadata": map[string]any{
 				"name":      "bootstrap-config-template-1",
 				"namespace": metav1.NamespaceDefault,
 			},
-			"spec": map[string]interface{}{
-				"template": map[string]interface{}{
-					"spec": map[string]interface{}{
+			"spec": map[string]any{
+				"template": map[string]any{
+					"spec": map[string]any{
 						"hello": "world BootstrapConfigTemplate",
 					},
 				},
@@ -1676,16 +1676,16 @@ func Test_applyPatchesToRequest(t *testing.T) {
 	_ = unstructured.SetNestedField(patchedBootstrapConfigTemplate.Object, "in-place updated world BootstrapConfigTemplate", "spec", "template", "spec", "hello")
 
 	currentInfraMachineTemplate := &unstructured.Unstructured{
-		Object: map[string]interface{}{
+		Object: map[string]any{
 			"apiVersion": builder.InfrastructureGroupVersion.String(),
 			"kind":       builder.TestInfrastructureMachineTemplateKind,
-			"metadata": map[string]interface{}{
+			"metadata": map[string]any{
 				"name":      "infrastructure-machine-template-1",
 				"namespace": metav1.NamespaceDefault,
 			},
-			"spec": map[string]interface{}{
-				"template": map[string]interface{}{
-					"spec": map[string]interface{}{
+			"spec": map[string]any{
+				"template": map[string]any{
+					"spec": map[string]any{
 						"hello": "world InfraMachineTemplate",
 					},
 				},

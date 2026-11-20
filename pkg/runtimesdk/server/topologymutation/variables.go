@@ -69,7 +69,7 @@ func GetBoolVariable(templateVariables map[string]apiextensionsv1.JSON, variable
 
 // GetObjectVariableInto gets variable's string value then unmarshal it into
 // object passed from 'into'.
-func GetObjectVariableInto(templateVariables map[string]apiextensionsv1.JSON, variableName string, into interface{}) error {
+func GetObjectVariableInto(templateVariables map[string]apiextensionsv1.JSON, variableName string, into any) error {
 	value, err := GetVariable(templateVariables, variableName)
 	if err != nil {
 		return err

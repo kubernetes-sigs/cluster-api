@@ -26,7 +26,7 @@ import (
 )
 
 func TestMetadata(t *testing.T) {
-	obj := &unstructured.Unstructured{Object: map[string]interface{}{}}
+	obj := &unstructured.Unstructured{Object: map[string]any{}}
 
 	t.Run("Manages metadata", func(t *testing.T) {
 		g := NewWithT(t)

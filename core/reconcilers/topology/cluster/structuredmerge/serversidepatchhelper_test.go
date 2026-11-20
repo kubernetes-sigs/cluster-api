@@ -61,7 +61,7 @@ func TestServerSideApply(t *testing.T) {
 	g.Expect(err).ToNot(HaveOccurred())
 
 	// Build the test object to work with.
-	obj := builder.TestInfrastructureCluster(ns.Name, "obj1").WithSpecFields(map[string]interface{}{
+	obj := builder.TestInfrastructureCluster(ns.Name, "obj1").WithSpecFields(map[string]any{
 		"spec.controlPlaneEndpoint.host": "1.2.3.4",
 		"spec.controlPlaneEndpoint.port": int64(1234),
 		"spec.foo":                       "", // this field is then explicitly ignored by the patch helper
@@ -117,12 +117,12 @@ func TestServerSideApply(t *testing.T) {
 		g.Expect(fieldV1).To(HaveKey("f:spec"))      // topology controller should express opinions on spec.
 		g.Expect(fieldV1).ToNot(HaveKey("f:status")) // topology controller should not express opinions on status/not allowed paths.
 
-		specFieldV1 := fieldV1["f:spec"].(map[string]interface{})
+		specFieldV1 := fieldV1["f:spec"].(map[string]any)
 		g.Expect(specFieldV1).ToNot(BeEmpty())
 		g.Expect(specFieldV1).To(HaveKey("f:controlPlaneEndpoint")) // topology controller should express opinions on spec.controlPlaneEndpoint.
 		g.Expect(specFieldV1).ToNot(HaveKey("f:foo"))               // topology controller should not express opinions on ignore paths.
 
-		controlPlaneEndpointFieldV1 := specFieldV1["f:controlPlaneEndpoint"].(map[string]interface{})
+		controlPlaneEndpointFieldV1 := specFieldV1["f:controlPlaneEndpoint"].(map[string]any)
 		g.Expect(controlPlaneEndpointFieldV1).ToNot(BeEmpty())
 		g.Expect(controlPlaneEndpointFieldV1).To(HaveKey("f:host")) // topology controller should express opinions on spec.controlPlaneEndpoint.host.
 		g.Expect(controlPlaneEndpointFieldV1).To(HaveKey("f:port")) // topology controller should express opinions on spec.controlPlaneEndpoint.port.
@@ -411,7 +411,7 @@ func TestServerSideApply(t *testing.T) {
 		g.Expect(fieldV1).To(HaveKey("f:spec"))      // topology controller should express opinions on spec.
 		g.Expect(fieldV1).ToNot(HaveKey("f:status")) // topology controller should not express opinions on status/not allowed paths.
 
-		specFieldV1 := fieldV1["f:spec"].(map[string]interface{})
+		specFieldV1 := fieldV1["f:spec"].(map[string]any)
 		g.Expect(specFieldV1).ToNot(BeEmpty())
 		g.Expect(specFieldV1).To(HaveKey("f:controlPlaneEndpoint")) // topology controller should express opinions on spec.controlPlaneEndpoint.
 		g.Expect(specFieldV1).ToNot(HaveKey("f:foo"))               // topology controller should not express opinions on ignore paths.
@@ -505,7 +505,7 @@ func TestServerSideApply(t *testing.T) {
 		g.Expect(fieldV1).ToNot(BeEmpty())
 		g.Expect(fieldV1).To(HaveKey("f:spec")) // topology controller should express opinions on spec.
 
-		specFieldV1 := fieldV1["f:spec"].(map[string]interface{})
+		specFieldV1 := fieldV1["f:spec"].(map[string]any)
 		g.Expect(specFieldV1).ToNot(BeEmpty())
 		g.Expect(specFieldV1).To(HaveKey("f:controlPlaneEndpoint")) // topology controller should express opinions on spec.controlPlaneEndpoint.
 		g.Expect(specFieldV1).ToNot(HaveKey("f:foo"))               // topology controller should not express opinions on ignore paths.
@@ -560,7 +560,7 @@ func TestServerSideApply(t *testing.T) {
 		g.Expect(fieldV1).ToNot(BeEmpty())
 		g.Expect(fieldV1).To(HaveKey("f:spec")) // topology controller should express opinions on spec.
 
-		specFieldV1 := fieldV1["f:spec"].(map[string]interface{})
+		specFieldV1 := fieldV1["f:spec"].(map[string]any)
 		g.Expect(specFieldV1).ToNot(BeEmpty())
 		g.Expect(specFieldV1).To(HaveKey("f:controlPlaneEndpoint")) // topology controller should express opinions on spec.controlPlaneEndpoint.
 		g.Expect(specFieldV1).ToNot(HaveKey("f:foo"))               // topology controller should not express opinions on ignore paths.
@@ -570,9 +570,9 @@ func TestServerSideApply(t *testing.T) {
 		g := NewWithT(t)
 
 		obj2 := builder.TestInfrastructureCluster(ns.Name, "obj2").
-			WithSpecFields(map[string]interface{}{
-				"spec.fooMap":  map[string]interface{}{},
-				"spec.fooList": []interface{}{},
+			WithSpecFields(map[string]any{
+				"spec.fooMap":  map[string]any{},
+				"spec.fooList": []any{},
 			}).
 			Build()
 
@@ -614,7 +614,7 @@ func TestServerSideApply(t *testing.T) {
 		g.Expect(err).To(HaveOccurred())
 	})
 	t.Run("Error on object which does not exist (anymore) but was expected to get updated", func(*testing.T) {
-		original := builder.TestInfrastructureCluster(ns.Name, "obj3").WithSpecFields(map[string]interface{}{
+		original := builder.TestInfrastructureCluster(ns.Name, "obj3").WithSpecFields(map[string]any{
 			"spec.controlPlaneEndpoint.host": "1.2.3.4",
 			"spec.controlPlaneEndpoint.port": int64(1234),
 			"spec.foo":                       "", // this field is then explicitly ignored by the patch helper
@@ -634,8 +634,8 @@ func TestServerSideApply(t *testing.T) {
 
 // getTopologyManagedFields returns metadata.managedFields entry tracking
 // server side apply operations for the topology controller.
-func getTopologyManagedFields(original client.Object) map[string]interface{} {
-	r := map[string]interface{}{}
+func getTopologyManagedFields(original client.Object) map[string]any {
+	r := map[string]any{}
 
 	for _, m := range original.GetManagedFields() {
 		if m.Operation == metav1.ManagedFieldsOperationApply &&
@@ -856,14 +856,14 @@ func TestServerSideApplyWithDefaulting(t *testing.T) {
 				fieldV1 := getTopologyManagedFields(got)
 				g.Expect(fieldV1).ToNot(BeEmpty())
 				g.Expect(fieldV1).To(HaveKey("f:spec"))
-				specFieldV1 := fieldV1["f:spec"].(map[string]interface{})
+				specFieldV1 := fieldV1["f:spec"].(map[string]any)
 				g.Expect(specFieldV1).ToNot(BeEmpty())
 				g.Expect(specFieldV1).To(HaveKey("f:template"))
-				specTemplateFieldV1 := specFieldV1["f:template"].(map[string]interface{})
+				specTemplateFieldV1 := specFieldV1["f:template"].(map[string]any)
 				g.Expect(specTemplateFieldV1).ToNot(BeEmpty())
 				g.Expect(specTemplateFieldV1).To(HaveKey("f:spec"))
 
-				specTemplateSpecFieldV1 := specTemplateFieldV1["f:spec"].(map[string]interface{})
+				specTemplateSpecFieldV1 := specTemplateFieldV1["f:spec"].(map[string]any)
 				if tt.expectFieldOwnership {
 					// topology controller should express opinions on spec.template.spec.users.
 					g.Expect(specTemplateSpecFieldV1).To(HaveKey("f:users"))

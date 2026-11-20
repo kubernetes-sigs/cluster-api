@@ -68,7 +68,7 @@ func toUnstructured(obj runtime.Object, gvk schema.GroupVersionKind) (*unstructu
 // It's not safe to modify any of the keys in the returned unstructured object, the result should be treated as read-only.
 func unsafeUnstructuredCopy(obj *unstructured.Unstructured, focus patchType, clusterv1ConditionsFieldPath, metav1ConditionsFieldPath []string) *unstructured.Unstructured {
 	// Create the return focused-unstructured object with a preallocated map.
-	res := &unstructured.Unstructured{Object: make(map[string]interface{}, len(obj.Object))}
+	res := &unstructured.Unstructured{Object: make(map[string]any, len(obj.Object))}
 
 	// Ranges over the keys of the unstructured object, think of this as the very top level of an object
 	// when submitting a yaml to kubectl or a client.

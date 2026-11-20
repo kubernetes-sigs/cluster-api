@@ -162,7 +162,7 @@ func TestFromUnstructured(t *testing.T) {
 		"kind: ConfigMap")
 
 	unstructuredObj := unstructured.Unstructured{
-		Object: map[string]interface{}{
+		Object: map[string]any{
 			"apiVersion": "v1",
 			"kind":       "ConfigMap",
 		},

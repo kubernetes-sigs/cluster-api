@@ -74,8 +74,8 @@ func TestFuzzyConversion(t *testing.T) {
 	}))
 }
 
-func fuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
-	return []interface{}{
+func fuzzFuncs(_ runtimeserializer.CodecFactory) []any {
+	return []any{
 		spokeClusterConfigurationFuzzer,
 		spokeDNSFuzzer,
 		spokeInitConfigurationFuzzer,
@@ -91,8 +91,8 @@ func fuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	}
 }
 
-func initConfigurationFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
-	return []interface{}{
+func initConfigurationFuzzFuncs(_ runtimeserializer.CodecFactory) []any {
+	return []any{
 		spokeBootstrapToken,
 		spokeBootstrapTokenString,
 	}

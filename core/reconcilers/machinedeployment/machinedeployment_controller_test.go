@@ -174,23 +174,23 @@ func TestMachineDeploymentReconciler(t *testing.T) {
 		}
 
 		// Create infrastructure template resource.
-		infraResource := map[string]interface{}{
+		infraResource := map[string]any{
 			"kind":       "GenericInfrastructureMachine",
 			"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
-			"metadata":   map[string]interface{}{},
-			"spec": map[string]interface{}{
+			"metadata":   map[string]any{},
+			"spec": map[string]any{
 				"size": "3xlarge",
 			},
 		}
 		infraTmpl := &unstructured.Unstructured{
-			Object: map[string]interface{}{
+			Object: map[string]any{
 				"kind":       "GenericInfrastructureMachineTemplate",
 				"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
-				"metadata": map[string]interface{}{
+				"metadata": map[string]any{
 					"name":      "md-template",
 					"namespace": namespace.Name,
 				},
-				"spec": map[string]interface{}{
+				"spec": map[string]any{
 					"template": infraResource,
 				},
 			},
@@ -241,7 +241,7 @@ func TestMachineDeploymentReconciler(t *testing.T) {
 		//
 		// Verify managedField mitigation (purge managedFields and verify they are re-added)
 		//
-		jsonPatch := []map[string]interface{}{
+		jsonPatch := []map[string]any{
 			{
 				"op":    "replace",
 				"path":  "/metadata/managedFields",
@@ -344,19 +344,19 @@ func TestMachineDeploymentReconciler(t *testing.T) {
 		// Create the InfrastructureTemplate
 		// Create infrastructure template resource.
 		infraTmpl2 := &unstructured.Unstructured{
-			Object: map[string]interface{}{
+			Object: map[string]any{
 				"kind":       "GenericInfrastructureMachineTemplate",
 				"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
-				"metadata": map[string]interface{}{
+				"metadata": map[string]any{
 					"name":      "md-template-2",
 					"namespace": namespace.Name,
 				},
-				"spec": map[string]interface{}{
-					"template": map[string]interface{}{
+				"spec": map[string]any{
+					"template": map[string]any{
 						"kind":       "GenericInfrastructureMachine",
 						"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
-						"metadata":   map[string]interface{}{},
-						"spec": map[string]interface{}{
+						"metadata":   map[string]any{},
+						"spec": map[string]any{
 							"size": "5xlarge",
 						},
 					},

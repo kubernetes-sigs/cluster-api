@@ -304,16 +304,16 @@ func TestCloneConfigsAndGenerateMachineAndSyncMachines(t *testing.T) {
 	}
 
 	genericInfrastructureMachineTemplate := &unstructured.Unstructured{
-		Object: map[string]interface{}{
+		Object: map[string]any{
 			"kind":       "GenericInfrastructureMachineTemplate",
 			"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
-			"metadata": map[string]interface{}{
+			"metadata": map[string]any{
 				"name":      "infra-foo",
 				"namespace": cluster.Namespace,
 			},
-			"spec": map[string]interface{}{
-				"template": map[string]interface{}{
-					"spec": map[string]interface{}{
+			"spec": map[string]any{
+				"template": map[string]any{
+					"spec": map[string]any{
 						"hello": "world",
 					},
 				},
@@ -566,7 +566,7 @@ func TestCloneConfigsAndGenerateMachineAndSyncMachines(t *testing.T) {
 	}})))
 
 	// Purge managedFields from objects.
-	jsonPatch := []map[string]interface{}{
+	jsonPatch := []map[string]any{
 		{
 			"op":    "replace",
 			"path":  "/metadata/managedFields",
@@ -623,16 +623,16 @@ func TestCloneConfigsAndGenerateMachineFailInfraMachineCreation(t *testing.T) {
 	}
 
 	genericMachineTemplate := &unstructured.Unstructured{
-		Object: map[string]interface{}{
+		Object: map[string]any{
 			"kind":       builder.GenericInfrastructureMachineTemplateKind,
 			"apiVersion": builder.InfrastructureGroupVersion.String(),
-			"metadata": map[string]interface{}{
+			"metadata": map[string]any{
 				"name":      "infra-foo",
 				"namespace": cluster.Namespace,
 			},
-			"spec": map[string]interface{}{
-				"template": map[string]interface{}{
-					"spec": map[string]interface{}{
+			"spec": map[string]any{
+				"template": map[string]any{
+					"spec": map[string]any{
 						"hello": "world",
 					},
 				},
@@ -707,16 +707,16 @@ func TestCloneConfigsAndGenerateMachineFailKubeadmConfigCreation(t *testing.T) {
 	}
 
 	genericMachineTemplate := &unstructured.Unstructured{
-		Object: map[string]interface{}{
+		Object: map[string]any{
 			"kind":       builder.GenericInfrastructureMachineTemplateKind,
 			"apiVersion": builder.InfrastructureGroupVersion.String(),
-			"metadata": map[string]interface{}{
+			"metadata": map[string]any{
 				"name":      "infra-foo",
 				"namespace": cluster.Namespace,
 			},
-			"spec": map[string]interface{}{
-				"template": map[string]interface{}{
-					"spec": map[string]interface{}{
+			"spec": map[string]any{
+				"template": map[string]any{
+					"spec": map[string]any{
 						"hello": "world",
 					},
 				},
@@ -794,16 +794,16 @@ func TestCloneConfigsAndGenerateMachineFailMachineCreation(t *testing.T) {
 	}
 
 	genericMachineTemplate := &unstructured.Unstructured{
-		Object: map[string]interface{}{
+		Object: map[string]any{
 			"kind":       builder.GenericInfrastructureMachineTemplateKind,
 			"apiVersion": builder.InfrastructureGroupVersion.String(),
-			"metadata": map[string]interface{}{
+			"metadata": map[string]any{
 				"name":      "infra-foo",
 				"namespace": cluster.Namespace,
 			},
-			"spec": map[string]interface{}{
-				"template": map[string]interface{}{
-					"spec": map[string]interface{}{
+			"spec": map[string]any{
+				"template": map[string]any{
+					"spec": map[string]any{
 						"hello": "world",
 					},
 				},

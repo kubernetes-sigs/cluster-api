@@ -579,10 +579,10 @@ func TestConvertFromUnstructuredConditions(t *testing.T) {
 			unstructuredObj, err := runtime.DefaultUnstructuredConverter.ToUnstructured(&builder.Phase0Obj{Status: builder.Phase0ObjStatus{Conditions: tt.conditions}})
 			g.Expect(err).NotTo(HaveOccurred())
 			g.Expect(unstructuredObj).To(HaveKey("status"))
-			unstructuredStatusObj := unstructuredObj["status"].(map[string]interface{})
+			unstructuredStatusObj := unstructuredObj["status"].(map[string]any)
 			g.Expect(unstructuredStatusObj).To(HaveKey("conditions"))
 
-			got, err := convertFromUnstructuredConditions(unstructuredStatusObj["conditions"].([]interface{}))
+			got, err := convertFromUnstructuredConditions(unstructuredStatusObj["conditions"].([]any))
 			if tt.wantError {
 				g.Expect(err).To(HaveOccurred())
 			} else {

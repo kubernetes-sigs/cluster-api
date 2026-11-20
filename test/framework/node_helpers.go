@@ -30,7 +30,7 @@ type WaitForNodesReadyInput struct {
 	Lister            Lister
 	KubernetesVersion string
 	Count             int
-	WaitForNodesReady []interface{}
+	WaitForNodesReady []any
 }
 
 // WaitForNodesReady waits until there are exactly the given count nodes and they have the correct Kubernetes version

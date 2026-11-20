@@ -1461,17 +1461,17 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 
 		mhc := newMachineHealthCheck(cluster.Namespace, cluster.Name)
 		// Create infrastructure template resource.
-		infraResource := map[string]interface{}{
+		infraResource := map[string]any{
 			"kind":       "GenericInfrastructureMachine",
 			"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
-			"metadata":   map[string]interface{}{},
-			"spec": map[string]interface{}{
+			"metadata":   map[string]any{},
+			"spec": map[string]any{
 				"size": "3xlarge",
 			},
 		}
 		infraTmpl := &unstructured.Unstructured{
-			Object: map[string]interface{}{
-				"spec": map[string]interface{}{
+			Object: map[string]any{
+				"spec": map[string]any{
 					"template": infraResource,
 				},
 			},
@@ -1692,17 +1692,17 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 		cluster := createCluster(g, ns.Name)
 
 		// Create remediation template resource.
-		infraRemediationResource := map[string]interface{}{
+		infraRemediationResource := map[string]any{
 			"kind":       "GenericExternalRemediation",
 			"apiVersion": builder.RemediationGroupVersion.String(),
-			"metadata":   map[string]interface{}{},
-			"spec": map[string]interface{}{
+			"metadata":   map[string]any{},
+			"spec": map[string]any{
 				"size": "3xlarge",
 			},
 		}
 		infraRemediationTmpl := &unstructured.Unstructured{
-			Object: map[string]interface{}{
-				"spec": map[string]interface{}{
+			Object: map[string]any{
+				"spec": map[string]any{
 					"template": infraRemediationResource,
 				},
 			},
@@ -1850,17 +1850,17 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 		cluster := createCluster(g, ns.Name)
 
 		// Create remediation template resource.
-		infraRemediationResource := map[string]interface{}{
+		infraRemediationResource := map[string]any{
 			"kind":       "GenericExternalRemediation",
 			"apiVersion": builder.RemediationGroupVersion.String(),
-			"metadata":   map[string]interface{}{},
-			"spec": map[string]interface{}{
+			"metadata":   map[string]any{},
+			"spec": map[string]any{
 				"size": "3xlarge",
 			},
 		}
 		infraRemediationTmpl := &unstructured.Unstructured{
-			Object: map[string]interface{}{
-				"spec": map[string]interface{}{
+			Object: map[string]any{
+				"spec": map[string]any{
 					"template": infraRemediationResource,
 				},
 			},
@@ -2642,14 +2642,14 @@ func newRunningMachine(c *clusterv1.Cluster, labels map[string]string) *clusterv
 func newInfraMachine(machine *clusterv1.Machine) (*unstructured.Unstructured, string) {
 	providerID := fmt.Sprintf("test:////%v", uuid.NewUUID())
 	return &unstructured.Unstructured{
-		Object: map[string]interface{}{
+		Object: map[string]any{
 			"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
 			"kind":       "GenericInfrastructureMachine",
-			"metadata": map[string]interface{}{
+			"metadata": map[string]any{
 				"generateName": "test-mhc-machine-infra-",
 				"namespace":    machine.Namespace,
 			},
-			"spec": map[string]interface{}{
+			"spec": map[string]any{
 				"providerID": providerID,
 			},
 		},

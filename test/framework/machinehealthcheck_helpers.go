@@ -36,7 +36,7 @@ import (
 type DiscoverMachineHealthCheckAndWaitForRemediationInput struct {
 	ClusterProxy              ClusterProxy
 	Cluster                   *clusterv1.Cluster
-	WaitForMachineRemediation []interface{}
+	WaitForMachineRemediation []any
 }
 
 // DiscoverMachineHealthChecksAndWaitForRemediation patches an unhealthy node condition to one node observed by the Machine Health Check and then wait for remediation.
@@ -129,7 +129,7 @@ type WaitForMachineHealthCheckToRemediateUnhealthyNodeConditionInput struct {
 }
 
 // WaitForMachineHealthCheckToRemediateUnhealthyNodeCondition patches a node condition to any one of the machines with a node ref.
-func WaitForMachineHealthCheckToRemediateUnhealthyNodeCondition(ctx context.Context, input WaitForMachineHealthCheckToRemediateUnhealthyNodeConditionInput, intervals ...interface{}) {
+func WaitForMachineHealthCheckToRemediateUnhealthyNodeCondition(ctx context.Context, input WaitForMachineHealthCheckToRemediateUnhealthyNodeConditionInput, intervals ...any) {
 	Expect(ctx).NotTo(BeNil(), "ctx is required for WaitForMachineHealthCheckToRemediateUnhealthyNodeCondition")
 	Expect(input.ClusterProxy).ToNot(BeNil(), "Invalid argument. input.ClusterProxy can't be nil when calling WaitForMachineHealthCheckToRemediateUnhealthyNodeCondition")
 	Expect(input.Cluster).ToNot(BeNil(), "Invalid argument. input.Cluster can't be nil when calling WaitForMachineHealthCheckToRemediateUnhealthyNodeCondition")

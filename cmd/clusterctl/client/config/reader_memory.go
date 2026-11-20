@@ -75,7 +75,7 @@ func (f *MemoryReader) Set(key, value string) {
 }
 
 // UnmarshalKey gets a value for the given key, then unmarshal it.
-func (f *MemoryReader) UnmarshalKey(key string, rawval interface{}) error {
+func (f *MemoryReader) UnmarshalKey(key string, rawval any) error {
 	data, err := f.Get(key)
 	if err != nil {
 		return nil //nolint:nilerr // We expect to not error if the key is not present

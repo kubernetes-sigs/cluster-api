@@ -89,15 +89,15 @@ func (v *StatusVersions) Get(obj *unstructured.Unstructured) ([]clusterv1.Status
 
 // Set sets the status versions value in the path.
 func (v *StatusVersions) Set(obj *unstructured.Unstructured, value []clusterv1.StatusVersion) error {
-	interfaces := make([]interface{}, 0, len(value))
+	interfaces := make([]any, 0, len(value))
 	for _, statusVersion := range value {
 		if statusVersion.Replicas == 0 {
-			interfaces = append(interfaces, map[string]interface{}{
+			interfaces = append(interfaces, map[string]any{
 				"version": statusVersion.Version,
 			})
 			continue
 		}
-		interfaces = append(interfaces, map[string]interface{}{
+		interfaces = append(interfaces, map[string]any{
 			"version":  statusVersion.Version,
 			"replicas": int64(statusVersion.Replicas),
 		})
@@ -520,7 +520,7 @@ func getNestedRef(obj *unstructured.Unstructured, fields ...string) (*clusterv1.
 
 // setNestedRef sets the value of a nested field in an Unstructured to a reference to the refObj provided.
 func setNestedRef(obj *unstructured.Unstructured, ref *clusterv1.ContractVersionedObjectReference, fields ...string) error {
-	r := map[string]interface{}{
+	r := map[string]any{
 		"kind":     ref.Kind,
 		"name":     ref.Name,
 		"apiGroup": ref.APIGroup,
@@ -638,7 +638,7 @@ func (m *ReadinessGates) Set(obj *unstructured.Unstructured, readinessGates []cl
 	if err != nil {
 		return pkgerrors.Wrapf(err, "failed to Marshal control plane %s", "."+m.Path().String())
 	}
-	var unstructuredValue []interface{}
+	var unstructuredValue []any
 	if err := json.Unmarshal(jsonValue, &unstructuredValue); err != nil {
 		return pkgerrors.Wrapf(err, "failed to Unmarshal control plane %s", "."+m.Path().String())
 	}
@@ -705,7 +705,7 @@ func (m *Taints) Set(obj *unstructured.Unstructured, taints []clusterv1.MachineT
 	if err != nil {
 		return pkgerrors.Wrapf(err, "failed to Marshal control plane %s", "."+m.Path().String())
 	}
-	var unstructuredValue []interface{}
+	var unstructuredValue []any
 	if err := json.Unmarshal(jsonValue, &unstructuredValue); err != nil {
 		return pkgerrors.Wrapf(err, "failed to Unmarshal control plane %s", "."+m.Path().String())
 	}

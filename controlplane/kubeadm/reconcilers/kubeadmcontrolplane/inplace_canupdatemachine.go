@@ -439,7 +439,7 @@ func cleanupKubeadmConfig(kubeadmConfig *bootstrapv1.KubeadmConfig) *bootstrapv1
 
 func cleanupUnstructured(u *unstructured.Unstructured) *unstructured.Unstructured {
 	cleanedUpU := &unstructured.Unstructured{
-		Object: map[string]interface{}{
+		Object: map[string]any{
 			"apiVersion": u.GetAPIVersion(),
 			"kind":       u.GetKind(),
 			"spec":       u.Object["spec"],
@@ -531,12 +531,12 @@ func matchesUnstructuredSpec(patched, desired runtime.RawExtension) (equal bool,
 	// Note: Wrapping Unstructured specs in an Unstructured for proper formatting of the diff.
 	return compare.Diff(
 		&unstructured.Unstructured{
-			Object: map[string]interface{}{
+			Object: map[string]any{
 				"spec": patchedUnstructured.Object["spec"],
 			},
 		},
 		&unstructured.Unstructured{
-			Object: map[string]interface{}{
+			Object: map[string]any{
 				"spec": desiredUnstructured.Object["spec"],
 			},
 		},

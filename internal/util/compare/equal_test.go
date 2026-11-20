@@ -27,7 +27,7 @@ import (
 func TestDiff(t *testing.T) {
 	type test struct {
 		name      string
-		x, y      interface{}
+		x, y      any
 		wantEqual bool
 		wantDiff  string
 		wantError string

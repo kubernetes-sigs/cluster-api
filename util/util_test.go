@@ -137,10 +137,10 @@ func TestClusterToInfrastructureMapFunc(t *testing.T) {
 					},
 				},
 			},
-			infrastructure: &unstructured.Unstructured{Object: map[string]interface{}{
+			infrastructure: &unstructured.Unstructured{Object: map[string]any{
 				"apiVersion": "foo.cluster.x-k8s.io/vx",
 				"kind":       "TestCluster",
-				"metadata": map[string]interface{}{
+				"metadata": map[string]any{
 					"namespace": metav1.NamespaceDefault,
 					"name":      "infra-1",
 				},
@@ -196,13 +196,13 @@ func TestClusterToInfrastructureMapFunc(t *testing.T) {
 					},
 				},
 			},
-			infrastructure: &unstructured.Unstructured{Object: map[string]interface{}{
+			infrastructure: &unstructured.Unstructured{Object: map[string]any{
 				"apiVersion": "foo.cluster.x-k8s.io/vx",
 				"kind":       "TestCluster",
-				"metadata": map[string]interface{}{
+				"metadata": map[string]any{
 					"namespace": metav1.NamespaceDefault,
 					"name":      "infra-1",
-					"annotations": map[string]interface{}{
+					"annotations": map[string]any{
 						clusterv1.ManagedByAnnotation: "",
 					},
 				},
@@ -615,8 +615,8 @@ func TestIsExternalManagedControlPlane(t *testing.T) {
 
 	t.Run("should return true if control plane status externalManagedControlPlane is true", func(*testing.T) {
 		controlPlane := &unstructured.Unstructured{
-			Object: map[string]interface{}{
-				"status": map[string]interface{}{
+			Object: map[string]any{
+				"status": map[string]any{
 					"externalManagedControlPlane": true,
 				},
 			},
@@ -627,8 +627,8 @@ func TestIsExternalManagedControlPlane(t *testing.T) {
 
 	t.Run("should return false if control plane status externalManagedControlPlane is false", func(*testing.T) {
 		controlPlane := &unstructured.Unstructured{
-			Object: map[string]interface{}{
-				"status": map[string]interface{}{
+			Object: map[string]any{
+				"status": map[string]any{
 					"externalManagedControlPlane": false,
 				},
 			},
@@ -639,8 +639,8 @@ func TestIsExternalManagedControlPlane(t *testing.T) {
 
 	t.Run("should return false if control plane status externalManagedControlPlane is not set", func(*testing.T) {
 		controlPlane := &unstructured.Unstructured{
-			Object: map[string]interface{}{
-				"status": map[string]interface{}{
+			Object: map[string]any{
+				"status": map[string]any{
 					"someOtherStatusField": "someValue",
 				},
 			},
@@ -1111,7 +1111,7 @@ func TestUnstructuredUnmarshalField(t *testing.T) {
 	tests := []struct {
 		name    string
 		obj     *unstructured.Unstructured
-		v       interface{}
+		v       any
 		fields  []string
 		wantErr bool
 	}{

@@ -212,7 +212,7 @@ func (d *FailureDomains) Get(obj *unstructured.Unstructured) ([]clusterv1.Failur
 
 // Set sets the []clusterv1.FailureDomain value in the path.
 func (d *FailureDomains) Set(obj *unstructured.Unstructured, values []clusterv1.FailureDomain) error {
-	domains := make([]interface{}, len(values))
+	domains := make([]any, len(values))
 	s, err := json.Marshal(values)
 	if err != nil {
 		return pkgerrors.Wrapf(err, "failed to marshal supplied values to json for path %s", "."+strings.Join(d.path, "."))
@@ -262,7 +262,7 @@ func (c *ControlPlaneEndpoint) Get(obj *unstructured.Unstructured) (*clusterv1.A
 
 // Set sets the ControlPlaneEndpoint value.
 func (c *ControlPlaneEndpoint) Set(obj *unstructured.Unstructured, value clusterv1.APIEndpoint) error {
-	controlPlaneEndpointMap := make(map[string]interface{})
+	controlPlaneEndpointMap := make(map[string]any)
 	s, err := json.Marshal(value)
 	if err != nil {
 		return pkgerrors.Wrapf(err, "failed to marshal supplied values to json for path %s", "."+strings.Join(c.path, "."))

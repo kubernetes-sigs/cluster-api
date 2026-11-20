@@ -87,7 +87,7 @@ func RemoveManagedFieldsForLabelsAndAnnotations(ctx context.Context, c client.Cl
 				}
 
 				// Unmarshal the managed fields into a map[string]interface{}
-				fieldsV1 := map[string]interface{}{}
+				fieldsV1 := map[string]any{}
 				if err := json.Unmarshal(managedField.FieldsV1.GetRawBytes(), &fieldsV1); err != nil {
 					return pkgerrors.Wrap(err, "failed to unmarshal managed fields")
 				}
@@ -213,7 +213,7 @@ func needsMigration(object client.Object, fieldManager string) (bool, error) {
 			}
 
 			// Unmarshal the managed fields into a map[string]interface{}
-			fieldsV1 := map[string]interface{}{}
+			fieldsV1 := map[string]any{}
 			if err := json.Unmarshal(managedField.FieldsV1.GetRawBytes(), &fieldsV1); err != nil {
 				return false, pkgerrors.Wrap(err, "failed to determine if migration is needed: failed to unmarshal managed fields")
 			}

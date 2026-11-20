@@ -54,7 +54,7 @@ func TestPatch(t *testing.T) {
 
 	t.Run("Test patch with unstructured", func(*testing.T) {
 		// Build the test object to work with.
-		initialObject := builder.TestInfrastructureCluster(ns.Name, "obj1").WithSpecFields(map[string]interface{}{
+		initialObject := builder.TestInfrastructureCluster(ns.Name, "obj1").WithSpecFields(map[string]any{
 			"spec.controlPlaneEndpoint.host": "1.2.3.4",
 			"spec.controlPlaneEndpoint.port": int64(1234),
 			"spec.foo":                       "bar",

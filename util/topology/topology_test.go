@@ -63,9 +63,9 @@ func TestIsDryRunRequest(t *testing.T) {
 		{
 			name: "false - annotation not set",
 			req:  admission.Request{AdmissionRequest: admissionv1.AdmissionRequest{DryRun: ptr.To(true)}},
-			obj: &unstructured.Unstructured{Object: map[string]interface{}{
-				"metadata": map[string]interface{}{
-					"annotations": map[string]interface{}{},
+			obj: &unstructured.Unstructured{Object: map[string]any{
+				"metadata": map[string]any{
+					"annotations": map[string]any{},
 				},
 			}},
 			want: false,
@@ -73,9 +73,9 @@ func TestIsDryRunRequest(t *testing.T) {
 		{
 			name: "true",
 			req:  admission.Request{AdmissionRequest: admissionv1.AdmissionRequest{DryRun: ptr.To(true)}},
-			obj: &unstructured.Unstructured{Object: map[string]interface{}{
-				"metadata": map[string]interface{}{
-					"annotations": map[string]interface{}{
+			obj: &unstructured.Unstructured{Object: map[string]any{
+				"metadata": map[string]any{
+					"annotations": map[string]any{
 						clusterv1.TopologyDryRunAnnotation: "",
 					},
 				},

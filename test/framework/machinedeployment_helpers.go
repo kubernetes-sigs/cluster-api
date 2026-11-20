@@ -117,7 +117,7 @@ type WaitForMachineDeploymentNodesToExistInput struct {
 }
 
 // WaitForMachineDeploymentNodesToExist waits until all nodes associated with a machine deployment exist.
-func WaitForMachineDeploymentNodesToExist(ctx context.Context, input WaitForMachineDeploymentNodesToExistInput, intervals ...interface{}) {
+func WaitForMachineDeploymentNodesToExist(ctx context.Context, input WaitForMachineDeploymentNodesToExistInput, intervals ...any) {
 	Expect(ctx).NotTo(BeNil(), "ctx is required for WaitForMachineDeploymentNodesToExist")
 	Expect(input.Lister).ToNot(BeNil(), "Invalid argument. input.Lister can't be nil when calling WaitForMachineDeploymentNodesToExist")
 	Expect(input.MachineDeployment).ToNot(BeNil(), "Invalid argument. input.MachineDeployment can't be nil when calling WaitForMachineDeploymentNodesToExist")
@@ -198,7 +198,7 @@ type DiscoveryAndWaitForMachineDeploymentsInput struct {
 }
 
 // DiscoveryAndWaitForMachineDeployments discovers the MachineDeployments existing in a cluster and waits for them to be ready (all the machine provisioned).
-func DiscoveryAndWaitForMachineDeployments(ctx context.Context, input DiscoveryAndWaitForMachineDeploymentsInput, intervals ...interface{}) []*clusterv1.MachineDeployment {
+func DiscoveryAndWaitForMachineDeployments(ctx context.Context, input DiscoveryAndWaitForMachineDeploymentsInput, intervals ...any) []*clusterv1.MachineDeployment {
 	Expect(ctx).NotTo(BeNil(), "ctx is required for DiscoveryAndWaitForMachineDeployments")
 	Expect(input.Lister).ToNot(BeNil(), "Invalid argument. input.Lister can't be nil when calling DiscoveryAndWaitForMachineDeployments")
 	Expect(input.Cluster).ToNot(BeNil(), "Invalid argument. input.Cluster can't be nil when calling DiscoveryAndWaitForMachineDeployments")
@@ -231,7 +231,7 @@ type UpgradeMachineDeploymentsAndWaitInput struct {
 	UpgradeVersion              string
 	UpgradeMachineTemplate      *string
 	MachineDeployments          []*clusterv1.MachineDeployment
-	WaitForMachinesToBeUpgraded []interface{}
+	WaitForMachinesToBeUpgraded []any
 }
 
 // UpgradeMachineDeploymentsAndWait upgrades a machine deployment and waits for its machines to be upgraded.
@@ -275,7 +275,7 @@ type UpgradeMachineDeploymentInfrastructureRefAndWaitInput struct {
 	ClusterProxy                ClusterProxy
 	Cluster                     *clusterv1.Cluster
 	MachineDeployments          []*clusterv1.MachineDeployment
-	WaitForMachinesToBeUpgraded []interface{}
+	WaitForMachinesToBeUpgraded []any
 }
 
 // UpgradeMachineDeploymentInfrastructureRefAndWait upgrades a machine deployment infrastructure ref and waits for its machines to be upgraded.
@@ -351,7 +351,7 @@ type UpgradeMachineDeploymentInPlaceMutableFieldsAndWaitInput struct {
 	ClusterProxy                ClusterProxy
 	Cluster                     *clusterv1.Cluster
 	MachineDeployments          []*clusterv1.MachineDeployment
-	WaitForMachinesToBeUpgraded []interface{}
+	WaitForMachinesToBeUpgraded []any
 }
 
 // UpgradeMachineDeploymentInPlaceMutableFieldsAndWait upgrades in-place mutable fields in a MachineDeployment
@@ -468,7 +468,7 @@ type DeleteAndWaitMachineDeploymentInput struct {
 	ClusterProxy              ClusterProxy
 	Cluster                   *clusterv1.Cluster
 	MachineDeployment         *clusterv1.MachineDeployment
-	WaitForMachineDeployments []interface{}
+	WaitForMachineDeployments []any
 	DeletePropagationPolicy   *metav1.DeletionPropagation
 }
 
@@ -509,7 +509,7 @@ type ScaleAndWaitMachineDeploymentInput struct {
 	Cluster                   *clusterv1.Cluster
 	MachineDeployment         *clusterv1.MachineDeployment
 	Replicas                  int32
-	WaitForMachineDeployments []interface{}
+	WaitForMachineDeployments []any
 }
 
 // ScaleAndWaitMachineDeployment scales MachineDeployment and waits until all machines have node ref and equal to Replicas.
@@ -567,7 +567,7 @@ type ScaleAndWaitMachineDeploymentV1Beta1Input struct {
 	Cluster                   *clusterv1beta1.Cluster
 	MachineDeployment         *clusterv1beta1.MachineDeployment
 	Replicas                  int32
-	WaitForMachineDeployments []interface{}
+	WaitForMachineDeployments []any
 }
 
 // ScaleAndWaitMachineDeploymentV1Beta1 scales MachineDeployment and waits until all machines have node ref and equal to Replicas.
@@ -624,7 +624,7 @@ type ScaleAndWaitMachineDeploymentTopologyInput struct {
 	ClusterProxy              ClusterProxy
 	Cluster                   *clusterv1.Cluster
 	Replicas                  int32
-	WaitForMachineDeployments []interface{}
+	WaitForMachineDeployments []any
 }
 
 // ScaleAndWaitMachineDeploymentTopology scales MachineDeployment topology and waits until all machines have node ref and equal to Replicas.
@@ -702,7 +702,7 @@ type ScaleAndWaitMachineDeploymentTopologyV1Beta1Input struct {
 	ClusterProxy              ClusterProxy
 	Cluster                   *clusterv1beta1.Cluster
 	Replicas                  int32
-	WaitForMachineDeployments []interface{}
+	WaitForMachineDeployments []any
 }
 
 // ScaleAndWaitMachineDeploymentTopologyV1Beta1 scales MachineDeployment topology and waits until all machines have node ref and equal to Replicas.
@@ -780,7 +780,7 @@ type AssertMachineDeploymentReplicasInput struct {
 	GetLister                GetLister
 	MachineDeployment        *clusterv1.MachineDeployment
 	Replicas                 int32
-	WaitForMachineDeployment []interface{}
+	WaitForMachineDeployment []any
 }
 
 func AssertMachineDeploymentReplicas(ctx context.Context, input AssertMachineDeploymentReplicasInput) {

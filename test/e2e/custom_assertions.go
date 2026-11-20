@@ -29,7 +29,7 @@ type controllerMatch struct {
 	owner metav1.Object
 }
 
-func (m *controllerMatch) Match(actual interface{}) (success bool, err error) {
+func (m *controllerMatch) Match(actual any) (success bool, err error) {
 	actualMeta, err := meta.Accessor(actual)
 	if err != nil {
 		return false, fmt.Errorf("unable to read meta for %T: %w", actual, err)
@@ -46,11 +46,11 @@ func (m *controllerMatch) Match(actual interface{}) (success bool, err error) {
 	return match, nil
 }
 
-func (m *controllerMatch) FailureMessage(actual interface{}) string {
+func (m *controllerMatch) FailureMessage(actual any) string {
 	return fmt.Sprintf("Expected\n\t%#v to have a controller reference pointing to %s/%s (%v)", actual, m.kind, m.owner.GetName(), m.owner.GetUID())
 }
 
-func (m *controllerMatch) NegatedFailureMessage(actual interface{}) string {
+func (m *controllerMatch) NegatedFailureMessage(actual any) string {
 	return fmt.Sprintf("Expected\n\t%#v to not have a controller reference pointing to %s/%s (%v)", actual, m.kind, m.owner.GetName(), m.owner.GetUID())
 }
 

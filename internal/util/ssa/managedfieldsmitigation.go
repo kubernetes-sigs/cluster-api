@@ -124,7 +124,7 @@ func MigrateClusterAndMitigateManagedFieldsIssue(ctx context.Context, c client.C
 
 	// Create a patch to update only managedFields.
 	// Include resourceVersion to avoid race conditions.
-	jsonPatch := []map[string]interface{}{
+	jsonPatch := []map[string]any{
 		{
 			"op":    "replace",
 			"path":  "/metadata/managedFields",
@@ -232,7 +232,7 @@ func MitigateManagedFieldsIssue(ctx context.Context, c WriterWithScheme, obj cli
 
 	// Create a patch to update only managedFields.
 	// Include resourceVersion to avoid race conditions.
-	jsonPatch := []map[string]interface{}{
+	jsonPatch := []map[string]any{
 		{
 			"op":    "replace",
 			"path":  "/metadata/managedFields",

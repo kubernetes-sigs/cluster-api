@@ -542,7 +542,7 @@ func (c *E2EConfig) AbsPaths(basePath string) {
 	}
 }
 
-func errInvalidArg(format string, args ...interface{}) error {
+func errInvalidArg(format string, args ...any) error {
 	msg := fmt.Sprintf(format, args...)
 	return pkgerrors.Errorf("invalid argument: %s", msg)
 }
@@ -755,14 +755,14 @@ func (c *E2EConfig) HasDockerProvider() bool {
 // It searches for [spec]/[key] intervals first, and if it is not found, it searches
 // for default/[key]. If also the default/[key] intervals are not found,
 // ginkgo DefaultEventuallyTimeout and DefaultEventuallyPollingInterval are used.
-func (c *E2EConfig) GetIntervals(spec, key string) []interface{} {
+func (c *E2EConfig) GetIntervals(spec, key string) []any {
 	intervals, ok := c.Intervals[fmt.Sprintf("%s/%s", spec, key)]
 	if !ok {
 		if intervals, ok = c.Intervals[fmt.Sprintf("default/%s", key)]; !ok {
 			return nil
 		}
 	}
-	intervalsInterfaces := make([]interface{}, len(intervals))
+	intervalsInterfaces := make([]any, len(intervals))
 	for i := range intervals {
 		intervalsInterfaces[i] = intervals[i]
 	}

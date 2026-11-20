@@ -23,6 +23,6 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 )
 
-func Logf(format string, a ...interface{}) {
+func Logf(format string, a ...any) {
 	fmt.Fprintf(GinkgoWriter, "INFO: "+format+"\n", a...)
 }

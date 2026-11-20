@@ -462,7 +462,7 @@ func (r *Reconciler) ApplyClusterResourceSet(ctx context.Context, cluster *clust
 func (r *Reconciler) getResource(ctx context.Context, resourceRef addonsv1.ResourceRef, namespace string) (*unstructured.Unstructured, error) {
 	resourceName := types.NamespacedName{Name: resourceRef.Name, Namespace: namespace}
 
-	var resourceInterface interface{}
+	var resourceInterface any
 	switch resourceRef.Kind {
 	case string(addonsv1.ConfigMapClusterResourceSetResourceKind):
 		resourceConfigMap, err := getConfigMap(ctx, r.Client, resourceName)

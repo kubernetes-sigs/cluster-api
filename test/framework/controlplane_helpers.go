@@ -44,7 +44,7 @@ type CreateKubeadmControlPlaneInput struct {
 }
 
 // CreateKubeadmControlPlane creates the control plane object and necessary dependencies.
-func CreateKubeadmControlPlane(ctx context.Context, input CreateKubeadmControlPlaneInput, intervals ...interface{}) {
+func CreateKubeadmControlPlane(ctx context.Context, input CreateKubeadmControlPlaneInput, intervals ...any) {
 	By("creating the machine template")
 	Eventually(func() error {
 		return input.Creator.Create(ctx, input.MachineTemplate)
@@ -90,7 +90,7 @@ type WaitForKubeadmControlPlaneMachinesToExistInput struct {
 }
 
 // WaitForKubeadmControlPlaneMachinesToExist will wait until all control plane machines have node refs.
-func WaitForKubeadmControlPlaneMachinesToExist(ctx context.Context, input WaitForKubeadmControlPlaneMachinesToExistInput, intervals ...interface{}) {
+func WaitForKubeadmControlPlaneMachinesToExist(ctx context.Context, input WaitForKubeadmControlPlaneMachinesToExistInput, intervals ...any) {
 	By("Waiting for all control plane nodes to exist")
 	inClustersNamespaceListOption := client.InNamespace(input.Cluster.Namespace)
 	// ControlPlane labels
@@ -123,7 +123,7 @@ type WaitForOneKubeadmControlPlaneMachineToExistInput struct {
 }
 
 // WaitForOneKubeadmControlPlaneMachineToExist will wait until all control plane machines have node refs.
-func WaitForOneKubeadmControlPlaneMachineToExist(ctx context.Context, input WaitForOneKubeadmControlPlaneMachineToExistInput, intervals ...interface{}) {
+func WaitForOneKubeadmControlPlaneMachineToExist(ctx context.Context, input WaitForOneKubeadmControlPlaneMachineToExistInput, intervals ...any) {
 	Expect(ctx).NotTo(BeNil(), "ctx is required for WaitForOneKubeadmControlPlaneMachineToExist")
 	Expect(input.Lister).ToNot(BeNil(), "Invalid argument. input.Getter can't be nil when calling WaitForOneKubeadmControlPlaneMachineToExist")
 	Expect(input.ControlPlane).ToNot(BeNil(), "Invalid argument. input.ControlPlane can't be nil when calling WaitForOneKubeadmControlPlaneMachineToExist")
@@ -159,7 +159,7 @@ type WaitForControlPlaneToBeReadyInput struct {
 }
 
 // WaitForControlPlaneToBeReady will wait for a control plane to be ready.
-func WaitForControlPlaneToBeReady(ctx context.Context, input WaitForControlPlaneToBeReadyInput, intervals ...interface{}) {
+func WaitForControlPlaneToBeReady(ctx context.Context, input WaitForControlPlaneToBeReadyInput, intervals ...any) {
 	By("Waiting for the control plane to be ready")
 	controlplane := &controlplanev1.KubeadmControlPlane{}
 	Eventually(func() (bool, error) {
@@ -241,7 +241,7 @@ type DiscoveryAndWaitForControlPlaneInitializedInput struct {
 }
 
 // DiscoveryAndWaitForControlPlaneInitialized discovers the KubeadmControlPlane object attached to a cluster and waits for it to be initialized.
-func DiscoveryAndWaitForControlPlaneInitialized(ctx context.Context, input DiscoveryAndWaitForControlPlaneInitializedInput, intervals ...interface{}) *controlplanev1.KubeadmControlPlane {
+func DiscoveryAndWaitForControlPlaneInitialized(ctx context.Context, input DiscoveryAndWaitForControlPlaneInitializedInput, intervals ...any) *controlplanev1.KubeadmControlPlane {
 	Expect(ctx).NotTo(BeNil(), "ctx is required for DiscoveryAndWaitForControlPlaneInitialized")
 	Expect(input.Lister).ToNot(BeNil(), "Invalid argument. input.Lister can't be nil when calling DiscoveryAndWaitForControlPlaneInitialized")
 	Expect(input.Cluster).ToNot(BeNil(), "Invalid argument. input.Cluster can't be nil when calling DiscoveryAndWaitForControlPlaneInitialized")
@@ -274,7 +274,7 @@ type WaitForControlPlaneAndMachinesReadyInput struct {
 }
 
 // WaitForControlPlaneAndMachinesReady waits for a KubeadmControlPlane object to be ready (all the machine provisioned and one node ready).
-func WaitForControlPlaneAndMachinesReady(ctx context.Context, input WaitForControlPlaneAndMachinesReadyInput, intervals ...interface{}) {
+func WaitForControlPlaneAndMachinesReady(ctx context.Context, input WaitForControlPlaneAndMachinesReadyInput, intervals ...any) {
 	Expect(ctx).NotTo(BeNil(), "ctx is required for WaitForControlPlaneReady")
 	Expect(input.GetLister).ToNot(BeNil(), "Invalid argument. input.GetLister can't be nil when calling WaitForControlPlaneReady")
 	Expect(input.Cluster).ToNot(BeNil(), "Invalid argument. input.Cluster can't be nil when calling WaitForControlPlaneReady")
@@ -311,10 +311,10 @@ type UpgradeControlPlaneAndWaitForUpgradeInput struct {
 	UpgradeMachineTemplate             *string
 	EtcdImageTag                       string
 	DNSImageTag                        string
-	WaitForMachinesToBeUpgraded        []interface{}
-	WaitForDNSUpgrade                  []interface{}
-	WaitForKubeProxyUpgrade            []interface{}
-	WaitForEtcdUpgrade                 []interface{}
+	WaitForMachinesToBeUpgraded        []any
+	WaitForDNSUpgrade                  []any
+	WaitForKubeProxyUpgrade            []any
+	WaitForEtcdUpgrade                 []any
 	PreWaitForControlPlaneToBeUpgraded func()
 }
 
@@ -395,7 +395,7 @@ type ScaleAndWaitControlPlaneInput struct {
 	Cluster             *clusterv1.Cluster
 	ControlPlane        *controlplanev1.KubeadmControlPlane
 	Replicas            int32
-	WaitForControlPlane []interface{}
+	WaitForControlPlane []any
 }
 
 // ScaleAndWaitControlPlane scales KCP and waits until all machines have node ref and equal to Replicas.

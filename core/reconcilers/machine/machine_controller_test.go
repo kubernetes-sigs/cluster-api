@@ -66,20 +66,20 @@ func TestWatches(t *testing.T) {
 	g.Expect(err).ToNot(HaveOccurred())
 
 	infraMachine := &unstructured.Unstructured{
-		Object: map[string]interface{}{
+		Object: map[string]any{
 			"kind":       "GenericInfrastructureMachine",
 			"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
-			"metadata": map[string]interface{}{
+			"metadata": map[string]any{
 				"name":      "infra-config1",
 				"namespace": ns.Name,
 			},
-			"spec": map[string]interface{}{
+			"spec": map[string]any{
 				"providerID": "test://id-1",
 			},
-			"status": map[string]interface{}{
+			"status": map[string]any{
 				"ready": true,
-				"addresses": []interface{}{
-					map[string]interface{}{
+				"addresses": []any{
+					map[string]any{
 						"type":    "InternalIP",
 						"address": "10.0.0.1",
 					},
@@ -89,15 +89,15 @@ func TestWatches(t *testing.T) {
 	}
 
 	defaultBootstrap := &unstructured.Unstructured{
-		Object: map[string]interface{}{
+		Object: map[string]any{
 			"kind":       "GenericBootstrapConfig",
 			"apiVersion": clusterv1.GroupVersionBootstrap.String(),
-			"metadata": map[string]interface{}{
+			"metadata": map[string]any{
 				"name":      "bootstrap-config-machinereconcile",
 				"namespace": ns.Name,
 			},
-			"spec":   map[string]interface{}{},
-			"status": map[string]interface{}{},
+			"spec":   map[string]any{},
+			"status": map[string]any{},
 		},
 	}
 
@@ -217,20 +217,20 @@ func TestWatchesDelete(t *testing.T) {
 	g.Expect(err).ToNot(HaveOccurred())
 
 	infraMachine := &unstructured.Unstructured{
-		Object: map[string]interface{}{
+		Object: map[string]any{
 			"kind":       "GenericInfrastructureMachine",
 			"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
-			"metadata": map[string]interface{}{
+			"metadata": map[string]any{
 				"name":      "infra-config1",
 				"namespace": ns.Name,
 			},
-			"spec": map[string]interface{}{
+			"spec": map[string]any{
 				"providerID": "test://id-1",
 			},
-			"status": map[string]interface{}{
+			"status": map[string]any{
 				"ready": true,
-				"addresses": []interface{}{
-					map[string]interface{}{
+				"addresses": []any{
+					map[string]any{
 						"type":    "InternalIP",
 						"address": "10.0.0.1",
 					},
@@ -242,15 +242,15 @@ func TestWatchesDelete(t *testing.T) {
 	controllerutil.AddFinalizer(infraMachine, infraMachineFinalizer)
 
 	defaultBootstrap := &unstructured.Unstructured{
-		Object: map[string]interface{}{
+		Object: map[string]any{
 			"kind":       "GenericBootstrapConfig",
 			"apiVersion": clusterv1.GroupVersionBootstrap.String(),
-			"metadata": map[string]interface{}{
+			"metadata": map[string]any{
 				"name":      "bootstrap-config-machinereconcile",
 				"namespace": ns.Name,
 			},
-			"spec":   map[string]interface{}{},
-			"status": map[string]interface{}{},
+			"spec":   map[string]any{},
+			"status": map[string]any{},
 		},
 	}
 	bootstrapFinalizer := "test.bootstrap.cluster.x-k8s.io"
@@ -402,29 +402,29 @@ func TestMachine_Reconcile(t *testing.T) {
 	g.Expect(err).ToNot(HaveOccurred())
 
 	infraMachine := &unstructured.Unstructured{
-		Object: map[string]interface{}{
+		Object: map[string]any{
 			"kind":       "GenericInfrastructureMachine",
 			"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
-			"metadata": map[string]interface{}{
+			"metadata": map[string]any{
 				"name":      "infra-config1",
 				"namespace": ns.Name,
 			},
-			"spec": map[string]interface{}{
+			"spec": map[string]any{
 				"providerID": "test://id-1",
 			},
 		},
 	}
 
 	defaultBootstrap := &unstructured.Unstructured{
-		Object: map[string]interface{}{
+		Object: map[string]any{
 			"kind":       "GenericBootstrapConfig",
 			"apiVersion": clusterv1.GroupVersionBootstrap.String(),
-			"metadata": map[string]interface{}{
+			"metadata": map[string]any{
 				"name":      "bootstrap-config-machinereconcile",
 				"namespace": ns.Name,
 			},
-			"spec":   map[string]interface{}{},
-			"status": map[string]interface{}{},
+			"spec":   map[string]any{},
+			"status": map[string]any{},
 		},
 	}
 
@@ -826,20 +826,20 @@ func TestMachineOwnerReference(t *testing.T) {
 
 func TestReconcileRequest(t *testing.T) {
 	infraConfig := unstructured.Unstructured{
-		Object: map[string]interface{}{
+		Object: map[string]any{
 			"kind":       "GenericInfrastructureMachine",
 			"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
-			"metadata": map[string]interface{}{
+			"metadata": map[string]any{
 				"name":      "infra-config1",
 				"namespace": metav1.NamespaceDefault,
 			},
-			"spec": map[string]interface{}{
+			"spec": map[string]any{
 				"providerID": "test://id-1",
 			},
-			"status": map[string]interface{}{
+			"status": map[string]any{
 				"ready": true,
-				"addresses": []interface{}{
-					map[string]interface{}{
+				"addresses": []any{
+					map[string]any{
 						"type":    "InternalIP",
 						"address": "10.0.0.1",
 					},
@@ -994,22 +994,22 @@ func TestMachineV1Beta1Conditions(t *testing.T) {
 
 	infraConfig := func(provisioned bool) *unstructured.Unstructured {
 		return &unstructured.Unstructured{
-			Object: map[string]interface{}{
+			Object: map[string]any{
 				"kind":       "GenericInfrastructureMachine",
 				"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
-				"metadata": map[string]interface{}{
+				"metadata": map[string]any{
 					"name":      "infra-config1",
 					"namespace": metav1.NamespaceDefault,
 				},
-				"spec": map[string]interface{}{
+				"spec": map[string]any{
 					"providerID": "test://id-1",
 				},
-				"status": map[string]interface{}{
-					"initialization": map[string]interface{}{
+				"status": map[string]any{
+					"initialization": map[string]any{
 						"provisioned": provisioned,
 					},
-					"addresses": []interface{}{
-						map[string]interface{}{
+					"addresses": []any{
+						map[string]any{
 							"type":    "InternalIP",
 							"address": "10.0.0.1",
 						},
@@ -1020,8 +1020,8 @@ func TestMachineV1Beta1Conditions(t *testing.T) {
 	}
 
 	boostrapConfig := func(dataSecretCreated bool) *unstructured.Unstructured {
-		status := map[string]interface{}{
-			"initialization": map[string]interface{}{
+		status := map[string]any{
+			"initialization": map[string]any{
 				"dataSecretCreated": dataSecretCreated,
 			},
 		}
@@ -1029,10 +1029,10 @@ func TestMachineV1Beta1Conditions(t *testing.T) {
 			status["dataSecretName"] = "data"
 		}
 		return &unstructured.Unstructured{
-			Object: map[string]interface{}{
+			Object: map[string]any{
 				"kind":       "GenericBootstrapConfig",
 				"apiVersion": clusterv1.GroupVersionBootstrap.String(),
-				"metadata": map[string]interface{}{
+				"metadata": map[string]any{
 					"name":      "bootstrap-config1",
 					"namespace": metav1.NamespaceDefault,
 				},
@@ -3005,8 +3005,8 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 	}
 
 	emp := &unstructured.Unstructured{
-		Object: map[string]interface{}{
-			"status": map[string]interface{}{
+		Object: map[string]any{
+			"status": map[string]any{
 				"externalManagedControlPlane": true,
 			},
 		},
@@ -3017,7 +3017,7 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 	emp.SetNamespace("test-cluster")
 
 	mcpBeingDeleted := &unstructured.Unstructured{
-		Object: map[string]interface{}{},
+		Object: map[string]any{},
 	}
 	mcpBeingDeleted.SetAPIVersion(clusterv1.GroupVersionControlPlane.String())
 	mcpBeingDeleted.SetKind(builder.GenericControlPlaneKind)
@@ -3027,8 +3027,8 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 	mcpBeingDeleted.SetFinalizers([]string{"block-deletion"})
 
 	empBeingDeleted := &unstructured.Unstructured{
-		Object: map[string]interface{}{
-			"status": map[string]interface{}{
+		Object: map[string]any{
+			"status": map[string]any{
 				"externalManagedControlPlane": true,
 			},
 		},
@@ -3133,20 +3133,20 @@ func TestNodeToMachine(t *testing.T) {
 
 	// Set up cluster, machines and nodes to test against.
 	infraMachine := &unstructured.Unstructured{
-		Object: map[string]interface{}{
+		Object: map[string]any{
 			"kind":       "GenericInfrastructureMachine",
 			"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
-			"metadata": map[string]interface{}{
+			"metadata": map[string]any{
 				"name":      "infra-config1",
 				"namespace": ns.Name,
 			},
-			"spec": map[string]interface{}{
+			"spec": map[string]any{
 				"providerID": "test://id-1",
 			},
-			"status": map[string]interface{}{
+			"status": map[string]any{
 				"ready": true,
-				"addresses": []interface{}{
-					map[string]interface{}{
+				"addresses": []any{
+					map[string]any{
 						"type":    "InternalIP",
 						"address": "10.0.0.1",
 					},
@@ -3156,20 +3156,20 @@ func TestNodeToMachine(t *testing.T) {
 	}
 
 	infraMachine2 := &unstructured.Unstructured{
-		Object: map[string]interface{}{
+		Object: map[string]any{
 			"kind":       "GenericInfrastructureMachine",
 			"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
-			"metadata": map[string]interface{}{
+			"metadata": map[string]any{
 				"name":      "infra-config2",
 				"namespace": ns.Name,
 			},
-			"spec": map[string]interface{}{
+			"spec": map[string]any{
 				"providerID": "test://id-2",
 			},
-			"status": map[string]interface{}{
+			"status": map[string]any{
 				"ready": true,
-				"addresses": []interface{}{
-					map[string]interface{}{
+				"addresses": []any{
+					map[string]any{
 						"type":    "InternalIP",
 						"address": "10.0.0.1",
 					},
@@ -3179,15 +3179,15 @@ func TestNodeToMachine(t *testing.T) {
 	}
 
 	defaultBootstrap := &unstructured.Unstructured{
-		Object: map[string]interface{}{
+		Object: map[string]any{
 			"kind":       "GenericBootstrapConfig",
 			"apiVersion": clusterv1.GroupVersionBootstrap.String(),
-			"metadata": map[string]interface{}{
+			"metadata": map[string]any{
 				"name":      "bootstrap-config-machinereconcile",
 				"namespace": ns.Name,
 			},
-			"spec":   map[string]interface{}{},
-			"status": map[string]interface{}{},
+			"spec":   map[string]any{},
+			"status": map[string]any{},
 		},
 	}
 
@@ -3769,8 +3769,8 @@ func TestNodeDeletionWithoutNodeRefFallback(t *testing.T) {
 
 // addConditionToExternal adds a condition list to an external object.
 func addConditionToExternal(u *unstructured.Unstructured, c metav1.Condition) {
-	err := unstructured.SetNestedSlice(u.Object, []interface{}{
-		map[string]interface{}{
+	err := unstructured.SetNestedSlice(u.Object, []any{
+		map[string]any{
 			"type":    c.Type,
 			"status":  string(c.Status),
 			"reason":  c.Reason,
@@ -3784,8 +3784,8 @@ func addConditionToExternal(u *unstructured.Unstructured, c metav1.Condition) {
 
 // addV1Beta1ConditionToExternal adds a condition list to an external object.
 func addV1Beta1ConditionToExternal(u *unstructured.Unstructured, c clusterv1.Condition) {
-	err := unstructured.SetNestedSlice(u.Object, []interface{}{
-		map[string]interface{}{
+	err := unstructured.SetNestedSlice(u.Object, []any{
+		map[string]any{
 			"type":     string(c.Type),
 			"status":   string(c.Status),
 			"severity": string(c.Severity),

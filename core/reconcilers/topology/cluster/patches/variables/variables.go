@@ -271,7 +271,7 @@ func MachinePool(mpTopology *clusterv1.MachinePoolTopology, mp *clusterv1.Machin
 }
 
 // toVariable converts name and value to a variable.
-func toVariable(name string, value interface{}) (*runtimehooksv1.Variable, error) {
+func toVariable(name string, value any) (*runtimehooksv1.Variable, error) {
 	marshalledValue, err := json.Marshal(value)
 	if err != nil {
 		return nil, pkgerrors.Wrapf(err, "failed to set variable %q: error marshalling", name)

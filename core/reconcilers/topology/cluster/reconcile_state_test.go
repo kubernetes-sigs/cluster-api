@@ -1483,7 +1483,7 @@ func TestReconcileInfrastructureCluster(t *testing.T) {
 
 	// build an infrastructure cluster with a field managed by the topology controller (derived from the template).
 	clusterInfrastructure1 := builder.TestInfrastructureCluster(metav1.NamespaceDefault, "infrastructure-cluster1").
-		WithSpecFields(map[string]interface{}{"spec.foo": "foo"}).
+		WithSpecFields(map[string]any{"spec.foo": "foo"}).
 		Build()
 
 	// build a patch used to simulate instance specific changes made by an external controller, and build the expected cluster infrastructure object.
@@ -1650,7 +1650,7 @@ func testReconcileControlPlane(t *testing.T, controlPlaneContractVersion string)
 
 	// Create ControlPlaneObject without machine templates.
 	controlPlaneWithoutInfrastructure := builder.ControlPlane(metav1.NamespaceDefault, "cp1").
-		WithSpecFields(map[string]interface{}{"spec.foo": "foo"}).
+		WithSpecFields(map[string]any{"spec.foo": "foo"}).
 		Build()
 
 	// Create desired ControlPlaneObject without machine templates but introducing some change.
@@ -1673,14 +1673,14 @@ func testReconcileControlPlane(t *testing.T, controlPlaneContractVersion string)
 
 	// Create cluster class which does not require controlPlaneInfrastructure.
 	infrastructureMachineTemplate := builder.TestInfrastructureMachineTemplate(metav1.NamespaceDefault, "infra1").
-		WithSpecFields(map[string]interface{}{"spec.template.spec.foo": "foo"}).
+		WithSpecFields(map[string]any{"spec.template.spec.foo": "foo"}).
 		Build()
 	ccWithControlPlaneInfrastructure := &scope.ControlPlaneBlueprint{InfrastructureMachineTemplate: infrastructureMachineTemplate}
 
 	// Create ControlPlaneObject with machine templates.
 	controlPlaneWithInfrastructure := builder.ControlPlane(metav1.NamespaceDefault, "cp1").
 		WithInfrastructureMachineTemplate(infrastructureMachineTemplate, controlPlaneContractVersion).
-		WithSpecFields(map[string]interface{}{"spec.foo": "foo"}).
+		WithSpecFields(map[string]any{"spec.foo": "foo"}).
 		Build()
 
 	// Create desired controlPlaneInfrastructure with some change.
@@ -2050,7 +2050,7 @@ func testReconcileControlPlane(t *testing.T, controlPlaneContractVersion string)
 
 func TestReconcileControlPlaneCleanup(t *testing.T) {
 	infrastructureMachineTemplate := builder.TestInfrastructureMachineTemplate(metav1.NamespaceDefault, "infra1-cluster-class").
-		WithSpecFields(map[string]interface{}{"spec.template.spec.foo": "foo"}).
+		WithSpecFields(map[string]any{"spec.template.spec.foo": "foo"}).
 		Build()
 	ccWithControlPlaneInfrastructure := &scope.ControlPlaneBlueprint{InfrastructureMachineTemplate: infrastructureMachineTemplate}
 
@@ -2058,7 +2058,7 @@ func TestReconcileControlPlaneCleanup(t *testing.T) {
 	infrastructureMachineTemplateCopy.SetName("infrav1-cluster")
 	controlPlane := builder.TestControlPlane(metav1.NamespaceDefault, "cp1").
 		WithInfrastructureMachineTemplate(infrastructureMachineTemplateCopy, "v1beta2").
-		WithSpecFields(map[string]interface{}{"spec.foo": "foo"}).
+		WithSpecFields(map[string]any{"spec.foo": "foo"}).
 		Build()
 
 	t.Run("cleanup InfrastructureMachineTemplate in case of errors", func(t *testing.T) {
@@ -3106,7 +3106,7 @@ func TestReconcileReferencedObjectSequences(t *testing.T) {
 	// }), 0777)).To(Succeed())
 
 	type object struct {
-		spec map[string]interface{}
+		spec map[string]any
 	}
 
 	type externalStep struct {
@@ -3125,22 +3125,22 @@ func TestReconcileReferencedObjectSequences(t *testing.T) {
 
 	tests := []struct {
 		name           string
-		reconcileSteps []interface{}
+		reconcileSteps []any
 	}{
 		{
 			name: "Should drop nested field",
 			// Note: This test verifies that reconcileReferencedObject treats changes to fields existing in templates as authoritative
 			// and most specifically it verifies that when a field in a template is deleted, it gets deleted
 			// from the generated object (and it is not being treated as instance specific value).
-			reconcileSteps: []interface{}{
+			reconcileSteps: []any{
 				reconcileStep{
 					name: "Initially reconcile KCP",
 					desired: object{
-						spec: map[string]interface{}{
-							"kubeadmConfigSpec": map[string]interface{}{
-								"clusterConfiguration": map[string]interface{}{
-									"controllerManager": map[string]interface{}{
-										"extraArgs": map[string]interface{}{
+						spec: map[string]any{
+							"kubeadmConfigSpec": map[string]any{
+								"clusterConfiguration": map[string]any{
+									"controllerManager": map[string]any{
+										"extraArgs": map[string]any{
 											"v": "4",
 										},
 									},
@@ -3149,11 +3149,11 @@ func TestReconcileReferencedObjectSequences(t *testing.T) {
 						},
 					},
 					want: object{
-						spec: map[string]interface{}{
-							"kubeadmConfigSpec": map[string]interface{}{
-								"clusterConfiguration": map[string]interface{}{
-									"controllerManager": map[string]interface{}{
-										"extraArgs": map[string]interface{}{
+						spec: map[string]any{
+							"kubeadmConfigSpec": map[string]any{
+								"clusterConfiguration": map[string]any{
+									"controllerManager": map[string]any{
+										"extraArgs": map[string]any{
 											"v": "4",
 										},
 									},
@@ -3179,14 +3179,14 @@ func TestReconcileReferencedObjectSequences(t *testing.T) {
 			// Note: This test verifies that reconcileReferencedObject treats changes to fields existing in templates as authoritative
 			// and most specifically it verifies that when a template label is deleted, it gets deleted
 			// from the generated object (and it is not being treated as instance specific value).
-			reconcileSteps: []interface{}{
+			reconcileSteps: []any{
 				reconcileStep{
 					name: "Initially reconcile KCP",
 					desired: object{
-						spec: map[string]interface{}{
-							"machineTemplate": map[string]interface{}{
-								"metadata": map[string]interface{}{
-									"labels": map[string]interface{}{
+						spec: map[string]any{
+							"machineTemplate": map[string]any{
+								"metadata": map[string]any{
+									"labels": map[string]any{
 										"label.with.dots/owned": "true",
 										"anotherLabel":          "true",
 									},
@@ -3195,10 +3195,10 @@ func TestReconcileReferencedObjectSequences(t *testing.T) {
 						},
 					},
 					want: object{
-						spec: map[string]interface{}{
-							"machineTemplate": map[string]interface{}{
-								"metadata": map[string]interface{}{
-									"labels": map[string]interface{}{
+						spec: map[string]any{
+							"machineTemplate": map[string]any{
+								"metadata": map[string]any{
+									"labels": map[string]any{
 										"label.with.dots/owned": "true",
 										"anotherLabel":          "true",
 									},
@@ -3211,10 +3211,10 @@ func TestReconcileReferencedObjectSequences(t *testing.T) {
 				reconcileStep{
 					name: "Drop the label with dots",
 					desired: object{
-						spec: map[string]interface{}{
-							"machineTemplate": map[string]interface{}{
-								"metadata": map[string]interface{}{
-									"labels": map[string]interface{}{
+						spec: map[string]any{
+							"machineTemplate": map[string]any{
+								"metadata": map[string]any{
+									"labels": map[string]any{
 										// label.with.dots/owned has been removed by e.g a change in Cluster.Topology.ControlPlane.Labels.
 										"anotherLabel": "true",
 									},
@@ -3223,10 +3223,10 @@ func TestReconcileReferencedObjectSequences(t *testing.T) {
 						},
 					},
 					want: object{
-						spec: map[string]interface{}{
-							"machineTemplate": map[string]interface{}{
-								"metadata": map[string]interface{}{
-									"labels": map[string]interface{}{
+						spec: map[string]any{
+							"machineTemplate": map[string]any{
+								"metadata": map[string]any{
+									"labels": map[string]any{
 										// Reconcile to drop label.with.dots/owned label.
 										"anotherLabel": "true",
 									},
@@ -3241,16 +3241,16 @@ func TestReconcileReferencedObjectSequences(t *testing.T) {
 			name: "Should enforce field",
 			// Note: This test verifies that reconcileReferencedObject treats changes to fields existing in templates as authoritative
 			// by reverting user changes to a manged field.
-			reconcileSteps: []interface{}{
+			reconcileSteps: []any{
 				reconcileStep{
 					name: "Initially reconcile",
 					desired: object{
-						spec: map[string]interface{}{
+						spec: map[string]any{
 							"foo": "ccValue",
 						},
 					},
 					want: object{
-						spec: map[string]interface{}{
+						spec: map[string]any{
 							"foo": "ccValue",
 						},
 					},
@@ -3259,7 +3259,7 @@ func TestReconcileReferencedObjectSequences(t *testing.T) {
 				externalStep{
 					name: "User changes value",
 					object: object{
-						spec: map[string]interface{}{
+						spec: map[string]any{
 							"foo": "userValue",
 						},
 					},
@@ -3267,13 +3267,13 @@ func TestReconcileReferencedObjectSequences(t *testing.T) {
 				reconcileStep{
 					name: "Reconcile overwrites value",
 					desired: object{
-						spec: map[string]interface{}{
+						spec: map[string]any{
 							// ClusterClass still proposing the old value.
 							"foo": "ccValue",
 						},
 					},
 					want: object{
-						spec: map[string]interface{}{
+						spec: map[string]any{
 							// Reconcile to restore the old value.
 							"foo": "ccValue",
 						},
@@ -3285,15 +3285,15 @@ func TestReconcileReferencedObjectSequences(t *testing.T) {
 			name: "Should preserve user-defined field while dropping managed field",
 			// Note: This test verifies that Topology treats changes to fields existing in templates as authoritative
 			// but allows setting additional/instance-specific values.
-			reconcileSteps: []interface{}{
+			reconcileSteps: []any{
 				reconcileStep{
 					name: "Initially reconcile KCP",
 					desired: object{
-						spec: map[string]interface{}{
-							"kubeadmConfigSpec": map[string]interface{}{
-								"clusterConfiguration": map[string]interface{}{
-									"controllerManager": map[string]interface{}{
-										"extraArgs": map[string]interface{}{
+						spec: map[string]any{
+							"kubeadmConfigSpec": map[string]any{
+								"clusterConfiguration": map[string]any{
+									"controllerManager": map[string]any{
+										"extraArgs": map[string]any{
 											"v": "4",
 										},
 									},
@@ -3302,11 +3302,11 @@ func TestReconcileReferencedObjectSequences(t *testing.T) {
 						},
 					},
 					want: object{
-						spec: map[string]interface{}{
-							"kubeadmConfigSpec": map[string]interface{}{
-								"clusterConfiguration": map[string]interface{}{
-									"controllerManager": map[string]interface{}{
-										"extraArgs": map[string]interface{}{
+						spec: map[string]any{
+							"kubeadmConfigSpec": map[string]any{
+								"clusterConfiguration": map[string]any{
+									"controllerManager": map[string]any{
+										"extraArgs": map[string]any{
 											"v": "4",
 										},
 									},
@@ -3319,11 +3319,11 @@ func TestReconcileReferencedObjectSequences(t *testing.T) {
 				externalStep{
 					name: "User adds an additional extraArg",
 					object: object{
-						spec: map[string]interface{}{
-							"kubeadmConfigSpec": map[string]interface{}{
-								"clusterConfiguration": map[string]interface{}{
-									"controllerManager": map[string]interface{}{
-										"extraArgs": map[string]interface{}{
+						spec: map[string]any{
+							"kubeadmConfigSpec": map[string]any{
+								"clusterConfiguration": map[string]any{
+									"controllerManager": map[string]any{
+										"extraArgs": map[string]any{
 											// User adds enable-garbage-collector.
 											"enable-garbage-collector": "true",
 										},
@@ -3336,18 +3336,18 @@ func TestReconcileReferencedObjectSequences(t *testing.T) {
 				reconcileStep{
 					name: "Previously set extraArgs is dropped from KCP, user-specified field is preserved.",
 					desired: object{
-						spec: map[string]interface{}{
-							"kubeadmConfigSpec": map[string]interface{}{
-								"clusterConfiguration": map[string]interface{}{},
+						spec: map[string]any{
+							"kubeadmConfigSpec": map[string]any{
+								"clusterConfiguration": map[string]any{},
 							},
 						},
 					},
 					want: object{
-						spec: map[string]interface{}{
-							"kubeadmConfigSpec": map[string]interface{}{
-								"clusterConfiguration": map[string]interface{}{
-									"controllerManager": map[string]interface{}{
-										"extraArgs": map[string]interface{}{
+						spec: map[string]any{
+							"kubeadmConfigSpec": map[string]any{
+								"clusterConfiguration": map[string]any{
+									"controllerManager": map[string]any{
+										"extraArgs": map[string]any{
 											// Reconcile to drop v field,
 											// while preserving user-defined enable-garbage-collector field.
 											"enable-garbage-collector": "true",
@@ -3364,20 +3364,20 @@ func TestReconcileReferencedObjectSequences(t *testing.T) {
 			name: "Should preserve user-defined object field while dropping managed fields",
 			// Note: This test verifies that reconcileReferencedObject treats changes to fields existing in templates as authoritative
 			// but allows setting additional/instance-specific values.
-			reconcileSteps: []interface{}{
+			reconcileSteps: []any{
 				reconcileStep{
 					name: "Initially reconcile",
 					desired: object{
-						spec: map[string]interface{}{
-							"machineTemplate": map[string]interface{}{
-								"spec": map[string]interface{}{},
+						spec: map[string]any{
+							"machineTemplate": map[string]any{
+								"spec": map[string]any{},
 							},
 						},
 					},
 					want: object{
-						spec: map[string]interface{}{
-							"machineTemplate": map[string]interface{}{
-								"spec": map[string]interface{}{},
+						spec: map[string]any{
+							"machineTemplate": map[string]any{
+								"spec": map[string]any{},
 							},
 						},
 					},
@@ -3386,10 +3386,10 @@ func TestReconcileReferencedObjectSequences(t *testing.T) {
 				externalStep{
 					name: "User adds an additional object",
 					object: object{
-						spec: map[string]interface{}{
-							"machineTemplate": map[string]interface{}{
-								"spec": map[string]interface{}{
-									"infrastructureRef": map[string]interface{}{
+						spec: map[string]any{
+							"machineTemplate": map[string]any{
+								"spec": map[string]any{
+									"infrastructureRef": map[string]any{
 										"apiGroup": "foo",
 										"kind":     "Foo",
 									},
@@ -3401,15 +3401,15 @@ func TestReconcileReferencedObjectSequences(t *testing.T) {
 				reconcileStep{
 					name: "ClusterClass starts having an opinion about some fields",
 					desired: object{
-						spec: map[string]interface{}{
-							"machineTemplate": map[string]interface{}{
-								"metadata": map[string]interface{}{
-									"labels": map[string]interface{}{
+						spec: map[string]any{
+							"machineTemplate": map[string]any{
+								"metadata": map[string]any{
+									"labels": map[string]any{
 										"foo": "foo",
 									},
 								},
-								"spec": map[string]interface{}{
-									"deletion": map[string]interface{}{
+								"spec": map[string]any{
+									"deletion": map[string]any{
 										"nodeDeletionTimeoutSeconds": "10m",
 									},
 								},
@@ -3417,22 +3417,22 @@ func TestReconcileReferencedObjectSequences(t *testing.T) {
 						},
 					},
 					want: object{
-						spec: map[string]interface{}{
-							"machineTemplate": map[string]interface{}{
-								"spec": map[string]interface{}{
+						spec: map[string]any{
+							"machineTemplate": map[string]any{
+								"spec": map[string]any{
 									// User fields are preserved.
-									"infrastructureRef": map[string]interface{}{
+									"infrastructureRef": map[string]any{
 										"apiGroup": "foo",
 										"kind":     "Foo",
 									},
 									// ClusterClass authoritative fields are added.
-									"deletion": map[string]interface{}{
+									"deletion": map[string]any{
 										"nodeDeletionTimeoutSeconds": "10m",
 									},
 								},
 								// ClusterClass authoritative fields are added.
-								"metadata": map[string]interface{}{
-									"labels": map[string]interface{}{
+								"metadata": map[string]any{
+									"labels": map[string]any{
 										"foo": "foo",
 									},
 								},
@@ -3443,10 +3443,10 @@ func TestReconcileReferencedObjectSequences(t *testing.T) {
 				reconcileStep{
 					name: "ClusterClass stops having an opinion on the field",
 					desired: object{
-						spec: map[string]interface{}{
-							"machineTemplate": map[string]interface{}{
-								"metadata": map[string]interface{}{
-									"labels": map[string]interface{}{
+						spec: map[string]any{
+							"machineTemplate": map[string]any{
+								"metadata": map[string]any{
+									"labels": map[string]any{
 										"foo": "foo",
 									},
 								},
@@ -3455,18 +3455,18 @@ func TestReconcileReferencedObjectSequences(t *testing.T) {
 						},
 					},
 					want: object{
-						spec: map[string]interface{}{
-							"machineTemplate": map[string]interface{}{
-								"spec": map[string]interface{}{
+						spec: map[string]any{
+							"machineTemplate": map[string]any{
+								"spec": map[string]any{
 									// Reconcile to drop clusterClassField,
 									// while preserving user-defined field and clusterClassField.
-									"infrastructureRef": map[string]interface{}{
+									"infrastructureRef": map[string]any{
 										"apiGroup": "foo",
 										"kind":     "Foo",
 									},
 								},
-								"metadata": map[string]interface{}{
-									"labels": map[string]interface{}{
+								"metadata": map[string]any{
+									"labels": map[string]any{
 										"foo": "foo",
 									},
 								},
@@ -3477,19 +3477,19 @@ func TestReconcileReferencedObjectSequences(t *testing.T) {
 				reconcileStep{
 					name: "ClusterClass stops having an opinion on the object",
 					desired: object{
-						spec: map[string]interface{}{
-							"machineTemplate": map[string]interface{}{
+						spec: map[string]any{
+							"machineTemplate": map[string]any{
 								// clusterClassObject has been removed by e.g a change in ClusterClass (and extraArgs with it).
 							},
 						},
 					},
 					want: object{
-						spec: map[string]interface{}{
-							"machineTemplate": map[string]interface{}{
-								"spec": map[string]interface{}{
+						spec: map[string]any{
+							"machineTemplate": map[string]any{
+								"spec": map[string]any{
 									// Reconcile to drop clusterClassObject,
 									// while preserving user-defined field.
-									"infrastructureRef": map[string]interface{}{
+									"infrastructureRef": map[string]any{
 										"apiGroup": "foo",
 										"kind":     "Foo",
 									},
@@ -3527,7 +3527,7 @@ func TestReconcileReferencedObjectSequences(t *testing.T) {
 				// Get current ControlPlane (on later steps).
 				if i > 0 {
 					currentControlPlane = &unstructured.Unstructured{
-						Object: map[string]interface{}{
+						Object: map[string]any{
 							"kind":       builder.TestControlPlaneKind,
 							"apiVersion": builder.ControlPlaneGroupVersion.String(),
 						},
@@ -3538,10 +3538,10 @@ func TestReconcileReferencedObjectSequences(t *testing.T) {
 				if step, ok := step.(externalStep); ok {
 					// This is a user step, so let's just update the object using SSA.
 					obj := &unstructured.Unstructured{
-						Object: map[string]interface{}{
+						Object: map[string]any{
 							"kind":       builder.TestControlPlaneKind,
 							"apiVersion": builder.ControlPlaneGroupVersion.String(),
-							"metadata": map[string]interface{}{
+							"metadata": map[string]any{
 								"name":      "my-cluster",
 								"namespace": namespace.GetName(),
 							},
@@ -3564,10 +3564,10 @@ func TestReconcileReferencedObjectSequences(t *testing.T) {
 					s.Desired = &scope.ClusterState{
 						ControlPlane: &scope.ControlPlaneState{
 							Object: &unstructured.Unstructured{
-								Object: map[string]interface{}{
+								Object: map[string]any{
 									"kind":       builder.TestControlPlaneKind,
 									"apiVersion": builder.ControlPlaneGroupVersion.String(),
-									"metadata": map[string]interface{}{
+									"metadata": map[string]any{
 										"name":      "my-cluster",
 										"namespace": namespace.GetName(),
 									},
@@ -3590,10 +3590,10 @@ func TestReconcileReferencedObjectSequences(t *testing.T) {
 
 					// Build the object for comparison.
 					want := &unstructured.Unstructured{
-						Object: map[string]interface{}{
+						Object: map[string]any{
 							"kind":       builder.TestControlPlaneKind,
 							"apiVersion": builder.ControlPlaneGroupVersion.String(),
-							"metadata": map[string]interface{}{
+							"metadata": map[string]any{
 								"name":      "my-cluster",
 								"namespace": namespace.GetName(),
 							},

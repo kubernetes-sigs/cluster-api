@@ -38,7 +38,7 @@ func (e *ClusterError) Error() string {
 // construct the Message.
 
 // InvalidClusterConfiguration creates a new error for when the cluster configuration is invalid.
-func InvalidClusterConfiguration(format string, args ...interface{}) *ClusterError {
+func InvalidClusterConfiguration(format string, args ...any) *ClusterError {
 	return &ClusterError{
 		Reason:  InvalidConfigurationClusterError,
 		Message: fmt.Sprintf(format, args...),
@@ -46,7 +46,7 @@ func InvalidClusterConfiguration(format string, args ...interface{}) *ClusterErr
 }
 
 // CreateCluster creates a new error for when creating a cluster.
-func CreateCluster(format string, args ...interface{}) *ClusterError {
+func CreateCluster(format string, args ...any) *ClusterError {
 	return &ClusterError{
 		Reason:  CreateClusterError,
 		Message: fmt.Sprintf(format, args...),
@@ -54,7 +54,7 @@ func CreateCluster(format string, args ...interface{}) *ClusterError {
 }
 
 // DeleteCluster creates a new error for when deleting a cluster.
-func DeleteCluster(format string, args ...interface{}) *ClusterError {
+func DeleteCluster(format string, args ...any) *ClusterError {
 	return &ClusterError{
 		Reason:  DeleteClusterError,
 		Message: fmt.Sprintf(format, args...),

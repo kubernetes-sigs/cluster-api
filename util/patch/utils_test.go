@@ -64,14 +64,14 @@ func TestToUnstructured(t *testing.T) {
 		g := NewWithT(t)
 
 		obj := &unstructured.Unstructured{
-			Object: map[string]interface{}{
+			Object: map[string]any{
 				"apiVersion": "test.x.y.z/v1",
 				"kind":       "TestKind",
-				"metadata": map[string]interface{}{
+				"metadata": map[string]any{
 					"name":      "test-1",
 					"namespace": "namespace-1",
 				},
-				"spec": map[string]interface{}{
+				"spec": map[string]any{
 					"paused": true,
 				},
 			},
@@ -109,20 +109,20 @@ func TestUnsafeFocusedUnstructured(t *testing.T) {
 		g := NewWithT(t)
 
 		obj := &unstructured.Unstructured{
-			Object: map[string]interface{}{
+			Object: map[string]any{
 				"apiVersion": "test.x.y.z/v1",
 				"kind":       "TestCluster",
-				"metadata": map[string]interface{}{
+				"metadata": map[string]any{
 					"name":      "test-1",
 					"namespace": "namespace-1",
 				},
-				"spec": map[string]interface{}{
+				"spec": map[string]any{
 					"paused": true,
 				},
-				"status": map[string]interface{}{
+				"status": map[string]any{
 					"infrastructureReady": true,
-					"conditions": []interface{}{
-						map[string]interface{}{
+					"conditions": []any{
+						map[string]any{
 							"type":   "Ready",
 							"status": "True",
 						},
@@ -144,27 +144,27 @@ func TestUnsafeFocusedUnstructured(t *testing.T) {
 		// Validate that the status is nil, but preserved in the original object.
 		g.Expect(newObj.Object["status"]).To(BeNil())
 		g.Expect(obj.Object["status"]).ToNot(BeNil())
-		g.Expect(obj.Object["status"].(map[string]interface{})["conditions"]).ToNot(BeNil())
+		g.Expect(obj.Object["status"].(map[string]any)["conditions"]).ToNot(BeNil())
 	})
 
 	t.Run("focus=status w/ condition-setter object, should only return status (without conditions) and common fields", func(t *testing.T) {
 		g := NewWithT(t)
 
 		obj := &unstructured.Unstructured{
-			Object: map[string]interface{}{
+			Object: map[string]any{
 				"apiVersion": "test.x.y.z/v1",
 				"kind":       "TestCluster",
-				"metadata": map[string]interface{}{
+				"metadata": map[string]any{
 					"name":      "test-1",
 					"namespace": "namespace-1",
 				},
-				"spec": map[string]interface{}{
+				"spec": map[string]any{
 					"paused": true,
 				},
-				"status": map[string]interface{}{
+				"status": map[string]any{
 					"infrastructureReady": true,
-					"conditions": []interface{}{
-						map[string]interface{}{
+					"conditions": []any{
+						map[string]any{
 							"type":   "Ready",
 							"status": "True",
 						},
@@ -182,38 +182,38 @@ func TestUnsafeFocusedUnstructured(t *testing.T) {
 
 		// Validate that spec is nil in the new object, but still exists in the old copy.
 		g.Expect(newObj.Object["spec"]).To(BeNil())
-		g.Expect(obj.Object["spec"]).To(Equal(map[string]interface{}{
+		g.Expect(obj.Object["spec"]).To(Equal(map[string]any{
 			"paused": true,
 		}))
 
 		// Validate that the status has been copied, without conditions.
 		g.Expect(newObj.Object["status"]).To(HaveLen(1))
-		g.Expect(newObj.Object["status"].(map[string]interface{})["infrastructureReady"]).To(BeTrue())
-		g.Expect(newObj.Object["status"].(map[string]interface{})["conditions"]).To(BeNil())
+		g.Expect(newObj.Object["status"].(map[string]any)["infrastructureReady"]).To(BeTrue())
+		g.Expect(newObj.Object["status"].(map[string]any)["conditions"]).To(BeNil())
 
 		// When working with conditions, the inner map is going to be removed from the original object.
-		g.Expect(obj.Object["status"].(map[string]interface{})["conditions"]).To(BeNil())
+		g.Expect(obj.Object["status"].(map[string]any)["conditions"]).To(BeNil())
 	})
 
 	t.Run("focus=status w/o condition-setter object, should only return status and common fields", func(t *testing.T) {
 		g := NewWithT(t)
 
 		obj := &unstructured.Unstructured{
-			Object: map[string]interface{}{
+			Object: map[string]any{
 				"apiVersion": "test.x.y.z/v1",
 				"kind":       "TestCluster",
-				"metadata": map[string]interface{}{
+				"metadata": map[string]any{
 					"name":      "test-1",
 					"namespace": "namespace-1",
 				},
-				"spec": map[string]interface{}{
+				"spec": map[string]any{
 					"paused": true,
 					"other":  "field",
 				},
-				"status": map[string]interface{}{
+				"status": map[string]any{
 					"infrastructureReady": true,
-					"conditions": []interface{}{
-						map[string]interface{}{
+					"conditions": []any{
+						map[string]any{
 							"type":   "Ready",
 							"status": "True",
 						},
@@ -226,7 +226,7 @@ func TestUnsafeFocusedUnstructured(t *testing.T) {
 
 		// Validate that spec is nil in the new object, but still exists in the old copy.
 		g.Expect(newObj.Object["spec"]).To(BeNil())
-		g.Expect(obj.Object["spec"]).To(Equal(map[string]interface{}{
+		g.Expect(obj.Object["spec"]).To(Equal(map[string]any{
 			"paused": true,
 			"other":  "field",
 		}))
@@ -241,7 +241,7 @@ func TestUnsafeFocusedUnstructured(t *testing.T) {
 		g.Expect(newObj.Object["status"]).To(Equal(obj.Object["status"]))
 
 		// Make sure that we didn't modify the incoming object if this object isn't a condition setter.
-		g.Expect(obj.Object["status"].(map[string]interface{})["conditions"]).ToNot(BeNil())
+		g.Expect(obj.Object["status"].(map[string]any)["conditions"]).ToNot(BeNil())
 	})
 }
 

@@ -28,14 +28,14 @@ func Test_templateGenerator_GenerateName(t *testing.T) {
 	tests := []struct {
 		name     string
 		template string
-		data     map[string]interface{}
+		data     map[string]any
 		want     []types.GomegaMatcher
 		wantErr  bool
 	}{
 		{
 			name:     "simple template",
 			template: "some-simple-{{ .test }}",
-			data: map[string]interface{}{
+			data: map[string]any{
 				"test": "testdata",
 			},
 			want: []types.GomegaMatcher{

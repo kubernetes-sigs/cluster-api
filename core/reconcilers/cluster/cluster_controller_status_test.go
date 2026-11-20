@@ -3087,9 +3087,9 @@ type fakeControlPlaneOption interface {
 }
 
 func fakeControlPlane(name string, options ...fakeControlPlaneOption) *unstructured.Unstructured {
-	cp := &unstructured.Unstructured{Object: map[string]interface{}{
+	cp := &unstructured.Unstructured{Object: map[string]any{
 		"kind": "FakeControlPlane",
-		"metadata": map[string]interface{}{
+		"metadata": map[string]any{
 			"name": name,
 		},
 	}}
@@ -3105,9 +3105,9 @@ type fakeInfraClusterOption interface {
 }
 
 func fakeInfraCluster(name string, options ...fakeInfraClusterOption) *unstructured.Unstructured {
-	cp := &unstructured.Unstructured{Object: map[string]interface{}{
+	cp := &unstructured.Unstructured{Object: map[string]any{
 		"kind": "FakeInfraCluster",
-		"metadata": map[string]interface{}{
+		"metadata": map[string]any{
 			"name": name,
 		},
 	}}
@@ -3355,12 +3355,12 @@ func (c condition) ApplyToInfraCluster(i *unstructured.Unstructured) {
 }
 
 func (c condition) applyToUnstructured(i *unstructured.Unstructured) {
-	conditions := []interface{}{}
+	conditions := []any{}
 	if value, exists, _ := unstructured.NestedFieldNoCopy(i.Object, "status", "conditions"); exists {
-		conditions = value.([]interface{})
+		conditions = value.([]any)
 	}
 	t, _ := c.LastTransitionTime.MarshalQueryParameter()
-	conditions = append(conditions, map[string]interface{}{
+	conditions = append(conditions, map[string]any{
 		"type":               c.Type,
 		"status":             string(c.Status),
 		"reason":             c.Reason,

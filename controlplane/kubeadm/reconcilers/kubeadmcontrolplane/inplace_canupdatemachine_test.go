@@ -650,18 +650,18 @@ func Test_canExtensionsUpdateMachine(t *testing.T) {
 	desiredKubeadmConfig.Spec.ClusterConfiguration.Etcd.Local.ImageTag = "3.6.4-0"
 
 	currentInfraMachine := &unstructured.Unstructured{
-		Object: map[string]interface{}{
+		Object: map[string]any{
 			"apiVersion": builder.InfrastructureGroupVersion.String(),
 			"kind":       builder.TestInfrastructureMachineKind,
-			"metadata": map[string]interface{}{
+			"metadata": map[string]any{
 				"name":      "machine-to-in-place-update",
 				"namespace": metav1.NamespaceDefault,
-				"annotations": map[string]interface{}{
+				"annotations": map[string]any{
 					clusterv1.TemplateClonedFromNameAnnotation:      "infra-machine-template-1",
 					clusterv1.TemplateClonedFromGroupKindAnnotation: "TestInfrastructureMachineTemplate.infrastructure.cluster.x-k8s.io",
 				},
 			},
-			"spec": map[string]interface{}{
+			"spec": map[string]any{
 				"hello": "world",
 			},
 		},
@@ -1530,24 +1530,24 @@ func Test_createRequest(t *testing.T) {
 	bootstrapadmission.ApplyPreviousKubeadmConfigDefaults(&desiredKubeadmConfigCleanedUp.Spec)            // PrepareKubeadmConfigsForDiff applies defaults.
 
 	currentInfraMachine := &unstructured.Unstructured{
-		Object: map[string]interface{}{
+		Object: map[string]any{
 			"apiVersion": builder.InfrastructureGroupVersion.String(),
 			"kind":       builder.TestInfrastructureMachineKind,
-			"metadata": map[string]interface{}{
+			"metadata": map[string]any{
 				"name":      "machine-to-in-place-update",
 				"namespace": ns.Name,
-				"labels": map[string]interface{}{
+				"labels": map[string]any{
 					"label-1": "label-value-1",
 				},
-				"annotations": map[string]interface{}{
+				"annotations": map[string]any{
 					clusterv1.TemplateClonedFromNameAnnotation:      "infra-machine-template-1",
 					clusterv1.TemplateClonedFromGroupKindAnnotation: "TestInfrastructureMachineTemplate.infrastructure.cluster.x-k8s.io",
 				},
 			},
-			"spec": map[string]interface{}{
+			"spec": map[string]any{
 				"foo": "hello world",
 			},
-			"status": map[string]interface{}{
+			"status": map[string]any{
 				"foo": "hello world",
 			},
 		},
@@ -1894,18 +1894,18 @@ func Test_applyPatchesToRequest(t *testing.T) {
 	patchedKubeadmConfig.Spec.ClusterConfiguration.Etcd.Local.ImageTag = "3.6.4-0"
 
 	currentInfraMachine := &unstructured.Unstructured{
-		Object: map[string]interface{}{
+		Object: map[string]any{
 			"apiVersion": builder.InfrastructureGroupVersion.String(),
 			"kind":       builder.TestInfrastructureMachineKind,
-			"metadata": map[string]interface{}{
+			"metadata": map[string]any{
 				"name":      "machine-to-in-place-update",
 				"namespace": metav1.NamespaceDefault,
-				"annotations": map[string]interface{}{
+				"annotations": map[string]any{
 					clusterv1.TemplateClonedFromNameAnnotation:      "infra-machine-template-1",
 					clusterv1.TemplateClonedFromGroupKindAnnotation: "TestInfrastructureMachineTemplate.infrastructure.cluster.x-k8s.io",
 				},
 			},
-			"spec": map[string]interface{}{
+			"spec": map[string]any{
 				"hello": "world",
 			},
 		},

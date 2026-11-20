@@ -203,10 +203,10 @@ func TestReconcileApplyOnceScopeApplyObj(t *testing.T) {
 		{
 			name: "object doesn't exist",
 			obj: &unstructured.Unstructured{
-				Object: map[string]interface{}{
+				Object: map[string]any{
 					"apiVersion": "v1",
 					"kind":       "ConfigMap",
-					"metadata": map[string]interface{}{
+					"metadata": map[string]any{
 						"name":      "my-cm",
 						"namespace": "that-ns",
 					},
@@ -224,10 +224,10 @@ func TestReconcileApplyOnceScopeApplyObj(t *testing.T) {
 				},
 			},
 			obj: &unstructured.Unstructured{
-				Object: map[string]interface{}{
+				Object: map[string]any{
 					"apiVersion": "v1",
 					"kind":       "ConfigMap",
-					"metadata": map[string]interface{}{
+					"metadata": map[string]any{
 						"name":      "my-cm",
 						"namespace": "that-ns",
 					},

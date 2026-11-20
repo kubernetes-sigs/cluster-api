@@ -259,7 +259,7 @@ func cleanupManagedFieldsAndAnnotation(obj *unstructured.Unstructured) error {
 		managedField.Time = nil
 
 		// Unmarshal the managed fields into a map[string]interface{}
-		fieldsV1 := map[string]interface{}{}
+		fieldsV1 := map[string]any{}
 		if err := json.Unmarshal(managedField.FieldsV1.GetRawBytes(), &fieldsV1); err != nil {
 			return pkgerrors.Wrap(err, "failed to unmarshal managed fields")
 		}

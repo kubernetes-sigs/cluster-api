@@ -1158,7 +1158,7 @@ func newFileLogger(t *testing.T, name, fileName string) *fileLogger {
 	return l
 }
 
-func (l *fileLogger) Logf(format string, args ...interface{}) {
+func (l *fileLogger) Logf(format string, args ...any) {
 	l.t.Logf(format, args...)
 
 	// this codes takes a log line that has been formatted for t.Logf and change it

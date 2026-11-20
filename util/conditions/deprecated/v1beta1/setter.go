@@ -134,7 +134,7 @@ func TrueCondition(t clusterv1.ConditionType) *clusterv1.Condition {
 }
 
 // TrueConditionWithNegativePolarity returns a condition with negative polarity, Status=True and the given type (Status=True has a negative meaning).
-func TrueConditionWithNegativePolarity(t clusterv1.ConditionType, reason string, severity clusterv1.ConditionSeverity, messageFormat string, messageArgs ...interface{}) *clusterv1.Condition {
+func TrueConditionWithNegativePolarity(t clusterv1.ConditionType, reason string, severity clusterv1.ConditionSeverity, messageFormat string, messageArgs ...any) *clusterv1.Condition {
 	return &clusterv1.Condition{
 		Type:     t,
 		Status:   corev1.ConditionTrue,
@@ -145,7 +145,7 @@ func TrueConditionWithNegativePolarity(t clusterv1.ConditionType, reason string,
 }
 
 // FalseCondition returns a condition with Status=False and the given type.
-func FalseCondition(t clusterv1.ConditionType, reason string, severity clusterv1.ConditionSeverity, messageFormat string, messageArgs ...interface{}) *clusterv1.Condition {
+func FalseCondition(t clusterv1.ConditionType, reason string, severity clusterv1.ConditionSeverity, messageFormat string, messageArgs ...any) *clusterv1.Condition {
 	return &clusterv1.Condition{
 		Type:     t,
 		Status:   corev1.ConditionFalse,
@@ -164,7 +164,7 @@ func FalseConditionWithNegativePolarity(t clusterv1.ConditionType) *clusterv1.Co
 }
 
 // UnknownCondition returns a condition with Status=Unknown and the given type.
-func UnknownCondition(t clusterv1.ConditionType, reason string, messageFormat string, messageArgs ...interface{}) *clusterv1.Condition {
+func UnknownCondition(t clusterv1.ConditionType, reason string, messageFormat string, messageArgs ...any) *clusterv1.Condition {
 	return &clusterv1.Condition{
 		Type:    t,
 		Status:  corev1.ConditionUnknown,
@@ -179,17 +179,17 @@ func MarkTrue(to Setter, t clusterv1.ConditionType) {
 }
 
 // MarkTrueWithNegativePolarity sets Status=True for a condition with negative polarity and the given type (Status=True has a negative meaning).
-func MarkTrueWithNegativePolarity(to Setter, t clusterv1.ConditionType, reason string, severity clusterv1.ConditionSeverity, messageFormat string, messageArgs ...interface{}) {
+func MarkTrueWithNegativePolarity(to Setter, t clusterv1.ConditionType, reason string, severity clusterv1.ConditionSeverity, messageFormat string, messageArgs ...any) {
 	Set(to, TrueConditionWithNegativePolarity(t, reason, severity, messageFormat, messageArgs...))
 }
 
 // MarkUnknown sets Status=Unknown for the condition with the given type.
-func MarkUnknown(to Setter, t clusterv1.ConditionType, reason, messageFormat string, messageArgs ...interface{}) {
+func MarkUnknown(to Setter, t clusterv1.ConditionType, reason, messageFormat string, messageArgs ...any) {
 	Set(to, UnknownCondition(t, reason, messageFormat, messageArgs...))
 }
 
 // MarkFalse sets Status=False for the condition with the given type.
-func MarkFalse(to Setter, t clusterv1.ConditionType, reason string, severity clusterv1.ConditionSeverity, messageFormat string, messageArgs ...interface{}) {
+func MarkFalse(to Setter, t clusterv1.ConditionType, reason string, severity clusterv1.ConditionSeverity, messageFormat string, messageArgs ...any) {
 	Set(to, FalseCondition(t, reason, severity, messageFormat, messageArgs...))
 }
 

@@ -123,7 +123,7 @@ func defaultValue(currentValue *clusterv1.ClusterVariable, definition *clusterv1
 			fmt.Sprintf("invalid schema in ClusterClass for variable %q: error to convert schema %v", definition.Name, errs))}
 	}
 
-	var value interface{}
+	var value any
 	// If the variable already exists, parse the current value.
 	if currentValue != nil && len(currentValue.Value.Raw) > 0 {
 		if err := json.Unmarshal(currentValue.Value.Raw, &value); err != nil {
@@ -135,7 +135,7 @@ func defaultValue(currentValue *clusterv1.ClusterVariable, definition *clusterv1
 	// Structural schema defaulting does not work with scalar values,
 	// so we wrap the schema and the variable in objects.
 	// <variable-name>: <variable-value>
-	wrappedVariable := map[string]interface{}{
+	wrappedVariable := map[string]any{
 		definition.Name: value,
 	}
 	// type: object

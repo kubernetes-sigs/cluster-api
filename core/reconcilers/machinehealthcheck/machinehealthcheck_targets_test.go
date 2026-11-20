@@ -948,11 +948,11 @@ func newTestUnhealthyMachine(name, namespace, clusterName, nodeName string, labe
 	}
 }
 
-func newFailedHealthCheckV1Beta1Condition(reason string, messageFormat string, messageArgs ...interface{}) clusterv1.Condition {
+func newFailedHealthCheckV1Beta1Condition(reason string, messageFormat string, messageArgs ...any) clusterv1.Condition {
 	return *v1beta1conditions.FalseCondition(clusterv1.MachineHealthCheckSucceededV1Beta1Condition, reason, clusterv1.ConditionSeverityWarning, messageFormat, messageArgs...)
 }
 
-func newFailedHealthCheckCondition(reason string, messageFormat string, messageArgs ...interface{}) metav1.Condition {
+func newFailedHealthCheckCondition(reason string, messageFormat string, messageArgs ...any) metav1.Condition {
 	return metav1.Condition{
 		Type:    clusterv1.MachineHealthCheckSucceededCondition,
 		Status:  metav1.ConditionFalse,

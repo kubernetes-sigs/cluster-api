@@ -171,8 +171,8 @@ func TestFuzzyConversion(t *testing.T) {
 	)
 }
 
-func ClusterFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
-	return []interface{}{
+func ClusterFuzzFuncs(_ runtimeserializer.CodecFactory) []any {
+	return []any{
 		hubClusterSpec,
 		hubClusterStatus,
 		hubClusterVariable,
@@ -354,8 +354,8 @@ func spokeClusterVariable(in *clusterv1beta1.ClusterVariable, c randfill.Continu
 	in.DefinitionFrom = ""
 }
 
-func ClusterClassFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
-	return []interface{}{
+func ClusterClassFuzzFuncs(_ runtimeserializer.CodecFactory) []any {
+	return []any{
 		hubClusterClassVariable,
 		hubClusterClassStatusVariableDefinition,
 		hubClusterClassStatus,
@@ -578,8 +578,8 @@ func spokeLocalObjectTemplate(in *clusterv1beta1.LocalObjectTemplate, c randfill
 	}
 }
 
-func MachineFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
-	return []interface{}{
+func MachineFuzzFuncs(_ runtimeserializer.CodecFactory) []any {
+	return []any{
 		hubMachineSpec,
 		hubMachineStatus,
 		spokeMachine,
@@ -700,8 +700,8 @@ func spokeMachineStatus(in *clusterv1beta1.MachineStatus, c randfill.Continue) {
 	}
 }
 
-func MachineSetFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
-	return []interface{}{
+func MachineSetFuzzFuncs(_ runtimeserializer.CodecFactory) []any {
+	return []any{
 		hubMachineSetStatus,
 		hubMachineSpec,
 		spokeMachineSet,
@@ -748,8 +748,8 @@ func spokeMachineSetStatus(in *clusterv1beta1.MachineSetStatus, c randfill.Conti
 	}
 }
 
-func MachineDeploymentFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
-	return []interface{}{
+func MachineDeploymentFuzzFuncs(_ runtimeserializer.CodecFactory) []any {
+	return []any{
 		hubMachineDeploymentStatus,
 		hubMachineSpec,
 		spokeMachineDeployment,
@@ -828,8 +828,8 @@ func spokeMachineDeploymentStatus(in *clusterv1beta1.MachineDeploymentStatus, c 
 	}
 }
 
-func MachineHealthCheckFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
-	return []interface{}{
+func MachineHealthCheckFuzzFuncs(_ runtimeserializer.CodecFactory) []any {
+	return []any{
 		hubUnhealthyNodeCondition,
 		hubUnhealthyMachineCondition,
 		hubMachineHealthCheckStatus,
@@ -884,8 +884,8 @@ func spokeObjectReference(in *corev1.ObjectReference, c randfill.Continue) {
 	in.FieldPath = ""
 }
 
-func MachinePoolFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
-	return []interface{}{
+func MachinePoolFuzzFuncs(_ runtimeserializer.CodecFactory) []any {
+	return []any{
 		hubMachinePoolStatus,
 		hubMachineSpec,
 		spokeMachinePool,
@@ -1108,8 +1108,8 @@ var testGVKs = []schema.GroupVersionKind{
 	},
 }
 
-func ClusterResourceSetFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
-	return []interface{}{
+func ClusterResourceSetFuzzFuncs(_ runtimeserializer.CodecFactory) []any {
+	return []any{
 		hubClusterResourceSetStatus,
 		spokeClusterResourceSetStatus,
 	}
@@ -1135,8 +1135,8 @@ func spokeClusterResourceSetStatus(in *addonsv1beta1.ClusterResourceSetStatus, c
 	}
 }
 
-func ClusterResourceSetBindingFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
-	return []interface{}{
+func ClusterResourceSetBindingFuzzFuncs(_ runtimeserializer.CodecFactory) []any {
+	return []any{
 		hubResourceBinding,
 		hubClusterResourceSetStatus,
 		spokeClusterResourceSetBindingSpec,
@@ -1168,8 +1168,8 @@ func spokeClusterResourceSetBindingSpec(in *addonsv1beta1.ClusterResourceSetBind
 	}
 }
 
-func IPAddressFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
-	return []interface{}{
+func IPAddressFuzzFuncs(_ runtimeserializer.CodecFactory) []any {
+	return []any{
 		hubIPAddressSpec,
 		spokeTypedLocalObjectReference,
 	}
@@ -1190,8 +1190,8 @@ func spokeTypedLocalObjectReference(in *corev1.TypedLocalObjectReference, c rand
 	}
 }
 
-func IPAddressClaimFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
-	return []interface{}{
+func IPAddressClaimFuzzFuncs(_ runtimeserializer.CodecFactory) []any {
+	return []any{
 		hubIPAddressClaimStatus,
 		spokeIPAddressClaimStatus,
 		spokeTypedLocalObjectReference,
@@ -1218,8 +1218,8 @@ func spokeIPAddressClaimStatus(in *ipamv1beta1.IPAddressClaimStatus, c randfill.
 	}
 }
 
-func ExtensionConfigFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
-	return []interface{}{
+func ExtensionConfigFuzzFuncs(_ runtimeserializer.CodecFactory) []any {
+	return []any{
 		hubExtensionConfigStatus,
 		spokeExtensionConfig,
 		spokeExtensionConfigStatus,

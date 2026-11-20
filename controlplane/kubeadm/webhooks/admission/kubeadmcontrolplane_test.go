@@ -1454,20 +1454,20 @@ func TestPaths(t *testing.T) {
 	tests := []struct {
 		name     string
 		path     []string
-		diff     map[string]interface{}
+		diff     map[string]any
 		expected [][]string
 	}{
 		{
 			name: "basic check",
-			diff: map[string]interface{}{
-				"spec": map[string]interface{}{
+			diff: map[string]any{
+				"spec": map[string]any{
 					"replicas": 4,
 					"version":  "1.17.3",
-					"kubeadmConfigSpec": map[string]interface{}{
-						"clusterConfiguration": map[string]interface{}{
+					"kubeadmConfigSpec": map[string]any{
+						"clusterConfiguration": map[string]any{
 							"version": "v2.0.1",
 						},
-						"initConfiguration": map[string]interface{}{
+						"initConfiguration": map[string]any{
 							"bootstrapToken": []string{"abcd", "defg"},
 						},
 						"joinConfiguration": nil,
@@ -1485,15 +1485,15 @@ func TestPaths(t *testing.T) {
 		{
 			name:     "empty input makes for empty output",
 			path:     []string{"a"},
-			diff:     map[string]interface{}{},
+			diff:     map[string]any{},
 			expected: [][]string{},
 		},
 		{
 			name: "long recursive check with two keys",
-			diff: map[string]interface{}{
-				"spec": map[string]interface{}{
-					"kubeadmConfigSpec": map[string]interface{}{
-						"clusterConfiguration": map[string]interface{}{
+			diff: map[string]any{
+				"spec": map[string]any{
+					"kubeadmConfigSpec": map[string]any{
+						"clusterConfiguration": map[string]any{
 							"version": "v2.0.1",
 							"abc":     "d",
 						},

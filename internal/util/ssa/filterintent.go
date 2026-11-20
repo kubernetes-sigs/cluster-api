@@ -65,7 +65,7 @@ func FilterObject(obj *unstructured.Unstructured, input *FilterObjectInput) {
 // all of them are defined in reconcile_state.go and are targeting well-known fields inside nested maps.
 // Allowed paths / ignore paths which point to an array are not supported by the current implementation.
 func FilterIntent(ctx *FilterIntentInput) bool {
-	value, ok := ctx.Value.(map[string]interface{})
+	value, ok := ctx.Value.(map[string]any)
 	if !ok {
 		return false
 	}
@@ -92,7 +92,7 @@ func FilterIntent(ctx *FilterIntentInput) bool {
 		if FilterIntent(fieldCtx) {
 			gotDeletions = true
 			// Ensure we are not leaving empty maps around.
-			if v, ok := fieldCtx.Value.(map[string]interface{}); ok && len(v) == 0 {
+			if v, ok := fieldCtx.Value.(map[string]any); ok && len(v) == 0 {
 				delete(value, field)
 			}
 		}
@@ -107,7 +107,7 @@ type FilterIntentInput struct {
 	Path contract.Path
 
 	// the Value for the current Path.
-	Value interface{}
+	Value any
 
 	// ShouldFilter handle the func that determine if the current Path should be dropped or not.
 	ShouldFilter func(path contract.Path) bool

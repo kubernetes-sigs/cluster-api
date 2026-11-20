@@ -834,7 +834,7 @@ func createClusterWorker(ctx context.Context, clusterProxy framework.ClusterProx
 	}
 }
 
-func deleteClusterAndWaitWorker(ctx context.Context, inputChan <-chan string, resultChan chan<- workResult, wg *sync.WaitGroup, clusterProxy framework.ClusterProxy, clusterctlConfigPath string, defaultNamespace string, deployClusterInSeparateNamespaces bool, intervals ...interface{}) {
+func deleteClusterAndWaitWorker(ctx context.Context, inputChan <-chan string, resultChan chan<- workResult, wg *sync.WaitGroup, clusterProxy framework.ClusterProxy, clusterctlConfigPath string, defaultNamespace string, deployClusterInSeparateNamespaces bool, intervals ...any) {
 	defer wg.Done()
 
 	for {
@@ -1025,7 +1025,7 @@ func modifyMachineDeployments(baseClusterTemplateYAML []byte, count int64) []byt
 	cluster := &clusterv1.Cluster{}
 	// Adding v1beta1 scheme and registering the conversion function to allow auto-converting to v1beta2.
 	_ = clusterv1beta1.AddToScheme(scheme)
-	Expect(scheme.AddConversionFunc((*clusterv1beta1.Cluster)(nil), (*clusterv1.Cluster)(nil), func(a, b interface{}, _ conversion.Scope) error {
+	Expect(scheme.AddConversionFunc((*clusterv1beta1.Cluster)(nil), (*clusterv1.Cluster)(nil), func(a, b any, _ conversion.Scope) error {
 		return clusterv1beta1.Convert_v1beta1_Cluster_To_v1beta2_Cluster(a.(*clusterv1beta1.Cluster), b.(*clusterv1.Cluster), nil)
 	})).To(Succeed())
 	Expect(scheme.Convert(&objs[0], cluster, nil)).To(Succeed())

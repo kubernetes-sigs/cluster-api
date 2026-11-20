@@ -72,7 +72,7 @@ type ClusterClassChangesSpecInput struct {
 	// map[string]interface{}{
 	//   "spec.path.to.field": <value>,
 	// }
-	ModifyControlPlaneFields map[string]interface{}
+	ModifyControlPlaneFields map[string]any
 
 	// ModifyMachineDeploymentBootstrapConfigTemplateFields are the fields which will be set on the
 	// BootstrapConfigTemplate of all MachineDeploymentClasses of the ClusterClass after the initial Cluster creation.
@@ -81,7 +81,7 @@ type ClusterClassChangesSpecInput struct {
 	// map[string]interface{}{
 	//   "spec.template.spec.path.to.field": <value>,
 	// }
-	ModifyMachineDeploymentBootstrapConfigTemplateFields map[string]interface{}
+	ModifyMachineDeploymentBootstrapConfigTemplateFields map[string]any
 
 	// ModifyMachineDeploymentInfrastructureMachineTemplateFields are the fields which will be set on the
 	// InfrastructureMachineTemplate of all MachineDeploymentClasses of the ClusterClass after the initial Cluster creation.
@@ -90,7 +90,7 @@ type ClusterClassChangesSpecInput struct {
 	// map[string]interface{}{
 	//   "spec.template.spec.path.to.field": <value>,
 	// }
-	ModifyMachineDeploymentInfrastructureMachineTemplateFields map[string]interface{}
+	ModifyMachineDeploymentInfrastructureMachineTemplateFields map[string]any
 
 	// ModifyMachinePoolBootstrapConfigTemplateFields are the fields which will be set on the
 	// BootstrapConfigTemplate of all MachinePoolClasses of the ClusterClass after the initial Cluster creation.
@@ -99,7 +99,7 @@ type ClusterClassChangesSpecInput struct {
 	// map[string]interface{}{
 	//   "spec.template.spec.path.to.field": <value>,
 	// }
-	ModifyMachinePoolBootstrapConfigTemplateFields map[string]interface{}
+	ModifyMachinePoolBootstrapConfigTemplateFields map[string]any
 
 	// ModifyMachinePoolInfrastructureMachinePoolTemplateFields are the fields which will be set on the
 	// InfrastructureMachinePoolTemplate of all MachinePoolClasses of the ClusterClass after the initial Cluster creation.
@@ -108,7 +108,7 @@ type ClusterClassChangesSpecInput struct {
 	// map[string]interface{}{
 	//   "spec.template.spec.path.to.field": <value>,
 	// }
-	ModifyMachinePoolInfrastructureMachinePoolTemplateFields map[string]interface{}
+	ModifyMachinePoolInfrastructureMachinePoolTemplateFields map[string]any
 
 	// Allows to inject a function to be run after test namespace is created.
 	// If not specified, this is a no-op.
@@ -355,8 +355,8 @@ type modifyClusterClassControlPlaneAndWaitInput struct {
 	ClusterProxy             framework.ClusterProxy
 	ClusterClass             *clusterv1.ClusterClass
 	Cluster                  *clusterv1.Cluster
-	ModifyControlPlaneFields map[string]interface{}
-	WaitForControlPlane      []interface{}
+	ModifyControlPlaneFields map[string]any
+	WaitForControlPlane      []any
 }
 
 // modifyControlPlaneViaClusterClassAndWait modifies the ControlPlaneTemplate of a ClusterClass by setting ModifyControlPlaneFields
@@ -488,9 +488,9 @@ type modifyMachineDeploymentViaClusterClassAndWaitInput struct {
 	ClusterProxy                              framework.ClusterProxy
 	ClusterClass                              *clusterv1.ClusterClass
 	Cluster                                   *clusterv1.Cluster
-	ModifyBootstrapConfigTemplateFields       map[string]interface{}
-	ModifyInfrastructureMachineTemplateFields map[string]interface{}
-	WaitForMachineDeployments                 []interface{}
+	ModifyBootstrapConfigTemplateFields       map[string]any
+	ModifyInfrastructureMachineTemplateFields map[string]any
+	WaitForMachineDeployments                 []any
 }
 
 // modifyMachineDeploymentViaClusterClassAndWait modifies the BootstrapConfigTemplate of MachineDeploymentClasses of a ClusterClass
@@ -604,9 +604,9 @@ type modifyMachinePoolViaClusterClassAndWaitInput struct {
 	ClusterProxy                                  framework.ClusterProxy
 	ClusterClass                                  *clusterv1.ClusterClass
 	Cluster                                       *clusterv1.Cluster
-	ModifyBootstrapConfigTemplateFields           map[string]interface{}
-	ModifyInfrastructureMachinePoolTemplateFields map[string]interface{}
-	WaitForMachinePools                           []interface{}
+	ModifyBootstrapConfigTemplateFields           map[string]any
+	ModifyInfrastructureMachinePoolTemplateFields map[string]any
+	WaitForMachinePools                           []any
 }
 
 // modifyMachinePoolViaClusterClassAndWait modifies the BootstrapConfigTemplate of MachinePoolClasses of a ClusterClass
@@ -800,8 +800,8 @@ type rebaseClusterClassAndWaitInput struct {
 	ClusterClassNamespace        string
 	Cluster                      *clusterv1.Cluster
 	ControlPlaneChanged          bool
-	WaitForMachineDeployments    []interface{}
-	WaitForControlPlaneIntervals []interface{}
+	WaitForMachineDeployments    []any
+	WaitForControlPlaneIntervals []any
 }
 
 // rebaseClusterClassAndWait rebases the cluster to a copy of the ClusterClass with different worker labels
@@ -964,7 +964,7 @@ func cloneTemplateAndUpdateRef(ctx context.Context, cl client.Client, templateRe
 type deleteMachineDeploymentTopologyAndWaitInput struct {
 	ClusterProxy              framework.ClusterProxy
 	Cluster                   *clusterv1.Cluster
-	WaitForMachineDeployments []interface{}
+	WaitForMachineDeployments []any
 }
 
 // deleteMachineDeploymentTopologyAndWait deletes a MachineDeploymentTopology from the Cluster and waits until the changes

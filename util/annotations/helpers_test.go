@@ -162,9 +162,9 @@ func TestAddAnnotations(t *testing.T) {
 		{
 			name: "should add annotations to a non empty unstructured",
 			obj: &unstructured.Unstructured{
-				Object: map[string]interface{}{
-					"metadata": map[string]interface{}{
-						"annotations": map[string]interface{}{
+				Object: map[string]any{
+					"metadata": map[string]any{
+						"annotations": map[string]any{
 							"foo": "bar",
 						},
 					},

@@ -54,7 +54,7 @@ type InitManagementClusterAndWatchControllerLogsInput struct {
 // InitManagementClusterAndWatchControllerLogs initializes a management using clusterctl and setup watches for controller logs.
 // Important: Considering we want to support test suites using existing clusters, clusterctl init is executed only in case
 // there are no provider controllers in the cluster; but controller logs watchers are created regardless of the pre-existing providers.
-func InitManagementClusterAndWatchControllerLogs(ctx context.Context, input InitManagementClusterAndWatchControllerLogsInput, intervals ...interface{}) {
+func InitManagementClusterAndWatchControllerLogs(ctx context.Context, input InitManagementClusterAndWatchControllerLogsInput, intervals ...any) {
 	Expect(ctx).NotTo(BeNil(), "ctx is required for InitManagementClusterAndWatchControllerLogs")
 	Expect(input.ClusterProxy).ToNot(BeNil(), "Invalid argument. input.ClusterProxy can't be nil when calling InitManagementClusterAndWatchControllerLogs")
 	Expect(input.ClusterctlConfigPath).To(BeAnExistingFile(), "Invalid argument. input.ClusterctlConfigPath must be an existing file when calling InitManagementClusterAndWatchControllerLogs")
@@ -156,7 +156,7 @@ type UpgradeManagementClusterAndWaitInput struct {
 }
 
 // UpgradeManagementClusterAndWait upgrades provider a management cluster using clusterctl, and waits for the cluster to be ready.
-func UpgradeManagementClusterAndWait(ctx context.Context, input UpgradeManagementClusterAndWaitInput, intervals ...interface{}) {
+func UpgradeManagementClusterAndWait(ctx context.Context, input UpgradeManagementClusterAndWaitInput, intervals ...any) {
 	Expect(ctx).NotTo(BeNil(), "ctx is required for UpgradeManagementClusterAndWait")
 	Expect(input.ClusterProxy).ToNot(BeNil(), "Invalid argument. input.ClusterProxy can't be nil when calling UpgradeManagementClusterAndWait")
 	Expect(input.ClusterctlConfigPath).To(BeAnExistingFile(), "Invalid argument. input.ClusterctlConfigPath must be an existing file when calling UpgradeManagementClusterAndWait")
@@ -228,10 +228,10 @@ type ApplyClusterTemplateAndWaitInput struct {
 	ClusterProxy                 framework.ClusterProxy
 	ConfigCluster                ConfigClusterInput
 	CNIManifestPath              string
-	WaitForClusterIntervals      []interface{}
-	WaitForControlPlaneIntervals []interface{}
-	WaitForMachineDeployments    []interface{}
-	WaitForMachinePools          []interface{}
+	WaitForClusterIntervals      []any
+	WaitForControlPlaneIntervals []any
+	WaitForMachineDeployments    []any
+	WaitForMachinePools          []any
 	CreateOpts                   []framework.CreateOption // options to be passed to Create function config
 	PreWaitForCluster            func()
 	PostMachinesProvisioned      func()
@@ -359,10 +359,10 @@ type ApplyCustomClusterTemplateAndWaitInput struct {
 	Namespace                    string
 	CNIManifestPath              string
 	Flavor                       string
-	WaitForClusterIntervals      []interface{}
-	WaitForControlPlaneIntervals []interface{}
-	WaitForMachineDeployments    []interface{}
-	WaitForMachinePools          []interface{}
+	WaitForClusterIntervals      []any
+	WaitForControlPlaneIntervals []any
+	WaitForMachineDeployments    []any
+	WaitForMachinePools          []any
 	CreateOpts                   []framework.CreateOption // options to be passed to Create function config
 	PreWaitForCluster            func()
 	PostMachinesProvisioned      func()

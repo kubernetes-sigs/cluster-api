@@ -288,22 +288,22 @@ func TestMachinePoolOwnerReference(t *testing.T) {
 
 func TestReconcileMachinePoolRequest(t *testing.T) {
 	infraMachinePool := unstructured.Unstructured{
-		Object: map[string]interface{}{
+		Object: map[string]any{
 			"kind":       builder.TestInfrastructureMachinePoolKind,
 			"apiVersion": builder.InfrastructureGroupVersion.String(),
-			"metadata": map[string]interface{}{
+			"metadata": map[string]any{
 				"name":      "infra-config1",
 				"namespace": metav1.NamespaceDefault,
 			},
-			"spec": map[string]interface{}{
-				"providerIDList": []interface{}{
+			"spec": map[string]any{
+				"providerIDList": []any{
 					"test://id-1",
 				},
 			},
-			"status": map[string]interface{}{
-				"initialization": map[string]interface{}{"provisioned": true},
-				"addresses": []interface{}{
-					map[string]interface{}{
+			"status": map[string]any{
+				"initialization": map[string]any{"provisioned": true},
+				"addresses": []any{
+					map[string]any{
 						"type":    "InternalIP",
 						"address": "10.0.0.1",
 					},
@@ -317,10 +317,10 @@ func TestReconcileMachinePoolRequest(t *testing.T) {
 	}
 
 	bootstrapConfig := &unstructured.Unstructured{
-		Object: map[string]interface{}{
+		Object: map[string]any{
 			"kind":       builder.TestBootstrapConfigKind,
 			"apiVersion": builder.BootstrapGroupVersion.String(),
-			"metadata": map[string]interface{}{
+			"metadata": map[string]any{
 				"name":      "test-bootstrap",
 				"namespace": metav1.NamespaceDefault,
 			},
@@ -745,10 +745,10 @@ func TestReconcileMachinePoolDeleteExternal(t *testing.T) {
 	}
 
 	bootstrapConfig := &unstructured.Unstructured{
-		Object: map[string]interface{}{
+		Object: map[string]any{
 			"kind":       builder.TestBootstrapConfigKind,
 			"apiVersion": builder.BootstrapGroupVersion.String(),
-			"metadata": map[string]interface{}{
+			"metadata": map[string]any{
 				"name":      "delete-bootstrap",
 				"namespace": metav1.NamespaceDefault,
 			},
@@ -757,10 +757,10 @@ func TestReconcileMachinePoolDeleteExternal(t *testing.T) {
 	bootstrapConfigGVK := bootstrapConfig.GroupVersionKind()
 
 	infraConfig := &unstructured.Unstructured{
-		Object: map[string]interface{}{
+		Object: map[string]any{
 			"kind":       builder.TestInfrastructureMachinePoolKind,
 			"apiVersion": builder.InfrastructureGroupVersion.String(),
-			"metadata": map[string]interface{}{
+			"metadata": map[string]any{
 				"name":      "delete-infra",
 				"namespace": metav1.NamespaceDefault,
 			},
@@ -933,15 +933,15 @@ func TestMachinePoolConditions(t *testing.T) {
 
 	bootstrapConfig := func(dataSecretCreated bool) *unstructured.Unstructured {
 		return &unstructured.Unstructured{
-			Object: map[string]interface{}{
+			Object: map[string]any{
 				"kind":       builder.TestBootstrapConfigKind,
 				"apiVersion": builder.BootstrapGroupVersion.String(),
-				"metadata": map[string]interface{}{
+				"metadata": map[string]any{
 					"name":      "bootstrap1",
 					"namespace": metav1.NamespaceDefault,
 				},
-				"status": map[string]interface{}{
-					"initialization": map[string]interface{}{
+				"status": map[string]any{
+					"initialization": map[string]any{
 						"dataSecretCreated": dataSecretCreated,
 					},
 					"dataSecretName": "data",
@@ -952,18 +952,18 @@ func TestMachinePoolConditions(t *testing.T) {
 
 	infraConfig := func(ready bool) *unstructured.Unstructured {
 		return &unstructured.Unstructured{
-			Object: map[string]interface{}{
+			Object: map[string]any{
 				"kind":       builder.TestInfrastructureMachinePoolKind,
 				"apiVersion": builder.InfrastructureGroupVersion.String(),
-				"metadata": map[string]interface{}{
+				"metadata": map[string]any{
 					"name":      "infra1",
 					"namespace": metav1.NamespaceDefault,
 				},
-				"status": map[string]interface{}{
-					"initialization": map[string]interface{}{"provisioned": ready},
+				"status": map[string]any{
+					"initialization": map[string]any{"provisioned": ready},
 				},
-				"spec": map[string]interface{}{
-					"providerIDList": []interface{}{
+				"spec": map[string]any{
+					"providerIDList": []any{
 						"azure://westus2/id-node-4",
 						"aws://us-east-1/id-node-1",
 					},
@@ -1241,8 +1241,8 @@ func addConditionsToExternal(u *unstructured.Unstructured, newConditions cluster
 
 // addV1Beta1ConditionToExternal adds a condition list to an external object.
 func addV1Beta1ConditionToExternal(u *unstructured.Unstructured, c clusterv1.Condition) {
-	err := unstructured.SetNestedSlice(u.Object, []interface{}{
-		map[string]interface{}{
+	err := unstructured.SetNestedSlice(u.Object, []any{
+		map[string]any{
 			"type":     string(c.Type),
 			"status":   string(c.Status),
 			"severity": string(c.Severity),

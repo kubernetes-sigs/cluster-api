@@ -137,9 +137,9 @@ func GenerateCIArtifactsInjectedTemplateForDebian(input GenerateCIArtifactsInjec
 }
 
 type jsonPatch struct {
-	Op    string      `json:"op"`
-	Path  string      `json:"path"`
-	Value interface{} `json:"value"`
+	Op    string `json:"op"`
+	Path  string `json:"path"`
+	Value any    `json:"value"`
 }
 
 // generateInjectScriptJSONPatch generates a JSON patch which injects a script
@@ -159,7 +159,7 @@ func generateInjectScriptJSONPatch(sourceTemplate []byte, objectKind, objectName
 		patches = append(patches, jsonPatch{
 			Op:    "add",
 			Path:  fmt.Sprintf("%s/files", jsonPatchPathPrefix),
-			Value: []interface{}{},
+			Value: []any{},
 		})
 	}
 	patches = append(patches, jsonPatch{

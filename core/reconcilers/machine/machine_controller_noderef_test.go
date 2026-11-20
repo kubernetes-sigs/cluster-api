@@ -424,10 +424,10 @@ func TestNodeLabelSync(t *testing.T) {
 	}
 
 	defaultInfraMachine := &unstructured.Unstructured{
-		Object: map[string]interface{}{
+		Object: map[string]any{
 			"kind":       "GenericInfrastructureMachine",
 			"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
-			"metadata": map[string]interface{}{
+			"metadata": map[string]any{
 				"name":      "infra-config1",
 				"namespace": metav1.NamespaceDefault,
 			},
@@ -476,11 +476,11 @@ func TestNodeLabelSync(t *testing.T) {
 		infraMachine := defaultInfraMachine.DeepCopy()
 		infraMachine.SetNamespace(ns.Name)
 
-		interruptibleTrueInfraMachineStatus := map[string]interface{}{
+		interruptibleTrueInfraMachineStatus := map[string]any{
 			"interruptible": true,
 			"ready":         true,
 		}
-		interruptibleFalseInfraMachineStatus := map[string]interface{}{
+		interruptibleFalseInfraMachineStatus := map[string]any{
 			"interruptible": false,
 			"ready":         true,
 		}

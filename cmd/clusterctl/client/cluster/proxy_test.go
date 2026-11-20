@@ -279,21 +279,21 @@ func TestListObjByGVK(t *testing.T) {
 			kind:         "ManagedPrefixList",
 			objs: []client.Object{
 				&unstructured.Unstructured{
-					Object: map[string]interface{}{
+					Object: map[string]any{
 						"apiVersion": "ec2.aws.m.upbound.io/v1beta1",
 						"kind":       "ManagedPrefixList",
-						"metadata": map[string]interface{}{
+						"metadata": map[string]any{
 							"name":      "labelled",
 							"namespace": "ns1",
-							"labels":    map[string]interface{}{"cluster.x-k8s.io/provider": "infrastructure-foo"},
+							"labels":    map[string]any{"cluster.x-k8s.io/provider": "infrastructure-foo"},
 						},
 					},
 				},
 				&unstructured.Unstructured{
-					Object: map[string]interface{}{
+					Object: map[string]any{
 						"apiVersion": "ec2.aws.m.upbound.io/v1beta1",
 						"kind":       "ManagedPrefixList",
-						"metadata": map[string]interface{}{
+						"metadata": map[string]any{
 							"name":      "not-labelled",
 							"namespace": "ns1",
 						},
@@ -314,21 +314,21 @@ func TestListObjByGVK(t *testing.T) {
 			kind:         "ConfigMap",
 			objs: []client.Object{
 				&unstructured.Unstructured{
-					Object: map[string]interface{}{
+					Object: map[string]any{
 						"apiVersion": "v1",
 						"kind":       "ConfigMap",
-						"metadata": map[string]interface{}{
+						"metadata": map[string]any{
 							"name":      "labelled",
 							"namespace": "ns1",
-							"labels":    map[string]interface{}{"cluster.x-k8s.io/provider": "infrastructure-foo"},
+							"labels":    map[string]any{"cluster.x-k8s.io/provider": "infrastructure-foo"},
 						},
 					},
 				},
 				&unstructured.Unstructured{
-					Object: map[string]interface{}{
+					Object: map[string]any{
 						"apiVersion": "v1",
 						"kind":       "ConfigMap",
-						"metadata": map[string]interface{}{
+						"metadata": map[string]any{
 							"name":      "not-labelled",
 							"namespace": "ns1",
 						},

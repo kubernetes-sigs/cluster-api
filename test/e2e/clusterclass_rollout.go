@@ -465,7 +465,7 @@ func ClusterClassRolloutSpec(ctx context.Context, inputGetter func() ClusterClas
 			ClusterProxy: input.BootstrapClusterProxy,
 			ClusterClass: clusterResources.ClusterClass,
 			Cluster:      clusterResources.Cluster,
-			ModifyControlPlaneFields: map[string]interface{}{
+			ModifyControlPlaneFields: map[string]any{
 				"spec.kubeadmConfigSpec.verbosity": int64(4),
 			},
 			WaitForControlPlane: input.E2EConfig.GetIntervals(specName, "wait-control-plane"),
@@ -475,7 +475,7 @@ func ClusterClassRolloutSpec(ctx context.Context, inputGetter func() ClusterClas
 			ClusterProxy: input.BootstrapClusterProxy,
 			ClusterClass: clusterResources.ClusterClass,
 			Cluster:      clusterResources.Cluster,
-			ModifyBootstrapConfigTemplateFields: map[string]interface{}{
+			ModifyBootstrapConfigTemplateFields: map[string]any{
 				"spec.template.spec.verbosity": int64(4),
 			},
 			WaitForMachineDeployments: input.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),
@@ -485,7 +485,7 @@ func ClusterClassRolloutSpec(ctx context.Context, inputGetter func() ClusterClas
 			ClusterProxy: input.BootstrapClusterProxy,
 			ClusterClass: clusterResources.ClusterClass,
 			Cluster:      clusterResources.Cluster,
-			ModifyBootstrapConfigTemplateFields: map[string]interface{}{
+			ModifyBootstrapConfigTemplateFields: map[string]any{
 				"spec.template.spec.verbosity": int64(4),
 			},
 			WaitForMachinePools: input.E2EConfig.GetIntervals(specName, "wait-machine-pool-nodes"),
@@ -1527,7 +1527,7 @@ type modifyControlPlaneViaClusterAndWaitInput struct {
 	ClusterProxy               framework.ClusterProxy
 	Cluster                    *clusterv1.Cluster
 	ModifyControlPlaneTopology func(topology *clusterv1.ControlPlaneTopology)
-	WaitForControlPlane        []interface{}
+	WaitForControlPlane        []any
 }
 
 // modifyControlPlaneViaClusterAndWait modifies the ControlPlaneTopology of a Cluster topology via ModifyControlPlaneTopology.
@@ -1570,7 +1570,7 @@ type modifyMachineDeploymentViaClusterAndWaitInput struct {
 	ClusterProxy                    framework.ClusterProxy
 	Cluster                         *clusterv1.Cluster
 	ModifyMachineDeploymentTopology func(topology *clusterv1.MachineDeploymentTopology)
-	WaitForMachineDeployments       []interface{}
+	WaitForMachineDeployments       []any
 }
 
 // modifyMachineDeploymentViaClusterAndWait modifies the MachineDeploymentTopology of a Cluster topology via ModifyMachineDeploymentTopology.
@@ -1616,7 +1616,7 @@ type modifyMachinePoolViaClusterAndWaitInput struct {
 	ClusterProxy              framework.ClusterProxy
 	Cluster                   *clusterv1.Cluster
 	ModifyMachinePoolTopology func(topology *clusterv1.MachinePoolTopology)
-	WaitForMachinePools       []interface{}
+	WaitForMachinePools       []any
 }
 
 // modifyMachinePoolViaClusterAndWait modifies the MachinePoolTopology of a Cluster topology via ModifyMachinePoolTopology.

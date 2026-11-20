@@ -23,8 +23,8 @@ import (
 // UnstructuredToValues provide a utility function for creation values describing an Unstructured objects. e.g.
 // Deployment="capd-controller-manager" Namespace="capd-system"  (<Kind>=<name> Namespace=<Namespace>)
 // CustomResourceDefinition="dockerclusters.infrastructure.cluster.x-k8s.io" (omit Namespace if it does not apply).
-func UnstructuredToValues(obj unstructured.Unstructured) []interface{} {
-	values := []interface{}{
+func UnstructuredToValues(obj unstructured.Unstructured) []any {
+	values := []any{
 		obj.GetKind(), obj.GetName(),
 	}
 	if obj.GetNamespace() != "" {

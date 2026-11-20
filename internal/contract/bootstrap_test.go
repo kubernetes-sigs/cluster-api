@@ -24,7 +24,7 @@ import (
 )
 
 func TestBootstrap(t *testing.T) {
-	obj := &unstructured.Unstructured{Object: map[string]interface{}{}}
+	obj := &unstructured.Unstructured{Object: map[string]any{}}
 
 	t.Run("Manages status.initialization.dataSecretCreated", func(t *testing.T) {
 		g := NewWithT(t)
@@ -41,7 +41,7 @@ func TestBootstrap(t *testing.T) {
 
 		g.Expect(Bootstrap().DataSecretCreated("v1beta1").Path()).To(Equal(Path{"status", "ready"}))
 
-		objV1beta1 := &unstructured.Unstructured{Object: map[string]interface{}{}}
+		objV1beta1 := &unstructured.Unstructured{Object: map[string]any{}}
 		err = Bootstrap().DataSecretCreated("v1beta1").Set(objV1beta1, true)
 		g.Expect(err).ToNot(HaveOccurred())
 

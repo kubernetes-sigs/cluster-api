@@ -314,10 +314,10 @@ func machineListForTestGetMachinesForCluster() *clusterv1.MachineList {
 
 type fakeClient struct {
 	client.Client
-	list interface{}
+	list any
 
 	createErr    error
-	get          map[string]interface{}
+	get          map[string]any
 	getCalled    bool
 	updateCalled bool
 	getErr       error

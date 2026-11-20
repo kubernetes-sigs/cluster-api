@@ -60,7 +60,7 @@ func convertToAPIExtensionsJSONSchemaProps(schema *clusterv1.JSONSchemaProps, fl
 	}
 
 	if schema.Default != nil && schema.Default.Raw != nil {
-		var v interface{}
+		var v any
 		if err := json.Unmarshal(schema.Default.Raw, &v); err != nil {
 			allErrs = append(allErrs, field.Invalid(fldPath.Child("default"), string(schema.Default.Raw),
 				fmt.Sprintf("default is not valid JSON: %v", err)))
@@ -82,7 +82,7 @@ func convertToAPIExtensionsJSONSchemaProps(schema *clusterv1.JSONSchemaProps, fl
 				continue
 			}
 
-			var v interface{}
+			var v any
 			if err := json.Unmarshal(enum.Raw, &v); err != nil {
 				allErrs = append(allErrs, field.Invalid(fldPath.Child("enum").Index(i), string(enum.Raw),
 					fmt.Sprintf("enum value is not valid JSON: %v", err)))
@@ -100,7 +100,7 @@ func convertToAPIExtensionsJSONSchemaProps(schema *clusterv1.JSONSchemaProps, fl
 	}
 
 	if schema.Example != nil && schema.Example.Raw != nil {
-		var v interface{}
+		var v any
 		if err := json.Unmarshal(schema.Example.Raw, &v); err != nil {
 			allErrs = append(allErrs, field.Invalid(fldPath.Child("example"), string(schema.Example.Raw),
 				fmt.Sprintf("example is not valid JSON: %v", err)))

@@ -70,7 +70,7 @@ type WaitForMachinePoolNodesToExistInput struct {
 }
 
 // WaitForMachinePoolNodesToExist waits until all nodes associated with a machine pool exist.
-func WaitForMachinePoolNodesToExist(ctx context.Context, input WaitForMachinePoolNodesToExistInput, intervals ...interface{}) {
+func WaitForMachinePoolNodesToExist(ctx context.Context, input WaitForMachinePoolNodesToExistInput, intervals ...any) {
 	Expect(ctx).NotTo(BeNil(), "ctx is required for WaitForMachinePoolNodesToExist")
 	Expect(input.Getter).ToNot(BeNil(), "Invalid argument. input.Getter can't be nil when calling WaitForMachinePoolNodesToExist")
 	Expect(input.MachinePool).ToNot(BeNil(), "Invalid argument. input.MachinePool can't be nil when calling WaitForMachinePoolNodesToExist")
@@ -103,7 +103,7 @@ type DiscoveryAndWaitForMachinePoolsInput struct {
 }
 
 // DiscoveryAndWaitForMachinePools discovers the MachinePools existing in a cluster and waits for them to be ready (all the machines provisioned).
-func DiscoveryAndWaitForMachinePools(ctx context.Context, input DiscoveryAndWaitForMachinePoolsInput, intervals ...interface{}) []*clusterv1.MachinePool {
+func DiscoveryAndWaitForMachinePools(ctx context.Context, input DiscoveryAndWaitForMachinePoolsInput, intervals ...any) []*clusterv1.MachinePool {
 	Expect(ctx).NotTo(BeNil(), "ctx is required for DiscoveryAndWaitForMachinePools")
 	Expect(input.Lister).ToNot(BeNil(), "Invalid argument. input.Lister can't be nil when calling DiscoveryAndWaitForMachinePools")
 	Expect(input.Cluster).ToNot(BeNil(), "Invalid argument. input.Cluster can't be nil when calling DiscoveryAndWaitForMachinePools")
@@ -130,7 +130,7 @@ type UpgradeMachinePoolAndWaitInput struct {
 	Cluster                        *clusterv1.Cluster
 	UpgradeVersion                 string
 	MachinePools                   []*clusterv1.MachinePool
-	WaitForMachinePoolToBeUpgraded []interface{}
+	WaitForMachinePoolToBeUpgraded []any
 }
 
 // UpgradeMachinePoolAndWait upgrades a machine pool and waits for its instances to be upgraded.
@@ -176,7 +176,7 @@ type ScaleMachinePoolAndWaitInput struct {
 	Cluster                   *clusterv1.Cluster
 	Replicas                  int32
 	MachinePools              []*clusterv1.MachinePool
-	WaitForMachinePoolToScale []interface{}
+	WaitForMachinePoolToScale []any
 }
 
 // ScaleMachinePoolAndWait scales a machine pool and waits for its instances to scale up.
@@ -210,7 +210,7 @@ type ScaleMachinePoolTopologyAndWaitInput struct {
 	ClusterProxy        ClusterProxy
 	Cluster             *clusterv1.Cluster
 	Replicas            int32
-	WaitForMachinePools []interface{}
+	WaitForMachinePools []any
 	Getter              Getter
 }
 
@@ -268,7 +268,7 @@ type WaitForMachinePoolInstancesToBeUpgradedInput struct {
 }
 
 // WaitForMachinePoolInstancesToBeUpgraded waits until all instances belonging to a MachinePool are upgraded to the correct kubernetes version.
-func WaitForMachinePoolInstancesToBeUpgraded(ctx context.Context, input WaitForMachinePoolInstancesToBeUpgradedInput, intervals ...interface{}) {
+func WaitForMachinePoolInstancesToBeUpgraded(ctx context.Context, input WaitForMachinePoolInstancesToBeUpgradedInput, intervals ...any) {
 	Expect(ctx).NotTo(BeNil(), "ctx is required for WaitForMachinePoolInstancesToBeUpgraded")
 	Expect(input.Getter).ToNot(BeNil(), "Invalid argument. input.Getter can't be nil when calling WaitForMachinePoolInstancesToBeUpgraded")
 	Expect(input.Cluster).ToNot(BeNil(), "Invalid argument. input.Cluster can't be nil when calling WaitForMachinePoolInstancesToBeUpgraded")
@@ -350,7 +350,7 @@ type AssertMachinePoolReplicasInput struct {
 	Getter             Getter
 	MachinePool        *clusterv1.MachinePool
 	Replicas           int32
-	WaitForMachinePool []interface{}
+	WaitForMachinePool []any
 }
 
 func AssertMachinePoolReplicas(ctx context.Context, input AssertMachinePoolReplicasInput) {

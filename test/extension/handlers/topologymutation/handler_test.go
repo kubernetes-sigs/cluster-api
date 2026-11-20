@@ -611,8 +611,8 @@ func TestHandler_GeneratePatches(t *testing.T) {
 				g.Expect(item.PatchType).To(Equal(expectedItem.PatchType))
 				g.Expect(item.UID).To(Equal(expectedItem.UID))
 
-				var actualPatchOps []map[string]interface{}
-				var expectedPatchOps []map[string]interface{}
+				var actualPatchOps []map[string]any
+				var expectedPatchOps []map[string]any
 				g.Expect(json.Unmarshal(item.Patch, &actualPatchOps)).To(Succeed())
 				g.Expect(json.Unmarshal(expectedItem.Patch, &expectedPatchOps)).To(Succeed())
 				g.Expect(actualPatchOps).To(ConsistOf(expectedPatchOps))
@@ -631,7 +631,7 @@ func toJSONCompact(value string) []byte {
 }
 
 // toJSON marshals the object and returns a byte array. This function panics on any error.
-func toJSON(val interface{}) []byte {
+func toJSON(val any) []byte {
 	jsonStr, err := json.Marshal(val)
 	if err != nil {
 		panic(err)
@@ -640,7 +640,7 @@ func toJSON(val interface{}) []byte {
 }
 
 // requestItem returns a GeneratePatchesRequestItem with the given uid, variables and object.
-func requestItem(uid string, object interface{}, variables []runtimehooksv1.Variable) runtimehooksv1.GeneratePatchesRequestItem {
+func requestItem(uid string, object any, variables []runtimehooksv1.Variable) runtimehooksv1.GeneratePatchesRequestItem {
 	return runtimehooksv1.GeneratePatchesRequestItem{
 		UID:       types.UID(uid),
 		Variables: variables,
@@ -660,7 +660,7 @@ func responseItem(uid, patch string) runtimehooksv1.GeneratePatchesResponseItem 
 }
 
 // newVariable returns a runtimehooksv1.Variable with the passed name and value.
-func newVariable(name string, value interface{}) runtimehooksv1.Variable {
+func newVariable(name string, value any) runtimehooksv1.Variable {
 	return runtimehooksv1.Variable{
 		Name:  name,
 		Value: apiextensionsv1.JSON{Raw: toJSON(value)},

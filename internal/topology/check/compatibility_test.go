@@ -39,12 +39,12 @@ var referencedObjectsCompatibilityTestCases = []referencedObjectsCompatibilityTe
 	{
 		name: "Fails if group changes",
 		current: &unstructured.Unstructured{
-			Object: map[string]interface{}{
+			Object: map[string]any{
 				"apiVersion": "foo/vx",
 			},
 		},
 		desired: &unstructured.Unstructured{
-			Object: map[string]interface{}{
+			Object: map[string]any{
 				"apiVersion": "bar/vx",
 			},
 		},
@@ -53,12 +53,12 @@ var referencedObjectsCompatibilityTestCases = []referencedObjectsCompatibilityTe
 	{
 		name: "Fails if kind changes",
 		current: &unstructured.Unstructured{
-			Object: map[string]interface{}{
+			Object: map[string]any{
 				"kind": "foo",
 			},
 		},
 		desired: &unstructured.Unstructured{
-			Object: map[string]interface{}{
+			Object: map[string]any{
 				"kind": "bar",
 			},
 		},
@@ -67,13 +67,13 @@ var referencedObjectsCompatibilityTestCases = []referencedObjectsCompatibilityTe
 	{
 		name: "Pass if gvk remains the same",
 		current: &unstructured.Unstructured{
-			Object: map[string]interface{}{
+			Object: map[string]any{
 				"apiVersion": "infrastructure.cluster.x-k8s.io/foo",
 				"kind":       "foo",
 			},
 		},
 		desired: &unstructured.Unstructured{
-			Object: map[string]interface{}{
+			Object: map[string]any{
 				"apiVersion": "infrastructure.cluster.x-k8s.io/foo",
 				"kind":       "foo",
 			},
@@ -83,13 +83,13 @@ var referencedObjectsCompatibilityTestCases = []referencedObjectsCompatibilityTe
 	{
 		name: "Pass if version changes but group and kind remains the same",
 		current: &unstructured.Unstructured{
-			Object: map[string]interface{}{
+			Object: map[string]any{
 				"apiVersion": "infrastructure.cluster.x-k8s.io/foo",
 				"kind":       "foo",
 			},
 		},
 		desired: &unstructured.Unstructured{
-			Object: map[string]interface{}{
+			Object: map[string]any{
 				"apiVersion": "infrastructure.cluster.x-k8s.io/bar",
 				"kind":       "foo",
 			},
@@ -99,15 +99,15 @@ var referencedObjectsCompatibilityTestCases = []referencedObjectsCompatibilityTe
 	{
 		name: "Fails if namespace changes",
 		current: &unstructured.Unstructured{
-			Object: map[string]interface{}{
-				"metadata": map[string]interface{}{
+			Object: map[string]any{
+				"metadata": map[string]any{
 					"namespace": "foo",
 				},
 			},
 		},
 		desired: &unstructured.Unstructured{
-			Object: map[string]interface{}{
-				"metadata": map[string]interface{}{
+			Object: map[string]any{
+				"metadata": map[string]any{
 					"namespace": "bar",
 				},
 			},
@@ -135,15 +135,15 @@ func TestObjectsAreStrictlyCompatible(t *testing.T) {
 		{
 			name: "Fails if name changes",
 			current: &unstructured.Unstructured{
-				Object: map[string]interface{}{
-					"metadata": map[string]interface{}{
+				Object: map[string]any{
+					"metadata": map[string]any{
 						"name": "foo",
 					},
 				},
 			},
 			desired: &unstructured.Unstructured{
-				Object: map[string]interface{}{
-					"metadata": map[string]interface{}{
+				Object: map[string]any{
+					"metadata": map[string]any{
 						"name": "bar",
 					},
 				},
@@ -153,15 +153,15 @@ func TestObjectsAreStrictlyCompatible(t *testing.T) {
 		{
 			name: "Pass if name remains the same",
 			current: &unstructured.Unstructured{
-				Object: map[string]interface{}{
-					"metadata": map[string]interface{}{
+				Object: map[string]any{
+					"metadata": map[string]any{
 						"name": "foo",
 					},
 				},
 			},
 			desired: &unstructured.Unstructured{
-				Object: map[string]interface{}{
-					"metadata": map[string]interface{}{
+				Object: map[string]any{
+					"metadata": map[string]any{
 						"name": "foo",
 					},
 				},

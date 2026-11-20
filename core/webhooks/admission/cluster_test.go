@@ -1833,7 +1833,7 @@ func TestClusterTopologyValidation(t *testing.T) {
 				// Note: CRD is needed to look up the apiVersion from contract labels.
 				builder.GenericControlPlaneCRD,
 				builder.ControlPlane("fooboo", "cluster1-cp").WithVersion("v1.2.3+ANCBG0").
-					WithStatusFields(map[string]interface{}{"status.version": "v1.2.3+ANCBG0"}).
+					WithStatusFields(map[string]any{"status.version": "v1.2.3+ANCBG0"}).
 					Build(),
 			},
 		},
@@ -1924,7 +1924,7 @@ func TestClusterTopologyValidation(t *testing.T) {
 				// Note: CRD is needed to look up the apiVersion from contract labels.
 				builder.GenericControlPlaneCRD,
 				builder.ControlPlane("fooboo", "cluster1-cp").WithVersion("v1.2.3").
-					WithStatusFields(map[string]interface{}{"status.version": "v1.2.3"}).
+					WithStatusFields(map[string]any{"status.version": "v1.2.3"}).
 					Build(),
 			},
 		},
@@ -1949,7 +1949,7 @@ func TestClusterTopologyValidation(t *testing.T) {
 				// Note: CRD is needed to look up the apiVersion from contract labels.
 				builder.GenericControlPlaneCRD,
 				builder.ControlPlane("fooboo", "cluster1-cp").WithVersion("v1.2.3+ANCBG0").
-					WithStatusFields(map[string]interface{}{"status.version": "v1.2.3+ANCBG0"}).
+					WithStatusFields(map[string]any{"status.version": "v1.2.3+ANCBG0"}).
 					Build(),
 			},
 		},
@@ -1974,7 +1974,7 @@ func TestClusterTopologyValidation(t *testing.T) {
 				// Note: CRD is needed to look up the apiVersion from contract labels.
 				builder.GenericControlPlaneCRD,
 				builder.ControlPlane("fooboo", "cluster1-cp").WithVersion("v1.2.3").
-					WithStatusFields(map[string]interface{}{"status.version": "v1.2.3"}).
+					WithStatusFields(map[string]any{"status.version": "v1.2.3"}).
 					Build(),
 			},
 		},
@@ -2101,7 +2101,7 @@ func TestClusterTopologyValidation(t *testing.T) {
 				Build(),
 			additionalObjects: []client.Object{
 				builder.ControlPlane("fooboo", "cluster1-cp").WithVersion("v1.19.1").
-					WithStatusFields(map[string]interface{}{"status.version": "v1.19.1"}).
+					WithStatusFields(map[string]any{"status.version": "v1.19.1"}).
 					Build(),
 				// Note: CRD is needed to look up the apiVersion from contract labels.
 				builder.GenericControlPlaneCRD,
@@ -2183,7 +2183,7 @@ func TestClusterTopologyValidation(t *testing.T) {
 				Build(),
 			additionalObjects: []client.Object{
 				builder.ControlPlane("fooboo", "cluster1-cp").WithVersion("v1.19.1").
-					WithStatusFields(map[string]interface{}{"status.version": "v1.19.1"}).
+					WithStatusFields(map[string]any{"status.version": "v1.19.1"}).
 					Build(),
 				// Note: CRD is needed to look up the apiVersion from contract labels.
 				builder.GenericControlPlaneCRD,
@@ -2266,7 +2266,7 @@ func TestClusterTopologyValidation(t *testing.T) {
 				Build(),
 			additionalObjects: []client.Object{
 				builder.ControlPlane("fooboo", "cluster1-cp").WithVersion("v1.19.1").
-					WithStatusFields(map[string]interface{}{"status.version": "v1.19.1"}).
+					WithStatusFields(map[string]any{"status.version": "v1.19.1"}).
 					Build(),
 				builder.MachineDeployment("fooboo", "cluster1-workers1").WithLabels(map[string]string{
 					clusterv1.ClusterNameLabel:                          "cluster1",
@@ -2298,7 +2298,7 @@ func TestClusterTopologyValidation(t *testing.T) {
 				Build(),
 			additionalObjects: []client.Object{
 				builder.ControlPlane("fooboo", "cluster1-cp").WithVersion("v1.19.1").
-					WithStatusFields(map[string]interface{}{"status.version": "v1.19.1"}).
+					WithStatusFields(map[string]any{"status.version": "v1.19.1"}).
 					Build(),
 				builder.MachinePool("fooboo", "cluster1-pool1").WithLabels(map[string]string{
 					clusterv1.ClusterNameLabel:                    "cluster1",
@@ -3734,7 +3734,7 @@ func Test_validateTopologyVersionUpdate(t *testing.T) {
 	// A control plane that is up to date, so that only the version ceiling can reject an upgrade.
 	controlPlaneObjects := []client.Object{
 		builder.ControlPlane("fooboo", "cluster1-cp").WithVersion("v1.19.1").
-			WithStatusFields(map[string]interface{}{"status.version": "v1.19.1"}).
+			WithStatusFields(map[string]any{"status.version": "v1.19.1"}).
 			Build(),
 		// Note: CRD is needed to look up the apiVersion from contract labels.
 		builder.GenericControlPlaneCRD,
@@ -3877,7 +3877,7 @@ func Test_validateTopologyControlPlaneVersion(t *testing.T) {
 				Build(),
 			additionalObjects: []client.Object{
 				builder.ControlPlane("fooboo", "cluster1-cp").WithVersion("v1.19.1").
-					WithStatusFields(map[string]interface{}{"status.version": "v1.19.1"}).
+					WithStatusFields(map[string]any{"status.version": "v1.19.1"}).
 					Build(),
 				// Note: CRD is needed to look up the apiVersion from contract labels.
 				builder.GenericControlPlaneCRD,
@@ -3910,7 +3910,7 @@ func Test_validateTopologyControlPlaneVersion(t *testing.T) {
 				Build(),
 			additionalObjects: []client.Object{
 				builder.ControlPlane("fooboo", "cluster1-cp").WithVersion("v1.18.1").
-					WithStatusFields(map[string]interface{}{"status.version": "v1.17.1"}).
+					WithStatusFields(map[string]any{"status.version": "v1.17.1"}).
 					Build(),
 			},
 		},
@@ -3926,7 +3926,7 @@ func Test_validateTopologyControlPlaneVersion(t *testing.T) {
 				Build(),
 			additionalObjects: []client.Object{
 				builder.ControlPlane("fooboo", "cluster1-cp").WithVersion("v1.18.1").
-					WithStatusFields(map[string]interface{}{"status.version": "v1.18.1"}).
+					WithStatusFields(map[string]any{"status.version": "v1.18.1"}).
 					Build(),
 			},
 		},
@@ -4470,7 +4470,7 @@ func Test_validateTopologyWorkerVersionsUpdate(t *testing.T) {
 					controlPlaneStatus = tt.controlPlaneVersion
 				}
 				objs = append(objs, builder.ControlPlane("fooboo", "cluster1-cp").WithVersion(tt.controlPlaneVersion).
-					WithStatusFields(map[string]interface{}{"status.version": controlPlaneStatus}).
+					WithStatusFields(map[string]any{"status.version": controlPlaneStatus}).
 					Build())
 			}
 			if tt.runningMachineDeployment != "" {

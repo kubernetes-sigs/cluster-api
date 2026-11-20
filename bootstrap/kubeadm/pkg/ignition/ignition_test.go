@@ -74,7 +74,7 @@ func Test_NewNode(t *testing.T) {
 			t.Fatalf("Returned data is nil")
 		}
 
-		decodedValue := map[string]interface{}{}
+		decodedValue := map[string]any{}
 
 		if err := json.Unmarshal(ignitionData, &decodedValue); err != nil {
 			t.Fatalf("Decoding received Ignition data as JSON: %v", err)
@@ -190,7 +190,7 @@ func Test_NewJoinControlPlane(t *testing.T) {
 			t.Fatalf("Returned data is nil")
 		}
 
-		decodedValue := map[string]interface{}{}
+		decodedValue := map[string]any{}
 
 		if err := json.Unmarshal(ignitionData, &decodedValue); err != nil {
 			t.Fatalf("Decoding received Ignition data as JSON: %v", err)
@@ -306,7 +306,7 @@ func Test_NewInitControlPlane(t *testing.T) {
 		}
 
 		t.Run("valid_JSON_data", func(t *testing.T) {
-			decodedValue := map[string]interface{}{}
+			decodedValue := map[string]any{}
 
 			if err := json.Unmarshal(ignitionData, &decodedValue); err != nil {
 				t.Fatalf("Decoding received Ignition data as JSON: %v", err)

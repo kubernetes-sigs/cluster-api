@@ -1546,10 +1546,10 @@ func TestMatchesInfraMachine(t *testing.T) {
 		}
 
 		infraMachineTemplate := &unstructured.Unstructured{
-			Object: map[string]interface{}{
+			Object: map[string]any{
 				"apiVersion": builder.InfrastructureGroupVersion.String(),
 				"kind":       builder.TestInfrastructureMachineTemplateKind,
-				"metadata": map[string]interface{}{
+				"metadata": map[string]any{
 					"name":      "infra-machine-template1",
 					"namespace": "default",
 				},
@@ -1568,10 +1568,10 @@ func TestMatchesInfraMachine(t *testing.T) {
 
 		infraConfigs := map[string]*unstructured.Unstructured{
 			m.Name: {
-				Object: map[string]interface{}{
+				Object: map[string]any{
 					"apiVersion": builder.InfrastructureGroupVersion.String(),
 					"kind":       builder.TestInfrastructureMachineKind,
-					"metadata": map[string]interface{}{
+					"metadata": map[string]any{
 						"name":      "infra-config1",
 						"namespace": "default",
 					},
@@ -1673,13 +1673,13 @@ func TestMatchesInfraMachine(t *testing.T) {
 		// Note: it is required to have a valid infra config, otherwise the test won't hit the code path where KCP tries to read the infra template.
 		infraConfigs := map[string]*unstructured.Unstructured{
 			m.Name: {
-				Object: map[string]interface{}{
+				Object: map[string]any{
 					"apiVersion": builder.InfrastructureGroupVersion.String(),
 					"kind":       builder.TestInfrastructureMachineKind,
-					"metadata": map[string]interface{}{
+					"metadata": map[string]any{
 						"name":      "infra-config1",
 						"namespace": "default",
-						"annotations": map[string]interface{}{
+						"annotations": map[string]any{
 							clusterv1.TemplateClonedFromNameAnnotation:      "infra-machine-template1",
 							clusterv1.TemplateClonedFromGroupKindAnnotation: "TestInfrastructureMachineTemplate.infrastructure.cluster.x-k8s.io",
 						},
@@ -1735,20 +1735,20 @@ func TestUpToDate(t *testing.T) {
 	}
 
 	infraMachineTemplate1 := &unstructured.Unstructured{
-		Object: map[string]interface{}{
+		Object: map[string]any{
 			"apiVersion": builder.InfrastructureGroupVersion.String(),
 			"kind":       builder.TestInfrastructureMachineTemplateKind,
-			"metadata": map[string]interface{}{
+			"metadata": map[string]any{
 				"name":      "infra-machine-template1",
 				"namespace": "default",
 			},
 		},
 	}
 	infraMachineTemplate2 := &unstructured.Unstructured{
-		Object: map[string]interface{}{
+		Object: map[string]any{
 			"apiVersion": builder.InfrastructureGroupVersion.String(),
 			"kind":       builder.TestInfrastructureMachineTemplateKind,
-			"metadata": map[string]interface{}{
+			"metadata": map[string]any{
 				"name":      "infra-machine-template2",
 				"namespace": "default",
 			},
@@ -1781,13 +1781,13 @@ func TestUpToDate(t *testing.T) {
 
 	defaultInfraConfigs := map[string]*unstructured.Unstructured{
 		defaultMachine.Name: {
-			Object: map[string]interface{}{
+			Object: map[string]any{
 				"kind":       builder.TestInfrastructureMachineKind,
 				"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
-				"metadata": map[string]interface{}{
+				"metadata": map[string]any{
 					"name":      "infra-machine1",
 					"namespace": "default",
-					"annotations": map[string]interface{}{
+					"annotations": map[string]any{
 						"cluster.x-k8s.io/cloned-from-name":      "infra-machine-template1",
 						"cluster.x-k8s.io/cloned-from-groupkind": builder.InfrastructureGroupVersion.WithKind(builder.TestInfrastructureMachineTemplateKind).GroupKind().String(),
 					},

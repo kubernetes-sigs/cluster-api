@@ -98,7 +98,7 @@ func TestUpdateKubeProxyImageInfo(t *testing.T) {
 		ds          appsv1.DaemonSet
 		expectErr   bool
 		expectImage string
-		clientGet   map[string]interface{}
+		clientGet   map[string]any
 		patchErr    error
 		KCP         *controlplanev1.KubeadmControlPlane
 	}{

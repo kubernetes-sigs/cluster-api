@@ -69,7 +69,7 @@ func Test_AddObjectHierarchy(t *testing.T) {
 		name                  string
 		obj                   metav1.Object
 		objects               []client.Object
-		expectedKeysAndValues []interface{}
+		expectedKeysAndValues []any
 	}{
 		{
 			name: "MachineSet owning Machine is added",
@@ -81,7 +81,7 @@ func Test_AddObjectHierarchy(t *testing.T) {
 					Namespace:       metav1.NamespaceDefault,
 				},
 			},
-			expectedKeysAndValues: []interface{}{
+			expectedKeysAndValues: []any{
 				"MachineSet",
 				klog.ObjectRef{Namespace: ms.Namespace, Name: ms.Name},
 			},
@@ -95,7 +95,7 @@ func Test_AddObjectHierarchy(t *testing.T) {
 				},
 			},
 			objects: []client.Object{ms},
-			expectedKeysAndValues: []interface{}{
+			expectedKeysAndValues: []any{
 				"MachineSet",
 				klog.ObjectRef{Namespace: ms.Namespace, Name: ms.Name},
 				"MachineDeployment",
@@ -110,7 +110,7 @@ func Test_AddObjectHierarchy(t *testing.T) {
 					Namespace:       metav1.NamespaceDefault,
 				},
 			},
-			expectedKeysAndValues: []interface{}{
+			expectedKeysAndValues: []any{
 				"MachineDeployment",
 				klog.ObjectRef{Namespace: md.Namespace, Name: md.Name},
 			},
@@ -118,17 +118,17 @@ func Test_AddObjectHierarchy(t *testing.T) {
 		{
 			name: "KubeadmControlPlane and Machine owning DockerMachine are added",
 			obj: &unstructured.Unstructured{
-				Object: map[string]interface{}{
+				Object: map[string]any{
 					"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
 					"kind":       "DockerMachine",
-					"metadata": map[string]interface{}{
-						"ownerReferences": []interface{}{
-							map[string]interface{}{
+					"metadata": map[string]any{
+						"ownerReferences": []any{
+							map[string]any{
 								"apiVersion": clusterv1.GroupVersion.String(),
 								"kind":       "Machine",
 								"name":       "development-3961-4flkb-gzxnb",
 							},
-							map[string]interface{}{
+							map[string]any{
 								"apiVersion": clusterv1.GroupVersion.String(),
 								"kind":       "KubeadmControlPlane",
 								"name":       "development-3961-4flkb",
@@ -138,7 +138,7 @@ func Test_AddObjectHierarchy(t *testing.T) {
 					},
 				},
 			},
-			expectedKeysAndValues: []interface{}{
+			expectedKeysAndValues: []any{
 				"Machine",
 				klog.ObjectRef{Namespace: metav1.NamespaceDefault, Name: "development-3961-4flkb-gzxnb"},
 				"KubeadmControlPlane",
@@ -148,17 +148,17 @@ func Test_AddObjectHierarchy(t *testing.T) {
 		{
 			name: "Duplicate Cluster ownerRef should be deduplicated",
 			obj: &unstructured.Unstructured{
-				Object: map[string]interface{}{
+				Object: map[string]any{
 					"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
 					"kind":       "DockerCluster",
-					"metadata": map[string]interface{}{
-						"ownerReferences": []interface{}{
-							map[string]interface{}{
+					"metadata": map[string]any{
+						"ownerReferences": []any{
+							map[string]any{
 								"apiVersion": clusterv1.GroupVersion.String(),
 								"kind":       "Cluster",
 								"name":       "development-3961",
 							},
-							map[string]interface{}{
+							map[string]any{
 								"apiVersion": clusterv1.GroupVersion.String(),
 								"kind":       "Cluster",
 								"name":       "development-3961",
@@ -168,7 +168,7 @@ func Test_AddObjectHierarchy(t *testing.T) {
 					},
 				},
 			},
-			expectedKeysAndValues: []interface{}{
+			expectedKeysAndValues: []any{
 				"Cluster",
 				klog.ObjectRef{Namespace: metav1.NamespaceDefault, Name: "development-3961"},
 			},
@@ -197,12 +197,12 @@ type fakeLogSink struct {
 	// Embedding NullLogSink so we don't have to implement all funcs
 	// of the LogSink interface.
 	log.NullLogSink
-	keysAndValues []interface{}
+	keysAndValues []any
 }
 
 // WithValues stores keysAndValues so we can later check if the
 // right keysAndValues have been added.
-func (f fakeLogSink) WithValues(keysAndValues ...interface{}) logr.LogSink {
+func (f fakeLogSink) WithValues(keysAndValues ...any) logr.LogSink {
 	f.keysAndValues = keysAndValues
 	return f
 }

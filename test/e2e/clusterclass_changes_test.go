@@ -40,19 +40,19 @@ var _ = Describe("When testing ClusterClass changes [ClusterClass]", Label("Clus
 			// ModifyControlPlaneFields are the ControlPlane fields which will be set on the
 			// ControlPlaneTemplate of the ClusterClass after the initial Cluster creation.
 			// The test verifies that these fields are rolled out to the ControlPlane.
-			ModifyControlPlaneFields: map[string]interface{}{
+			ModifyControlPlaneFields: map[string]any{
 				"spec.kubeadmConfigSpec.verbosity": int64(4),
 			},
 			// ModifyMachineDeploymentBootstrapConfigTemplateFields are the fields which will be set on the
 			// BootstrapConfigTemplate of all MachineDeploymentClasses of the ClusterClass after the initial Cluster creation.
 			// The test verifies that these fields are rolled out to the MachineDeployments.
-			ModifyMachineDeploymentBootstrapConfigTemplateFields: map[string]interface{}{
+			ModifyMachineDeploymentBootstrapConfigTemplateFields: map[string]any{
 				"spec.template.spec.verbosity": int64(4),
 			},
 			// ModifyMachineDeploymentInfrastructureMachineTemplateFields are the fields which will be set on the
 			// InfrastructureMachineTemplate of all MachineDeploymentClasses of the ClusterClass after the initial Cluster creation.
 			// The test verifies that these fields are rolled out to the MachineDeployments.
-			ModifyMachineDeploymentInfrastructureMachineTemplateFields: map[string]interface{}{
+			ModifyMachineDeploymentInfrastructureMachineTemplateFields: map[string]any{
 				"spec.template.spec.backend.inMemory.vm.provisioning.startupDuration": "15s",
 			},
 			// Note: MachinePool changes are not covered as DevMachinePool does not support in-memory backend yet.

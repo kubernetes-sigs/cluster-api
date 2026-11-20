@@ -215,8 +215,8 @@ func Test_GetVariableObjectWithNestedType(t *testing.T) {
 		variableName           string
 		expectedNotFoundError  bool
 		expectedErr            bool
-		object                 interface{}
-		expectedVariableObject interface{}
+		object                 any
+		expectedVariableObject any
 	}{
 		{
 			name:                   "Fails for invalid variable reference",

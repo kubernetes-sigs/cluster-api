@@ -160,9 +160,9 @@ func TestAddLabels(t *testing.T) {
 		{
 			name: "should add labels to a non empty unstructured",
 			obj: &unstructured.Unstructured{
-				Object: map[string]interface{}{
-					"metadata": map[string]interface{}{
-						"labels": map[string]interface{}{
+				Object: map[string]any{
+					"metadata": map[string]any{
+						"labels": map[string]any{
 							"foo": "bar",
 						},
 					},

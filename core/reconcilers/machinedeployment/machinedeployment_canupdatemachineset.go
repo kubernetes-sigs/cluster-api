@@ -368,7 +368,7 @@ func cleanupMachineSet(machineSet *clusterv1.MachineSet) *clusterv1.MachineSet {
 
 func cleanupUnstructured(u *unstructured.Unstructured) *unstructured.Unstructured {
 	cleanedUpU := &unstructured.Unstructured{
-		Object: map[string]interface{}{
+		Object: map[string]any{
 			"apiVersion": u.GetAPIVersion(),
 			"kind":       u.GetKind(),
 			"spec":       u.Object["spec"],
@@ -477,13 +477,13 @@ func matchesUnstructuredSpec(patched, desired runtime.RawExtension) (equal bool,
 		return false, "", pkgerrors.Errorf("could not read spec.template.spec from desired object")
 	}
 
-	cleanedUpPatchedUnstructured := &unstructured.Unstructured{Object: map[string]interface{}{}}
+	cleanedUpPatchedUnstructured := &unstructured.Unstructured{Object: map[string]any{}}
 	if foundPatched {
 		if err := unstructured.SetNestedField(cleanedUpPatchedUnstructured.Object, patchedSpecTemplateSpec, "spec", "template", "spec"); err != nil {
 			return false, "", pkgerrors.Errorf("could not write spec.template.spec to patched object for comparison")
 		}
 	}
-	cleanedUpDesiredUnstructured := &unstructured.Unstructured{Object: map[string]interface{}{}}
+	cleanedUpDesiredUnstructured := &unstructured.Unstructured{Object: map[string]any{}}
 	if foundDesired {
 		if err := unstructured.SetNestedField(cleanedUpDesiredUnstructured.Object, desiredSpecTemplateSpec, "spec", "template", "spec"); err != nil {
 			return false, "", pkgerrors.Errorf("could not write spec.template.spec to desired object for comparison")

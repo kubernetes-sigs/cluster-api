@@ -50,13 +50,13 @@ import (
 func TestApply(t *testing.T) {
 	utilfeature.SetFeatureGateDuringTest(t, features.Gates, features.RuntimeSDK, true)
 	type expectedFields struct {
-		infrastructureCluster                          map[string]interface{}
-		controlPlane                                   map[string]interface{}
-		controlPlaneInfrastructureMachineTemplate      map[string]interface{}
-		machineDeploymentBootstrapTemplate             map[string]map[string]interface{}
-		machineDeploymentInfrastructureMachineTemplate map[string]map[string]interface{}
-		machinePoolBootstrapConfig                     map[string]map[string]interface{}
-		machinePoolInfrastructureMachinePool           map[string]map[string]interface{}
+		infrastructureCluster                          map[string]any
+		controlPlane                                   map[string]any
+		controlPlaneInfrastructureMachineTemplate      map[string]any
+		machineDeploymentBootstrapTemplate             map[string]map[string]any
+		machineDeploymentInfrastructureMachineTemplate map[string]map[string]any
+		machinePoolBootstrapConfig                     map[string]map[string]any
+		machinePoolInfrastructureMachinePool           map[string]map[string]any
 	}
 
 	tests := []struct {
@@ -185,17 +185,17 @@ func TestApply(t *testing.T) {
 				},
 			},
 			expectedFields: expectedFields{
-				infrastructureCluster: map[string]interface{}{
+				infrastructureCluster: map[string]any{
 					"metadata.labels.top-level-label-1":           "top-level-label-value-1",
 					"metadata.annotations.top-level-annotation-1": "top-level-annotation-value-1",
 					"spec.resource": "infraCluster",
 				},
-				controlPlane: map[string]interface{}{
+				controlPlane: map[string]any{
 					"metadata.labels.top-level-label-1":           "top-level-label-value-1",
 					"metadata.annotations.top-level-annotation-1": "top-level-annotation-value-1",
 					"spec.resource": "controlPlane",
 				},
-				controlPlaneInfrastructureMachineTemplate: map[string]interface{}{
+				controlPlaneInfrastructureMachineTemplate: map[string]any{
 					"metadata.labels.top-level-label-1":                      "top-level-label-value-1",
 					"metadata.annotations.top-level-annotation-1":            "top-level-annotation-value-1",
 					"spec.template.metadata.labels.nested-label-1":           "nested-label-value-1",
@@ -366,7 +366,7 @@ func TestApply(t *testing.T) {
 				},
 			},
 			expectedFields: expectedFields{
-				machineDeploymentBootstrapTemplate: map[string]map[string]interface{}{
+				machineDeploymentBootstrapTemplate: map[string]map[string]any{
 					"default-worker-topo1": {
 						"metadata.labels.top-level-label-1":                      "top-level-label-value-1",
 						"metadata.annotations.top-level-annotation-1":            "top-level-annotation-value-1",
@@ -382,7 +382,7 @@ func TestApply(t *testing.T) {
 						"spec.template.spec.resource":                            "default-worker-bootstrap",
 					},
 				},
-				machineDeploymentInfrastructureMachineTemplate: map[string]map[string]interface{}{
+				machineDeploymentInfrastructureMachineTemplate: map[string]map[string]any{
 					"default-worker-topo1": {
 						"metadata.labels.top-level-label-1":                      "top-level-label-value-1",
 						"metadata.annotations.top-level-annotation-1":            "top-level-annotation-value-1",
@@ -398,7 +398,7 @@ func TestApply(t *testing.T) {
 						"spec.template.spec.resource":                            "default-worker-infra",
 					},
 				},
-				machinePoolBootstrapConfig: map[string]map[string]interface{}{
+				machinePoolBootstrapConfig: map[string]map[string]any{
 					"default-mp-worker-topo1": {
 						"metadata.labels.top-level-label-1":           "top-level-label-value-1",
 						"metadata.annotations.top-level-annotation-1": "top-level-annotation-value-1",
@@ -410,7 +410,7 @@ func TestApply(t *testing.T) {
 						"spec.resource": "default-mp-worker-bootstrap",
 					},
 				},
-				machinePoolInfrastructureMachinePool: map[string]map[string]interface{}{
+				machinePoolInfrastructureMachinePool: map[string]map[string]any{
 					"default-mp-worker-topo1": {
 						"metadata.labels.top-level-label-1":           "top-level-label-value-1",
 						"metadata.annotations.top-level-annotation-1": "top-level-annotation-value-1",
@@ -476,10 +476,10 @@ func TestApply(t *testing.T) {
 				},
 			},
 			expectedFields: expectedFields{
-				controlPlane: map[string]interface{}{
+				controlPlane: map[string]any{
 					"spec.clusterName": "cluster1-overwritten",
-					"spec.files": []interface{}{
-						map[string]interface{}{
+					"spec.files": []any{
+						map[string]any{
 							"key1": "value1",
 						},
 					},
@@ -572,7 +572,7 @@ func TestApply(t *testing.T) {
 				},
 			},
 			expectedFields: expectedFields{
-				infrastructureCluster: map[string]interface{}{
+				infrastructureCluster: map[string]any{
 					"spec.clusterName": "cluster1",
 				},
 			},
@@ -603,7 +603,7 @@ func TestApply(t *testing.T) {
 				},
 			},
 			expectedFields: expectedFields{
-				infrastructureCluster: map[string]interface{}{
+				infrastructureCluster: map[string]any{
 					"spec.resource": "infraCluster",
 				},
 			},
@@ -661,7 +661,7 @@ func TestApply(t *testing.T) {
 				},
 			},
 			expectedFields: expectedFields{
-				infrastructureCluster: map[string]interface{}{
+				infrastructureCluster: map[string]any{
 					"metadata.labels.top-level-label-1":           "top-level-label-value-1",
 					"metadata.annotations.top-level-annotation-1": "top-level-annotation-value-1",
 					"spec.resource": "infraCluster",
@@ -762,11 +762,11 @@ func TestApply(t *testing.T) {
 				},
 			},
 			expectedFields: expectedFields{
-				infrastructureCluster: map[string]interface{}{
+				infrastructureCluster: map[string]any{
 					"spec.resource": "infraCluster",
 					"spec.another":  "resource",
 				},
-				controlPlane: map[string]interface{}{
+				controlPlane: map[string]any{
 					"spec.resource": "controlPlane",
 				},
 			},
@@ -915,28 +915,28 @@ func TestApply(t *testing.T) {
 				},
 			},
 			expectedFields: expectedFields{
-				infrastructureCluster: map[string]interface{}{
+				infrastructureCluster: map[string]any{
 					"spec.clusterName": "cluster1",
 				},
-				controlPlane: map[string]interface{}{
+				controlPlane: map[string]any{
 					"spec.controlPlaneName": "controlPlane1",
 				},
-				controlPlaneInfrastructureMachineTemplate: map[string]interface{}{
+				controlPlaneInfrastructureMachineTemplate: map[string]any{
 					"spec.template.spec.controlPlaneName": "controlPlane1",
 				},
-				machineDeploymentInfrastructureMachineTemplate: map[string]map[string]interface{}{
+				machineDeploymentInfrastructureMachineTemplate: map[string]map[string]any{
 					"default-worker-topo1": {"spec.template.spec.machineDeploymentTopologyName": "default-worker-topo1"},
 					"default-worker-topo2": {"spec.template.spec.machineDeploymentTopologyName": "default-worker-topo2"},
 				},
-				machineDeploymentBootstrapTemplate: map[string]map[string]interface{}{
+				machineDeploymentBootstrapTemplate: map[string]map[string]any{
 					"default-worker-topo1": {"spec.template.spec.machineDeploymentTopologyName": "default-worker-topo1"},
 					"default-worker-topo2": {"spec.template.spec.machineDeploymentTopologyName": "default-worker-topo2"},
 				},
-				machinePoolInfrastructureMachinePool: map[string]map[string]interface{}{
+				machinePoolInfrastructureMachinePool: map[string]map[string]any{
 					"default-mp-worker-topo1": {"spec.machinePoolTopologyName": "default-mp-worker-topo1"},
 					"default-mp-worker-topo2": {"spec.machinePoolTopologyName": "default-mp-worker-topo2"},
 				},
-				machinePoolBootstrapConfig: map[string]map[string]interface{}{
+				machinePoolBootstrapConfig: map[string]map[string]any{
 					"default-mp-worker-topo1": {"spec.machinePoolTopologyName": "default-mp-worker-topo1"},
 					"default-mp-worker-topo2": {"spec.machinePoolTopologyName": "default-mp-worker-topo2"},
 				},
@@ -1125,28 +1125,28 @@ func TestApply(t *testing.T) {
 				},
 			},
 			expectedFields: expectedFields{
-				infrastructureCluster: map[string]interface{}{
+				infrastructureCluster: map[string]any{
 					"spec.resource": "value99",
 				},
-				controlPlane: map[string]interface{}{
+				controlPlane: map[string]any{
 					"spec.controlPlaneField": "control-plane-override-value",
 				},
-				controlPlaneInfrastructureMachineTemplate: map[string]interface{}{
+				controlPlaneInfrastructureMachineTemplate: map[string]any{
 					"spec.template.spec.controlPlaneInfraMachineTemplateField": "control-plane-override-value",
 				},
-				machineDeploymentInfrastructureMachineTemplate: map[string]map[string]interface{}{
+				machineDeploymentInfrastructureMachineTemplate: map[string]map[string]any{
 					"default-worker-topo1": {"spec.template.spec.resource": "default-worker-topo1-override-value"},
 					"default-worker-topo2": {"spec.template.spec.resource": "default-md-cluster-wide-value"},
 				},
-				machineDeploymentBootstrapTemplate: map[string]map[string]interface{}{
+				machineDeploymentBootstrapTemplate: map[string]map[string]any{
 					"default-worker-topo1": {"spec.template.spec.resource": "default-worker-topo1-override-value"},
 					"default-worker-topo2": {"spec.template.spec.resource": "default-md-cluster-wide-value"},
 				},
-				machinePoolInfrastructureMachinePool: map[string]map[string]interface{}{
+				machinePoolInfrastructureMachinePool: map[string]map[string]any{
 					"default-mp-worker-topo1": {"spec.resource": "default-mp-worker-topo1-override-value"},
 					"default-mp-worker-topo2": {"spec.resource": "default-mp-cluster-wide-value"},
 				},
-				machinePoolBootstrapConfig: map[string]map[string]interface{}{
+				machinePoolBootstrapConfig: map[string]map[string]any{
 					"default-mp-worker-topo1": {"spec.resource": "default-mp-worker-topo1-override-value"},
 					"default-mp-worker-topo2": {"spec.resource": "default-mp-cluster-wide-value"},
 				},
@@ -1479,10 +1479,10 @@ func setupTestObjects() (*scope.ClusterBlueprint, *scope.ClusterState) {
 	desiredCluster := cluster.DeepCopy()
 
 	infrastructureCluster := builder.InfrastructureCluster(metav1.NamespaceDefault, "infraClusterTemplate1").
-		WithSpecFields(map[string]interface{}{
+		WithSpecFields(map[string]any{
 			// Add an empty spec field, to make sure the InfrastructureCluster matches
 			// the one calculated by computeInfrastructureCluster.
-			"spec": map[string]interface{}{},
+			"spec": map[string]any{},
 		}).
 		Build()
 
@@ -1570,7 +1570,7 @@ func addStandardLabelsAndAnnotations(obj *unstructured.Unstructured, clusterName
 }
 
 // setFields sets fields on an unstructured object from a map.
-func setFields(obj *unstructured.Unstructured, fields map[string]interface{}) {
+func setFields(obj *unstructured.Unstructured, fields map[string]any) {
 	for k, v := range fields {
 		fieldParts := strings.Split(k, ".")
 		if len(fieldParts) == 0 {

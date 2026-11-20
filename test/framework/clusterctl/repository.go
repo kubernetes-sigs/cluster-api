@@ -131,7 +131,7 @@ func CreateRepository(ctx context.Context, input CreateRepositoryInput) string {
 	// creates a clusterctl config file to be used for working with such repository
 	clusterctlConfigFile := &clusterctlConfig{
 		Path: filepath.Join(input.RepositoryFolder, clusterctlConfigFileName),
-		Values: map[string]interface{}{
+		Values: map[string]any{
 			"providers":       providers,
 			"overridesFolder": overridePath,
 		},
@@ -164,7 +164,7 @@ func CopyAndAmendClusterctlConfig(_ context.Context, input CopyAndAmendClusterct
 
 	// Overwrite variables.
 	if clusterctlConfigFile.Values == nil {
-		clusterctlConfigFile.Values = map[string]interface{}{}
+		clusterctlConfigFile.Values = map[string]any{}
 	}
 	for key, value := range input.Variables {
 		clusterctlConfigFile.Values[key] = value

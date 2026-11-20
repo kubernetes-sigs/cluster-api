@@ -487,7 +487,7 @@ func (r *CRDMigrator) reconcileCleanupManagedFields(ctx context.Context, crd *ap
 
 			// Create a patch to update only managedFields.
 			// Include resourceVersion to avoid race conditions.
-			jsonPatch := []map[string]interface{}{
+			jsonPatch := []map[string]any{
 				{
 					"op":    "replace",
 					"path":  "/metadata/managedFields",

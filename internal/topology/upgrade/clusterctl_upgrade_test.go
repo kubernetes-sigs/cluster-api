@@ -898,7 +898,7 @@ func checkTypeToOmitZeroType(mustBeSet bool) func(obj *unstructured.Unstructured
 			if err != nil {
 				return err
 			}
-			if exists && reflect.DeepEqual(value, map[string]interface{}{}) && !mustBeSet {
+			if exists && reflect.DeepEqual(value, map[string]any{}) && !mustBeSet {
 				return pkgerrors.New("expected to not contain a zero structWithOnlyOptionalFields field")
 			}
 			if !exists && mustBeSet {
@@ -909,7 +909,7 @@ func checkTypeToOmitZeroType(mustBeSet bool) func(obj *unstructured.Unstructured
 			if err != nil {
 				return err
 			}
-			if exists && reflect.DeepEqual(value, map[string]interface{}{}) && !mustBeSet {
+			if exists && reflect.DeepEqual(value, map[string]any{}) && !mustBeSet {
 				return pkgerrors.New("expected to not contain a zero structWithOnlyOptionalFields field")
 			}
 			if !exists && mustBeSet {

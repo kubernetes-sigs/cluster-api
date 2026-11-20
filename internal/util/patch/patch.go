@@ -209,7 +209,7 @@ type CopyFieldsInputField struct {
 
 type preservedField struct {
 	Field contract.Path
-	Value interface{}
+	Value any
 }
 
 // CopyFields copies fields from src to dest while preserving fieldsToPreserve.

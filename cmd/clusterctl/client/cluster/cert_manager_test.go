@@ -237,7 +237,7 @@ func Test_shouldUpgrade(t *testing.T) {
 			args: args{
 				objs: []unstructured.Unstructured{
 					{
-						Object: map[string]interface{}{},
+						Object: map[string]any{},
 					},
 				},
 			},
@@ -251,9 +251,9 @@ func Test_shouldUpgrade(t *testing.T) {
 			args: args{
 				objs: []unstructured.Unstructured{
 					{
-						Object: map[string]interface{}{
-							"metadata": map[string]interface{}{
-								"annotations": map[string]interface{}{
+						Object: map[string]any{
+							"metadata": map[string]any{
+								"annotations": map[string]any{
 									clusterctlv1.CertManagerVersionAnnotation: config.CertManagerDefaultVersion,
 								},
 							},
@@ -271,9 +271,9 @@ func Test_shouldUpgrade(t *testing.T) {
 			args: args{
 				objs: []unstructured.Unstructured{
 					{
-						Object: map[string]interface{}{
-							"metadata": map[string]interface{}{
-								"annotations": map[string]interface{}{
+						Object: map[string]any{
+							"metadata": map[string]any{
+								"annotations": map[string]any{
 									clusterctlv1.CertManagerVersionAnnotation: "v1.5.3",
 								},
 							},
@@ -291,9 +291,9 @@ func Test_shouldUpgrade(t *testing.T) {
 			args: args{
 				objs: []unstructured.Unstructured{
 					{
-						Object: map[string]interface{}{
-							"metadata": map[string]interface{}{
-								"annotations": map[string]interface{}{
+						Object: map[string]any{
+							"metadata": map[string]any{
+								"annotations": map[string]any{
 									clusterctlv1.CertManagerVersionAnnotation: "v1.5.3+h4fd5",
 								},
 							},
@@ -311,9 +311,9 @@ func Test_shouldUpgrade(t *testing.T) {
 			args: args{
 				objs: []unstructured.Unstructured{
 					{
-						Object: map[string]interface{}{
-							"metadata": map[string]interface{}{
-								"annotations": map[string]interface{}{
+						Object: map[string]any{
+							"metadata": map[string]any{
+								"annotations": map[string]any{
 									clusterctlv1.CertManagerVersionAnnotation: "v1.5.3+h4fd5",
 								},
 							},
@@ -331,9 +331,9 @@ func Test_shouldUpgrade(t *testing.T) {
 			args: args{
 				objs: []unstructured.Unstructured{
 					{
-						Object: map[string]interface{}{
-							"metadata": map[string]interface{}{
-								"annotations": map[string]interface{}{
+						Object: map[string]any{
+							"metadata": map[string]any{
+								"annotations": map[string]any{
 									clusterctlv1.CertManagerVersionAnnotation: "v1.5.3+build.2",
 								},
 							},
@@ -351,9 +351,9 @@ func Test_shouldUpgrade(t *testing.T) {
 			args: args{
 				objs: []unstructured.Unstructured{
 					{
-						Object: map[string]interface{}{
-							"metadata": map[string]interface{}{
-								"annotations": map[string]interface{}{
+						Object: map[string]any{
+							"metadata": map[string]any{
+								"annotations": map[string]any{
 									clusterctlv1.CertManagerVersionAnnotation: "v1.5.3+build.2",
 								},
 							},
@@ -371,9 +371,9 @@ func Test_shouldUpgrade(t *testing.T) {
 			args: args{
 				objs: []unstructured.Unstructured{
 					{
-						Object: map[string]interface{}{
-							"metadata": map[string]interface{}{
-								"annotations": map[string]interface{}{
+						Object: map[string]any{
+							"metadata": map[string]any{
+								"annotations": map[string]any{
 									clusterctlv1.CertManagerVersionAnnotation: config.CertManagerDefaultVersion,
 								},
 							},
@@ -403,9 +403,9 @@ func Test_shouldUpgrade(t *testing.T) {
 			args: args{
 				objs: []unstructured.Unstructured{
 					{
-						Object: map[string]interface{}{
-							"metadata": map[string]interface{}{
-								"annotations": map[string]interface{}{
+						Object: map[string]any{
+							"metadata": map[string]any{
+								"annotations": map[string]any{
 									clusterctlv1.CertManagerVersionAnnotation: "v0.11.0",
 								},
 							},
@@ -423,9 +423,9 @@ func Test_shouldUpgrade(t *testing.T) {
 			args: args{
 				objs: []unstructured.Unstructured{
 					{
-						Object: map[string]interface{}{
-							"metadata": map[string]interface{}{
-								"annotations": map[string]interface{}{
+						Object: map[string]any{
+							"metadata": map[string]any{
+								"annotations": map[string]any{
 									clusterctlv1.CertManagerVersionAnnotation: "v100.0.0",
 								},
 							},
@@ -444,10 +444,10 @@ func Test_shouldUpgrade(t *testing.T) {
 			args: args{
 				objs: []unstructured.Unstructured{
 					{
-						Object: map[string]interface{}{
+						Object: map[string]any{
 							"kind": "Endpoints",
-							"metadata": map[string]interface{}{
-								"annotations": map[string]interface{}{
+							"metadata": map[string]any{
+								"annotations": map[string]any{
 									clusterctlv1.CertManagerVersionAnnotation: config.CertManagerDefaultVersion,
 								},
 							},

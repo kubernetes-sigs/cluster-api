@@ -75,8 +75,8 @@ func TestFuzzyConversion(t *testing.T) {
 	)
 }
 
-func KubeadmControlPlaneFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
-	return []interface{}{
+func KubeadmControlPlaneFuzzFuncs(_ runtimeserializer.CodecFactory) []any {
+	return []any{
 		hubMachineTemplateSpec,
 		hubKubeadmControlPlaneStatus,
 		spokeKubeadmControlPlane,
@@ -95,8 +95,8 @@ func KubeadmControlPlaneFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{
 	}
 }
 
-func KubeadmControlPlaneTemplateFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
-	return []interface{}{
+func KubeadmControlPlaneTemplateFuzzFuncs(_ runtimeserializer.CodecFactory) []any {
+	return []any{
 		spokeKubeadmConfigSpec,
 		spokeClusterConfiguration,
 		hubBootstrapTokenString,

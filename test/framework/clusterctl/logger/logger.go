@@ -32,7 +32,7 @@ import (
 
 type logger struct {
 	writer io.Writer
-	values []interface{}
+	values []any
 }
 
 var _ logr.LogSink = &logger{}
@@ -44,7 +44,7 @@ func (l *logger) Enabled(_ int) bool {
 	return true
 }
 
-func (l *logger) Info(_ int, msg string, kvs ...interface{}) {
+func (l *logger) Info(_ int, msg string, kvs ...any) {
 	values := copySlice(l.values)
 	values = append(values, kvs...)
 	values = append(values, "msg", msg)
@@ -55,7 +55,7 @@ func (l *logger) Info(_ int, msg string, kvs ...interface{}) {
 	fmt.Fprintln(l.writer, f)
 }
 
-func (l *logger) Error(_ error, _ string, _ ...interface{}) {
+func (l *logger) Error(_ error, _ string, _ ...any) {
 	panic("using log.Error is deprecated in clusterctl")
 }
 
@@ -68,7 +68,7 @@ func (l *logger) WithName(_ string) logr.LogSink {
 	panic("using log.WithName is deprecated in clusterctl")
 }
 
-func (l *logger) WithValues(kvList ...interface{}) logr.LogSink {
+func (l *logger) WithValues(kvList ...any) logr.LogSink {
 	nl := l.clone()
 	nl.values = append(nl.values, kvList...)
 	return nl
@@ -81,13 +81,13 @@ func (l *logger) clone() *logger {
 	}
 }
 
-func copySlice(in []interface{}) []interface{} {
-	out := make([]interface{}, len(in))
+func copySlice(in []any) []any {
+	out := make([]any, len(in))
 	copy(out, in)
 	return out
 }
 
-func flatten(values []interface{}) (string, error) {
+func flatten(values []any) (string, error) {
 	var msgValue string
 	var errorValue error
 	if len(values)%2 == 1 {
@@ -95,13 +95,13 @@ func flatten(values []interface{}) (string, error) {
 	}
 
 	keys := make([]string, 0, len(values)/2)
-	val := make(map[string]interface{}, len(values)/2)
+	val := make(map[string]any, len(values)/2)
 	for i := 0; i < len(values); i += 2 {
 		k, ok := values[i].(string)
 		if !ok {
 			panic(fmt.Sprintf("key is not a string: %s", values[i]))
 		}
-		var v interface{}
+		var v any
 		if i+1 < len(values) {
 			v = values[i+1]
 		}
@@ -142,7 +142,7 @@ func flatten(values []interface{}) (string, error) {
 	return str.String(), nil
 }
 
-func pretty(value interface{}) (string, error) {
+func pretty(value any) (string, error) {
 	jb, err := json.Marshal(value)
 	if err != nil {
 		return "", pkgerrors.Wrapf(err, "Failed to marshal %s", value)

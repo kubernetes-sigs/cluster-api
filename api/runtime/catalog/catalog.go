@@ -47,7 +47,7 @@ type Catalog struct {
 // Hook is a marker interface for a RuntimeHook function.
 // RuntimeHook functions should be defined as a: func(*RequestType, *ResponseType).
 // The name of the func should be the name of the hook.
-type Hook interface{}
+type Hook any
 
 // HookDescriptor is a data structure which holds
 // all information about a Hook.
@@ -178,7 +178,7 @@ func (c *Catalog) AllKnownHooks() map[GroupVersionHook]HookDescriptor {
 
 // Convert will attempt to convert in into out. Both must be pointers.
 // Returns an error if the conversion isn't possible.
-func (c *Catalog) Convert(in, out interface{}, context interface{}) error {
+func (c *Catalog) Convert(in, out any, context any) error {
 	return c.scheme.Convert(in, out, context)
 }
 

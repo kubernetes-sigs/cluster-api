@@ -711,7 +711,7 @@ type verifyNodeDrainsBlockedAndUnblockInput struct {
 	DeploymentNamePrefix         string
 	CPConditionMessageSubstrings []string
 	MDConditionMessageSubstrings map[string][]string
-	WaitForMachineDelete         []interface{}
+	WaitForMachineDelete         []any
 }
 
 func verifyNodeDrainsBlockedAndUnblock(ctx context.Context, input verifyNodeDrainsBlockedAndUnblockInput) {
@@ -804,16 +804,16 @@ func verifyPodEvictedAndSucceeded(g Gomega, pod *corev1.Pod) {
 	g.Expect(podEvicted).To(BeTrue(), "Expected Pod to be evicted")
 }
 
-func getDrainAndDeleteInterval(deleteInterval []interface{}, drainTimeout *int32, replicas int) []interface{} {
+func getDrainAndDeleteInterval(deleteInterval []any, drainTimeout *int32, replicas int) []any {
 	deleteTimeout, err := time.ParseDuration(deleteInterval[0].(string))
 	Expect(err).ToNot(HaveOccurred())
 	// We add the drain timeout to the specified delete timeout per replica.
 	intervalDuration := (time.Duration(*drainTimeout)*time.Second + deleteTimeout) * time.Duration(replicas)
-	res := []interface{}{intervalDuration.String(), deleteInterval[1]}
+	res := []any{intervalDuration.String(), deleteInterval[1]}
 	return res
 }
 
-func unblockNodeVolumeDetachmentFunc(waitControlPlaneIntervals, waitWorkerNodeIntervals []interface{}) func(ctx context.Context, bootstrapClusterProxy framework.ClusterProxy, cluster *clusterv1.Cluster) {
+func unblockNodeVolumeDetachmentFunc(waitControlPlaneIntervals, waitWorkerNodeIntervals []any) func(ctx context.Context, bootstrapClusterProxy framework.ClusterProxy, cluster *clusterv1.Cluster) {
 	return func(ctx context.Context, bootstrapClusterProxy framework.ClusterProxy, cluster *clusterv1.Cluster) {
 		By("Set NodeVolumeDetachTimeoutSeconds to 1s to unblock waiting for volume detachments")
 		// Note: This also verifies that KCP & MachineDeployments are still propagating changes to NodeVolumeDetachTimeoutSeconds down to

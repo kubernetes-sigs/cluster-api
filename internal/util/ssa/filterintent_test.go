@@ -28,30 +28,30 @@ func Test_filterNotAllowedPaths(t *testing.T) {
 	tests := []struct {
 		name      string
 		ctx       *FilterIntentInput
-		wantValue map[string]interface{}
+		wantValue map[string]any
 	}{
 		{
 			name: "Filters out not allowed paths",
 			ctx: &FilterIntentInput{
 				Path: contract.Path{},
-				Value: map[string]interface{}{
+				Value: map[string]any{
 					"apiVersion": "foo.bar/v1",
 					"kind":       "Foo",
-					"metadata": map[string]interface{}{
+					"metadata": map[string]any{
 						"name":      "foo",
 						"namespace": "bar",
-						"labels": map[string]interface{}{
+						"labels": map[string]any{
 							"foo": "123",
 						},
-						"annotations": map[string]interface{}{
+						"annotations": map[string]any{
 							"foo": "123",
 						},
 						"resourceVersion": "123",
 					},
-					"spec": map[string]interface{}{
+					"spec": map[string]any{
 						"foo": "123",
 					},
-					"status": map[string]interface{}{
+					"status": map[string]any{
 						"foo": "123",
 					},
 				},
@@ -67,21 +67,21 @@ func Test_filterNotAllowedPaths(t *testing.T) {
 					},
 				),
 			},
-			wantValue: map[string]interface{}{
+			wantValue: map[string]any{
 				"apiVersion": "foo.bar/v1",
 				"kind":       "Foo",
-				"metadata": map[string]interface{}{
+				"metadata": map[string]any{
 					"name":      "foo",
 					"namespace": "bar",
-					"labels": map[string]interface{}{
+					"labels": map[string]any{
 						"foo": "123",
 					},
-					"annotations": map[string]interface{}{
+					"annotations": map[string]any{
 						"foo": "123",
 					},
 					// metadata.resourceVersion filtered out
 				},
-				"spec": map[string]interface{}{
+				"spec": map[string]any{
 					"foo": "123",
 				},
 				// status filtered out
@@ -91,8 +91,8 @@ func Test_filterNotAllowedPaths(t *testing.T) {
 			name: "Cleanup empty maps",
 			ctx: &FilterIntentInput{
 				Path: contract.Path{},
-				Value: map[string]interface{}{
-					"spec": map[string]interface{}{
+				Value: map[string]any{
+					"spec": map[string]any{
 						"foo": "123",
 					},
 				},
@@ -100,7 +100,7 @@ func Test_filterNotAllowedPaths(t *testing.T) {
 					[]contract.Path{}, // NOTE: we are filtering out everything not in this list (everything)
 				),
 			},
-			wantValue: map[string]interface{}{
+			wantValue: map[string]any{
 				// we are filtering out spec.foo and then spec given that it is an empty map
 			},
 		},
@@ -120,16 +120,16 @@ func Test_filterIgnoredPaths(t *testing.T) {
 	tests := []struct {
 		name      string
 		ctx       *FilterIntentInput
-		wantValue map[string]interface{}
+		wantValue map[string]any
 	}{
 		{
 			name: "Filters out ignore paths",
 			ctx: &FilterIntentInput{
 				Path: contract.Path{},
-				Value: map[string]interface{}{
-					"spec": map[string]interface{}{
+				Value: map[string]any{
+					"spec": map[string]any{
 						"foo": "bar",
-						"controlPlaneEndpoint": map[string]interface{}{
+						"controlPlaneEndpoint": map[string]any{
 							"host": "foo-changed",
 							"port": "123-changed",
 						},
@@ -141,8 +141,8 @@ func Test_filterIgnoredPaths(t *testing.T) {
 					},
 				),
 			},
-			wantValue: map[string]interface{}{
-				"spec": map[string]interface{}{
+			wantValue: map[string]any{
+				"spec": map[string]any{
 					"foo": "bar",
 					// spec.controlPlaneEndpoint filtered out
 				},
@@ -152,8 +152,8 @@ func Test_filterIgnoredPaths(t *testing.T) {
 			name: "Cleanup empty maps",
 			ctx: &FilterIntentInput{
 				Path: contract.Path{},
-				Value: map[string]interface{}{
-					"spec": map[string]interface{}{
+				Value: map[string]any{
+					"spec": map[string]any{
 						"foo": "123",
 					},
 				},
@@ -163,7 +163,7 @@ func Test_filterIgnoredPaths(t *testing.T) {
 					},
 				),
 			},
-			wantValue: map[string]interface{}{
+			wantValue: map[string]any{
 				// we are filtering out spec.foo and then spec given that it is an empty map
 			},
 		},
@@ -171,9 +171,9 @@ func Test_filterIgnoredPaths(t *testing.T) {
 			name: "Cleanup empty nested maps",
 			ctx: &FilterIntentInput{
 				Path: contract.Path{},
-				Value: map[string]interface{}{
-					"spec": map[string]interface{}{
-						"bar": map[string]interface{}{
+				Value: map[string]any{
+					"spec": map[string]any{
+						"bar": map[string]any{
 							"foo": "123",
 						},
 					},
@@ -184,7 +184,7 @@ func Test_filterIgnoredPaths(t *testing.T) {
 					},
 				),
 			},
-			wantValue: map[string]interface{}{
+			wantValue: map[string]any{
 				// we are filtering out spec.bar.foo and then spec given that it is an empty map
 			},
 		},

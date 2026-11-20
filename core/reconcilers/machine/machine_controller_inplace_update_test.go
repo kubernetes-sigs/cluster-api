@@ -907,15 +907,15 @@ func TestCleanupMachine(t *testing.T) {
 func TestCleanupUnstructured(t *testing.T) {
 	g := NewWithT(t)
 
-	original := &unstructured.Unstructured{Object: map[string]interface{}{}}
+	original := &unstructured.Unstructured{Object: map[string]any{}}
 	original.SetAPIVersion("infrastructure.cluster.x-k8s.io/v1beta2")
 	original.SetKind("GenericInfrastructureMachine")
 	original.SetName("infra")
 	original.SetNamespace("default")
 	original.SetLabels(map[string]string{"key": "value"})
 	original.SetAnnotations(map[string]string{"anno": "value"})
-	original.Object["spec"] = map[string]interface{}{"field": "value"}
-	original.Object["status"] = map[string]interface{}{"state": "ready"}
+	original.Object["spec"] = map[string]any{"field": "value"}
+	original.Object["status"] = map[string]any{"state": "ready"}
 
 	cleaned := cleanupUnstructured(original)
 
@@ -975,13 +975,13 @@ func newTestBootstrapConfig(name string) contractapi.BootstrapConfig {
 }
 
 func newTestUnstructured(gvk schema.GroupVersionKind, name string) *unstructured.Unstructured {
-	u := &unstructured.Unstructured{Object: map[string]interface{}{}}
+	u := &unstructured.Unstructured{Object: map[string]any{}}
 	u.SetAPIVersion(gvk.GroupVersion().String())
 	u.SetKind(gvk.Kind)
 	u.SetNamespace("default")
 	u.SetName(name)
 	u.SetLabels(map[string]string{})
 	u.SetAnnotations(map[string]string{})
-	u.Object["spec"] = map[string]interface{}{"field": "value"}
+	u.Object["spec"] = map[string]any{"field": "value"}
 	return u
 }

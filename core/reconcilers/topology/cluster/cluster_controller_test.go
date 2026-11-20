@@ -145,7 +145,7 @@ func TestClusterReconciler_reconcileNewlyCreatedCluster(t *testing.T) {
 		objects = append(objects, mp.Object,
 			mp.InfrastructureMachinePoolObject, mp.BootstrapObject)
 	}
-	jsonPatch := []map[string]interface{}{
+	jsonPatch := []map[string]any{
 		{
 			"op":    "replace",
 			"path":  "/metadata/managedFields",
@@ -919,16 +919,16 @@ func setupTestEnvForIntegrationTests(ns *corev1.Namespace) (func() error, error)
 	// 1) Templates for Machine, Cluster, ControlPlane and Bootstrap.
 	infrastructureMachineTemplate1 := builder.TestInfrastructureMachineTemplate(ns.Name, infrastructureMachineTemplateName1).Build()
 	infrastructureMachineTemplate2 := builder.TestInfrastructureMachineTemplate(ns.Name, infrastructureMachineTemplateName2).
-		WithSpecFields(map[string]interface{}{"spec.template.spec.fakeSetting": true}).
+		WithSpecFields(map[string]any{"spec.template.spec.fakeSetting": true}).
 		Build()
 	infrastructureMachinePoolTemplate1 := builder.TestInfrastructureMachinePoolTemplate(ns.Name, infrastructureMachinePoolTemplateName1).Build()
 	infrastructureMachinePoolTemplate2 := builder.TestInfrastructureMachinePoolTemplate(ns.Name, infrastructureMachinePoolTemplateName2).
-		WithSpecFields(map[string]interface{}{"spec.template.fakeSetting": true}).
+		WithSpecFields(map[string]any{"spec.template.fakeSetting": true}).
 		Build()
 	infrastructureClusterTemplate1 := builder.TestInfrastructureClusterTemplate(ns.Name, "infraclustertemplate1").
 		Build()
 	infrastructureClusterTemplate2 := builder.TestInfrastructureClusterTemplate(ns.Name, "infraclustertemplate2").
-		WithSpecFields(map[string]interface{}{"spec.template.spec.alteredSetting": true}).
+		WithSpecFields(map[string]any{"spec.template.spec.alteredSetting": true}).
 		Build()
 	controlPlaneTemplate := builder.TestControlPlaneTemplate(ns.Name, "cp1").
 		Build()

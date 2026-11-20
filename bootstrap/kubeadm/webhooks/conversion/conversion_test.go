@@ -58,8 +58,8 @@ func TestFuzzyConversion(t *testing.T) {
 	)
 }
 
-func KubeadmConfigFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
-	return []interface{}{
+func KubeadmConfigFuzzFuncs(_ runtimeserializer.CodecFactory) []any {
+	return []any{
 		hubKubeadmConfigStatus,
 		spokeAPIServer,
 		spokeDiscovery,
@@ -74,8 +74,8 @@ func KubeadmConfigFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	}
 }
 
-func KubeadmConfigTemplateFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
-	return []interface{}{
+func KubeadmConfigTemplateFuzzFuncs(_ runtimeserializer.CodecFactory) []any {
+	return []any{
 		spokeAPIServer,
 		spokeDiscovery,
 		spokeKubeadmConfigSpec,

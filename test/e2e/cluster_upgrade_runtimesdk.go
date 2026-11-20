@@ -1229,7 +1229,7 @@ func clusterConditionShowsHookBlocking(cluster *clusterv1.Cluster, hookName stri
 	return strings.Contains(conditions.GetMessage(cluster, clusterv1.ClusterTopologyReconciledCondition), hookName)
 }
 
-func waitControlPlaneVersion(ctx context.Context, c client.Client, cluster *clusterv1.Cluster, version string, intervals []interface{}) {
+func waitControlPlaneVersion(ctx context.Context, c client.Client, cluster *clusterv1.Cluster, version string, intervals []any) {
 	Byf("Waiting for control plane to have version %s", version)
 
 	Eventually(func(g Gomega) bool {
@@ -1270,7 +1270,7 @@ func waitControlPlaneVersion(ctx context.Context, c client.Client, cluster *clus
 	}, intervals...).Should(BeTrue(), fmt.Sprintf("Failed to wait for ControlPlane to reach version %s and Nodes to become healthy", version))
 }
 
-func waitWorkersVersions(ctx context.Context, c client.Client, cluster *clusterv1.Cluster, workersVersion string, intervals []interface{}) {
+func waitWorkersVersions(ctx context.Context, c client.Client, cluster *clusterv1.Cluster, workersVersion string, intervals []any) {
 	Byf("Waiting for workers to have version %s", workersVersion)
 	workersVersions(ctx, c, cluster, workersVersion, intervals...)
 }
@@ -1280,7 +1280,7 @@ func checkWorkersVersions(ctx context.Context, c client.Client, cluster *cluster
 	workersVersions(ctx, c, cluster, workersVersion, "10s", "2s")
 }
 
-func workersVersions(ctx context.Context, c client.Client, cluster *clusterv1.Cluster, workersVersion string, intervals ...interface{}) {
+func workersVersions(ctx context.Context, c client.Client, cluster *clusterv1.Cluster, workersVersion string, intervals ...any) {
 	Eventually(func(_ Gomega) bool {
 		mds := framework.GetMachineDeploymentsByCluster(ctx,
 			framework.GetMachineDeploymentsByClusterInput{ClusterName: cluster.Name, Namespace: cluster.Namespace, Lister: c})

@@ -33,12 +33,12 @@ func TestUnstructuredGetConditions(t *testing.T) {
 
 	// GetV1Beta1Conditions should return conditions from an unstructured object (conditions in status.deprecated.v1beta1.conditions)
 	u1 := &unstructured.Unstructured{
-		Object: map[string]interface{}{
-			"status": map[string]interface{}{
-				"deprecated": map[string]interface{}{
-					"v1beta1": map[string]interface{}{
-						"conditions": []interface{}{
-							map[string]interface{}{
+		Object: map[string]any{
+			"status": map[string]any{
+				"deprecated": map[string]any{
+					"v1beta1": map[string]any{
+						"conditions": []any{
+							map[string]any{
 								"type":   "true1",
 								"status": "True",
 							},
@@ -53,10 +53,10 @@ func TestUnstructuredGetConditions(t *testing.T) {
 
 	// GetV1Beta1Conditions should return conditions from an unstructured object
 	u2 := &unstructured.Unstructured{
-		Object: map[string]interface{}{
-			"status": map[string]interface{}{
-				"conditions": []interface{}{
-					map[string]interface{}{
+		Object: map[string]any{
+			"status": map[string]any{
+				"conditions": []any{
+					map[string]any{
 						"type":   "true1",
 						"status": "True",
 					},

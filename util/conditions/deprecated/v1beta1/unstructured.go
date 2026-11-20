@@ -82,7 +82,7 @@ func (c *unstructuredWrapper) GetV1Beta1Conditions() clusterv1.Conditions {
 //   - It's not possible to detect if the object has an empty condition list or if it does not implement conditions;
 //     in both cases the operation returns an empty slice is returned.
 func (c *unstructuredWrapper) SetV1Beta1Conditions(conditions clusterv1.Conditions) {
-	v := make([]interface{}, 0, len(conditions))
+	v := make([]any, 0, len(conditions))
 	for i := range conditions {
 		m, err := runtime.DefaultUnstructuredConverter.ToUnstructured(&conditions[i])
 		if err != nil {

@@ -137,7 +137,7 @@ func (g *generator) cleanup() error {
 
 // executeTemplate executes a previously parsed template with the data for a specific branch.
 func (g *generator) executeTemplate(branch, templateName string) (*bytes.Buffer, error) {
-	data := map[string]interface{}{
+	data := map[string]any{
 		"branch":   branch,
 		"config":   g.config.Branches[branch],
 		"versions": g.config.Versions,
@@ -157,7 +157,7 @@ func (g *generator) executeTemplate(branch, templateName string) (*bytes.Buffer,
 
 // executeNameTemplate executes a previously parsed name template with the branch as data.
 func (g *generator) executeNameTemplate(branch, templateName string) (string, error) {
-	data := map[string]interface{}{
+	data := map[string]any{
 		"branch": branch,
 	}
 
@@ -202,11 +202,11 @@ func last(list any) any {
 	}
 }
 
-func list(v ...interface{}) []interface{} {
+func list(v ...any) []any {
 	return v
 }
 
-func has(needle interface{}, haystack interface{}) bool {
+func has(needle any, haystack any) bool {
 	l, err := mustHas(needle, haystack)
 	if err != nil {
 		panic(err)
@@ -215,7 +215,7 @@ func has(needle interface{}, haystack interface{}) bool {
 	return l
 }
 
-func mustHas(needle interface{}, haystack interface{}) (bool, error) {
+func mustHas(needle any, haystack any) (bool, error) {
 	if haystack == nil {
 		return false, nil
 	}
@@ -223,7 +223,7 @@ func mustHas(needle interface{}, haystack interface{}) (bool, error) {
 	switch tp {
 	case reflect.Slice, reflect.Array:
 		l2 := reflect.ValueOf(haystack)
-		var item interface{}
+		var item any
 		l := l2.Len()
 		for i := range l {
 			item = l2.Index(i).Interface()

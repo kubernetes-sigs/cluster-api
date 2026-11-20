@@ -1241,7 +1241,7 @@ func TestAlignRefAPIVersion(t *testing.T) {
 	}{
 		{
 			name: "Use apiVersion from ClusterClass: group and kind is the same (+/- Template suffix)",
-			templateFromClusterClass: &unstructured.Unstructured{Object: map[string]interface{}{
+			templateFromClusterClass: &unstructured.Unstructured{Object: map[string]any{
 				"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
 				"kind":       "DockerClusterTemplate",
 			}},
@@ -1261,7 +1261,7 @@ func TestAlignRefAPIVersion(t *testing.T) {
 		},
 		{
 			name: "Use apiVersion from ClusterClass: group and kind is the same",
-			templateFromClusterClass: &unstructured.Unstructured{Object: map[string]interface{}{
+			templateFromClusterClass: &unstructured.Unstructured{Object: map[string]any{
 				"apiVersion": clusterv1.GroupVersionBootstrap.String(),
 				"kind":       builder.GenericBootstrapConfigKind,
 			}},
@@ -1281,7 +1281,7 @@ func TestAlignRefAPIVersion(t *testing.T) {
 		},
 		{
 			name: "Use apiVersion from CRD: kind is different",
-			templateFromClusterClass: &unstructured.Unstructured{Object: map[string]interface{}{
+			templateFromClusterClass: &unstructured.Unstructured{Object: map[string]any{
 				"apiVersion": clusterv1.GroupVersionBootstrap.String(),
 				"kind":       "DifferentConfigTemplate",
 			}},
@@ -1302,7 +1302,7 @@ func TestAlignRefAPIVersion(t *testing.T) {
 		},
 		{
 			name: "Use apiVersion from CRD: group is different",
-			templateFromClusterClass: &unstructured.Unstructured{Object: map[string]interface{}{
+			templateFromClusterClass: &unstructured.Unstructured{Object: map[string]any{
 				"apiVersion": "different.bootstrap.cluster.x-k8s.io/v1beta2",
 				"kind":       builder.GenericBootstrapConfigKind,
 			}},

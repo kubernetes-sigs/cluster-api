@@ -694,16 +694,16 @@ func Test_ComputeDesiredInfraMachine(t *testing.T) {
 		},
 	}
 	infrastructureMachineTemplate := &unstructured.Unstructured{
-		Object: map[string]interface{}{
+		Object: map[string]any{
 			"kind":       builder.GenericInfrastructureMachineTemplateKind,
 			"apiVersion": builder.InfrastructureGroupVersion.String(),
-			"metadata": map[string]interface{}{
+			"metadata": map[string]any{
 				"name":      "infra-machine-template-1",
 				"namespace": cluster.Namespace,
 			},
-			"spec": map[string]interface{}{
-				"template": map[string]interface{}{
-					"spec": map[string]interface{}{
+			"spec": map[string]any{
+				"template": map[string]any{
+					"spec": map[string]any{
 						"hello": "world",
 					},
 				},
@@ -729,52 +729,52 @@ func Test_ComputeDesiredInfraMachine(t *testing.T) {
 		},
 	}
 	expectedInfraMachineWithoutOwner := &unstructured.Unstructured{
-		Object: map[string]interface{}{
+		Object: map[string]any{
 			"kind":       builder.GenericInfrastructureMachineKind,
 			"apiVersion": builder.InfrastructureGroupVersion.String(),
-			"metadata": map[string]interface{}{
+			"metadata": map[string]any{
 				"name":      "machine-1",
 				"namespace": cluster.Namespace,
-				"labels": map[string]interface{}{
+				"labels": map[string]any{
 					clusterv1.ClusterNameLabel:             cluster.Name,
 					clusterv1.MachineControlPlaneLabel:     "",
 					clusterv1.MachineControlPlaneNameLabel: kcp.Name,
 				},
-				"annotations": map[string]interface{}{
+				"annotations": map[string]any{
 					clusterv1.TemplateClonedFromNameAnnotation:      "infra-machine-template-1",
 					clusterv1.TemplateClonedFromGroupKindAnnotation: "GenericInfrastructureMachineTemplate.infrastructure.cluster.x-k8s.io",
 				},
 			},
-			"spec": map[string]interface{}{
+			"spec": map[string]any{
 				"hello": "world",
 			},
 		},
 	}
 	preExistingInfraMachineOwnedByMachine := &unstructured.Unstructured{
-		Object: map[string]interface{}{
+		Object: map[string]any{
 			"kind":       builder.GenericInfrastructureMachineKind,
 			"apiVersion": builder.InfrastructureGroupVersion.String(),
-			"metadata": map[string]interface{}{
+			"metadata": map[string]any{
 				"name":      "machine-1",
 				"namespace": cluster.Namespace,
-				"labels": map[string]interface{}{
+				"labels": map[string]any{
 					clusterv1.ClusterNameLabel:             cluster.Name,
 					clusterv1.MachineControlPlaneLabel:     "",
 					clusterv1.MachineControlPlaneNameLabel: kcp.Name,
 				},
-				"annotations": map[string]interface{}{
+				"annotations": map[string]any{
 					clusterv1.TemplateClonedFromNameAnnotation:      "infra-machine-template-1",
 					clusterv1.TemplateClonedFromGroupKindAnnotation: "GenericInfrastructureMachineTemplate.infrastructure.cluster.x-k8s.io",
 				},
-				"ownerReferences": []interface{}{
-					map[string]interface{}{
+				"ownerReferences": []any{
+					map[string]any{
 						"apiVersion": clusterv1.GroupVersion.String(),
 						"kind":       "Machine",
 						"name":       "machine-1",
 					},
 				},
 			},
-			"spec": map[string]interface{}{
+			"spec": map[string]any{
 				"hello": "world",
 			},
 		},

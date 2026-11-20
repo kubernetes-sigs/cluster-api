@@ -97,33 +97,33 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 	}
 
 	defaultBootstrap := &unstructured.Unstructured{
-		Object: map[string]interface{}{
+		Object: map[string]any{
 			"kind":       builder.TestBootstrapConfigKind,
 			"apiVersion": builder.BootstrapGroupVersion.String(),
-			"metadata": map[string]interface{}{
+			"metadata": map[string]any{
 				"name":      "bootstrap-config1",
 				"namespace": metav1.NamespaceDefault,
 			},
-			"spec":   map[string]interface{}{},
-			"status": map[string]interface{}{},
+			"spec":   map[string]any{},
+			"status": map[string]any{},
 		},
 	}
 	defaultBootstrapConfigGVK := builder.BootstrapGroupVersion.WithKind(builder.TestBootstrapConfigKind)
 
 	defaultInfra := &unstructured.Unstructured{
-		Object: map[string]interface{}{
+		Object: map[string]any{
 			"kind":       builder.TestInfrastructureMachineTemplateKind,
 			"apiVersion": builder.InfrastructureGroupVersion.String(),
-			"metadata": map[string]interface{}{
+			"metadata": map[string]any{
 				"name":      "infra-config1",
 				"namespace": metav1.NamespaceDefault,
 			},
-			"spec": map[string]interface{}{
-				"providerIDList": []interface{}{
+			"spec": map[string]any{
+				"providerIDList": []any{
 					"test://id-1",
 				},
 			},
-			"status": map[string]interface{}{},
+			"status": map[string]any{},
 		},
 	}
 
@@ -341,12 +341,12 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 		err = unstructured.SetNestedField(infraConfig.Object, int64(1), "status", "replicas")
 		g.Expect(err).ToNot(HaveOccurred())
 
-		err = unstructured.SetNestedField(infraConfig.Object, []interface{}{
-			map[string]interface{}{
+		err = unstructured.SetNestedField(infraConfig.Object, []any{
+			map[string]any{
 				"type":    "InternalIP",
 				"address": "10.0.0.1",
 			},
-			map[string]interface{}{
+			map[string]any{
 				"type":    "InternalIP",
 				"address": "10.0.0.2",
 			},
@@ -590,12 +590,12 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 		err = unstructured.SetNestedField(infraConfig.Object, true, "status", "initialization", "provisioned")
 		g.Expect(err).ToNot(HaveOccurred())
 
-		err = unstructured.SetNestedField(infraConfig.Object, []interface{}{
-			map[string]interface{}{
+		err = unstructured.SetNestedField(infraConfig.Object, []any{
+			map[string]any{
 				"type":    "InternalIP",
 				"address": "10.0.0.1",
 			},
-			map[string]interface{}{
+			map[string]any{
 				"type":    "InternalIP",
 				"address": "10.0.0.2",
 			},
@@ -657,12 +657,12 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 		err = unstructured.SetNestedField(infraConfig.Object, true, "status", "initialization", "provisioned")
 		g.Expect(err).ToNot(HaveOccurred())
 
-		err = unstructured.SetNestedField(infraConfig.Object, []interface{}{
-			map[string]interface{}{
+		err = unstructured.SetNestedField(infraConfig.Object, []any{
+			map[string]any{
 				"type":    "InternalIP",
 				"address": "10.0.0.1",
 			},
-			map[string]interface{}{
+			map[string]any{
 				"type":    "InternalIP",
 				"address": "10.0.0.2",
 			},
@@ -754,12 +754,12 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 		err = unstructured.SetNestedField(infraConfig.Object, true, "status", "initialization", "provisioned")
 		g.Expect(err).ToNot(HaveOccurred())
 
-		err = unstructured.SetNestedField(infraConfig.Object, []interface{}{
-			map[string]interface{}{
+		err = unstructured.SetNestedField(infraConfig.Object, []any{
+			map[string]any{
 				"type":    "InternalIP",
 				"address": "10.0.0.1",
 			},
-			map[string]interface{}{
+			map[string]any{
 				"type":    "InternalIP",
 				"address": "10.0.0.2",
 			},
@@ -872,7 +872,7 @@ func TestReconcileMachinePoolBootstrap(t *testing.T) {
 
 	testCases := []struct {
 		name            string
-		bootstrapConfig map[string]interface{}
+		bootstrapConfig map[string]any
 		machinepool     *clusterv1.MachinePool
 		expectError     bool
 		expectResult    ctrl.Result
@@ -880,16 +880,16 @@ func TestReconcileMachinePoolBootstrap(t *testing.T) {
 	}{
 		{
 			name: "new machinepool, bootstrap config ready with data",
-			bootstrapConfig: map[string]interface{}{
+			bootstrapConfig: map[string]any{
 				"kind":       builder.TestBootstrapConfigKind,
 				"apiVersion": builder.BootstrapGroupVersion.String(),
-				"metadata": map[string]interface{}{
+				"metadata": map[string]any{
 					"name":      "bootstrap-config1",
 					"namespace": metav1.NamespaceDefault,
 				},
-				"spec": map[string]interface{}{},
-				"status": map[string]interface{}{
-					"initialization": map[string]interface{}{
+				"spec": map[string]any{},
+				"status": map[string]any{
+					"initialization": map[string]any{
 						"dataSecretCreated": true,
 					},
 					"dataSecretName": "secret-data",
@@ -904,16 +904,16 @@ func TestReconcileMachinePoolBootstrap(t *testing.T) {
 		},
 		{
 			name: "new machinepool, bootstrap config ready with no data",
-			bootstrapConfig: map[string]interface{}{
+			bootstrapConfig: map[string]any{
 				"kind":       builder.TestBootstrapConfigKind,
 				"apiVersion": builder.BootstrapGroupVersion.String(),
-				"metadata": map[string]interface{}{
+				"metadata": map[string]any{
 					"name":      "bootstrap-config1",
 					"namespace": metav1.NamespaceDefault,
 				},
-				"spec": map[string]interface{}{},
-				"status": map[string]interface{}{
-					"initialization": map[string]interface{}{
+				"spec": map[string]any{},
+				"status": map[string]any{
+					"initialization": map[string]any{
 						"dataSecretCreated": true,
 					},
 				},
@@ -926,15 +926,15 @@ func TestReconcileMachinePoolBootstrap(t *testing.T) {
 		},
 		{
 			name: "new machinepool, bootstrap config not ready",
-			bootstrapConfig: map[string]interface{}{
+			bootstrapConfig: map[string]any{
 				"kind":       builder.TestBootstrapConfigKind,
 				"apiVersion": builder.BootstrapGroupVersion.String(),
-				"metadata": map[string]interface{}{
+				"metadata": map[string]any{
 					"name":      "bootstrap-config1",
 					"namespace": metav1.NamespaceDefault,
 				},
-				"spec":   map[string]interface{}{},
-				"status": map[string]interface{}{},
+				"spec":   map[string]any{},
+				"status": map[string]any{},
 			},
 			expectError:  false,
 			expectResult: ctrl.Result{},
@@ -944,15 +944,15 @@ func TestReconcileMachinePoolBootstrap(t *testing.T) {
 		},
 		{
 			name: "new machinepool, bootstrap config is not found",
-			bootstrapConfig: map[string]interface{}{
+			bootstrapConfig: map[string]any{
 				"kind":       builder.TestBootstrapConfigKind,
 				"apiVersion": builder.BootstrapGroupVersion.String(),
-				"metadata": map[string]interface{}{
+				"metadata": map[string]any{
 					"name":      "bootstrap-config1",
 					"namespace": wrongNamespace,
 				},
-				"spec":   map[string]interface{}{},
-				"status": map[string]interface{}{},
+				"spec":   map[string]any{},
+				"status": map[string]any{},
 			},
 			expectError: true,
 			expected: func(g *WithT, m *clusterv1.MachinePool) {
@@ -961,30 +961,30 @@ func TestReconcileMachinePoolBootstrap(t *testing.T) {
 		},
 		{
 			name: "new machinepool, no bootstrap config or data",
-			bootstrapConfig: map[string]interface{}{
+			bootstrapConfig: map[string]any{
 				"kind":       builder.TestBootstrapConfigKind,
 				"apiVersion": builder.BootstrapGroupVersion.String(),
-				"metadata": map[string]interface{}{
+				"metadata": map[string]any{
 					"name":      "bootstrap-config1",
 					"namespace": wrongNamespace,
 				},
-				"spec":   map[string]interface{}{},
-				"status": map[string]interface{}{},
+				"spec":   map[string]any{},
+				"status": map[string]any{},
 			},
 			expectError: true,
 		},
 		{
 			name: "existing machinepool with config ref, update data secret name",
-			bootstrapConfig: map[string]interface{}{
+			bootstrapConfig: map[string]any{
 				"kind":       builder.TestBootstrapConfigKind,
 				"apiVersion": builder.BootstrapGroupVersion.String(),
-				"metadata": map[string]interface{}{
+				"metadata": map[string]any{
 					"name":      "bootstrap-config1",
 					"namespace": metav1.NamespaceDefault,
 				},
-				"spec": map[string]interface{}{},
-				"status": map[string]interface{}{
-					"initialization": map[string]interface{}{
+				"spec": map[string]any{},
+				"status": map[string]any{
+					"initialization": map[string]any{
 						"dataSecretCreated": true,
 					},
 					"dataSecretName": "secret-data",
@@ -1023,16 +1023,16 @@ func TestReconcileMachinePoolBootstrap(t *testing.T) {
 		},
 		{
 			name: "existing machinepool without config ref, do not update data secret name",
-			bootstrapConfig: map[string]interface{}{
+			bootstrapConfig: map[string]any{
 				"kind":       builder.TestBootstrapConfigKind,
 				"apiVersion": builder.BootstrapGroupVersion.String(),
-				"metadata": map[string]interface{}{
+				"metadata": map[string]any{
 					"name":      "bootstrap-config1",
 					"namespace": metav1.NamespaceDefault,
 				},
-				"spec": map[string]interface{}{},
-				"status": map[string]interface{}{
-					"initialization": map[string]interface{}{
+				"spec": map[string]any{},
+				"status": map[string]any{
+					"initialization": map[string]any{
 						"dataSecretCreated": true,
 					},
 					"dataSecretName": "secret-data",
@@ -1066,16 +1066,16 @@ func TestReconcileMachinePoolBootstrap(t *testing.T) {
 		},
 		{
 			name: "existing machinepool, bootstrap provider is not ready",
-			bootstrapConfig: map[string]interface{}{
+			bootstrapConfig: map[string]any{
 				"kind":       builder.TestBootstrapConfigKind,
 				"apiVersion": builder.BootstrapGroupVersion.String(),
-				"metadata": map[string]interface{}{
+				"metadata": map[string]any{
 					"name":      "bootstrap-config1",
 					"namespace": metav1.NamespaceDefault,
 				},
-				"spec": map[string]interface{}{},
-				"status": map[string]interface{}{
-					"initialization": map[string]interface{}{
+				"spec": map[string]any{},
+				"status": map[string]any{
+					"initialization": map[string]any{
 						"dataSecretCreated": false,
 					},
 					"data": "#!/bin/bash ... data",
@@ -1115,17 +1115,17 @@ func TestReconcileMachinePoolBootstrap(t *testing.T) {
 		{
 			// Same lazy allocation as the infrastructure path, same inverted guard.
 			name: "new machinepool, bootstrap config reports a failure",
-			bootstrapConfig: map[string]interface{}{
+			bootstrapConfig: map[string]any{
 				"kind":       builder.TestBootstrapConfigKind,
 				"apiVersion": builder.BootstrapGroupVersion.String(),
-				"metadata": map[string]interface{}{
+				"metadata": map[string]any{
 					"name":      "bootstrap-config1",
 					"namespace": metav1.NamespaceDefault,
 				},
-				"spec": map[string]interface{}{},
-				"status": map[string]interface{}{
-					"deprecated": map[string]interface{}{
-						"v1beta1": map[string]interface{}{
+				"spec": map[string]any{},
+				"status": map[string]any{
+					"deprecated": map[string]any{
+						"v1beta1": map[string]any{
 							"failureReason":  "InvalidConfiguration",
 							"failureMessage": "the bootstrap provider rejected the spec",
 						},
@@ -1231,8 +1231,8 @@ func TestReconcileMachinePoolInfrastructure(t *testing.T) {
 
 	testCases := []struct {
 		name               string
-		bootstrapConfig    map[string]interface{}
-		infraConfig        map[string]interface{}
+		bootstrapConfig    map[string]any
+		infraConfig        map[string]any
 		infraCRD           *apiextensionsv1.CustomResourceDefinition
 		machinepool        *clusterv1.MachinePool
 		expectError        bool
@@ -1241,26 +1241,26 @@ func TestReconcileMachinePoolInfrastructure(t *testing.T) {
 	}{
 		{
 			name: "new machinepool, infrastructure config ready",
-			infraConfig: map[string]interface{}{
+			infraConfig: map[string]any{
 				"kind":       builder.TestInfrastructureMachineTemplateKind,
 				"apiVersion": builder.InfrastructureGroupVersion.String(),
-				"metadata": map[string]interface{}{
+				"metadata": map[string]any{
 					"name":      "infra-config1",
 					"namespace": metav1.NamespaceDefault,
 				},
-				"spec": map[string]interface{}{
-					"providerIDList": []interface{}{
+				"spec": map[string]any{
+					"providerIDList": []any{
 						"test://id-1",
 					},
 				},
-				"status": map[string]interface{}{
-					"initialization": map[string]interface{}{"provisioned": true},
-					"addresses": []interface{}{
-						map[string]interface{}{
+				"status": map[string]any{
+					"initialization": map[string]any{"provisioned": true},
+					"addresses": []any{
+						map[string]any{
 							"type":    "InternalIP",
 							"address": "10.0.0.1",
 						},
-						map[string]interface{}{
+						map[string]any{
 							"type":    "InternalIP",
 							"address": "10.0.0.2",
 						},
@@ -1306,39 +1306,39 @@ func TestReconcileMachinePoolInfrastructure(t *testing.T) {
 					NodeRefs: []corev1.ObjectReference{{Kind: "Node", Name: "machinepool-test-node"}},
 				},
 			},
-			bootstrapConfig: map[string]interface{}{
+			bootstrapConfig: map[string]any{
 				"kind":       builder.TestBootstrapConfigKind,
 				"apiVersion": builder.BootstrapGroupVersion.String(),
-				"metadata": map[string]interface{}{
+				"metadata": map[string]any{
 					"name":      "bootstrap-config1",
 					"namespace": metav1.NamespaceDefault,
 				},
-				"spec": map[string]interface{}{},
-				"status": map[string]interface{}{
-					"initialization": map[string]interface{}{
+				"spec": map[string]any{},
+				"status": map[string]any{
+					"initialization": map[string]any{
 						"dataSecretCreated": true,
 					},
 					"dataSecretName": "secret-data",
 				},
 			},
-			infraConfig: map[string]interface{}{
+			infraConfig: map[string]any{
 				"kind":       builder.TestInfrastructureMachineTemplateKind,
 				"apiVersion": builder.InfrastructureGroupVersion.String(),
-				"metadata": map[string]interface{}{
+				"metadata": map[string]any{
 					"name":      "infra-config1",
 					"namespace": metav1.NamespaceDefault,
 				},
-				"spec": map[string]interface{}{
-					"providerIDList": []interface{}{},
+				"spec": map[string]any{
+					"providerIDList": []any{},
 				},
-				"status": map[string]interface{}{
-					"initialization": map[string]interface{}{"provisioned": true},
-					"addresses": []interface{}{
-						map[string]interface{}{
+				"status": map[string]any{
+					"initialization": map[string]any{"provisioned": true},
+					"addresses": []any{
+						map[string]any{
 							"type":    "InternalIP",
 							"address": "10.0.0.1",
 						},
-						map[string]interface{}{
+						map[string]any{
 							"type":    "InternalIP",
 							"address": "10.0.0.2",
 						},
@@ -1362,16 +1362,16 @@ func TestReconcileMachinePoolInfrastructure(t *testing.T) {
 			// allocation on the pointer being non-nil skips it exactly when it is
 			// needed, so recording a failure nil-derefs instead.
 			name: "new machinepool, infrastructure reports a failure",
-			infraConfig: map[string]interface{}{
+			infraConfig: map[string]any{
 				"kind":       builder.TestInfrastructureMachineTemplateKind,
 				"apiVersion": builder.InfrastructureGroupVersion.String(),
-				"metadata": map[string]interface{}{
+				"metadata": map[string]any{
 					"name":      "infra-config1",
 					"namespace": metav1.NamespaceDefault,
 				},
-				"spec": map[string]interface{}{},
-				"status": map[string]interface{}{
-					"initialization": map[string]interface{}{"provisioned": false}, "ready": false, "failureReason": "InvalidConfiguration", "failureMessage": "the provider rejected the spec",
+				"spec": map[string]any{},
+				"status": map[string]any{
+					"initialization": map[string]any{"provisioned": false}, "ready": false, "failureReason": "InvalidConfiguration", "failureMessage": "the provider rejected the spec",
 				},
 			},
 			expected: func(g *WithT, m *clusterv1.MachinePool) {
@@ -1396,16 +1396,16 @@ func TestReconcileMachinePoolInfrastructure(t *testing.T) {
 				}
 				return mp
 			}(),
-			infraConfig: map[string]interface{}{
+			infraConfig: map[string]any{
 				"kind":       builder.TestInfrastructureMachineTemplateKind,
 				"apiVersion": builder.InfrastructureGroupVersion.String(),
-				"metadata": map[string]interface{}{
+				"metadata": map[string]any{
 					"name":      "infra-config1",
 					"namespace": metav1.NamespaceDefault,
 				},
-				"spec": map[string]interface{}{},
-				"status": map[string]interface{}{
-					"initialization": map[string]interface{}{"provisioned": false}, "ready": false, "failureMessage": "the provider rejected the spec",
+				"spec": map[string]any{},
+				"status": map[string]any{
+					"initialization": map[string]any{"provisioned": false}, "ready": false, "failureMessage": "the provider rejected the spec",
 				},
 			},
 			expected: func(g *WithT, m *clusterv1.MachinePool) {
@@ -1423,19 +1423,19 @@ func TestReconcileMachinePoolInfrastructure(t *testing.T) {
 				}
 				return crd
 			}(),
-			infraConfig: map[string]interface{}{
+			infraConfig: map[string]any{
 				"kind":       builder.TestInfrastructureMachineTemplateKind,
 				"apiVersion": builder.InfrastructureGroupVersion.String(),
-				"metadata": map[string]interface{}{
+				"metadata": map[string]any{
 					"name":      "infra-config1",
 					"namespace": metav1.NamespaceDefault,
 				},
-				"spec": map[string]interface{}{
-					"providerIDList": []interface{}{
+				"spec": map[string]any{
+					"providerIDList": []any{
 						"test://id-1",
 					},
 				},
-				"status": map[string]interface{}{
+				"status": map[string]any{
 					"ready": true,
 				},
 			},
@@ -1446,19 +1446,19 @@ func TestReconcileMachinePoolInfrastructure(t *testing.T) {
 		},
 		{
 			name: "new machinepool, infrastructure config on the v1beta2 contract reporting only status.ready falls back to it",
-			infraConfig: map[string]interface{}{
+			infraConfig: map[string]any{
 				"kind":       builder.TestInfrastructureMachineTemplateKind,
 				"apiVersion": builder.InfrastructureGroupVersion.String(),
-				"metadata": map[string]interface{}{
+				"metadata": map[string]any{
 					"name":      "infra-config1",
 					"namespace": metav1.NamespaceDefault,
 				},
-				"spec": map[string]interface{}{
-					"providerIDList": []interface{}{
+				"spec": map[string]any{
+					"providerIDList": []any{
 						"test://id-1",
 					},
 				},
-				"status": map[string]interface{}{
+				"status": map[string]any{
 					"ready": true,
 				},
 			},
@@ -1474,20 +1474,20 @@ func TestReconcileMachinePoolInfrastructure(t *testing.T) {
 				mp.Status.Initialization.InfrastructureProvisioned = ptr.To(true)
 				return mp
 			}(),
-			infraConfig: map[string]interface{}{
+			infraConfig: map[string]any{
 				"kind":       builder.TestInfrastructureMachineTemplateKind,
 				"apiVersion": builder.InfrastructureGroupVersion.String(),
-				"metadata": map[string]interface{}{
+				"metadata": map[string]any{
 					"name":      "infra-config1",
 					"namespace": metav1.NamespaceDefault,
 				},
-				"spec": map[string]interface{}{
-					"providerIDList": []interface{}{
+				"spec": map[string]any{
+					"providerIDList": []any{
 						"test://id-1",
 					},
 				},
-				"status": map[string]interface{}{
-					"initialization": map[string]interface{}{"provisioned": false},
+				"status": map[string]any{
+					"initialization": map[string]any{"provisioned": false},
 				},
 			},
 			expectError: false,
@@ -1575,26 +1575,26 @@ func TestReconcileMachinePoolMachines(t *testing.T) {
 				g.Expect(env.CreateAndWait(ctx, &machines[i])).To(Succeed())
 			}
 
-			infraConfig := map[string]interface{}{
+			infraConfig := map[string]any{
 				"kind":       builder.GenericInfrastructureMachinePoolKind,
 				"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
-				"metadata": map[string]interface{}{
+				"metadata": map[string]any{
 					"name":      "infra-config1",
 					"namespace": ns.Name,
 				},
-				"spec": map[string]interface{}{
-					"providerIDList": []interface{}{
+				"spec": map[string]any{
+					"providerIDList": []any{
 						"test://id-1",
 					},
 				},
-				"status": map[string]interface{}{
-					"initialization": map[string]interface{}{"provisioned": true},
-					"addresses": []interface{}{
-						map[string]interface{}{
+				"status": map[string]any{
+					"initialization": map[string]any{"provisioned": true},
+					"addresses": []any{
+						map[string]any{
 							"type":    "InternalIP",
 							"address": "10.0.0.1",
 						},
-						map[string]interface{}{
+						map[string]any{
 							"type":    "InternalIP",
 							"address": "10.0.0.2",
 						},
@@ -1646,26 +1646,26 @@ func TestReconcileMachinePoolMachines(t *testing.T) {
 				g.Expect(env.CreateAndWait(ctx, &infraMachines[i])).To(Succeed())
 			}
 
-			infraConfig := map[string]interface{}{
+			infraConfig := map[string]any{
 				"kind":       builder.GenericInfrastructureMachinePoolKind,
 				"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
-				"metadata": map[string]interface{}{
+				"metadata": map[string]any{
 					"name":      "infra-config2",
 					"namespace": ns.Name,
 				},
-				"spec": map[string]interface{}{
-					"providerIDList": []interface{}{
+				"spec": map[string]any{
+					"providerIDList": []any{
 						"test://id-1",
 					},
 				},
-				"status": map[string]interface{}{
-					"initialization": map[string]interface{}{"provisioned": true},
-					"addresses": []interface{}{
-						map[string]interface{}{
+				"status": map[string]any{
+					"initialization": map[string]any{"provisioned": true},
+					"addresses": []any{
+						map[string]any{
 							"type":    "InternalIP",
 							"address": "10.0.0.1",
 						},
-						map[string]interface{}{
+						map[string]any{
 							"type":    "InternalIP",
 							"address": "10.0.0.2",
 						},
@@ -1714,26 +1714,26 @@ func TestReconcileMachinePoolMachines(t *testing.T) {
 			machinePool := getMachinePool(2, "machinepool-test-3", clusterName, ns.Name)
 			g.Expect(env.Create(ctx, &machinePool)).To(Succeed())
 
-			infraConfig := map[string]interface{}{
+			infraConfig := map[string]any{
 				"kind":       builder.GenericInfrastructureMachinePoolKind,
 				"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
-				"metadata": map[string]interface{}{
+				"metadata": map[string]any{
 					"name":      "infra-config3",
 					"namespace": ns.Name,
 				},
-				"spec": map[string]interface{}{
-					"providerIDList": []interface{}{
+				"spec": map[string]any{
+					"providerIDList": []any{
 						"test://id-1",
 					},
 				},
-				"status": map[string]interface{}{
-					"initialization": map[string]interface{}{"provisioned": true},
-					"addresses": []interface{}{
-						map[string]interface{}{
+				"status": map[string]any{
+					"initialization": map[string]any{"provisioned": true},
+					"addresses": []any{
+						map[string]any{
 							"type":    "InternalIP",
 							"address": "10.0.0.1",
 						},
-						map[string]interface{}{
+						map[string]any{
 							"type":    "InternalIP",
 							"address": "10.0.0.2",
 						},
@@ -1808,13 +1808,13 @@ func TestInfraMachineToMachinePoolMapper(t *testing.T) {
 	}
 
 	infraMachine1 := unstructured.Unstructured{
-		Object: map[string]interface{}{
+		Object: map[string]any{
 			"kind":       "InfrastructureMachine",
 			"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
-			"metadata": map[string]interface{}{
+			"metadata": map[string]any{
 				"name":      "infra-machine1",
 				"namespace": metav1.NamespaceDefault,
-				"labels": map[string]interface{}{
+				"labels": map[string]any{
 					clusterv1.ClusterNameLabel:     clusterName,
 					clusterv1.MachinePoolNameLabel: format.MustFormatValue(machinePool1.Name),
 				},
@@ -1823,13 +1823,13 @@ func TestInfraMachineToMachinePoolMapper(t *testing.T) {
 	}
 
 	infraMachine2 := unstructured.Unstructured{
-		Object: map[string]interface{}{
+		Object: map[string]any{
 			"kind":       "InfrastructureMachine",
 			"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
-			"metadata": map[string]interface{}{
+			"metadata": map[string]any{
 				"name":      "infra-machine2",
 				"namespace": metav1.NamespaceDefault,
-				"labels": map[string]interface{}{
+				"labels": map[string]any{
 					clusterv1.ClusterNameLabel:     "other-cluster",
 					clusterv1.MachinePoolNameLabel: format.MustFormatValue(machinePoolLongName.Name),
 				},
@@ -1838,13 +1838,13 @@ func TestInfraMachineToMachinePoolMapper(t *testing.T) {
 	}
 
 	infraMachine3 := unstructured.Unstructured{
-		Object: map[string]interface{}{
+		Object: map[string]any{
 			"kind":       "InfrastructureMachine",
 			"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
-			"metadata": map[string]interface{}{
+			"metadata": map[string]any{
 				"name":      "infra-machine3",
 				"namespace": metav1.NamespaceDefault,
-				"labels": map[string]interface{}{
+				"labels": map[string]any{
 					clusterv1.ClusterNameLabel:     "other-cluster",
 					clusterv1.MachinePoolNameLabel: format.MustFormatValue("missing-machinepool"),
 				},
@@ -1973,16 +1973,16 @@ func TestReconcileMachinePoolScaleToFromZero(t *testing.T) {
 	}
 
 	defaultBootstrap := &unstructured.Unstructured{
-		Object: map[string]interface{}{
+		Object: map[string]any{
 			"kind":       builder.TestBootstrapConfigKind,
 			"apiVersion": builder.BootstrapGroupVersion.String(),
-			"metadata": map[string]interface{}{
+			"metadata": map[string]any{
 				"name":      "bootstrap-config1",
 				"namespace": ns.Name,
 			},
-			"spec": map[string]interface{}{},
-			"status": map[string]interface{}{
-				"initialization": map[string]interface{}{
+			"spec": map[string]any{},
+			"status": map[string]any{
+				"initialization": map[string]any{
 					"dataSecretCreated": true,
 				},
 				"dataSecretName": "secret-data",
@@ -1992,16 +1992,16 @@ func TestReconcileMachinePoolScaleToFromZero(t *testing.T) {
 	defaultBootstrapConfigGVK := defaultBootstrap.GroupVersionKind()
 
 	defaultInfra := &unstructured.Unstructured{
-		Object: map[string]interface{}{
+		Object: map[string]any{
 			"kind":       builder.TestInfrastructureMachineTemplateKind,
 			"apiVersion": builder.InfrastructureGroupVersion.String(),
-			"metadata": map[string]interface{}{
+			"metadata": map[string]any{
 				"name":      "infra-config1",
 				"namespace": ns.Name,
 			},
-			"spec": map[string]interface{}{},
-			"status": map[string]interface{}{
-				"initialization": map[string]interface{}{"provisioned": true},
+			"spec": map[string]any{},
+			"status": map[string]any{
+				"initialization": map[string]any{"provisioned": true},
 			},
 		},
 	}
@@ -2330,13 +2330,13 @@ func getInfraMachines(replicas int, mpName, clusterName, nsName string) []unstru
 	infraMachines := make([]unstructured.Unstructured, replicas)
 	for i := range replicas {
 		infraMachines[i] = unstructured.Unstructured{
-			Object: map[string]interface{}{
+			Object: map[string]any{
 				"kind":       builder.GenericInfrastructureMachineKind,
 				"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
-				"metadata": map[string]interface{}{
+				"metadata": map[string]any{
 					"name":      fmt.Sprintf("%s-infra-%d", mpName, i),
 					"namespace": nsName,
-					"labels": map[string]interface{}{
+					"labels": map[string]any{
 						clusterv1.ClusterNameLabel:     clusterName,
 						clusterv1.MachinePoolNameLabel: mpName,
 					},

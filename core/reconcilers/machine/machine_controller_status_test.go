@@ -2717,28 +2717,28 @@ func TestReconcileMachinePhases(t *testing.T) {
 	}
 
 	defaultBootstrap := &unstructured.Unstructured{
-		Object: map[string]interface{}{
+		Object: map[string]any{
 			"kind":       "GenericBootstrapConfig",
 			"apiVersion": clusterv1.GroupVersionBootstrap.String(),
-			"metadata": map[string]interface{}{
+			"metadata": map[string]any{
 				"name":      "bootstrap-config1",
 				"namespace": metav1.NamespaceDefault,
 			},
-			"spec":   map[string]interface{}{},
-			"status": map[string]interface{}{},
+			"spec":   map[string]any{},
+			"status": map[string]any{},
 		},
 	}
 
 	defaultInfra := &unstructured.Unstructured{
-		Object: map[string]interface{}{
+		Object: map[string]any{
 			"kind":       "GenericInfrastructureMachine",
 			"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
-			"metadata": map[string]interface{}{
+			"metadata": map[string]any{
 				"name":      "infra-config1",
 				"namespace": metav1.NamespaceDefault,
 			},
-			"spec":   map[string]interface{}{},
-			"status": map[string]interface{}{},
+			"spec":   map[string]any{},
+			"status": map[string]any{},
 		},
 	}
 
@@ -2960,12 +2960,12 @@ func TestReconcileMachinePhases(t *testing.T) {
 		// Set infra ready.
 		modifiedInfraMachine := infraMachine.DeepCopy()
 		g.Expect(unstructured.SetNestedField(modifiedInfraMachine.Object, true, "status", "initialization", "provisioned")).To(Succeed())
-		g.Expect(unstructured.SetNestedField(modifiedInfraMachine.Object, []interface{}{
-			map[string]interface{}{
+		g.Expect(unstructured.SetNestedField(modifiedInfraMachine.Object, []any{
+			map[string]any{
 				"type":    "InternalIP",
 				"address": "10.0.0.1",
 			},
-			map[string]interface{}{
+			map[string]any{
 				"type":    "InternalIP",
 				"address": "10.0.0.2",
 			},

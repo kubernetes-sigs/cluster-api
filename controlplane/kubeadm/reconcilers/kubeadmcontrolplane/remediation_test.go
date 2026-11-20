@@ -2459,8 +2459,8 @@ func TestTryGetEtcdMemberName(t *testing.T) {
 			name:    "Lookup node name when ProviderID from infra machine when not set in the machine",
 			machine: &clusterv1.Machine{},
 			infraMachine: &unstructured.Unstructured{
-				Object: map[string]interface{}{
-					"spec": map[string]interface{}{
+				Object: map[string]any{
+					"spec": map[string]any{
 						"providerID": "foo-node-provider-id",
 					},
 				},
@@ -2488,8 +2488,8 @@ func TestTryGetEtcdMemberName(t *testing.T) {
 			name:    "Provider ID set on the infra machine but node cannot be found",
 			machine: &clusterv1.Machine{},
 			infraMachine: &unstructured.Unstructured{
-				Object: map[string]interface{}{
-					"spec": map[string]interface{}{
+				Object: map[string]any{
+					"spec": map[string]any{
 						"providerID": "foo-node-provider-id",
 					},
 				},

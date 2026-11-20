@@ -38,7 +38,7 @@ type WaitForPodListConditionInput struct {
 
 // WaitForPodListCondition waits for the specified condition to be true for all
 // pods returned from the list filter.
-func WaitForPodListCondition(ctx context.Context, input WaitForPodListConditionInput, intervals ...interface{}) {
+func WaitForPodListCondition(ctx context.Context, input WaitForPodListConditionInput, intervals ...any) {
 	Eventually(func() (bool, error) {
 		podList := &corev1.PodList{}
 		if err := input.Lister.List(ctx, podList, input.ListOptions); err != nil {

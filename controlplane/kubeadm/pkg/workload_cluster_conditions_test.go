@@ -1009,7 +1009,7 @@ func TestUpdateStaticPodConditions(t *testing.T) {
 			},
 			injectClient: &fakeClient{
 				list: &corev1.NodeList{},
-				get: map[string]interface{}{
+				get: map[string]any{
 					"/n1": &corev1.Node{
 						ObjectMeta: metav1.ObjectMeta{
 							Name:   "n1",
@@ -1071,7 +1071,7 @@ func TestUpdateStaticPodConditions(t *testing.T) {
 			},
 			injectClient: &fakeClient{
 				list: &corev1.NodeList{},
-				get: map[string]interface{}{
+				get: map[string]any{
 					"/n1": &corev1.Node{
 						ObjectMeta: metav1.ObjectMeta{
 							Name:   "n1",
@@ -1135,7 +1135,7 @@ func TestUpdateStaticPodConditions(t *testing.T) {
 				list: &corev1.NodeList{
 					Items: []corev1.Node{*fakeCoreV1Node("n1")},
 				},
-				get: map[string]interface{}{
+				get: map[string]any{
 					n1APIServerPodKey: fakePod(n1APIServerPodName,
 						withPhase(corev1.PodRunning),
 						withCondition(corev1.PodReady, corev1.ConditionTrue),
@@ -1190,7 +1190,7 @@ func TestUpdateStaticPodConditions(t *testing.T) {
 				list: &corev1.NodeList{
 					Items: []corev1.Node{*fakeCoreV1Node("n1")},
 				},
-				get: map[string]interface{}{
+				get: map[string]any{
 					n1APIServerPodKey: fakePod(n1APIServerPodName,
 						withPhase(corev1.PodRunning),
 						withCondition(corev1.PodReady, corev1.ConditionTrue),
@@ -1248,7 +1248,7 @@ func TestUpdateStaticPodConditions(t *testing.T) {
 				list: &corev1.NodeList{
 					Items: []corev1.Node{*fakeCoreV1Node("n1", withControlPlaneTaint())},
 				},
-				get: map[string]interface{}{
+				get: map[string]any{
 					n1APIServerPodKey: fakePod(n1APIServerPodName,
 						withPhase(corev1.PodRunning),
 						withCondition(corev1.PodReady, corev1.ConditionTrue),
@@ -1317,7 +1317,7 @@ func TestUpdateStaticPodConditions(t *testing.T) {
 				list: &corev1.NodeList{
 					Items: []corev1.Node{*fakeCoreV1Node("n1", withControlPlaneTaint())},
 				},
-				get: map[string]interface{}{
+				get: map[string]any{
 					n1APIServerPodKey: fakePod(n1APIServerPodName,
 						withPhase(corev1.PodRunning),
 						withCondition(corev1.PodReady, corev1.ConditionTrue),
@@ -1460,7 +1460,7 @@ func TestUpdateStaticPodCondition(t *testing.T) {
 		{
 			name: "pending pod not yet scheduled should report PodCondition=False, PodProvisioning",
 			injectClient: &fakeClient{
-				get: map[string]interface{}{
+				get: map[string]any{
 					podkey: fakePod(podName,
 						withPhase(corev1.PodPending),
 						withCondition(corev1.PodScheduled, corev1.ConditionFalse),
@@ -1479,7 +1479,7 @@ func TestUpdateStaticPodCondition(t *testing.T) {
 		{
 			name: "pending pod running init containers should report PodCondition=False, PodProvisioning",
 			injectClient: &fakeClient{
-				get: map[string]interface{}{
+				get: map[string]any{
 					podkey: fakePod(podName,
 						withPhase(corev1.PodPending),
 						withCondition(corev1.PodScheduled, corev1.ConditionTrue),
@@ -1499,7 +1499,7 @@ func TestUpdateStaticPodCondition(t *testing.T) {
 		{
 			name: "pending pod with PodScheduled and PodInitialized report PodCondition=False, PodProvisioning",
 			injectClient: &fakeClient{
-				get: map[string]interface{}{
+				get: map[string]any{
 					podkey: fakePod(podName,
 						withPhase(corev1.PodPending),
 						withCondition(corev1.PodScheduled, corev1.ConditionTrue),
@@ -1519,7 +1519,7 @@ func TestUpdateStaticPodCondition(t *testing.T) {
 		{
 			name: "running pod with podReady should report PodCondition=true",
 			injectClient: &fakeClient{
-				get: map[string]interface{}{
+				get: map[string]any{
 					podkey: fakePod(podName,
 						withPhase(corev1.PodRunning),
 						withCondition(corev1.PodReady, corev1.ConditionTrue),
@@ -1538,7 +1538,7 @@ func TestUpdateStaticPodCondition(t *testing.T) {
 		{
 			name: "running pod with ContainerStatus Waiting should report PodCondition=False, PodProvisioning",
 			injectClient: &fakeClient{
-				get: map[string]interface{}{
+				get: map[string]any{
 					podkey: fakePod(podName,
 						withPhase(corev1.PodRunning),
 						withContainerStatus(corev1.ContainerStatus{
@@ -1561,7 +1561,7 @@ func TestUpdateStaticPodCondition(t *testing.T) {
 		{
 			name: "running pod with ContainerStatus Waiting but with exit code != 0 should report PodCondition=False, PodFailed",
 			injectClient: &fakeClient{
-				get: map[string]interface{}{
+				get: map[string]any{
 					podkey: fakePod(podName,
 						withPhase(corev1.PodRunning),
 						withContainerStatus(corev1.ContainerStatus{
@@ -1589,7 +1589,7 @@ func TestUpdateStaticPodCondition(t *testing.T) {
 		{
 			name: "running pod with ContainerStatus Terminated should report PodCondition=False, PodFailed",
 			injectClient: &fakeClient{
-				get: map[string]interface{}{
+				get: map[string]any{
 					podkey: fakePod(podName,
 						withPhase(corev1.PodRunning),
 						withContainerStatus(corev1.ContainerStatus{
@@ -1612,7 +1612,7 @@ func TestUpdateStaticPodCondition(t *testing.T) {
 		{
 			name: "running pod without podReady and without Container status messages should report PodCondition=False, PodProvisioning",
 			injectClient: &fakeClient{
-				get: map[string]interface{}{
+				get: map[string]any{
 					podkey: fakePod(podName,
 						withPhase(corev1.PodRunning),
 					),
@@ -1630,7 +1630,7 @@ func TestUpdateStaticPodCondition(t *testing.T) {
 		{
 			name: "failed pod should report PodCondition=False, PodFailed",
 			injectClient: &fakeClient{
-				get: map[string]interface{}{
+				get: map[string]any{
 					podkey: fakePod(podName,
 						withPhase(corev1.PodFailed),
 					),
@@ -1648,7 +1648,7 @@ func TestUpdateStaticPodCondition(t *testing.T) {
 		{
 			name: "succeeded pod should report PodCondition=False, PodFailed",
 			injectClient: &fakeClient{
-				get: map[string]interface{}{
+				get: map[string]any{
 					podkey: fakePod(podName,
 						withPhase(corev1.PodSucceeded),
 					),
@@ -1666,7 +1666,7 @@ func TestUpdateStaticPodCondition(t *testing.T) {
 		{
 			name: "pod in unknown phase should report PodCondition=Unknown, PodInspectionFailed",
 			injectClient: &fakeClient{
-				get: map[string]interface{}{
+				get: map[string]any{
 					podkey: fakePod(podName,
 						withPhase(corev1.PodUnknown),
 					),

@@ -319,10 +319,10 @@ func TestObjectGraph_addObj(t *testing.T) {
 			args: args{
 				objs: []*unstructured.Unstructured{
 					{
-						Object: map[string]interface{}{
+						Object: map[string]any{
 							"apiVersion": "a/v1",
 							"kind":       "A",
-							"metadata": map[string]interface{}{
+							"metadata": map[string]any{
 								"namespace": "ns",
 								"name":      "foo",
 								"uid":       "1",
@@ -345,15 +345,15 @@ func TestObjectGraph_addObj(t *testing.T) {
 			args: args{
 				objs: []*unstructured.Unstructured{
 					{
-						Object: map[string]interface{}{
+						Object: map[string]any{
 							"apiVersion": "a/v1",
 							"kind":       "A",
-							"metadata": map[string]interface{}{
+							"metadata": map[string]any{
 								"namespace": "ns",
 								"name":      "foo",
 								"uid":       "1",
-								"ownerReferences": []interface{}{
-									map[string]interface{}{
+								"ownerReferences": []any{
+									map[string]any{
 										"apiVersion": "b/v1",
 										"kind":       "B",
 										"name":       "bar",
@@ -383,15 +383,15 @@ func TestObjectGraph_addObj(t *testing.T) {
 			args: args{
 				objs: []*unstructured.Unstructured{
 					{
-						Object: map[string]interface{}{
+						Object: map[string]any{
 							"apiVersion": "a/v1",
 							"kind":       "A",
-							"metadata": map[string]interface{}{
+							"metadata": map[string]any{
 								"namespace": "ns",
 								"name":      "foo",
 								"uid":       "1",
-								"ownerReferences": []interface{}{
-									map[string]interface{}{
+								"ownerReferences": []any{
+									map[string]any{
 										"apiVersion": "b/v1",
 										"kind":       "B",
 										"name":       "bar",
@@ -402,10 +402,10 @@ func TestObjectGraph_addObj(t *testing.T) {
 						},
 					},
 					{
-						Object: map[string]interface{}{
+						Object: map[string]any{
 							"apiVersion": "b/v1",
 							"kind":       "B",
-							"metadata": map[string]interface{}{
+							"metadata": map[string]any{
 								"namespace": "ns",
 								"name":      "bar",
 								"uid":       "2",
@@ -432,10 +432,10 @@ func TestObjectGraph_addObj(t *testing.T) {
 			args: args{
 				objs: []*unstructured.Unstructured{
 					{
-						Object: map[string]interface{}{
+						Object: map[string]any{
 							"apiVersion": "b/v1",
 							"kind":       "B",
-							"metadata": map[string]interface{}{
+							"metadata": map[string]any{
 								"namespace": "ns",
 								"name":      "bar",
 								"uid":       "2",
@@ -443,15 +443,15 @@ func TestObjectGraph_addObj(t *testing.T) {
 						},
 					},
 					{
-						Object: map[string]interface{}{
+						Object: map[string]any{
 							"apiVersion": "a/v1",
 							"kind":       "A",
-							"metadata": map[string]interface{}{
+							"metadata": map[string]any{
 								"namespace": "ns",
 								"name":      "foo",
 								"uid":       "1",
-								"ownerReferences": []interface{}{
-									map[string]interface{}{
+								"ownerReferences": []any{
+									map[string]any{
 										"apiVersion": "b/v1",
 										"kind":       "B",
 										"name":       "bar",
@@ -2830,10 +2830,10 @@ func TestGetObjList(t *testing.T) {
 			},
 			objs: []client.Object{
 				&unstructured.Unstructured{
-					Object: map[string]interface{}{
+					Object: map[string]any{
 						"apiVersion": "ec2.aws.m.upbound.io/v1beta1",
 						"kind":       "ManagedPrefixList",
-						"metadata": map[string]interface{}{
+						"metadata": map[string]any{
 							"name":      "foo",
 							"namespace": "ns1",
 						},
@@ -2850,10 +2850,10 @@ func TestGetObjList(t *testing.T) {
 			},
 			objs: []client.Object{
 				&unstructured.Unstructured{
-					Object: map[string]interface{}{
+					Object: map[string]any{
 						"apiVersion": "v1",
 						"kind":       "ConfigMap",
-						"metadata": map[string]interface{}{
+						"metadata": map[string]any{
 							"name":      "foo",
 							"namespace": "ns1",
 						},

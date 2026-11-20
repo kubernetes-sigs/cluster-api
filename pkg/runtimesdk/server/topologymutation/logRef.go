@@ -41,6 +41,6 @@ type logRefWithoutStringFunc logRef
 
 // MarshalLog ensures that loggers with support for structured output will log
 // as a struct by removing the String method via a custom type.
-func (l logRef) MarshalLog() interface{} {
+func (l logRef) MarshalLog() any {
 	return logRefWithoutStringFunc(l)
 }

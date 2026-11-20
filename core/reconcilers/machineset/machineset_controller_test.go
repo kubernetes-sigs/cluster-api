@@ -227,24 +227,24 @@ func TestMachineSetReconciler(t *testing.T) {
 		}
 
 		// Create bootstrap template resource.
-		bootstrapResource := map[string]interface{}{
+		bootstrapResource := map[string]any{
 			"kind":       "GenericBootstrapConfig",
 			"apiVersion": clusterv1.GroupVersionBootstrap.String(),
-			"metadata": map[string]interface{}{
-				"annotations": map[string]interface{}{
+			"metadata": map[string]any{
+				"annotations": map[string]any{
 					"precedence": "GenericBootstrapConfig",
 				},
-				"labels": map[string]interface{}{
+				"labels": map[string]any{
 					"precedence": "GenericBootstrapConfig",
 				},
 			},
-			"spec": map[string]interface{}{
+			"spec": map[string]any{
 				"format": "cloud-init",
 			},
 		}
 		bootstrapTmpl := &unstructured.Unstructured{
-			Object: map[string]interface{}{
-				"spec": map[string]interface{}{
+			Object: map[string]any{
+				"spec": map[string]any{
 					"template": bootstrapResource,
 				},
 			},
@@ -256,24 +256,24 @@ func TestMachineSetReconciler(t *testing.T) {
 		g.Expect(env.Create(ctx, bootstrapTmpl)).To(Succeed())
 
 		// Create infrastructure template resource.
-		infraResource := map[string]interface{}{
+		infraResource := map[string]any{
 			"kind":       "GenericInfrastructureMachine",
 			"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
-			"metadata": map[string]interface{}{
-				"annotations": map[string]interface{}{
+			"metadata": map[string]any{
+				"annotations": map[string]any{
 					"precedence": "GenericInfrastructureMachineTemplate",
 				},
-				"labels": map[string]interface{}{
+				"labels": map[string]any{
 					"precedence": "GenericInfrastructureMachineTemplate",
 				},
 			},
-			"spec": map[string]interface{}{
+			"spec": map[string]any{
 				"size": "3xlarge",
 			},
 		}
 		infraTmpl := &unstructured.Unstructured{
-			Object: map[string]interface{}{
-				"spec": map[string]interface{}{
+			Object: map[string]any{
+				"spec": map[string]any{
 					"template": infraResource,
 				},
 			},
@@ -1356,22 +1356,22 @@ func TestMachineSetReconciler_syncMachines(t *testing.T) {
 		},
 	}
 
-	infraMachineSpec := map[string]interface{}{
+	infraMachineSpec := map[string]any{
 		"infra-field": "infra-value",
 	}
 	infraMachine := &unstructured.Unstructured{
-		Object: map[string]interface{}{
+		Object: map[string]any{
 			"kind":       "GenericInfrastructureMachine",
 			"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
-			"metadata": map[string]interface{}{
+			"metadata": map[string]any{
 				"name":      "infra-machine-1",
 				"namespace": namespace.Name,
-				"labels": map[string]interface{}{
+				"labels": map[string]any{
 					"preserved-label": "preserved-value",
 					"dropped-label":   "dropped-value",
 					"modified-label":  "modified-value",
 				},
-				"annotations": map[string]interface{}{
+				"annotations": map[string]any{
 					"preserved-annotation": "preserved-value",
 					"dropped-annotation":   "dropped-value",
 					"modified-annotation":  "modified-value",
@@ -1381,22 +1381,22 @@ func TestMachineSetReconciler_syncMachines(t *testing.T) {
 		},
 	}
 
-	bootstrapConfigSpec := map[string]interface{}{
+	bootstrapConfigSpec := map[string]any{
 		"bootstrap-field": "bootstrap-value",
 	}
 	bootstrapConfig := &unstructured.Unstructured{
-		Object: map[string]interface{}{
+		Object: map[string]any{
 			"kind":       "GenericBootstrapConfig",
 			"apiVersion": clusterv1.GroupVersionBootstrap.String(),
-			"metadata": map[string]interface{}{
+			"metadata": map[string]any{
 				"name":      "bootstrap-config-1",
 				"namespace": namespace.Name,
-				"labels": map[string]interface{}{
+				"labels": map[string]any{
 					"preserved-label": "preserved-value",
 					"dropped-label":   "dropped-value",
 					"modified-label":  "modified-value",
 				},
-				"annotations": map[string]interface{}{
+				"annotations": map[string]any{
 					"preserved-annotation": "preserved-value",
 					"dropped-annotation":   "dropped-value",
 					"modified-annotation":  "modified-value",
@@ -1708,7 +1708,7 @@ func TestMachineSetReconciler_syncMachines(t *testing.T) {
 	// Verify managedField mitigation (purge managedFields and verify they are re-added)
 	//
 	// Remove managedField entries
-	jsonPatch := []map[string]interface{}{
+	jsonPatch := []map[string]any{
 		{
 			"op":    "replace",
 			"path":  "/metadata/managedFields",
@@ -1766,7 +1766,7 @@ func TestMachineSetReconciler_reconcileUnhealthyMachines(t *testing.T) {
 
 		controlPlaneStable := builder.ControlPlane("default", "cp1").
 			WithVersion("v1.26.2").
-			WithStatusFields(map[string]interface{}{
+			WithStatusFields(map[string]any{
 				"status.version": "v1.26.2",
 			}).
 			Build()
@@ -1872,7 +1872,7 @@ func TestMachineSetReconciler_reconcileUnhealthyMachines(t *testing.T) {
 
 		controlPlaneStable := builder.ControlPlane("default", "cp1").
 			WithVersion("v1.26.2").
-			WithStatusFields(map[string]interface{}{
+			WithStatusFields(map[string]any{
 				"status.version": "v1.26.2",
 			}).
 			Build()
@@ -1957,7 +1957,7 @@ func TestMachineSetReconciler_reconcileUnhealthyMachines(t *testing.T) {
 		// An upgrading control plane should cause the preflight checks to not pass.
 		controlPlaneUpgrading := builder.ControlPlane("default", "cp1").
 			WithVersion("v1.26.2").
-			WithStatusFields(map[string]interface{}{
+			WithStatusFields(map[string]any{
 				"status.version": "v1.25.2",
 			}).
 			Build()
@@ -2712,11 +2712,11 @@ func TestMachineSetReconciler_cleanupOrphanedBootstrapConfigsInfraMachines(t *te
 	}
 
 	// Create bootstrap template resource.
-	bootstrapResource := map[string]interface{}{
+	bootstrapResource := map[string]any{
 		"kind":       builder.GenericBootstrapConfigKind,
 		"apiVersion": clusterv1.GroupVersionBootstrap.String(),
-		"metadata": map[string]interface{}{
-			"annotations": map[string]interface{}{
+		"metadata": map[string]any{
+			"annotations": map[string]any{
 				"precedence": "GenericBootstrapConfig",
 			},
 		},
@@ -2728,8 +2728,8 @@ func TestMachineSetReconciler_cleanupOrphanedBootstrapConfigsInfraMachines(t *te
 		Kind:    builder.GenericBootstrapConfigKind + "List",
 	}
 	bootstrapTmpl := &unstructured.Unstructured{
-		Object: map[string]interface{}{
-			"spec": map[string]interface{}{
+		Object: map[string]any{
+			"spec": map[string]any{
 				"template": bootstrapResource,
 			},
 		},
@@ -2746,15 +2746,15 @@ func TestMachineSetReconciler_cleanupOrphanedBootstrapConfigsInfraMachines(t *te
 	})
 
 	// Create infrastructure template resource.
-	infraResource := map[string]interface{}{
+	infraResource := map[string]any{
 		"kind":       builder.GenericInfrastructureMachineKind,
 		"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
-		"metadata": map[string]interface{}{
-			"annotations": map[string]interface{}{
+		"metadata": map[string]any{
+			"annotations": map[string]any{
 				"precedence": "GenericInfrastructureMachineTemplate",
 			},
 		},
-		"spec": map[string]interface{}{
+		"spec": map[string]any{
 			"size": "3xlarge",
 		},
 	}
@@ -2765,8 +2765,8 @@ func TestMachineSetReconciler_cleanupOrphanedBootstrapConfigsInfraMachines(t *te
 		Kind:    builder.GenericInfrastructureMachineKind + "List",
 	}
 	infraTmpl := &unstructured.Unstructured{
-		Object: map[string]interface{}{
-			"spec": map[string]interface{}{
+		Object: map[string]any{
+			"spec": map[string]any{
 				"template": infraResource,
 			},
 		},
@@ -2918,7 +2918,7 @@ func TestMachineSetReconciler_createMachines_preflightChecks(t *testing.T) {
 	// An upgrading control plane should cause the preflight checks to not pass.
 	controlPlaneUpgrading := builder.ControlPlane("default", "test-cp").
 		WithVersion("v1.26.2").
-		WithStatusFields(map[string]interface{}{
+		WithStatusFields(map[string]any{
 			"status.version": "v1.25.2",
 		}).
 		Build()
@@ -3003,19 +3003,19 @@ func TestMachineSetReconciler_createMachines(t *testing.T) {
 	}
 
 	// Create bootstrap template resource.
-	bootstrapResource := map[string]interface{}{
+	bootstrapResource := map[string]any{
 		"kind":       builder.GenericBootstrapConfigKind,
 		"apiVersion": clusterv1.GroupVersionBootstrap.String(),
-		"metadata": map[string]interface{}{
-			"annotations": map[string]interface{}{
+		"metadata": map[string]any{
+			"annotations": map[string]any{
 				"precedence": "GenericBootstrapConfig",
 			},
 		},
 	}
 
 	bootstrapTmpl := &unstructured.Unstructured{
-		Object: map[string]interface{}{
-			"spec": map[string]interface{}{
+		Object: map[string]any{
+			"spec": map[string]any{
 				"template": bootstrapResource,
 			},
 		},
@@ -3026,21 +3026,21 @@ func TestMachineSetReconciler_createMachines(t *testing.T) {
 	bootstrapTmpl.SetNamespace(metav1.NamespaceDefault)
 
 	// Create infrastructure template resource.
-	infraResource := map[string]interface{}{
+	infraResource := map[string]any{
 		"kind":       builder.GenericInfrastructureMachineKind,
 		"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
-		"metadata": map[string]interface{}{
-			"annotations": map[string]interface{}{
+		"metadata": map[string]any{
+			"annotations": map[string]any{
 				"precedence": "GenericInfrastructureMachineTemplate",
 			},
 		},
-		"spec": map[string]interface{}{
+		"spec": map[string]any{
 			"size": "3xlarge",
 		},
 	}
 	infraTmpl := &unstructured.Unstructured{
-		Object: map[string]interface{}{
-			"spec": map[string]interface{}{
+		Object: map[string]any{
+			"spec": map[string]any{
 				"template": infraResource,
 			},
 		},
@@ -3669,17 +3669,17 @@ func TestMachineSetReconciler_triggerInPlaceUpdate(t *testing.T) {
 	}
 
 	// Create bootstrap template resource.
-	bootstrapResource := map[string]interface{}{
+	bootstrapResource := map[string]any{
 		"kind":       builder.GenericBootstrapConfigKind,
 		"apiVersion": clusterv1.GroupVersionBootstrap.String(),
-		"spec": map[string]interface{}{
+		"spec": map[string]any{
 			"foo": "bar",
 		},
 	}
 
 	bootstrapTmpl := &unstructured.Unstructured{
-		Object: map[string]interface{}{
-			"spec": map[string]interface{}{
+		Object: map[string]any{
+			"spec": map[string]any{
 				"template": bootstrapResource,
 			},
 		},
@@ -3690,7 +3690,7 @@ func TestMachineSetReconciler_triggerInPlaceUpdate(t *testing.T) {
 	bootstrapTmpl.SetName("ms-bootstrap-template")
 
 	bootstrapObj := &unstructured.Unstructured{
-		Object: bootstrapResource["spec"].(map[string]interface{}),
+		Object: bootstrapResource["spec"].(map[string]any),
 	}
 	bootstrapObj.SetKind(builder.GenericBootstrapConfigKind)
 	bootstrapObj.SetAPIVersion(clusterv1.GroupVersionBootstrap.String())
@@ -3699,16 +3699,16 @@ func TestMachineSetReconciler_triggerInPlaceUpdate(t *testing.T) {
 	bootstrapObjGVK := bootstrapObj.GroupVersionKind()
 
 	// Create infrastructure template resource.
-	infraResource := map[string]interface{}{
+	infraResource := map[string]any{
 		"kind":       builder.GenericInfrastructureMachineKind,
 		"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
-		"spec": map[string]interface{}{
+		"spec": map[string]any{
 			"size": "3xlarge",
 		},
 	}
 	infraTmpl := &unstructured.Unstructured{
-		Object: map[string]interface{}{
-			"spec": map[string]interface{}{
+		Object: map[string]any{
+			"spec": map[string]any{
 				"template": infraResource,
 			},
 		},
@@ -3719,7 +3719,7 @@ func TestMachineSetReconciler_triggerInPlaceUpdate(t *testing.T) {
 	infraTmpl.SetName("ms-infra-template")
 
 	infraObj := &unstructured.Unstructured{
-		Object: infraResource["spec"].(map[string]interface{}),
+		Object: infraResource["spec"].(map[string]any),
 	}
 	infraObj.SetKind(builder.GenericInfrastructureMachineKind)
 	infraObj.SetAPIVersion(clusterv1.GroupVersionInfrastructure.String())
@@ -4725,14 +4725,14 @@ func TestReconciler_completeMoveMachine(t *testing.T) {
 	g.Expect(clusterv1.AddToScheme(scheme)).To(Succeed())
 
 	// Create bootstrap template resource.
-	bootstrapResource := map[string]interface{}{
+	bootstrapResource := map[string]any{
 		"kind":       "GenericBootstrapConfig",
 		"apiVersion": clusterv1.GroupVersionBootstrap.String(),
-		"spec":       map[string]interface{}{},
+		"spec":       map[string]any{},
 	}
 	bootstrapTmpl := &unstructured.Unstructured{
-		Object: map[string]interface{}{
-			"spec": map[string]interface{}{
+		Object: map[string]any{
+			"spec": map[string]any{
 				"template": bootstrapResource,
 			},
 		},
@@ -4743,14 +4743,14 @@ func TestReconciler_completeMoveMachine(t *testing.T) {
 	bootstrapTmpl.SetNamespace(metav1.NamespaceDefault)
 
 	// Create infrastructure template resource.
-	infraResource := map[string]interface{}{
+	infraResource := map[string]any{
 		"kind":       "GenericInfrastructureMachine",
 		"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
-		"spec":       map[string]interface{}{},
+		"spec":       map[string]any{},
 	}
 	infraTmpl := &unstructured.Unstructured{
-		Object: map[string]interface{}{
-			"spec": map[string]interface{}{
+		Object: map[string]any{
+			"spec": map[string]any{
 				"template": infraResource,
 			},
 		},
@@ -4791,7 +4791,7 @@ func TestReconciler_completeMoveMachine(t *testing.T) {
 	}
 
 	bootstrapObj := &unstructured.Unstructured{
-		Object: bootstrapResource["spec"].(map[string]interface{}),
+		Object: bootstrapResource["spec"].(map[string]any),
 	}
 	bootstrapObj.SetKind(builder.GenericBootstrapConfigKind)
 	bootstrapObj.SetAPIVersion(clusterv1.GroupVersionBootstrap.String())
@@ -4800,7 +4800,7 @@ func TestReconciler_completeMoveMachine(t *testing.T) {
 	bootstrapObjGVK := bootstrapObj.GroupVersionKind()
 
 	infraObj := &unstructured.Unstructured{
-		Object: infraResource["spec"].(map[string]interface{}),
+		Object: infraResource["spec"].(map[string]any),
 	}
 	infraObj.SetKind(builder.GenericInfrastructureMachineKind)
 	infraObj.SetAPIVersion(clusterv1.GroupVersionInfrastructure.String())

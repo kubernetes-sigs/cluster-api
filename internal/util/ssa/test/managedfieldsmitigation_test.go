@@ -417,7 +417,7 @@ func TestMigrateClusterAndMitigateManagedFieldsIssue(t *testing.T) {
 			})
 
 			// Overwrite managedFields on the object with tt.managedFields.
-			jsonPatch := []map[string]interface{}{
+			jsonPatch := []map[string]any{
 				{
 					"op":    "replace",
 					"path":  "/metadata/managedFields",
@@ -1574,7 +1574,7 @@ func TestMitigateManagedFieldsIssue(t *testing.T) {
 			})
 
 			// Overwrite managedFields on the object with tt.managedFields.
-			jsonPatch := []map[string]interface{}{
+			jsonPatch := []map[string]any{
 				{
 					"op":    "replace",
 					"path":  "/metadata/managedFields",

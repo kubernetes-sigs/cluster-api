@@ -418,7 +418,7 @@ var updateMachineUpdateStatusSteps = []updateMachineUpdateStatusStep{
 // Note: The preloaded response is returned for all Machines. Machines which are updated before it is removed (KCP continues
 // with the next Machine as soon as a dirty Machine is up-to-date) are also dirty, so the Machine verified here
 // is not necessarily the only dirty Machine.
-func verifyUpdateMachineUpdateStatuses(ctx context.Context, c client.Client, cluster *clusterv1.Cluster, extensionConfigName string, iteration int, intervals ...interface{}) {
+func verifyUpdateMachineUpdateStatuses(ctx context.Context, c client.Client, cluster *clusterv1.Cluster, extensionConfigName string, iteration int, intervals ...any) {
 	// Wait until the first control plane Machine is updating.
 	var machineName string
 	Eventually(func(g Gomega) {
@@ -464,7 +464,7 @@ func verifyUpdateMachineUpdateStatuses(ctx context.Context, c client.Client, clu
 
 // verifyMachineCondition verifies that the Machine has a condition with the given type, status and reason
 // and that the message of the condition contains messageSubstring.
-func verifyMachineCondition(ctx context.Context, c client.Client, cluster *clusterv1.Cluster, machineName, conditionType string, status metav1.ConditionStatus, reason, messageSubstring string, intervals ...interface{}) {
+func verifyMachineCondition(ctx context.Context, c client.Client, cluster *clusterv1.Cluster, machineName, conditionType string, status metav1.ConditionStatus, reason, messageSubstring string, intervals ...any) {
 	Eventually(func(g Gomega) {
 		machine := &clusterv1.Machine{}
 		g.Expect(c.Get(ctx, client.ObjectKey{Namespace: cluster.Namespace, Name: machineName}, machine)).To(Succeed())
@@ -511,7 +511,7 @@ func setFilesVariable(ctx context.Context, c client.Client, cluster *clusterv1.C
 
 // verifyKCPRollingOutCondition verifies that the RollingOut condition of the KubeadmControlPlane has the given reason
 // and that its message contains messageSubstring.
-func verifyKCPRollingOutCondition(ctx context.Context, c client.Client, cluster *clusterv1.Cluster, reason, messageSubstring string, intervals ...interface{}) {
+func verifyKCPRollingOutCondition(ctx context.Context, c client.Client, cluster *clusterv1.Cluster, reason, messageSubstring string, intervals ...any) {
 	Eventually(func(g Gomega) {
 		kcp := framework.GetKubeadmControlPlaneByCluster(ctx, framework.GetKubeadmControlPlaneByClusterInput{
 			Lister:      c,
@@ -529,7 +529,7 @@ func verifyKCPRollingOutCondition(ctx context.Context, c client.Client, cluster 
 
 // verifyMachineDeploymentsRollingOutCondition verifies that the RollingOut condition of all MachineDeployments of the Cluster
 // has the given reason and that its message contains messageSubstring.
-func verifyMachineDeploymentsRollingOutCondition(ctx context.Context, c client.Client, cluster *clusterv1.Cluster, reason, messageSubstring string, intervals ...interface{}) {
+func verifyMachineDeploymentsRollingOutCondition(ctx context.Context, c client.Client, cluster *clusterv1.Cluster, reason, messageSubstring string, intervals ...any) {
 	Eventually(func(g Gomega) {
 		machineDeployments := framework.GetMachineDeploymentsByCluster(ctx, framework.GetMachineDeploymentsByClusterInput{
 			Lister:      c,

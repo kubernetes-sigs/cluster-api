@@ -36,12 +36,6 @@ const (
 	// MachinePoolAvailableCondition is true when InfrastructureReady and available replicas >= desired replicas.
 	MachinePoolAvailableCondition = clusterv1.AvailableCondition
 
-	// MachinePoolBootstrapConfigReadyCondition mirrors the corresponding condition from the MachinePool's BootstrapConfig resource.
-	MachinePoolBootstrapConfigReadyCondition = clusterv1.BootstrapConfigReadyCondition
-
-	// MachinePoolInfrastructureReadyCondition mirrors the corresponding condition from the MachinePool's Infrastructure resource.
-	MachinePoolInfrastructureReadyCondition = clusterv1.InfrastructureReadyCondition
-
 	// MachinePoolMachinesReadyCondition surfaces detail of issues on the controlled machines, if any.
 	MachinePoolMachinesReadyCondition = clusterv1.MachinesReadyCondition
 
@@ -58,6 +52,57 @@ const (
 	MachinePoolDeletingCondition = clusterv1.DeletingCondition
 ).
 */
+
+// MachinePool's BootstrapConfigReady condition and corresponding reasons.
+const (
+	// MachinePoolBootstrapConfigReadyCondition mirrors the Ready condition from the MachinePool's BootstrapConfig.
+	MachinePoolBootstrapConfigReadyCondition = BootstrapConfigReadyCondition
+
+	// MachinePoolBootstrapConfigReadyReason surfaces when the MachinePool bootstrap config is ready.
+	MachinePoolBootstrapConfigReadyReason = ReadyReason
+
+	// MachinePoolBootstrapDataSecretProvidedReason surfaces when bootstrap data is provided without a BootstrapConfig.
+	MachinePoolBootstrapDataSecretProvidedReason = "DataSecretProvided"
+
+	// MachinePoolBootstrapConfigNotReadyReason surfaces when the MachinePool bootstrap config is not ready.
+	MachinePoolBootstrapConfigNotReadyReason = NotReadyReason
+
+	// MachinePoolBootstrapConfigInvalidConditionReportedReason surfaces an invalid BootstrapConfig Ready condition.
+	MachinePoolBootstrapConfigInvalidConditionReportedReason = InvalidConditionReportedReason
+
+	// MachinePoolBootstrapConfigInternalErrorReason surfaces unexpected failures when reading a BootstrapConfig.
+	MachinePoolBootstrapConfigInternalErrorReason = InternalErrorReason
+
+	// MachinePoolBootstrapConfigDoesNotExistReason surfaces when a referenced bootstrap config does not exist.
+	MachinePoolBootstrapConfigDoesNotExistReason = ObjectDoesNotExistReason
+
+	// MachinePoolBootstrapConfigDeletedReason surfaces when a referenced bootstrap config has been deleted.
+	MachinePoolBootstrapConfigDeletedReason = ObjectDeletedReason
+)
+
+// MachinePool's InfrastructureReady condition and corresponding reasons.
+const (
+	// MachinePoolInfrastructureReadyCondition mirrors the Ready condition from the MachinePool's infrastructure.
+	MachinePoolInfrastructureReadyCondition = InfrastructureReadyCondition
+
+	// MachinePoolInfrastructureReadyReason surfaces when the MachinePool infrastructure is ready.
+	MachinePoolInfrastructureReadyReason = ReadyReason
+
+	// MachinePoolInfrastructureNotReadyReason surfaces when the MachinePool infrastructure is not ready.
+	MachinePoolInfrastructureNotReadyReason = NotReadyReason
+
+	// MachinePoolInfrastructureInvalidConditionReportedReason surfaces an invalid infrastructure Ready condition.
+	MachinePoolInfrastructureInvalidConditionReportedReason = InvalidConditionReportedReason
+
+	// MachinePoolInfrastructureInternalErrorReason surfaces unexpected failures when reading MachinePool infrastructure.
+	MachinePoolInfrastructureInternalErrorReason = InternalErrorReason
+
+	// MachinePoolInfrastructureDoesNotExistReason surfaces when a referenced infrastructure object does not exist.
+	MachinePoolInfrastructureDoesNotExistReason = ObjectDoesNotExistReason
+
+	// MachinePoolInfrastructureDeletedReason surfaces when a referenced infrastructure object has been deleted.
+	MachinePoolInfrastructureDeletedReason = ObjectDeletedReason
+)
 
 // MachinePool's MachinesUpToDate condition and corresponding reasons.
 const (

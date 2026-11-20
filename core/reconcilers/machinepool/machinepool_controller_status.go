@@ -23,16 +23,21 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	contractapi "sigs.k8s.io/cluster-api/internal/contract/api"
 	internalversion "sigs.k8s.io/cluster-api/internal/util/version"
 	"sigs.k8s.io/cluster-api/util/collections"
 	"sigs.k8s.io/cluster-api/util/conditions"
 )
 
 func (r *Reconciler) updateStatus(ctx context.Context, s *scope) error {
+	setBootstrapConfigReadyCondition(ctx, s.machinePool, s.bootstrapConfig, s.bootstrapConfigIsNotFound)
+	setInfrastructureReadyCondition(ctx, s.machinePool, s.infraMachinePool, s.infraMachinePoolIsNotFound, s.infrastructureProvisioned)
+
 	log := ctrl.LoggerFrom(ctx)
 
 	if s.infraMachinePool == nil {
@@ -51,6 +56,144 @@ func (r *Reconciler) updateStatus(ctx context.Context, s *scope) error {
 	setMachinesUpToDateCondition(ctx, s.machinePool, s.machines, hasMachinePoolMachines, s.getMachinesForMachinePoolSucceeded)
 
 	return nil
+}
+
+func setBootstrapConfigReadyCondition(_ context.Context, mp *clusterv1.MachinePool, bootstrapConfig contractapi.BootstrapConfig, bootstrapConfigIsNotFound bool) {
+	if !mp.Spec.Template.Spec.Bootstrap.ConfigRef.IsDefined() {
+		conditions.Set(mp, metav1.Condition{
+			Type:   clusterv1.MachinePoolBootstrapConfigReadyCondition,
+			Status: metav1.ConditionTrue,
+			Reason: clusterv1.MachinePoolBootstrapDataSecretProvidedReason,
+		})
+		return
+	}
+
+	if bootstrapConfig != nil {
+		dataSecretCreated := bootstrapConfig.GetDataSecretCreated()
+		ready := conditions.NewMirrorCondition(
+			bootstrapConfig,
+			clusterv1.ReadyCondition,
+			conditions.TargetConditionType(clusterv1.MachinePoolBootstrapConfigReadyCondition),
+			conditions.FallbackCondition{
+				Status:  conditions.BoolToStatus(dataSecretCreated),
+				Reason:  fallbackReason(dataSecretCreated, clusterv1.MachinePoolBootstrapConfigReadyReason, clusterv1.MachinePoolBootstrapConfigNotReadyReason),
+				Message: objectReadyFallbackMessage(mp.Spec.Template.Spec.Bootstrap.ConfigRef.Kind, "status.initialization.dataSecretCreated", dataSecretCreated),
+			},
+		)
+		// Legacy True conditions may omit the reason.
+		if ready.Reason == conditions.NoReasonReported && ready.Status == metav1.ConditionTrue {
+			ready.Reason = clusterv1.MachinePoolBootstrapConfigReadyReason
+		}
+		conditions.Set(mp, *ready)
+		return
+	}
+
+	// Bootstrap is not reconciled during deletion, so preserve the last reported condition.
+	if !mp.DeletionTimestamp.IsZero() {
+		return
+	}
+
+	if !bootstrapConfigIsNotFound {
+		conditions.Set(mp, metav1.Condition{
+			Type:    clusterv1.MachinePoolBootstrapConfigReadyCondition,
+			Status:  metav1.ConditionUnknown,
+			Reason:  clusterv1.MachinePoolBootstrapConfigInternalErrorReason,
+			Message: "Please check controller logs for errors",
+		})
+		return
+	}
+
+	reason := clusterv1.MachinePoolBootstrapConfigDoesNotExistReason
+	message := fmt.Sprintf("%s does not exist", mp.Spec.Template.Spec.Bootstrap.ConfigRef.Kind)
+	if ptr.Deref(mp.Status.Initialization.BootstrapDataSecretCreated, false) {
+		reason = clusterv1.MachinePoolBootstrapConfigDeletedReason
+		message = fmt.Sprintf("%s has been deleted", mp.Spec.Template.Spec.Bootstrap.ConfigRef.Kind)
+	}
+	conditions.Set(mp, metav1.Condition{
+		Type:    clusterv1.MachinePoolBootstrapConfigReadyCondition,
+		Status:  metav1.ConditionFalse,
+		Reason:  reason,
+		Message: message,
+	})
+}
+
+func setInfrastructureReadyCondition(_ context.Context, mp *clusterv1.MachinePool, infraMachinePool *unstructured.Unstructured, infraMachinePoolIsNotFound bool, infrastructureProvisioned *bool) {
+	if infraMachinePool != nil {
+		options := []conditions.MirrorOption{
+			conditions.TargetConditionType(clusterv1.MachinePoolInfrastructureReadyCondition),
+			conditions.FallbackCondition{
+				Status:  metav1.ConditionUnknown,
+				Reason:  clusterv1.MachinePoolInfrastructureInternalErrorReason,
+				Message: "Please check controller logs for errors",
+			},
+		}
+		if infrastructureProvisioned != nil {
+			provisioned := *infrastructureProvisioned
+			options = append(options, conditions.FallbackCondition{
+				Status:  conditions.BoolToStatus(provisioned),
+				Reason:  fallbackReason(provisioned, clusterv1.MachinePoolInfrastructureReadyReason, clusterv1.MachinePoolInfrastructureNotReadyReason),
+				Message: objectReadyFallbackMessage(mp.Spec.Template.Spec.InfrastructureRef.Kind, "status.initialization.provisioned", provisioned),
+			})
+		}
+		ready, err := conditions.NewMirrorConditionFromUnstructured(infraMachinePool, clusterv1.ReadyCondition, options...)
+		if err != nil {
+			conditions.Set(mp, metav1.Condition{
+				Type:    clusterv1.MachinePoolInfrastructureReadyCondition,
+				Status:  metav1.ConditionUnknown,
+				Reason:  clusterv1.MachinePoolInfrastructureInvalidConditionReportedReason,
+				Message: err.Error(),
+			})
+			return
+		}
+		// Legacy True conditions may omit the reason.
+		if ready.Reason == conditions.NoReasonReported && ready.Status == metav1.ConditionTrue {
+			ready.Reason = clusterv1.MachinePoolInfrastructureReadyReason
+		}
+		conditions.Set(mp, *ready)
+		return
+	}
+
+	// Infrastructure is not reconciled during deletion, so preserve the last reported condition.
+	if !mp.DeletionTimestamp.IsZero() {
+		return
+	}
+
+	if !infraMachinePoolIsNotFound {
+		conditions.Set(mp, metav1.Condition{
+			Type:    clusterv1.MachinePoolInfrastructureReadyCondition,
+			Status:  metav1.ConditionUnknown,
+			Reason:  clusterv1.MachinePoolInfrastructureInternalErrorReason,
+			Message: "Please check controller logs for errors",
+		})
+		return
+	}
+
+	reason := clusterv1.MachinePoolInfrastructureDoesNotExistReason
+	message := fmt.Sprintf("%s does not exist", mp.Spec.Template.Spec.InfrastructureRef.Kind)
+	if ptr.Deref(mp.Status.Initialization.InfrastructureProvisioned, false) {
+		reason = clusterv1.MachinePoolInfrastructureDeletedReason
+		message = fmt.Sprintf("%s has been deleted while the MachinePool still exists", mp.Spec.Template.Spec.InfrastructureRef.Kind)
+	}
+	conditions.Set(mp, metav1.Condition{
+		Type:    clusterv1.MachinePoolInfrastructureReadyCondition,
+		Status:  metav1.ConditionFalse,
+		Reason:  reason,
+		Message: message,
+	})
+}
+
+func fallbackReason(status bool, trueReason, falseReason string) string {
+	if status {
+		return trueReason
+	}
+	return falseReason
+}
+
+func objectReadyFallbackMessage(kind, field string, ready bool) string {
+	if ready {
+		return ""
+	}
+	return fmt.Sprintf("%s %s is %t", kind, field, ready)
 }
 
 func setReplicas(mp *clusterv1.MachinePool, hasMachinePoolMachines bool, machines []*clusterv1.Machine, nodeRefMap map[string]*corev1.Node) {

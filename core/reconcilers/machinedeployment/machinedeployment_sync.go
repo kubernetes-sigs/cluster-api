@@ -261,10 +261,9 @@ func (r *Reconciler) syncDeploymentStatus(allMSs []*clusterv1.MachineSet, newMS 
 func calculateV1Beta1Status(allMSs []*clusterv1.MachineSet, newMS *clusterv1.MachineSet, deployment *clusterv1.MachineDeployment) {
 	availableReplicas := mdutil.GetV1Beta1AvailableReplicaCountForMachineSets(allMSs)
 	totalReplicas := mdutil.GetReplicaCountForMachineSets(allMSs)
-	unavailableReplicas := max(
-		// If unavailableReplicas is negative, then that means the Deployment has more available replicas running than
-		// desired, e.g. whenever it scales down. In such a case we should simply default unavailableReplicas to zero.
-		totalReplicas-availableReplicas, 0)
+	// If unavailableReplicas is negative, then that means the Deployment has more available replicas running than
+	// desired, e.g. whenever it scales down. In such a case we should simply default unavailableReplicas to zero.
+	unavailableReplicas := max(totalReplicas-availableReplicas, 0)
 
 	if deployment.Status.Deprecated == nil {
 		deployment.Status.Deprecated = &clusterv1.MachineDeploymentDeprecatedStatus{}

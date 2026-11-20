@@ -116,6 +116,9 @@ type FilterIntentInput struct {
 // IsPathAllowed returns true when the Path is one of the AllowedPaths.
 func IsPathAllowed(allowedPaths []contract.Path) func(path contract.Path) bool {
 	return func(path contract.Path) bool {
+		// NOTE: we allow everything Equal or one IsParentOf one of the allowed paths.
+		// e.g. if allowed Path is metadata.labels, we allow both metadata and metadata.labels;
+		// this is required because allowed Path is called recursively.
 		return slices.ContainsFunc(allowedPaths, path.Overlaps)
 	}
 }

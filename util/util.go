@@ -22,7 +22,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	maps0 "maps"
+	"maps"
 	"math"
 	"math/rand"
 	"reflect"
@@ -760,10 +760,10 @@ func IsNil(i any) bool {
 
 // MergeMap merges maps.
 // NOTE: In case a key exists in multiple maps, the value of the first map is preserved.
-func MergeMap(maps ...map[string]string) map[string]string {
+func MergeMap(mapss ...map[string]string) map[string]string {
 	m := make(map[string]string)
-	for _, m0 := range slices.Backward(maps) {
-		maps0.Copy(m, m0)
+	for _, m0 := range slices.Backward(mapss) {
+		maps.Copy(m, m0)
 	}
 
 	// Nil the result if the map is empty, thus avoiding triggering infinite reconcile

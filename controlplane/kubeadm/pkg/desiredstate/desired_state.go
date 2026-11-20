@@ -19,6 +19,7 @@ package desiredstate
 
 import (
 	"context"
+	"maps"
 	"strings"
 
 	"github.com/blang/semver/v4"
@@ -152,9 +153,7 @@ func ComputeDesiredMachine(kcp *controlplanev1.KubeadmControlPlane, cluster *clu
 
 	// Set annotations
 	desiredMachine.Annotations = ControlPlaneMachineAnnotations(kcp)
-	for k, v := range annotations {
-		desiredMachine.Annotations[k] = v
-	}
+	maps.Copy(desiredMachine.Annotations, annotations)
 
 	// Set other in-place mutable fields
 	desiredMachine.Spec.Deletion.NodeDrainTimeoutSeconds = kcp.Spec.MachineTemplate.Spec.Deletion.NodeDrainTimeoutSeconds
@@ -309,9 +308,7 @@ func ControlPlaneMachineLabels(kcp *controlplanev1.KubeadmControlPlane, clusterN
 
 	// Add the labels from the MachineTemplate.
 	// Note: we intentionally don't use the map directly to ensure we don't modify the map in KCP.
-	for k, v := range kcp.Spec.MachineTemplate.ObjectMeta.Labels {
-		labels[k] = v
-	}
+	maps.Copy(labels, kcp.Spec.MachineTemplate.ObjectMeta.Labels)
 
 	// Always force these labels over the ones coming from the spec.
 	labels[clusterv1.ClusterNameLabel] = clusterName
@@ -327,9 +324,7 @@ func ControlPlaneMachineAnnotations(kcp *controlplanev1.KubeadmControlPlane) map
 
 	// Add the annotations from the MachineTemplate.
 	// Note: we intentionally don't use the map directly to ensure we don't modify the map in KCP.
-	for k, v := range kcp.Spec.MachineTemplate.ObjectMeta.Annotations {
-		annotations[k] = v
-	}
+	maps.Copy(annotations, kcp.Spec.MachineTemplate.ObjectMeta.Annotations)
 
 	return annotations
 }

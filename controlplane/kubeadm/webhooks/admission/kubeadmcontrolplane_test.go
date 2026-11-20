@@ -340,9 +340,9 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 						Name:     "infraTemplate",
 					},
 					Deletion: controlplanev1.KubeadmControlPlaneMachineTemplateDeletionSpec{
-						NodeDrainTimeoutSeconds:        ptr.To(int32(1)),
-						NodeVolumeDetachTimeoutSeconds: ptr.To(int32(1)),
-						NodeDeletionTimeoutSeconds:     ptr.To(int32(1)),
+						NodeDrainTimeoutSeconds:        new(int32(1)),
+						NodeVolumeDetachTimeoutSeconds: new(int32(1)),
+						NodeDeletionTimeoutSeconds:     new(int32(1)),
 					},
 				},
 			},
@@ -400,7 +400,7 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 				},
 				NTP: bootstrapv1.NTP{
 					Servers: []string{"test-server-1", "test-server-2"},
-					Enabled: ptr.To(true),
+					Enabled: new(true),
 				},
 			},
 			Version: "v1.16.6",
@@ -474,16 +474,16 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 	}
 	validUpdate.Spec.MachineTemplate.Spec.InfrastructureRef.APIGroup = "test-changed"
 	validUpdate.Spec.MachineTemplate.Spec.InfrastructureRef.Name = "orange"
-	validUpdate.Spec.MachineTemplate.Spec.Deletion.NodeDrainTimeoutSeconds = ptr.To(int32(10))
-	validUpdate.Spec.MachineTemplate.Spec.Deletion.NodeVolumeDetachTimeoutSeconds = ptr.To(int32(10))
-	validUpdate.Spec.MachineTemplate.Spec.Deletion.NodeDeletionTimeoutSeconds = ptr.To(int32(10))
+	validUpdate.Spec.MachineTemplate.Spec.Deletion.NodeDrainTimeoutSeconds = new(int32(10))
+	validUpdate.Spec.MachineTemplate.Spec.Deletion.NodeVolumeDetachTimeoutSeconds = new(int32(10))
+	validUpdate.Spec.MachineTemplate.Spec.Deletion.NodeDeletionTimeoutSeconds = new(int32(10))
 	validUpdate.Spec.Replicas = ptr.To[int32](5)
 	now := metav1.NewTime(time.Now())
 	validUpdate.Spec.Rollout.After = now
 	validUpdate.Spec.Rollout.Before.CertificatesExpiryDays = 14
 	validUpdate.Spec.Remediation = controlplanev1.KubeadmControlPlaneRemediationSpec{
 		MaxRetry:                ptr.To[int32](50),
-		MinHealthyPeriodSeconds: ptr.To(int32(10 * 60 * 60)),
+		MinHealthyPeriodSeconds: new(int32(10 * 60 * 60)),
 		RetryPeriodSeconds:      ptr.To[int32](10 * 60),
 	}
 	validUpdate.Spec.KubeadmConfigSpec.Format = bootstrapv1.CloudConfig
@@ -525,7 +525,7 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 		ExtraArgs: []bootstrapv1.Arg{
 			{
 				Name:  "foo",
-				Value: ptr.To("bar"),
+				Value: new("bar"),
 			},
 		},
 		ExtraVolumes: []bootstrapv1.HostPathMount{{Name: "mount1"}},
@@ -537,10 +537,10 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 		ExtraArgs: []bootstrapv1.Arg{
 			{
 				Name:  "controller manager field",
-				Value: ptr.To("controller manager value"),
+				Value: new("controller manager value"),
 			},
 		},
-		ExtraVolumes: []bootstrapv1.HostPathMount{{Name: "mount", HostPath: "/foo", MountPath: "bar", ReadOnly: ptr.To(true), PathType: "File"}},
+		ExtraVolumes: []bootstrapv1.HostPathMount{{Name: "mount", HostPath: "/foo", MountPath: "bar", ReadOnly: new(true), PathType: "File"}},
 	}
 
 	scheduler := before.DeepCopy()
@@ -548,10 +548,10 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 		ExtraArgs: []bootstrapv1.Arg{
 			{
 				Name:  "scheduler field",
-				Value: ptr.To("scheduler value"),
+				Value: new("scheduler value"),
 			},
 		},
-		ExtraVolumes: []bootstrapv1.HostPathMount{{Name: "mount", HostPath: "/foo", MountPath: "bar", ReadOnly: ptr.To(true), PathType: "File"}},
+		ExtraVolumes: []bootstrapv1.HostPathMount{{Name: "mount", HostPath: "/foo", MountPath: "bar", ReadOnly: new(true), PathType: "File"}},
 	}
 
 	dns := before.DeepCopy()
@@ -642,7 +642,7 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 		ExtraArgs: []bootstrapv1.Arg{
 			{
 				Name:  "an arg",
-				Value: ptr.To("a value"),
+				Value: new("a value"),
 			},
 		},
 	}
@@ -680,7 +680,7 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 	updateNTPServers.Spec.KubeadmConfigSpec.NTP.Servers = []string{"new-server"}
 
 	disableNTPServers := before.DeepCopy()
-	disableNTPServers.Spec.KubeadmConfigSpec.NTP.Enabled = ptr.To(false)
+	disableNTPServers.Spec.KubeadmConfigSpec.NTP.Enabled = new(false)
 
 	unsetRolloutBefore := before.DeepCopy()
 	unsetRolloutBefore.Spec.Rollout.Before = controlplanev1.KubeadmControlPlaneRolloutBeforeSpec{}
@@ -1454,20 +1454,20 @@ func TestPaths(t *testing.T) {
 	tests := []struct {
 		name     string
 		path     []string
-		diff     map[string]interface{}
+		diff     map[string]any
 		expected [][]string
 	}{
 		{
 			name: "basic check",
-			diff: map[string]interface{}{
-				"spec": map[string]interface{}{
+			diff: map[string]any{
+				"spec": map[string]any{
 					"replicas": 4,
 					"version":  "1.17.3",
-					"kubeadmConfigSpec": map[string]interface{}{
-						"clusterConfiguration": map[string]interface{}{
+					"kubeadmConfigSpec": map[string]any{
+						"clusterConfiguration": map[string]any{
 							"version": "v2.0.1",
 						},
-						"initConfiguration": map[string]interface{}{
+						"initConfiguration": map[string]any{
 							"bootstrapToken": []string{"abcd", "defg"},
 						},
 						"joinConfiguration": nil,
@@ -1485,15 +1485,15 @@ func TestPaths(t *testing.T) {
 		{
 			name:     "empty input makes for empty output",
 			path:     []string{"a"},
-			diff:     map[string]interface{}{},
+			diff:     map[string]any{},
 			expected: [][]string{},
 		},
 		{
 			name: "long recursive check with two keys",
-			diff: map[string]interface{}{
-				"spec": map[string]interface{}{
-					"kubeadmConfigSpec": map[string]interface{}{
-						"clusterConfiguration": map[string]interface{}{
+			diff: map[string]any{
+				"spec": map[string]any{
+					"kubeadmConfigSpec": map[string]any{
+						"clusterConfiguration": map[string]any{
 							"version": "v2.0.1",
 							"abc":     "d",
 						},

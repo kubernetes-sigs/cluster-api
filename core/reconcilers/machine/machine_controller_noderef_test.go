@@ -18,6 +18,7 @@ package machine
 
 import (
 	"fmt"
+	"maps"
 	"testing"
 	"time"
 
@@ -28,7 +29,6 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/client-go/tools/record"
 	utilfeature "k8s.io/component-base/featuregate/testing"
-	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -205,7 +205,7 @@ func TestReconcileNode(t *testing.T) {
 					Labels: map[string]string{
 						clusterv1.ClusterNameLabel: "test-cluster",
 					},
-					DeletionTimestamp: ptr.To(metav1.Now()),
+					DeletionTimestamp: new(metav1.Now()),
 					Finalizers:        []string{"foo"},
 				},
 				Spec: clusterv1.MachineSpec{
@@ -330,7 +330,7 @@ func TestReconcileNode(t *testing.T) {
 				ClusterCache: clustercache.NewFakeClusterCache(c, client.ObjectKeyFromObject(cluster), watches...),
 				Client:       c,
 				recorder:     record.NewFakeRecorder(10),
-				predicateLog: ptr.To(logr.New(log.NullLogSink{})),
+				predicateLog: new(logr.New(log.NullLogSink{})),
 			}
 			s := &scope{cluster: cluster, machine: tc.machine}
 			result, err := r.reconcileNode(ctx, s)
@@ -423,10 +423,10 @@ func TestNodeLabelSync(t *testing.T) {
 	}
 
 	defaultInfraMachine := &unstructured.Unstructured{
-		Object: map[string]interface{}{
+		Object: map[string]any{
 			"kind":       "GenericInfrastructureMachine",
 			"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
-			"metadata": map[string]interface{}{
+			"metadata": map[string]any{
 				"name":      "infra-config1",
 				"namespace": metav1.NamespaceDefault,
 			},
@@ -475,11 +475,11 @@ func TestNodeLabelSync(t *testing.T) {
 		infraMachine := defaultInfraMachine.DeepCopy()
 		infraMachine.SetNamespace(ns.Name)
 
-		interruptibleTrueInfraMachineStatus := map[string]interface{}{
+		interruptibleTrueInfraMachineStatus := map[string]any{
 			"interruptible": true,
 			"ready":         true,
 		}
-		interruptibleFalseInfraMachineStatus := map[string]interface{}{
+		interruptibleFalseInfraMachineStatus := map[string]any{
 			"interruptible": false,
 			"ready":         true,
 		}
@@ -504,9 +504,7 @@ func TestNodeLabelSync(t *testing.T) {
 			clusterv1.NodeRestrictionLabelDomain + "/anything":                    "valueFromMachine",
 			"custom-prefix." + clusterv1.NodeRestrictionLabelDomain + "/anything": "valueFromMachine",
 		}
-		for k, v := range managedMachineLabels {
-			machine.Labels[k] = v
-		}
+		maps.Copy(machine.Labels, managedMachineLabels)
 		// The expectation is that these labels will not be synced to the Node.
 		unmanagedMachineLabels := map[string]string{
 			"foo":                               "",
@@ -516,9 +514,7 @@ func TestNodeLabelSync(t *testing.T) {
 			"company.xyz/node-restriction.kubernetes.io": "not-managed",
 			"gpu-node-restriction.kubernetes.io":         "not-managed",
 		}
-		for k, v := range unmanagedMachineLabels {
-			machine.Labels[k] = v
-		}
+		maps.Copy(machine.Labels, unmanagedMachineLabels)
 
 		// Create Node.
 		node := &corev1.Node{
@@ -557,17 +553,13 @@ func TestNodeLabelSync(t *testing.T) {
 			clusterv1.NodeRestrictionLabelDomain + "/anything":                    "valueFromNode",
 			"custom-prefix." + clusterv1.NodeRestrictionLabelDomain + "/anything": "valueFromNode",
 		}
-		for k, v := range managedNodeLabelsToBeOverWritten {
-			node.Labels[k] = v
-		}
+		maps.Copy(node.Labels, managedNodeLabelsToBeOverWritten)
 		// The expectation is that these labels will be preserved by the node label sync.
 		unmanagedNodeLabelsToBePreserved := map[string]string{
 			"node-role.kubernetes.io/control-plane": "",
 			"label":                                 "valueFromNode",
 		}
-		for k, v := range unmanagedNodeLabelsToBePreserved {
-			node.Labels[k] = v
-		}
+		maps.Copy(node.Labels, unmanagedNodeLabelsToBePreserved)
 
 		g.Expect(env.Create(ctx, node)).To(Succeed())
 		defer func() {
@@ -579,7 +571,7 @@ func TestNodeLabelSync(t *testing.T) {
 		g.Expect(env.CreateAndWait(ctx, defaultKubeconfigSecret)).To(Succeed())
 		// Set InfrastructureReady to true so ClusterCache creates the clusterAccessor.
 		patch := client.MergeFrom(cluster.DeepCopy())
-		cluster.Status.Initialization.InfrastructureProvisioned = ptr.To(true)
+		cluster.Status.Initialization.InfrastructureProvisioned = new(true)
 		g.Expect(env.Status().Patch(ctx, cluster, patch)).To(Succeed())
 
 		g.Expect(env.Create(ctx, infraMachine)).To(Succeed())

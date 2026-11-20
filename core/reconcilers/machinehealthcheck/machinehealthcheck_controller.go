@@ -118,7 +118,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 		rateLimit = r.overrideRateLimit
 	}
 
-	r.predicateLog = ptr.To(ctrl.LoggerFrom(ctx).WithValues("controller", "machinehealthcheck"))
+	r.predicateLog = new(ctrl.LoggerFrom(ctx).WithValues("controller", "machinehealthcheck"))
 	c, err := capicontrollerutil.NewControllerManagedBy(mgr, *r.predicateLog).
 		For(&clusterv1.MachineHealthCheck{}).
 		Watches(
@@ -280,7 +280,7 @@ func (r *Reconciler) reconcile(ctx context.Context, reconcileStartTime metav1.Ti
 		return ctrl.Result{}, pkgerrors.Wrapf(err, "failed to fetch targets from MachineHealthCheck")
 	}
 	totalTargets := len(targets)
-	mhc.Status.ExpectedMachines = ptr.To(int32(totalTargets))
+	mhc.Status.ExpectedMachines = new(int32(totalTargets))
 	mhc.Status.Targets = make([]string, totalTargets)
 	for i, t := range targets {
 		mhc.Status.Targets[i] = t.Machine.Name
@@ -298,7 +298,7 @@ func (r *Reconciler) reconcile(ctx context.Context, reconcileStartTime metav1.Ti
 	if err != nil {
 		return ctrl.Result{}, err
 	}
-	mhc.Status.CurrentHealthy = ptr.To(int32(len(healthy)))
+	mhc.Status.CurrentHealthy = new(int32(len(healthy)))
 
 	// check MHC current health against UnhealthyLessThanOrEqualTo
 	remediationAllowed, remediationCount, err := isAllowedRemediation(mhc)
@@ -310,7 +310,7 @@ func (r *Reconciler) reconcile(ctx context.Context, reconcileStartTime metav1.Ti
 		var message string
 
 		if mhc.Spec.Remediation.TriggerIf.UnhealthyInRange == "" {
-			maxUnhealthyValue := ptr.To(ptr.Deref(mhc.Spec.Remediation.TriggerIf.UnhealthyLessThanOrEqualTo, defaultMaxUnhealthy)).String()
+			maxUnhealthyValue := new(ptr.Deref(mhc.Spec.Remediation.TriggerIf.UnhealthyLessThanOrEqualTo, defaultMaxUnhealthy)).String()
 			logger.V(3).Info(
 				"Short-circuiting remediation",
 				totalTargetKeyLog, totalTargets,
@@ -389,7 +389,7 @@ func (r *Reconciler) reconcile(ctx context.Context, reconcileStartTime metav1.Ti
 		logger.V(3).Info(
 			"Remediations are allowed",
 			totalTargetKeyLog, totalTargets,
-			maxUnhealthyKeyLog, ptr.To(ptr.Deref(mhc.Spec.Remediation.TriggerIf.UnhealthyLessThanOrEqualTo, defaultMaxUnhealthy)).String(),
+			maxUnhealthyKeyLog, new(ptr.Deref(mhc.Spec.Remediation.TriggerIf.UnhealthyLessThanOrEqualTo, defaultMaxUnhealthy)).String(),
 			unhealthyTargetsKeyLog, len(unhealthy),
 		)
 	} else {
@@ -402,7 +402,7 @@ func (r *Reconciler) reconcile(ctx context.Context, reconcileStartTime metav1.Ti
 	}
 
 	// Remediation is allowed so unhealthyMachineCount is within unhealthyRange (or) maxUnhealthy - unhealthyMachineCount >= 0
-	mhc.Status.RemediationsAllowed = ptr.To(remediationCount)
+	mhc.Status.RemediationsAllowed = new(remediationCount)
 	v1beta1conditions.MarkTrue(mhc, clusterv1.RemediationAllowedV1Beta1Condition)
 
 	conditions.Set(mhc, metav1.Condition{
@@ -793,7 +793,7 @@ func getUnhealthyRange(mhc *clusterv1.MachineHealthCheck) (int, int, error) {
 }
 
 func getMaxUnhealthy(mhc *clusterv1.MachineHealthCheck) (int, error) {
-	maxUnhealthy, err := intstr.GetScaledValueFromIntOrPercent(ptr.To(ptr.Deref(mhc.Spec.Remediation.TriggerIf.UnhealthyLessThanOrEqualTo, defaultMaxUnhealthy)), int(ptr.Deref[int32](mhc.Status.ExpectedMachines, 0)), false)
+	maxUnhealthy, err := intstr.GetScaledValueFromIntOrPercent(new(ptr.Deref(mhc.Spec.Remediation.TriggerIf.UnhealthyLessThanOrEqualTo, defaultMaxUnhealthy)), int(ptr.Deref[int32](mhc.Status.ExpectedMachines, 0)), false)
 	if err != nil {
 		return 0, err
 	}

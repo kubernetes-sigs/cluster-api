@@ -19,6 +19,7 @@ package e2e
 import (
 	"context"
 	"fmt"
+	"maps"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -147,7 +148,7 @@ func NodeDrainTimeoutSpec(ctx context.Context, inputGetter func() NodeDrainTimeo
 				Namespace:                namespace.Name,
 				ClusterName:              clusterName,
 				KubernetesVersion:        input.E2EConfig.MustGetVariable(KubernetesVersion),
-				ControlPlaneMachineCount: ptr.To[int64](int64(controlPlaneReplicas)),
+				ControlPlaneMachineCount: new(int64(controlPlaneReplicas)),
 				WorkerMachineCount:       ptr.To[int64](1),
 			},
 			ControlPlaneWaiters:          input.ControlPlaneWaiters,
@@ -168,9 +169,9 @@ func NodeDrainTimeoutSpec(ctx context.Context, inputGetter func() NodeDrainTimeo
 			ClusterProxy: input.BootstrapClusterProxy,
 			Cluster:      cluster,
 			ModifyControlPlaneTopology: func(topology *clusterv1.ControlPlaneTopology) {
-				topology.Deletion.NodeDrainTimeoutSeconds = ptr.To(int32(0))
+				topology.Deletion.NodeDrainTimeoutSeconds = new(int32(0))
 				if input.VerifyNodeVolumeDetach {
-					topology.Deletion.NodeVolumeDetachTimeoutSeconds = ptr.To(int32(0))
+					topology.Deletion.NodeVolumeDetachTimeoutSeconds = new(int32(0))
 				}
 				if topology.Metadata.Labels == nil {
 					topology.Metadata.Labels = map[string]string{}
@@ -183,9 +184,9 @@ func NodeDrainTimeoutSpec(ctx context.Context, inputGetter func() NodeDrainTimeo
 			ClusterProxy: input.BootstrapClusterProxy,
 			Cluster:      cluster,
 			ModifyMachineDeploymentTopology: func(topology *clusterv1.MachineDeploymentTopology) {
-				topology.Deletion.NodeDrainTimeoutSeconds = ptr.To(int32(0))
+				topology.Deletion.NodeDrainTimeoutSeconds = new(int32(0))
 				if input.VerifyNodeVolumeDetach {
-					topology.Deletion.NodeVolumeDetachTimeoutSeconds = ptr.To(int32(0))
+					topology.Deletion.NodeVolumeDetachTimeoutSeconds = new(int32(0))
 				}
 				if topology.Metadata.Labels == nil {
 					topology.Metadata.Labels = map[string]string{}
@@ -279,9 +280,7 @@ func NodeDrainTimeoutSpec(ctx context.Context, inputGetter func() NodeDrainTimeo
 				NodeSelector:         map[string]string{nodeOwnerLabelKey: "KubeadmControlPlane-" + controlplane.Name},
 				ModifyDeployment: func(deployment *appsv1.Deployment) {
 					deployment.Spec.Template.Finalizers = []string{"test.cluster.x-k8s.io/block"}
-					for k, v := range deploymentLabels {
-						deployment.Spec.Template.Labels[k] = v
-					}
+					maps.Copy(deployment.Spec.Template.Labels, deploymentLabels)
 				},
 				WaitForDeploymentAvailableInterval: input.E2EConfig.GetIntervals(specName, "wait-deployment-available"),
 			})
@@ -294,9 +293,7 @@ func NodeDrainTimeoutSpec(ctx context.Context, inputGetter func() NodeDrainTimeo
 					NodeSelector:         map[string]string{nodeOwnerLabelKey: "MachineDeployment-" + md.Name},
 					ModifyDeployment: func(deployment *appsv1.Deployment) {
 						deployment.Spec.Template.Finalizers = []string{"test.cluster.x-k8s.io/block"}
-						for k, v := range deploymentLabels {
-							deployment.Spec.Template.Labels[k] = v
-						}
+						maps.Copy(deployment.Spec.Template.Labels, deploymentLabels)
 					},
 					WaitForDeploymentAvailableInterval: input.E2EConfig.GetIntervals(specName, "wait-deployment-available"),
 				})
@@ -579,7 +576,7 @@ func NodeDrainTimeoutSpec(ctx context.Context, inputGetter func() NodeDrainTimeo
 		By("Set NodeDrainTimeoutSeconds and NodeVolumeDetachTimeoutSeconds for ControlPlanes to 1s to unblock Node drain")
 		// Note: This also verifies that KCP & MachineDeployments are still propagating changes to NodeDrainTimeoutSeconds down to
 		// Machines that already have a deletionTimestamp.
-		drainTimeout := ptr.To(int32(1))
+		drainTimeout := new(int32(1))
 		modifyControlPlaneViaClusterAndWait(ctx, modifyControlPlaneViaClusterAndWaitInput{
 			ClusterProxy: input.BootstrapClusterProxy,
 			Cluster:      cluster,
@@ -646,7 +643,7 @@ func generateMachineDrainRule(clusterNamespace, clusterName, mdrName string, ord
 		Spec: clusterv1.MachineDrainRuleSpec{
 			Drain: clusterv1.MachineDrainRuleDrainConfig{
 				Behavior: clusterv1.MachineDrainRuleDrainBehaviorDrain,
-				Order:    ptr.To[int32](order),
+				Order:    new(order),
 			},
 			Machines: []clusterv1.MachineDrainRuleMachineSelector{
 				// Select all Machines with the ClusterNameLabel belonging to Clusters with the ClusterNameLabel.
@@ -714,7 +711,7 @@ type verifyNodeDrainsBlockedAndUnblockInput struct {
 	DeploymentNamePrefix         string
 	CPConditionMessageSubstrings []string
 	MDConditionMessageSubstrings map[string][]string
-	WaitForMachineDelete         []interface{}
+	WaitForMachineDelete         []any
 }
 
 func verifyNodeDrainsBlockedAndUnblock(ctx context.Context, input verifyNodeDrainsBlockedAndUnblockInput) {
@@ -807,21 +804,21 @@ func verifyPodEvictedAndSucceeded(g Gomega, pod *corev1.Pod) {
 	g.Expect(podEvicted).To(BeTrue(), "Expected Pod to be evicted")
 }
 
-func getDrainAndDeleteInterval(deleteInterval []interface{}, drainTimeout *int32, replicas int) []interface{} {
+func getDrainAndDeleteInterval(deleteInterval []any, drainTimeout *int32, replicas int) []any {
 	deleteTimeout, err := time.ParseDuration(deleteInterval[0].(string))
 	Expect(err).ToNot(HaveOccurred())
 	// We add the drain timeout to the specified delete timeout per replica.
 	intervalDuration := (time.Duration(*drainTimeout)*time.Second + deleteTimeout) * time.Duration(replicas)
-	res := []interface{}{intervalDuration.String(), deleteInterval[1]}
+	res := []any{intervalDuration.String(), deleteInterval[1]}
 	return res
 }
 
-func unblockNodeVolumeDetachmentFunc(waitControlPlaneIntervals, waitWorkerNodeIntervals []interface{}) func(ctx context.Context, bootstrapClusterProxy framework.ClusterProxy, cluster *clusterv1.Cluster) {
+func unblockNodeVolumeDetachmentFunc(waitControlPlaneIntervals, waitWorkerNodeIntervals []any) func(ctx context.Context, bootstrapClusterProxy framework.ClusterProxy, cluster *clusterv1.Cluster) {
 	return func(ctx context.Context, bootstrapClusterProxy framework.ClusterProxy, cluster *clusterv1.Cluster) {
 		By("Set NodeVolumeDetachTimeoutSeconds to 1s to unblock waiting for volume detachments")
 		// Note: This also verifies that KCP & MachineDeployments are still propagating changes to NodeVolumeDetachTimeoutSeconds down to
 		// Machines that already have a deletionTimestamp.
-		nodeVolumeDetachTimeout := ptr.To(int32(1))
+		nodeVolumeDetachTimeout := new(int32(1))
 		modifyControlPlaneViaClusterAndWait(ctx, modifyControlPlaneViaClusterAndWaitInput{
 			ClusterProxy: bootstrapClusterProxy,
 			Cluster:      cluster,

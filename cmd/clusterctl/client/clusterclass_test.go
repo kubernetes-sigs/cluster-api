@@ -270,7 +270,7 @@ type clusterClassMatcher struct {
 	namespace string
 }
 
-func (cm *clusterClassMatcher) Match(actual interface{}) (bool, error) {
+func (cm *clusterClassMatcher) Match(actual any) (bool, error) {
 	uClass := actual.(unstructured.Unstructured)
 
 	// check name
@@ -300,10 +300,10 @@ func (cm *clusterClassMatcher) Match(actual interface{}) (bool, error) {
 	return true, nil
 }
 
-func (cm *clusterClassMatcher) FailureMessage(_ interface{}) string {
+func (cm *clusterClassMatcher) FailureMessage(_ any) string {
 	return fmt.Sprintf("Expected ClusterClass of name %v in namespace %v to be present", cm.name, cm.namespace)
 }
 
-func (cm *clusterClassMatcher) NegatedFailureMessage(_ interface{}) string {
+func (cm *clusterClassMatcher) NegatedFailureMessage(_ any) string {
 	return fmt.Sprintf("Expected ClusterClass of name %v in namespace %v not to be present", cm.name, cm.namespace)
 }

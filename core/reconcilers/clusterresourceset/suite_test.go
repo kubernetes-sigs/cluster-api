@@ -58,7 +58,7 @@ func TestMain(m *testing.M) {
 			Mapper:     mgr.GetRESTMapper(),
 			HTTPClient: mgr.GetHTTPClient(),
 			SyncPeriod: ptr.To(time.Minute * 10),
-			DefaultTransform: func(in interface{}) (interface{}, error) {
+			DefaultTransform: func(in any) (any, error) {
 				// Use DefaultTransform to drop objects we don't expect to get into this cache.
 				obj, ok := in.(*metav1.PartialObjectMetadata)
 				if !ok {

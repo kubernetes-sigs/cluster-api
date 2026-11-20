@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"slices"
 	"strings"
 
 	pkgerrors "github.com/pkg/errors"
@@ -76,12 +77,7 @@ func init() {
 }
 
 func isSupportedTargetVersion(version string) bool {
-	for _, v := range client.SupportedTargetVersions {
-		if v == version {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(client.SupportedTargetVersions, version)
 }
 
 func runConvert(args []string) error {

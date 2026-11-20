@@ -307,7 +307,7 @@ func getGitHubClient(ctx context.Context, configVariablesClient config.Variables
 var errRateLimit = pkgerrors.New("rate limit for github api has been reached. Please wait one hour or get a personal API token and assign it to the GITHUB_TOKEN environment variable")
 
 // handleGithubErr wraps error messages.
-func handleGithubErr(err error, message string, args ...interface{}) error {
+func handleGithubErr(err error, message string, args ...any) error {
 	if _, ok := err.(*github.RateLimitError); ok {
 		return errRateLimit
 	}

@@ -22,6 +22,7 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"fmt"
+	"maps"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -1277,9 +1278,7 @@ func TestPrepareRequest(t *testing.T) {
 				var originalRegistrationSettings map[string]string
 				if tt.registration.Settings != nil {
 					originalRegistrationSettings = map[string]string{}
-					for k, v := range tt.registration.Settings {
-						originalRegistrationSettings[k] = v
-					}
+					maps.Copy(originalRegistrationSettings, tt.registration.Settings)
 				}
 
 				g.Expect(cloneAndAddSettings(tt.request, tt.registration.Settings).GetSettings()).To(Equal(tt.want))

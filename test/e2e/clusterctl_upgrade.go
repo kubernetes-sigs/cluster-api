@@ -899,7 +899,7 @@ type discoveryAndWaitForClusterInput struct {
 }
 
 // discoveryAndWaitForCluster discovers a cluster object in a namespace and waits for the cluster infrastructure to be provisioned.
-func discoveryAndWaitForCluster(ctx context.Context, input discoveryAndWaitForClusterInput, intervals ...interface{}) *unstructured.Unstructured {
+func discoveryAndWaitForCluster(ctx context.Context, input discoveryAndWaitForClusterInput, intervals ...any) *unstructured.Unstructured {
 	Expect(ctx).NotTo(BeNil(), "ctx is required for discoveryAndWaitForCluster")
 	Expect(input.Client).ToNot(BeNil(), "Invalid argument. input.Client can't be nil when calling discoveryAndWaitForCluster")
 	Expect(input.Namespace).ToNot(BeNil(), "Invalid argument. input.Namespace can't be empty when calling discoveryAndWaitForCluster")
@@ -935,7 +935,7 @@ type discoveryAndWaitForClusterV1Beta1Input struct {
 }
 
 // discoveryAndWaitForClusterV1Beta1 discovers a cluster object in a namespace and waits for the cluster infrastructure to be provisioned.
-func discoveryAndWaitForClusterV1Beta1(ctx context.Context, input discoveryAndWaitForClusterV1Beta1Input, intervals ...interface{}) *clusterv1beta1.Cluster {
+func discoveryAndWaitForClusterV1Beta1(ctx context.Context, input discoveryAndWaitForClusterV1Beta1Input, intervals ...any) *clusterv1beta1.Cluster {
 	Expect(ctx).NotTo(BeNil(), "ctx is required for discoveryAndWaitForClusterV1Beta1")
 	Expect(input.Getter).ToNot(BeNil(), "Invalid argument. input.Getter can't be nil when calling discoveryAndWaitForClusterV1Beta1")
 	Expect(input.Namespace).ToNot(BeNil(), "Invalid argument. input.Namespace can't be empty when calling discoveryAndWaitForClusterV1Beta1")
@@ -1048,7 +1048,7 @@ func calculateExpectedMachinePoolMachineCount(ctx context.Context, c client.Clie
 			}
 
 			// Check if the InfraMachinePool has an infrastructureMachineKind field. If it does not, we should skip checking for MachinePool machines.
-			err = util.UnstructuredUnmarshalField(infraMachinePool, ptr.To(""), "status", "infrastructureMachineKind")
+			err = util.UnstructuredUnmarshalField(infraMachinePool, new(""), "status", "infrastructureMachineKind")
 			if err != nil && !errors.Is(err, util.ErrUnstructuredFieldNotFound) {
 				return 0, err
 			}
@@ -1120,7 +1120,7 @@ type deleteAllClustersAndWaitInput struct {
 }
 
 // deleteAllClustersAndWait deletes all cluster resources in the given namespace and waits for them to be gone.
-func deleteAllClustersAndWait(ctx context.Context, input deleteAllClustersAndWaitInput, intervals ...interface{}) {
+func deleteAllClustersAndWait(ctx context.Context, input deleteAllClustersAndWaitInput, intervals ...any) {
 	Expect(ctx).NotTo(BeNil(), "ctx is required for deleteAllClustersAndWaitOldAPI")
 	Expect(input.Client).ToNot(BeNil(), "Invalid argument. input.Client can't be nil when calling deleteAllClustersAndWaitOldAPI")
 	Expect(input.Namespace).ToNot(BeEmpty(), "Invalid argument. input.Namespace can't be empty when calling deleteAllClustersAndWaitOldAPI")
@@ -1147,7 +1147,7 @@ func deleteAllClustersAndWait(ctx context.Context, input deleteAllClustersAndWai
 		g.Expect(input.Client.Get(ctx, client.ObjectKey{Namespace: metav1.NamespaceSystem, Name: "kube-controller-manager"}, kubeControllerManagerLease)).To(Succeed())
 		// As soon as the kube-controller-manager detects it doesn't own the lease anymore it will restart.
 		// Once the current lease times out the kube-controller-manager will become leader again.
-		kubeControllerManagerLease.Spec.HolderIdentity = ptr.To("e2e-test-client")
+		kubeControllerManagerLease.Spec.HolderIdentity = new("e2e-test-client")
 		g.Expect(input.Client.Update(ctx, kubeControllerManagerLease)).To(Succeed())
 	}, 3*time.Minute, 3*time.Second).Should(Succeed(), "failed to steal lease from kube-controller-manager to trigger restart")
 

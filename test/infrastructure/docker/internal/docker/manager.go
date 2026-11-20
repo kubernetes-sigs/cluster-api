@@ -19,6 +19,7 @@ package docker
 import (
 	"context"
 	"fmt"
+	"maps"
 	"os"
 
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -159,9 +160,7 @@ func createNode(ctx context.Context, opts *nodeCreateOpts) (*types.Node, error) 
 		clusterLabelKey:  opts.ClusterName,
 		nodeRoleLabelKey: opts.Role,
 	}
-	for name, value := range opts.Labels {
-		containerLabels[name] = value
-	}
+	maps.Copy(containerLabels, opts.Labels)
 
 	runOptions := &container.RunContainerInput{
 		Name:   opts.Name, // make hostname match container name

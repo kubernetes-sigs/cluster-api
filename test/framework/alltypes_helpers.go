@@ -249,7 +249,7 @@ type CreateRelatedResourcesInput struct {
 }
 
 // CreateRelatedResources is used to create runtime.Objects.
-func CreateRelatedResources(ctx context.Context, input CreateRelatedResourcesInput, intervals ...interface{}) {
+func CreateRelatedResources(ctx context.Context, input CreateRelatedResourcesInput, intervals ...any) {
 	By("creating related resources")
 	for i := range input.RelatedResources {
 		obj := input.RelatedResources[i]
@@ -261,7 +261,7 @@ func CreateRelatedResources(ctx context.Context, input CreateRelatedResourcesInp
 }
 
 // PrettyPrint returns a formatted JSON version of the object given.
-func PrettyPrint(v interface{}) string {
+func PrettyPrint(v any) string {
 	b, err := json.MarshalIndent(v, "", "  ")
 	if err != nil {
 		return err.Error()

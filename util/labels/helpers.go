@@ -81,7 +81,7 @@ func GetManagedLabels(labels map[string]string, additionalSyncMachineLabels ...*
 	managedLabels := make(map[string]string)
 	for key, value := range labels {
 		// Always sync the default set of labels.
-		dnsSubdomainOrName := strings.Split(key, "/")[0]
+		dnsSubdomainOrName, _, _ := strings.Cut(key, "/")
 		if dnsSubdomainOrName == clusterv1.NodeRoleLabelPrefix {
 			managedLabels[key] = value
 			continue

@@ -61,8 +61,8 @@ func ParseSecretName(name string) (string, Purpose, error) {
 	}
 	for _, purpose := range allSecretPurposes {
 		suffix := "-" + string(purpose)
-		if strings.HasSuffix(name, suffix) {
-			return strings.TrimSuffix(name, suffix), purpose, nil
+		if before, ok := strings.CutSuffix(name, suffix); ok {
+			return before, purpose, nil
 		}
 	}
 	return "", "", pkgerrors.Errorf("%q is not a valid cluster secret name. Invalid purpose suffix", name)

@@ -136,30 +136,30 @@ func Test_CRDMigrator(t *testing.T) {
 			name: "Migrate CRs if there are stored versions is not only the current storage version",
 			CRs: []unstructured.Unstructured{
 				{
-					Object: map[string]interface{}{
+					Object: map[string]any{
 						"apiVersion": "foo/v1beta1",
 						"kind":       "Foo",
-						"metadata": map[string]interface{}{
+						"metadata": map[string]any{
 							"name":      "cr1",
 							"namespace": metav1.NamespaceDefault,
 						},
 					},
 				},
 				{
-					Object: map[string]interface{}{
+					Object: map[string]any{
 						"apiVersion": "foo/v1beta1",
 						"kind":       "Foo",
-						"metadata": map[string]interface{}{
+						"metadata": map[string]any{
 							"name":      "cr2",
 							"namespace": metav1.NamespaceDefault,
 						},
 					},
 				},
 				{
-					Object: map[string]interface{}{
+					Object: map[string]any{
 						"apiVersion": "foo/v1beta1",
 						"kind":       "Foo",
-						"metadata": map[string]interface{}{
+						"metadata": map[string]any{
 							"name":      "cr3",
 							"namespace": metav1.NamespaceDefault,
 						},

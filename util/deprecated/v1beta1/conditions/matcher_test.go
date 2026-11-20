@@ -29,7 +29,7 @@ import (
 func TestMatchConditions(t *testing.T) {
 	testCases := []struct {
 		name        string
-		actual      interface{}
+		actual      any
 		expected    clusterv1.Conditions
 		expectMatch bool
 	}{
@@ -152,7 +152,7 @@ func TestMatchConditions(t *testing.T) {
 func TestMatchCondition(t *testing.T) {
 	testCases := []struct {
 		name        string
-		actual      interface{}
+		actual      any
 		expected    clusterv1.Condition
 		expectMatch bool
 	}{

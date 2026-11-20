@@ -152,7 +152,7 @@ type WaitForControlPlaneMachinesToBeUpgradedInput struct {
 }
 
 // WaitForControlPlaneMachinesToBeUpgraded waits until all machines are upgraded to the correct Kubernetes version.
-func WaitForControlPlaneMachinesToBeUpgraded(ctx context.Context, input WaitForControlPlaneMachinesToBeUpgradedInput, intervals ...interface{}) {
+func WaitForControlPlaneMachinesToBeUpgraded(ctx context.Context, input WaitForControlPlaneMachinesToBeUpgradedInput, intervals ...any) {
 	Expect(ctx).NotTo(BeNil(), "ctx is required for WaitForControlPlaneMachinesToBeUpgraded")
 	Expect(input.Lister).ToNot(BeNil(), "Invalid argument. input.Lister can't be nil when calling WaitForControlPlaneMachinesToBeUpgraded")
 	Expect(input.KubernetesUpgradeVersion).ToNot(BeEmpty(), "Invalid argument. input.KubernetesUpgradeVersion can't be empty when calling WaitForControlPlaneMachinesToBeUpgraded")
@@ -191,7 +191,7 @@ type WaitForMachineDeploymentMachinesToBeUpgradedInput struct {
 }
 
 // WaitForMachineDeploymentMachinesToBeUpgraded waits until all machines belonging to a MachineDeployment are upgraded to the correct kubernetes version.
-func WaitForMachineDeploymentMachinesToBeUpgraded(ctx context.Context, input WaitForMachineDeploymentMachinesToBeUpgradedInput, intervals ...interface{}) {
+func WaitForMachineDeploymentMachinesToBeUpgraded(ctx context.Context, input WaitForMachineDeploymentMachinesToBeUpgradedInput, intervals ...any) {
 	Expect(ctx).NotTo(BeNil(), "ctx is required for WaitForMachineDeploymentMachinesToBeUpgraded")
 	Expect(input.Lister).ToNot(BeNil(), "Invalid argument. input.Getter can't be nil when calling WaitForMachineDeploymentMachinesToBeUpgraded")
 	Expect(input.Cluster).ToNot(BeNil(), "Invalid argument. input.Cluster can't be nil when calling WaitForMachineDeploymentMachinesToBeUpgraded")
@@ -262,7 +262,7 @@ type WaitForMachineStatusCheckInput struct {
 }
 
 // WaitForMachineStatusCheck waits for the specified status to be true for the machine.
-func WaitForMachineStatusCheck(ctx context.Context, input WaitForMachineStatusCheckInput, intervals ...interface{}) {
+func WaitForMachineStatusCheck(ctx context.Context, input WaitForMachineStatusCheckInput, intervals ...any) {
 	Expect(ctx).NotTo(BeNil(), "ctx is required for WaitForMachineStatusCheck")
 	Expect(input.Machine).ToNot(BeNil(), "Invalid argument. input.Machine can't be nil when calling WaitForMachineStatusCheck")
 	Expect(input.StatusChecks).ToNot(BeEmpty(), "Invalid argument. input.StatusCheck can't be empty when calling WaitForMachineStatusCheck")

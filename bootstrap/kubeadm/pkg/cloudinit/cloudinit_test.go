@@ -20,7 +20,6 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
-	"k8s.io/utils/ptr"
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	"sigs.k8s.io/cluster-api/util/certs"
@@ -48,17 +47,17 @@ func TestNewInitControlPlaneAdditionalFileEncodings(t *testing.T) {
 				},
 				{
 					Path:    "/tmp/existing-path",
-					Append:  ptr.To(true),
+					Append:  new(true),
 					Content: "hi",
 				},
 				{
 					Path:    "/tmp/deferred-path",
-					Defer:   ptr.To(true),
+					Defer:   new(true),
 					Content: "hi",
 				},
 				{
 					Path:    "/tmp/deferred-false-path",
-					Defer:   ptr.To(false),
+					Defer:   new(false),
 					Content: "hi",
 				},
 			},
@@ -165,8 +164,8 @@ func TestNewInitControlPlaneDiskSetup(t *testing.T) {
 				Partitions: []bootstrapv1.Partition{
 					{
 						Device:    "test-device",
-						Layout:    ptr.To(true),
-						Overwrite: ptr.To(false),
+						Layout:    new(true),
+						Overwrite: new(false),
 						TableType: "gpt",
 					},
 				},

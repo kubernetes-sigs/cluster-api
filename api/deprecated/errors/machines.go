@@ -38,7 +38,7 @@ func (e *MachineError) Error() string {
 // construct the Message.
 
 // InvalidMachineConfiguration creates a new error when a Machine has invalid configuration.
-func InvalidMachineConfiguration(msg string, args ...interface{}) *MachineError {
+func InvalidMachineConfiguration(msg string, args ...any) *MachineError {
 	return &MachineError{
 		Reason:  InvalidConfigurationMachineError,
 		Message: fmt.Sprintf(msg, args...),
@@ -46,7 +46,7 @@ func InvalidMachineConfiguration(msg string, args ...interface{}) *MachineError 
 }
 
 // CreateMachine creates a new error for when creating a Machine.
-func CreateMachine(msg string, args ...interface{}) *MachineError {
+func CreateMachine(msg string, args ...any) *MachineError {
 	return &MachineError{
 		Reason:  CreateMachineError,
 		Message: fmt.Sprintf(msg, args...),
@@ -54,7 +54,7 @@ func CreateMachine(msg string, args ...interface{}) *MachineError {
 }
 
 // UpdateMachine creates a new error for when updating a Machine.
-func UpdateMachine(msg string, args ...interface{}) *MachineError {
+func UpdateMachine(msg string, args ...any) *MachineError {
 	return &MachineError{
 		Reason:  UpdateMachineError,
 		Message: fmt.Sprintf(msg, args...),
@@ -62,7 +62,7 @@ func UpdateMachine(msg string, args ...interface{}) *MachineError {
 }
 
 // DeleteMachine creates a new error for when deleting a Machine.
-func DeleteMachine(msg string, args ...interface{}) *MachineError {
+func DeleteMachine(msg string, args ...any) *MachineError {
 	return &MachineError{
 		Reason:  DeleteMachineError,
 		Message: fmt.Sprintf(msg, args...),

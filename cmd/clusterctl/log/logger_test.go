@@ -21,13 +21,12 @@ import (
 
 	. "github.com/onsi/gomega"
 	pkgerrors "github.com/pkg/errors"
-	"k8s.io/utils/ptr"
 )
 
 func TestFlatten(t *testing.T) {
 	type args struct {
 		prefix string
-		kvList []interface{}
+		kvList []any
 	}
 	tests := []struct {
 		name string
@@ -38,7 +37,7 @@ func TestFlatten(t *testing.T) {
 			name: "message without values",
 			args: args{
 				prefix: "",
-				kvList: []interface{}{
+				kvList: []any{
 					"msg", "this is a message",
 				},
 			},
@@ -48,7 +47,7 @@ func TestFlatten(t *testing.T) {
 			name: "message with values",
 			args: args{
 				prefix: "",
-				kvList: []interface{}{
+				kvList: []any{
 					"msg", "this is a message",
 					"val1", 123,
 					"val2", "string",
@@ -61,7 +60,7 @@ func TestFlatten(t *testing.T) {
 			name: "error without values",
 			args: args{
 				prefix: "",
-				kvList: []interface{}{
+				kvList: []any{
 					"msg", "this is a message",
 					"error", pkgerrors.New("this is an error"),
 				},
@@ -72,7 +71,7 @@ func TestFlatten(t *testing.T) {
 			name: "error with values",
 			args: args{
 				prefix: "",
-				kvList: []interface{}{
+				kvList: []any{
 					"msg", "this is a message",
 					"error", pkgerrors.New("this is an error"),
 					"val1", 123,
@@ -84,7 +83,7 @@ func TestFlatten(t *testing.T) {
 			name: "message with prefix",
 			args: args{
 				prefix: "a\\b",
-				kvList: []interface{}{
+				kvList: []any{
 					"msg", "this is a message",
 				},
 			},
@@ -115,7 +114,7 @@ func TestLoggerEnabled(t *testing.T) {
 	}{
 		{
 			name:      "Return true when level is set below the threshold",
-			threshold: ptr.To(5),
+			threshold: new(5),
 			level:     1,
 			want:      true,
 		},
@@ -126,7 +125,7 @@ func TestLoggerEnabled(t *testing.T) {
 		},
 		{
 			name:      "Return false when level is set above the threshold",
-			threshold: ptr.To(5),
+			threshold: new(5),
 			level:     7,
 			want:      false,
 		},

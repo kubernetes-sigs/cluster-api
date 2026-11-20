@@ -17,6 +17,8 @@ limitations under the License.
 package v1beta2
 
 import (
+	"slices"
+
 	pkgerrors "github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -67,10 +69,8 @@ func NewSummaryCondition(sourceObj Getter, targetConditionType string, opts ...S
 		return nil, pkgerrors.New("option ForConditionTypes not provided or empty")
 	}
 
-	for _, conditionType := range summarizeOpt.conditionTypes {
-		if conditionType == targetConditionType {
-			return nil, pkgerrors.Errorf("option ForConditionTypes cannot include %s (target condition type)", targetConditionType)
-		}
+	if slices.Contains(summarizeOpt.conditionTypes, targetConditionType) {
+		return nil, pkgerrors.Errorf("option ForConditionTypes cannot include %s (target condition type)", targetConditionType)
 	}
 
 	expectedConditionTypes := sets.New[string](summarizeOpt.conditionTypes...)

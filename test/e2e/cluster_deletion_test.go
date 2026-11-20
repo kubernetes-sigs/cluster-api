@@ -35,7 +35,7 @@ var _ = Describe("When performing cluster deletion with ClusterClass [ClusterCla
 			ArtifactFolder:           artifactFolder,
 			SkipCleanup:              skipCleanup,
 			ControlPlaneMachineCount: ptr.To[int64](3),
-			Flavor:                   ptr.To("topology"),
+			Flavor:                   new("topology"),
 
 			ClusterDeletionPhases: []ClusterDeletionPhase{
 				{

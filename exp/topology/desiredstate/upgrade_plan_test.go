@@ -920,7 +920,7 @@ func TestComputeUpgradePlan(t *testing.T) {
 			s.Current.ControlPlane = &scope.ControlPlaneState{}
 			if tt.controlPlaneVersion != "" {
 				s.Current.ControlPlane.Object = builder.ControlPlane("test1", "cp1").
-					WithSpecFields(map[string]interface{}{
+					WithSpecFields(map[string]any{
 						"spec.version": tt.controlPlaneVersion,
 					}).Build()
 			}

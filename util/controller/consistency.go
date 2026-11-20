@@ -387,7 +387,7 @@ func toSharedIndexInformer(informer ctrlcache.Informer, kind string) (toolscache
 	sharedIndexInformers := make([]toolscache.SharedIndexInformer, 0, field.Len())
 	iter := field.MapRange()
 	for iter.Next() {
-		namespacedInformer, ok := iter.Value().Interface().(toolscache.SharedIndexInformer)
+		namespacedInformer, ok := reflect.TypeAssert[toolscache.SharedIndexInformer](iter.Value())
 		if !ok {
 			return nil, fmt.Errorf("failed to convert %s informer to SharedIndexInformer: field namespaceToInformer does not contain SharedIndexInformer", kind)
 		}

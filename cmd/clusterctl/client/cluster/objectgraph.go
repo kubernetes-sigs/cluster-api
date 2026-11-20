@@ -103,7 +103,7 @@ type node struct {
 	// additionalInfo captures any additional information about the object the node represents.
 	// E.g. for the cluster object we capture information to see if the cluster uses a manged topology
 	// and the cluster class used.
-	additionalInfo map[string]interface{}
+	additionalInfo map[string]any
 
 	// blockingMove is true when the object should prevent a move operation from proceeding as indicated by
 	// the presence of the block-move annotation.
@@ -158,7 +158,7 @@ func (n *node) captureAdditionalInformation(obj *unstructured.Unstructured) erro
 		}
 		if cluster.Spec.Topology.IsDefined() {
 			if n.additionalInfo == nil {
-				n.additionalInfo = map[string]interface{}{}
+				n.additionalInfo = map[string]any{}
 			}
 			n.additionalInfo[clusterTopologyNameKey] = cluster.GetClassKey().Name
 			n.additionalInfo[clusterTopologyNamespaceKey] = cluster.GetClassKey().Namespace
@@ -172,7 +172,7 @@ func (n *node) captureAdditionalInformation(obj *unstructured.Unstructured) erro
 			return pkgerrors.Wrapf(err, "failed to convert object %s to ClusterResourceSetBinding", n.identityStr())
 		}
 		if n.additionalInfo == nil {
-			n.additionalInfo = map[string]interface{}{}
+			n.additionalInfo = map[string]any{}
 		}
 		n.additionalInfo[clusterResourceSetBindingClusterNameKey] = binding.Spec.ClusterName
 	}
@@ -296,7 +296,7 @@ func (o *objectGraph) objToNode(obj *unstructured.Unstructured) (*node, error) {
 		softOwners:     make(map[*node]empty),
 		tenant:         make(map[*node]empty),
 		virtual:        false,
-		additionalInfo: make(map[string]interface{}),
+		additionalInfo: make(map[string]any),
 	}
 	if err := o.objInfoToNode(obj, newNode); err != nil {
 		return nil, pkgerrors.Wrapf(err, "failed to add object info to node for object %s", existingNode.identityStr())
@@ -413,7 +413,7 @@ func (o *objectGraph) getDiscoveryTypes(ctx context.Context) error {
 // getKindAPIString returns a concatenated string of the API name and the plural of the kind
 // Ex: KIND=Foo API NAME=foo.bar.domain.tld => foos.foo.bar.domain.tld.
 func getKindAPIString(typeMeta metav1.TypeMeta) string {
-	api := strings.Split(typeMeta.APIVersion, "/")[0]
+	api, _, _ := strings.Cut(typeMeta.APIVersion, "/")
 	return fmt.Sprintf("%ss.%s", strings.ToLower(typeMeta.Kind), api)
 }
 

@@ -24,7 +24,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	"k8s.io/utils/ptr"
 
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
@@ -585,7 +584,7 @@ func TestMachineHealthCheckMaxUnhealthy(t *testing.T) {
 				},
 				Remediation: clusterv1.MachineHealthCheckRemediation{
 					TriggerIf: clusterv1.MachineHealthCheckRemediationTriggerIf{
-						UnhealthyLessThanOrEqualTo: ptr.To(tt.value),
+						UnhealthyLessThanOrEqualTo: new(tt.value),
 					},
 				},
 			},

@@ -24,7 +24,6 @@ import (
 	pkgerrors "github.com/pkg/errors"
 	"github.com/valyala/fastjson"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	"k8s.io/utils/ptr"
 )
 
 const (
@@ -144,7 +143,7 @@ func parsePathSegment(segment string) (*pathSegment, error) {
 
 	return &pathSegment{
 		path:  segment[:strings.Index(segment, leftArrayDelim)], //nolint:gocritic // We already check above that segment contains leftArrayDelim,
-		index: ptr.To(index),
+		index: new(index),
 	}, nil
 }
 

@@ -74,7 +74,7 @@ type DiscoverClusterResourceSetAndWaitForSuccessInput struct {
 }
 
 // DiscoverClusterResourceSetAndWaitForSuccess patches a ClusterResourceSet label to the cluster and waits for resources to be created in that cluster.
-func DiscoverClusterResourceSetAndWaitForSuccess(ctx context.Context, input DiscoverClusterResourceSetAndWaitForSuccessInput, intervals ...interface{}) {
+func DiscoverClusterResourceSetAndWaitForSuccess(ctx context.Context, input DiscoverClusterResourceSetAndWaitForSuccessInput, intervals ...any) {
 	Expect(ctx).NotTo(BeNil(), "ctx is required for DiscoverClusterResourceSetAndWaitForSuccess")
 	Expect(input.ClusterProxy).ToNot(BeNil(), "Invalid argument. input.ClusterProxy can't be nil when calling DiscoverClusterResourceSetAndWaitForSuccess")
 	Expect(input.Cluster).ToNot(BeNil(), "Invalid argument. input.Cluster can't be nil when calling DiscoverClusterResourceSetAndWaitForSuccess")
@@ -116,7 +116,7 @@ type WaitForClusterResourceSetToApplyResourcesInput struct {
 }
 
 // WaitForClusterResourceSetToApplyResources wait until all ClusterResourceSet resources are created in the matching cluster.
-func WaitForClusterResourceSetToApplyResources(ctx context.Context, input WaitForClusterResourceSetToApplyResourcesInput, intervals ...interface{}) {
+func WaitForClusterResourceSetToApplyResources(ctx context.Context, input WaitForClusterResourceSetToApplyResourcesInput, intervals ...any) {
 	Expect(ctx).NotTo(BeNil(), "ctx is required for WaitForClusterResourceSetToApplyResources")
 	Expect(input.ClusterProxy).ToNot(BeNil(), "Invalid argument. input.ClusterProxy can't be nil when calling WaitForClusterResourceSetToApplyResources")
 	Expect(input.Cluster).ToNot(BeNil(), "Invalid argument. input.Cluster can't be nil when calling WaitForClusterResourceSetToApplyResources")

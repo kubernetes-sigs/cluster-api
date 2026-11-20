@@ -86,7 +86,7 @@ func TestMarshalData(t *testing.T) {
 				ResourceVersion:            "123",
 				Generation:                 15,
 				CreationTimestamp:          metav1.Now(),
-				DeletionTimestamp:          ptr.To(metav1.Now()),
+				DeletionTimestamp:          new(metav1.Now()),
 				DeletionGracePeriodSeconds: ptr.To[int64](10),
 				OwnerReferences: []metav1.OwnerReference{{
 					APIVersion: "test/v1beta1",

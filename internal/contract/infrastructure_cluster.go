@@ -26,7 +26,6 @@ import (
 
 	pkgerrors "github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/utils/ptr"
 
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
@@ -166,7 +165,7 @@ func (d *FailureDomains) Get(obj *unstructured.Unstructured) ([]clusterv1.Failur
 			domain := domains[name]
 			domainsArray = append(domainsArray, clusterv1.FailureDomain{
 				Name:         name,
-				ControlPlane: ptr.To(domain.ControlPlane),
+				ControlPlane: new(domain.ControlPlane),
 				Attributes:   domain.Attributes,
 			})
 		}
@@ -193,7 +192,7 @@ func (d *FailureDomains) Get(obj *unstructured.Unstructured) ([]clusterv1.Failur
 
 	for i, domain := range domains {
 		if domain.ControlPlane == nil {
-			domain.ControlPlane = ptr.To(false)
+			domain.ControlPlane = new(false)
 			domains[i] = domain
 		}
 	}
@@ -212,7 +211,7 @@ func (d *FailureDomains) Get(obj *unstructured.Unstructured) ([]clusterv1.Failur
 
 // Set sets the []clusterv1.FailureDomain value in the path.
 func (d *FailureDomains) Set(obj *unstructured.Unstructured, values []clusterv1.FailureDomain) error {
-	domains := make([]interface{}, len(values))
+	domains := make([]any, len(values))
 	s, err := json.Marshal(values)
 	if err != nil {
 		return pkgerrors.Wrapf(err, "failed to marshal supplied values to json for path %s", "."+strings.Join(d.path, "."))
@@ -262,7 +261,7 @@ func (c *ControlPlaneEndpoint) Get(obj *unstructured.Unstructured) (*clusterv1.A
 
 // Set sets the ControlPlaneEndpoint value.
 func (c *ControlPlaneEndpoint) Set(obj *unstructured.Unstructured, value clusterv1.APIEndpoint) error {
-	controlPlaneEndpointMap := make(map[string]interface{})
+	controlPlaneEndpointMap := make(map[string]any)
 	s, err := json.Marshal(value)
 	if err != nil {
 		return pkgerrors.Wrapf(err, "failed to marshal supplied values to json for path %s", "."+strings.Join(c.path, "."))

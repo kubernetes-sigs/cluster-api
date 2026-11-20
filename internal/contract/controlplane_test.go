@@ -30,7 +30,7 @@ import (
 )
 
 func TestControlPlane(t *testing.T) {
-	obj := &unstructured.Unstructured{Object: map[string]interface{}{}}
+	obj := &unstructured.Unstructured{Object: map[string]any{}}
 
 	t.Run("Manages spec.version", func(t *testing.T) {
 		g := NewWithT(t)
@@ -105,7 +105,7 @@ func TestControlPlane(t *testing.T) {
 
 		g.Expect(ControlPlane().Initialized("v1beta1").Path()).To(Equal(Path{"status", "initialized"}))
 
-		objV1beta1 := &unstructured.Unstructured{Object: map[string]interface{}{}}
+		objV1beta1 := &unstructured.Unstructured{Object: map[string]any{}}
 		err = ControlPlane().Initialized("v1beta1").Set(objV1beta1, true)
 		g.Expect(err).ToNot(HaveOccurred())
 
@@ -448,7 +448,7 @@ func TestControlPlane(t *testing.T) {
 		g.Expect(got).To(BeComparableTo(readinessGates))
 
 		// Nil readinessGates are not set.
-		obj2 := &unstructured.Unstructured{Object: map[string]interface{}{}}
+		obj2 := &unstructured.Unstructured{Object: map[string]any{}}
 		readinessGates = nil
 
 		err = ControlPlane().MachineTemplate().ReadinessGates("v1beta1").Set(obj2, readinessGates)
@@ -462,7 +462,7 @@ func TestControlPlane(t *testing.T) {
 		g.Expect(err).To(HaveOccurred())
 
 		// Empty readinessGates are set.
-		obj3 := &unstructured.Unstructured{Object: map[string]interface{}{}}
+		obj3 := &unstructured.Unstructured{Object: map[string]any{}}
 		readinessGates = []clusterv1.MachineReadinessGate{}
 
 		err = ControlPlane().MachineTemplate().ReadinessGates("v1beta1").Set(obj3, readinessGates)
@@ -493,7 +493,7 @@ func TestControlPlane(t *testing.T) {
 		g.Expect(got).To(BeComparableTo(readinessGates))
 
 		// Nil readinessGates are not set.
-		obj2 := &unstructured.Unstructured{Object: map[string]interface{}{}}
+		obj2 := &unstructured.Unstructured{Object: map[string]any{}}
 		readinessGates = nil
 
 		err = ControlPlane().MachineTemplate().ReadinessGates("v1beta2").Set(obj2, readinessGates)
@@ -507,7 +507,7 @@ func TestControlPlane(t *testing.T) {
 		g.Expect(err).To(HaveOccurred())
 
 		// Empty readinessGates are set.
-		obj3 := &unstructured.Unstructured{Object: map[string]interface{}{}}
+		obj3 := &unstructured.Unstructured{Object: map[string]any{}}
 		readinessGates = []clusterv1.MachineReadinessGate{}
 
 		err = ControlPlane().MachineTemplate().ReadinessGates("v1beta2").Set(obj3, readinessGates)
@@ -538,7 +538,7 @@ func TestControlPlane(t *testing.T) {
 		g.Expect(got).To(BeComparableTo(taints))
 
 		// Nil taints are not set.
-		obj2 := &unstructured.Unstructured{Object: map[string]interface{}{}}
+		obj2 := &unstructured.Unstructured{Object: map[string]any{}}
 		taints = nil
 
 		err = ControlPlane().MachineTemplate().Taints("v1beta1").Set(obj2, taints)
@@ -552,7 +552,7 @@ func TestControlPlane(t *testing.T) {
 		g.Expect(err).To(HaveOccurred())
 
 		// Empty taints are set.
-		obj3 := &unstructured.Unstructured{Object: map[string]interface{}{}}
+		obj3 := &unstructured.Unstructured{Object: map[string]any{}}
 		taints = []clusterv1.MachineTaint{}
 
 		err = ControlPlane().MachineTemplate().Taints("v1beta1").Set(obj3, taints)
@@ -583,7 +583,7 @@ func TestControlPlane(t *testing.T) {
 		g.Expect(got).To(BeComparableTo(taints))
 
 		// Nil taints are not set.
-		obj2 := &unstructured.Unstructured{Object: map[string]interface{}{}}
+		obj2 := &unstructured.Unstructured{Object: map[string]any{}}
 		taints = nil
 
 		err = ControlPlane().MachineTemplate().Taints("v1beta2").Set(obj2, taints)
@@ -597,7 +597,7 @@ func TestControlPlane(t *testing.T) {
 		g.Expect(err).To(HaveOccurred())
 
 		// Empty taints are set.
-		obj3 := &unstructured.Unstructured{Object: map[string]interface{}{}}
+		obj3 := &unstructured.Unstructured{Object: map[string]any{}}
 		taints = []clusterv1.MachineTaint{}
 
 		err = ControlPlane().MachineTemplate().Taints("v1beta2").Set(obj3, taints)
@@ -620,8 +620,8 @@ func TestControlPlaneEndpoints(t *testing.T) {
 		{
 			name: "No ignore paths when controlPlaneEndpoint is not set",
 			controlPlane: &unstructured.Unstructured{
-				Object: map[string]interface{}{
-					"spec": map[string]interface{}{
+				Object: map[string]any{
+					"spec": map[string]any{
 						"server": "1.2.3.4",
 					},
 				},
@@ -631,8 +631,8 @@ func TestControlPlaneEndpoints(t *testing.T) {
 		{
 			name: "No ignore paths when controlPlaneEndpoint is nil",
 			controlPlane: &unstructured.Unstructured{
-				Object: map[string]interface{}{
-					"spec": map[string]interface{}{
+				Object: map[string]any{
+					"spec": map[string]any{
 						"controlPlaneEndpoint": nil,
 					},
 				},
@@ -643,9 +643,9 @@ func TestControlPlaneEndpoints(t *testing.T) {
 		{
 			name: "No ignore paths when controlPlaneEndpoint is an empty object",
 			controlPlane: &unstructured.Unstructured{
-				Object: map[string]interface{}{
-					"spec": map[string]interface{}{
-						"controlPlaneEndpoint": map[string]interface{}{},
+				Object: map[string]any{
+					"spec": map[string]any{
+						"controlPlaneEndpoint": map[string]any{},
 					},
 				},
 			},
@@ -655,9 +655,9 @@ func TestControlPlaneEndpoints(t *testing.T) {
 		{
 			name: "Don't ignore host when controlPlaneEndpoint.host is set",
 			controlPlane: &unstructured.Unstructured{
-				Object: map[string]interface{}{
-					"spec": map[string]interface{}{
-						"controlPlaneEndpoint": map[string]interface{}{
+				Object: map[string]any{
+					"spec": map[string]any{
+						"controlPlaneEndpoint": map[string]any{
 							"host": "example.com",
 						},
 					},
@@ -668,9 +668,9 @@ func TestControlPlaneEndpoints(t *testing.T) {
 		{
 			name: "Ignore host when controlPlaneEndpoint.host is set to its zero value",
 			controlPlane: &unstructured.Unstructured{
-				Object: map[string]interface{}{
-					"spec": map[string]interface{}{
-						"controlPlaneEndpoint": map[string]interface{}{
+				Object: map[string]any{
+					"spec": map[string]any{
+						"controlPlaneEndpoint": map[string]any{
 							"host": "",
 						},
 					},
@@ -683,9 +683,9 @@ func TestControlPlaneEndpoints(t *testing.T) {
 		{
 			name: "Don't ignore port when controlPlaneEndpoint.port is set",
 			controlPlane: &unstructured.Unstructured{
-				Object: map[string]interface{}{
-					"spec": map[string]interface{}{
-						"controlPlaneEndpoint": map[string]interface{}{
+				Object: map[string]any{
+					"spec": map[string]any{
+						"controlPlaneEndpoint": map[string]any{
 							"port": int64(6443),
 						},
 					},
@@ -697,9 +697,9 @@ func TestControlPlaneEndpoints(t *testing.T) {
 		{
 			name: "Ignore port when controlPlaneEndpoint.port is set to its zero value",
 			controlPlane: &unstructured.Unstructured{
-				Object: map[string]interface{}{
-					"spec": map[string]interface{}{
-						"controlPlaneEndpoint": map[string]interface{}{
+				Object: map[string]any{
+					"spec": map[string]any{
+						"controlPlaneEndpoint": map[string]any{
 							"port": int64(0),
 						},
 					},
@@ -712,9 +712,9 @@ func TestControlPlaneEndpoints(t *testing.T) {
 		{
 			name: "Ignore host and port when controlPlaneEndpoint host and port are set to their zero values",
 			controlPlane: &unstructured.Unstructured{
-				Object: map[string]interface{}{
-					"spec": map[string]interface{}{
-						"controlPlaneEndpoint": map[string]interface{}{
+				Object: map[string]any{
+					"spec": map[string]any{
+						"controlPlaneEndpoint": map[string]any{
 							"host": "",
 							"port": int64(0),
 						},
@@ -729,9 +729,9 @@ func TestControlPlaneEndpoints(t *testing.T) {
 		{
 			name: "Ignore host when controlPlaneEndpoint host is to its zero values, even if port is set",
 			controlPlane: &unstructured.Unstructured{
-				Object: map[string]interface{}{
-					"spec": map[string]interface{}{
-						"controlPlaneEndpoint": map[string]interface{}{
+				Object: map[string]any{
+					"spec": map[string]any{
+						"controlPlaneEndpoint": map[string]any{
 							"host": "",
 							"port": int64(6443),
 						},
@@ -745,9 +745,9 @@ func TestControlPlaneEndpoints(t *testing.T) {
 		{
 			name: "Ignore port when controlPlaneEndpoint port is to its zero values, even if host is set",
 			controlPlane: &unstructured.Unstructured{
-				Object: map[string]interface{}{
-					"spec": map[string]interface{}{
-						"controlPlaneEndpoint": map[string]interface{}{
+				Object: map[string]any{
+					"spec": map[string]any{
+						"controlPlaneEndpoint": map[string]any{
 							"host": "example.com",
 							"port": int64(0),
 						},
@@ -782,8 +782,8 @@ func TestControlPlaneIsUpgrading(t *testing.T) {
 	}{
 		{
 			name: "should return false if status is not set on control plane",
-			obj: &unstructured.Unstructured{Object: map[string]interface{}{
-				"spec": map[string]interface{}{
+			obj: &unstructured.Unstructured{Object: map[string]any{
+				"spec": map[string]any{
 					"version": "v1.2.3",
 				},
 			}},
@@ -791,21 +791,21 @@ func TestControlPlaneIsUpgrading(t *testing.T) {
 		},
 		{
 			name: "should return false if status.version is not set on control plane",
-			obj: &unstructured.Unstructured{Object: map[string]interface{}{
-				"spec": map[string]interface{}{
+			obj: &unstructured.Unstructured{Object: map[string]any{
+				"spec": map[string]any{
 					"version": "v1.2.3",
 				},
-				"status": map[string]interface{}{},
+				"status": map[string]any{},
 			}},
 			wantUpgrading: false,
 		},
 		{
 			name: "should return false if status.versions is not set and status.version is equal to spec.version",
-			obj: &unstructured.Unstructured{Object: map[string]interface{}{
-				"spec": map[string]interface{}{
+			obj: &unstructured.Unstructured{Object: map[string]any{
+				"spec": map[string]any{
 					"version": "v1.2.3",
 				},
-				"status": map[string]interface{}{
+				"status": map[string]any{
 					"version": "v1.2.3",
 				},
 			}},
@@ -813,13 +813,13 @@ func TestControlPlaneIsUpgrading(t *testing.T) {
 		},
 		{
 			name: "should return false if status.versions has current spec.version",
-			obj: &unstructured.Unstructured{Object: map[string]interface{}{
-				"spec": map[string]interface{}{
+			obj: &unstructured.Unstructured{Object: map[string]any{
+				"spec": map[string]any{
 					"version": "v1.2.3",
 				},
-				"status": map[string]interface{}{
-					"versions": []interface{}{
-						map[string]interface{}{
+				"status": map[string]any{
+					"versions": []any{
+						map[string]any{
 							"version":  "v1.2.3",
 							"replicas": int64(1),
 						},
@@ -830,17 +830,17 @@ func TestControlPlaneIsUpgrading(t *testing.T) {
 		},
 		{
 			name: "should return true if status.versions lowest version is less than spec.version",
-			obj: &unstructured.Unstructured{Object: map[string]interface{}{
-				"spec": map[string]interface{}{
+			obj: &unstructured.Unstructured{Object: map[string]any{
+				"spec": map[string]any{
 					"version": "v1.2.3",
 				},
-				"status": map[string]interface{}{
-					"versions": []interface{}{
-						map[string]interface{}{
+				"status": map[string]any{
+					"versions": []any{
+						map[string]any{
 							"version":  "v1.2.2",
 							"replicas": int64(1),
 						},
-						map[string]interface{}{
+						map[string]any{
 							"version":  "v1.2.3",
 							"replicas": int64(2),
 						},
@@ -851,17 +851,17 @@ func TestControlPlaneIsUpgrading(t *testing.T) {
 		},
 		{
 			name: "should return true if status.versions entry not at spec.version has zero replicas",
-			obj: &unstructured.Unstructured{Object: map[string]interface{}{
-				"spec": map[string]interface{}{
+			obj: &unstructured.Unstructured{Object: map[string]any{
+				"spec": map[string]any{
 					"version": "v1.2.3",
 				},
-				"status": map[string]interface{}{
-					"versions": []interface{}{
-						map[string]interface{}{
+				"status": map[string]any{
+					"versions": []any{
+						map[string]any{
 							"version":  "v1.2.2",
 							"replicas": int64(0),
 						},
-						map[string]interface{}{
+						map[string]any{
 							"version":  "v1.2.3",
 							"replicas": int64(3),
 						},
@@ -872,16 +872,16 @@ func TestControlPlaneIsUpgrading(t *testing.T) {
 		},
 		{
 			name: "should return true if status.versions entry not at spec.version without replicas set",
-			obj: &unstructured.Unstructured{Object: map[string]interface{}{
-				"spec": map[string]interface{}{
+			obj: &unstructured.Unstructured{Object: map[string]any{
+				"spec": map[string]any{
 					"version": "v1.2.3",
 				},
-				"status": map[string]interface{}{
-					"versions": []interface{}{
-						map[string]interface{}{
+				"status": map[string]any{
+					"versions": []any{
+						map[string]any{
 							"version": "v1.2.2",
 						},
-						map[string]interface{}{
+						map[string]any{
 							"version": "v1.2.3",
 						},
 					},
@@ -891,13 +891,13 @@ func TestControlPlaneIsUpgrading(t *testing.T) {
 		},
 		{
 			name: "should return false if status.versions entry is newer than spec.version",
-			obj: &unstructured.Unstructured{Object: map[string]interface{}{
-				"spec": map[string]interface{}{
+			obj: &unstructured.Unstructured{Object: map[string]any{
+				"spec": map[string]any{
 					"version": "v1.2.2",
 				},
-				"status": map[string]interface{}{
-					"versions": []interface{}{
-						map[string]interface{}{
+				"status": map[string]any{
+					"versions": []any{
+						map[string]any{
 							"version":  "v1.2.3",
 							"replicas": int64(1),
 						},
@@ -908,11 +908,11 @@ func TestControlPlaneIsUpgrading(t *testing.T) {
 		},
 		{
 			name: "should use status.version as fallback when status.versions is not set",
-			obj: &unstructured.Unstructured{Object: map[string]interface{}{
-				"spec": map[string]interface{}{
+			obj: &unstructured.Unstructured{Object: map[string]any{
+				"spec": map[string]any{
 					"version": "v1.2.3",
 				},
-				"status": map[string]interface{}{
+				"status": map[string]any{
 					"version": "v1.2.2",
 				},
 			}},
@@ -920,13 +920,13 @@ func TestControlPlaneIsUpgrading(t *testing.T) {
 		},
 		{
 			name: "should return error if first status.versions entry is not a valid semantic version",
-			obj: &unstructured.Unstructured{Object: map[string]interface{}{
-				"spec": map[string]interface{}{
+			obj: &unstructured.Unstructured{Object: map[string]any{
+				"spec": map[string]any{
 					"version": "v1.2.3",
 				},
-				"status": map[string]interface{}{
-					"versions": []interface{}{
-						map[string]interface{}{
+				"status": map[string]any{
+					"versions": []any{
+						map[string]any{
 							"version":  "not-a-version",
 							"replicas": int64(1),
 						},
@@ -937,17 +937,17 @@ func TestControlPlaneIsUpgrading(t *testing.T) {
 		},
 		{
 			name: "should return error if status.versions entries are not ordered",
-			obj: &unstructured.Unstructured{Object: map[string]interface{}{
-				"spec": map[string]interface{}{
+			obj: &unstructured.Unstructured{Object: map[string]any{
+				"spec": map[string]any{
 					"version": "v1.2.3",
 				},
-				"status": map[string]interface{}{
-					"versions": []interface{}{
-						map[string]interface{}{
+				"status": map[string]any{
+					"versions": []any{
+						map[string]any{
 							"version":  "v1.2.3",
 							"replicas": int64(1),
 						},
-						map[string]interface{}{
+						map[string]any{
 							"version":  "v1.2.2",
 							"replicas": int64(1),
 						},
@@ -958,17 +958,17 @@ func TestControlPlaneIsUpgrading(t *testing.T) {
 		},
 		{
 			name: "should not return error if status.versions entries cannot be ordered",
-			obj: &unstructured.Unstructured{Object: map[string]interface{}{
-				"spec": map[string]interface{}{
+			obj: &unstructured.Unstructured{Object: map[string]any{
+				"spec": map[string]any{
 					"version": "v1.2.3+ccc",
 				},
-				"status": map[string]interface{}{
-					"versions": []interface{}{
-						map[string]interface{}{
+				"status": map[string]any{
+					"versions": []any{
+						map[string]any{
 							"version":  "v1.2.3+aaa",
 							"replicas": int64(1),
 						},
-						map[string]interface{}{
+						map[string]any{
 							"version":  "v1.2.3+bbb",
 							"replicas": int64(1),
 						},
@@ -979,13 +979,13 @@ func TestControlPlaneIsUpgrading(t *testing.T) {
 		},
 		{
 			name: "should return error if status.versions replicas is negative",
-			obj: &unstructured.Unstructured{Object: map[string]interface{}{
-				"spec": map[string]interface{}{
+			obj: &unstructured.Unstructured{Object: map[string]any{
+				"spec": map[string]any{
 					"version": "v1.2.3",
 				},
-				"status": map[string]interface{}{
-					"versions": []interface{}{
-						map[string]interface{}{
+				"status": map[string]any{
+					"versions": []any{
+						map[string]any{
 							"version":  "v1.2.3",
 							"replicas": int64(-1),
 						},
@@ -1018,11 +1018,11 @@ func TestControlPlaneIsScaling(t *testing.T) {
 	}{
 		{
 			name: "should return false for stable control plane",
-			obj: &unstructured.Unstructured{Object: map[string]interface{}{
-				"spec": map[string]interface{}{
+			obj: &unstructured.Unstructured{Object: map[string]any{
+				"spec": map[string]any{
 					"replicas": int64(2),
 				},
-				"status": map[string]interface{}{
+				"status": map[string]any{
 					"replicas":            int64(2),
 					"updatedReplicas":     int64(2),
 					"readyReplicas":       int64(2),
@@ -1033,8 +1033,8 @@ func TestControlPlaneIsScaling(t *testing.T) {
 		},
 		{
 			name: "should return true if status is not set on control plane",
-			obj: &unstructured.Unstructured{Object: map[string]interface{}{
-				"spec": map[string]interface{}{
+			obj: &unstructured.Unstructured{Object: map[string]any{
+				"spec": map[string]any{
 					"replicas": int64(2),
 				},
 			}},
@@ -1042,11 +1042,11 @@ func TestControlPlaneIsScaling(t *testing.T) {
 		},
 		{
 			name: "should return true if status replicas is not set on control plane",
-			obj: &unstructured.Unstructured{Object: map[string]interface{}{
-				"spec": map[string]interface{}{
+			obj: &unstructured.Unstructured{Object: map[string]any{
+				"spec": map[string]any{
 					"replicas": int64(2),
 				},
-				"status": map[string]interface{}{
+				"status": map[string]any{
 					"updatedReplicas":     int64(2),
 					"readyReplicas":       int64(2),
 					"unavailableReplicas": int64(0),
@@ -1056,11 +1056,11 @@ func TestControlPlaneIsScaling(t *testing.T) {
 		},
 		{
 			name: "should return true if spec replicas and status replicas do not match",
-			obj: &unstructured.Unstructured{Object: map[string]interface{}{
-				"spec": map[string]interface{}{
+			obj: &unstructured.Unstructured{Object: map[string]any{
+				"spec": map[string]any{
 					"replicas": int64(2),
 				},
-				"status": map[string]interface{}{
+				"status": map[string]any{
 					"replicas":            int64(1),
 					"updatedReplicas":     int64(2),
 					"readyReplicas":       int64(2),
@@ -1071,11 +1071,11 @@ func TestControlPlaneIsScaling(t *testing.T) {
 		},
 		{
 			name: "should return true if status updatedReplicas is not set on control plane",
-			obj: &unstructured.Unstructured{Object: map[string]interface{}{
-				"spec": map[string]interface{}{
+			obj: &unstructured.Unstructured{Object: map[string]any{
+				"spec": map[string]any{
 					"replicas": int64(2),
 				},
-				"status": map[string]interface{}{
+				"status": map[string]any{
 					"replicas":            int64(2),
 					"readyReplicas":       int64(2),
 					"unavailableReplicas": int64(0),
@@ -1085,11 +1085,11 @@ func TestControlPlaneIsScaling(t *testing.T) {
 		},
 		{
 			name: "should return true if spec replicas and status updatedReplicas do not match",
-			obj: &unstructured.Unstructured{Object: map[string]interface{}{
-				"spec": map[string]interface{}{
+			obj: &unstructured.Unstructured{Object: map[string]any{
+				"spec": map[string]any{
 					"replicas": int64(2),
 				},
-				"status": map[string]interface{}{
+				"status": map[string]any{
 					"replicas":            int64(2),
 					"updatedReplicas":     int64(1),
 					"readyReplicas":       int64(2),
@@ -1100,11 +1100,11 @@ func TestControlPlaneIsScaling(t *testing.T) {
 		},
 		{
 			name: "should return true if status readyReplicas is not set on control plane",
-			obj: &unstructured.Unstructured{Object: map[string]interface{}{
-				"spec": map[string]interface{}{
+			obj: &unstructured.Unstructured{Object: map[string]any{
+				"spec": map[string]any{
 					"replicas": int64(2),
 				},
-				"status": map[string]interface{}{
+				"status": map[string]any{
 					"replicas":            int64(2),
 					"updatedReplicas":     int64(2),
 					"unavailableReplicas": int64(0),
@@ -1114,11 +1114,11 @@ func TestControlPlaneIsScaling(t *testing.T) {
 		},
 		{
 			name: "should return true if spec replicas and status readyReplicas do not match",
-			obj: &unstructured.Unstructured{Object: map[string]interface{}{
-				"spec": map[string]interface{}{
+			obj: &unstructured.Unstructured{Object: map[string]any{
+				"spec": map[string]any{
 					"replicas": int64(2),
 				},
-				"status": map[string]interface{}{
+				"status": map[string]any{
 					"replicas":            int64(2),
 					"updatedReplicas":     int64(2),
 					"readyReplicas":       int64(1),
@@ -1129,11 +1129,11 @@ func TestControlPlaneIsScaling(t *testing.T) {
 		},
 		{
 			name: "should return false if status unavailableReplicas is not set on control plane",
-			obj: &unstructured.Unstructured{Object: map[string]interface{}{
-				"spec": map[string]interface{}{
+			obj: &unstructured.Unstructured{Object: map[string]any{
+				"spec": map[string]any{
 					"replicas": int64(2),
 				},
-				"status": map[string]interface{}{
+				"status": map[string]any{
 					"replicas":        int64(2),
 					"updatedReplicas": int64(2),
 					"readyReplicas":   int64(2),
@@ -1143,11 +1143,11 @@ func TestControlPlaneIsScaling(t *testing.T) {
 		},
 		{
 			name: "should return true if status unavailableReplicas is > 0",
-			obj: &unstructured.Unstructured{Object: map[string]interface{}{
-				"spec": map[string]interface{}{
+			obj: &unstructured.Unstructured{Object: map[string]any{
+				"spec": map[string]any{
 					"replicas": int64(2),
 				},
-				"status": map[string]interface{}{
+				"status": map[string]any{
 					"replicas":            int64(2),
 					"updatedReplicas":     int64(2),
 					"readyReplicas":       int64(2),
@@ -1177,7 +1177,7 @@ func TestGetAndSetNestedRef(t *testing.T) {
 			Kind:     "fooKind",
 			Name:     "fooName",
 		}
-		obj := &unstructured.Unstructured{Object: map[string]interface{}{}}
+		obj := &unstructured.Unstructured{Object: map[string]any{}}
 
 		err := setNestedRef(obj, fooRef, "spec", "machineTemplate", "infrastructureRef")
 		g.Expect(err).ToNot(HaveOccurred())
@@ -1192,7 +1192,7 @@ func TestGetAndSetNestedRef(t *testing.T) {
 	t.Run("getNestedRef fails if the nested ref does not exist", func(t *testing.T) {
 		g := NewWithT(t)
 
-		obj := &unstructured.Unstructured{Object: map[string]interface{}{}}
+		obj := &unstructured.Unstructured{Object: map[string]any{}}
 
 		ref, err := getNestedRef(obj, "spec", "machineTemplate", "infrastructureRef")
 		g.Expect(err).To(HaveOccurred())
@@ -1201,7 +1201,7 @@ func TestGetAndSetNestedRef(t *testing.T) {
 	t.Run("getNestedRef fails if the nested ref exist but it is incomplete", func(t *testing.T) {
 		g := NewWithT(t)
 
-		obj := &unstructured.Unstructured{Object: map[string]interface{}{}}
+		obj := &unstructured.Unstructured{Object: map[string]any{}}
 
 		err := unstructured.SetNestedField(obj.UnstructuredContent(), "foo", "spec", "machineTemplate", "infrastructureRef", "kind")
 		g.Expect(err).ToNot(HaveOccurred())

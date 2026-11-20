@@ -29,34 +29,34 @@ func Test_dropDiffForNotAllowedPaths(t *testing.T) {
 	tests := []struct {
 		name         string
 		ctx          *dropDiffInput
-		wantModified map[string]interface{}
+		wantModified map[string]any
 	}{
 		{
 			name: "Sets not allowed paths to original value if defined",
 			ctx: &dropDiffInput{
 				path: contract.Path{},
-				original: map[string]interface{}{
-					"metadata": map[string]interface{}{
+				original: map[string]any{
+					"metadata": map[string]any{
 						"name": "foo",
 					},
-					"status": map[string]interface{}{
+					"status": map[string]any{
 						"foo": "123",
 					},
 				},
-				modified: map[string]interface{}{
-					"metadata": map[string]interface{}{
+				modified: map[string]any{
+					"metadata": map[string]any{
 						"name": "foo-changed",
-						"labels": map[string]interface{}{
+						"labels": map[string]any{
 							"foo": "123",
 						},
-						"annotations": map[string]interface{}{
+						"annotations": map[string]any{
 							"foo": "123",
 						},
 					},
-					"spec": map[string]interface{}{
+					"spec": map[string]any{
 						"foo": "123",
 					},
-					"status": map[string]interface{}{
+					"status": map[string]any{
 						"foo": "123-changed",
 					},
 				},
@@ -68,20 +68,20 @@ func Test_dropDiffForNotAllowedPaths(t *testing.T) {
 					},
 				),
 			},
-			wantModified: map[string]interface{}{
-				"metadata": map[string]interface{}{
+			wantModified: map[string]any{
+				"metadata": map[string]any{
 					"name": "foo", // metadata.name aligned to original
-					"labels": map[string]interface{}{
+					"labels": map[string]any{
 						"foo": "123",
 					},
-					"annotations": map[string]interface{}{
+					"annotations": map[string]any{
 						"foo": "123",
 					},
 				},
-				"spec": map[string]interface{}{
+				"spec": map[string]any{
 					"foo": "123",
 				},
-				"status": map[string]interface{}{ // status aligned to original
+				"status": map[string]any{ // status aligned to original
 					"foo": "123",
 				},
 			},
@@ -90,23 +90,23 @@ func Test_dropDiffForNotAllowedPaths(t *testing.T) {
 			name: "Drops not allowed paths if they do not exist in original",
 			ctx: &dropDiffInput{
 				path:     contract.Path{},
-				original: map[string]interface{}{
+				original: map[string]any{
 					// Original doesn't have values for not allowed paths.
 				},
-				modified: map[string]interface{}{
-					"metadata": map[string]interface{}{
+				modified: map[string]any{
+					"metadata": map[string]any{
 						"name": "foo",
-						"labels": map[string]interface{}{
+						"labels": map[string]any{
 							"foo": "123",
 						},
-						"annotations": map[string]interface{}{
+						"annotations": map[string]any{
 							"foo": "123",
 						},
 					},
-					"spec": map[string]interface{}{
+					"spec": map[string]any{
 						"foo": "123",
 					},
-					"status": map[string]interface{}{
+					"status": map[string]any{
 						"foo": "123",
 					},
 				},
@@ -118,17 +118,17 @@ func Test_dropDiffForNotAllowedPaths(t *testing.T) {
 					},
 				),
 			},
-			wantModified: map[string]interface{}{
-				"metadata": map[string]interface{}{
+			wantModified: map[string]any{
+				"metadata": map[string]any{
 					// metadata.name dropped
-					"labels": map[string]interface{}{
+					"labels": map[string]any{
 						"foo": "123",
 					},
-					"annotations": map[string]interface{}{
+					"annotations": map[string]any{
 						"foo": "123",
 					},
 				},
-				"spec": map[string]interface{}{
+				"spec": map[string]any{
 					"foo": "123",
 				},
 				// status dropped
@@ -138,11 +138,11 @@ func Test_dropDiffForNotAllowedPaths(t *testing.T) {
 			name: "Cleanup empty maps",
 			ctx: &dropDiffInput{
 				path:     contract.Path{},
-				original: map[string]interface{}{
+				original: map[string]any{
 					// Original doesn't have values for not allowed paths.
 				},
-				modified: map[string]interface{}{
-					"spec": map[string]interface{}{
+				modified: map[string]any{
+					"spec": map[string]any{
 						"foo": "123",
 					},
 				},
@@ -150,7 +150,7 @@ func Test_dropDiffForNotAllowedPaths(t *testing.T) {
 					[]contract.Path{}, // NOTE: we are dropping everything not in this list (IsPathNotAllowed)
 				),
 			},
-			wantModified: map[string]interface{}{
+			wantModified: map[string]any{
 				// we are dropping spec.foo and then spec given that it is an empty map
 			},
 		},
@@ -170,25 +170,25 @@ func Test_dropDiffForIgnoredPaths(t *testing.T) {
 	tests := []struct {
 		name         string
 		ctx          *dropDiffInput
-		wantModified map[string]interface{}
+		wantModified map[string]any
 	}{
 		{
 			name: "Sets ignored paths to original value if defined",
 			ctx: &dropDiffInput{
 				path: contract.Path{},
-				original: map[string]interface{}{
-					"spec": map[string]interface{}{
+				original: map[string]any{
+					"spec": map[string]any{
 						"foo": "bar",
-						"controlPlaneEndpoint": map[string]interface{}{
+						"controlPlaneEndpoint": map[string]any{
 							"host": "foo",
 							"port": "123",
 						},
 					},
 				},
-				modified: map[string]interface{}{
-					"spec": map[string]interface{}{
+				modified: map[string]any{
+					"spec": map[string]any{
 						"foo": "bar",
-						"controlPlaneEndpoint": map[string]interface{}{
+						"controlPlaneEndpoint": map[string]any{
 							"host": "foo-changed",
 							"port": "123-changed",
 						},
@@ -200,10 +200,10 @@ func Test_dropDiffForIgnoredPaths(t *testing.T) {
 					},
 				),
 			},
-			wantModified: map[string]interface{}{
-				"spec": map[string]interface{}{
+			wantModified: map[string]any{
+				"spec": map[string]any{
 					"foo": "bar",
-					"controlPlaneEndpoint": map[string]interface{}{ // spec.controlPlaneEndpoint aligned to original
+					"controlPlaneEndpoint": map[string]any{ // spec.controlPlaneEndpoint aligned to original
 						"host": "foo",
 						"port": "123",
 					},
@@ -214,13 +214,13 @@ func Test_dropDiffForIgnoredPaths(t *testing.T) {
 			name: "Drops ignore paths if they do not exist in original",
 			ctx: &dropDiffInput{
 				path:     contract.Path{},
-				original: map[string]interface{}{
+				original: map[string]any{
 					// Original doesn't have values for ignore paths.
 				},
-				modified: map[string]interface{}{
-					"spec": map[string]interface{}{
+				modified: map[string]any{
+					"spec": map[string]any{
 						"foo": "bar",
-						"controlPlaneEndpoint": map[string]interface{}{
+						"controlPlaneEndpoint": map[string]any{
 							"host": "foo-changed",
 							"port": "123-changed",
 						},
@@ -232,8 +232,8 @@ func Test_dropDiffForIgnoredPaths(t *testing.T) {
 					},
 				),
 			},
-			wantModified: map[string]interface{}{
-				"spec": map[string]interface{}{
+			wantModified: map[string]any{
+				"spec": map[string]any{
 					"foo": "bar",
 					// spec.controlPlaneEndpoint dropped
 				},
@@ -243,11 +243,11 @@ func Test_dropDiffForIgnoredPaths(t *testing.T) {
 			name: "Cleanup empty maps",
 			ctx: &dropDiffInput{
 				path:     contract.Path{},
-				original: map[string]interface{}{
+				original: map[string]any{
 					// Original doesn't have values for not allowed paths.
 				},
-				modified: map[string]interface{}{
-					"spec": map[string]interface{}{
+				modified: map[string]any{
+					"spec": map[string]any{
 						"foo": "123",
 					},
 				},
@@ -257,7 +257,7 @@ func Test_dropDiffForIgnoredPaths(t *testing.T) {
 					},
 				),
 			},
-			wantModified: map[string]interface{}{
+			wantModified: map[string]any{
 				// we are dropping spec.foo and then spec given that it is an empty map
 			},
 		},

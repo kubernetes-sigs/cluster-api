@@ -92,7 +92,7 @@ func generateDeployment(image string) clusterv1.MachineDeployment {
 				},
 				Spec: clusterv1.MachineSpec{
 					Deletion: clusterv1.MachineDeletionSpec{
-						NodeDrainTimeoutSeconds: ptr.To(int32(10)),
+						NodeDrainTimeoutSeconds: new(int32(10)),
 					},
 				},
 			},
@@ -183,9 +183,9 @@ func TestMachineTemplateUpToDate(t *testing.T) {
 		},
 		Spec: clusterv1.MachineSpec{
 			Deletion: clusterv1.MachineDeletionSpec{
-				NodeDrainTimeoutSeconds:        ptr.To(int32(10)),
-				NodeDeletionTimeoutSeconds:     ptr.To(int32(10)),
-				NodeVolumeDetachTimeoutSeconds: ptr.To(int32(10)),
+				NodeDrainTimeoutSeconds:        new(int32(10)),
+				NodeDeletionTimeoutSeconds:     new(int32(10)),
+				NodeVolumeDetachTimeoutSeconds: new(int32(10)),
 			},
 			ClusterName:     "cluster1",
 			Version:         "v1.25.0",
@@ -225,9 +225,9 @@ func TestMachineTemplateUpToDate(t *testing.T) {
 
 	machineTemplateWithDifferentInPlaceMutableSpecFields := machineTemplate.DeepCopy()
 	machineTemplateWithDifferentInPlaceMutableSpecFields.Spec.ReadinessGates = []clusterv1.MachineReadinessGate{{ConditionType: "foo"}}
-	machineTemplateWithDifferentInPlaceMutableSpecFields.Spec.Deletion.NodeDrainTimeoutSeconds = ptr.To(int32(20))
-	machineTemplateWithDifferentInPlaceMutableSpecFields.Spec.Deletion.NodeDeletionTimeoutSeconds = ptr.To(int32(20))
-	machineTemplateWithDifferentInPlaceMutableSpecFields.Spec.Deletion.NodeVolumeDetachTimeoutSeconds = ptr.To(int32(20))
+	machineTemplateWithDifferentInPlaceMutableSpecFields.Spec.Deletion.NodeDrainTimeoutSeconds = new(int32(20))
+	machineTemplateWithDifferentInPlaceMutableSpecFields.Spec.Deletion.NodeDeletionTimeoutSeconds = new(int32(20))
+	machineTemplateWithDifferentInPlaceMutableSpecFields.Spec.Deletion.NodeVolumeDetachTimeoutSeconds = new(int32(20))
 	machineTemplateWithDifferentInPlaceMutableSpecFields.Spec.MinReadySeconds = ptr.To[int32](20)
 	machineTemplateWithDifferentInPlaceMutableSpecFields.Spec.Taints = []clusterv1.MachineTaint{
 		{Key: "taint-key", Value: "taint-value", Effect: corev1.TaintEffectNoSchedule, Propagation: clusterv1.MachineTaintPropagationAlways},
@@ -248,10 +248,10 @@ func TestMachineTemplateUpToDate(t *testing.T) {
 
 	machineTemplateWithBootstrapDataSecret := machineTemplate.DeepCopy()
 	machineTemplateWithBootstrapDataSecret.Spec.Bootstrap.ConfigRef = clusterv1.ContractVersionedObjectReference{} // Overwriting ConfigRef to empty.
-	machineTemplateWithBootstrapDataSecret.Spec.Bootstrap.DataSecretName = ptr.To("data-secret1")
+	machineTemplateWithBootstrapDataSecret.Spec.Bootstrap.DataSecretName = new("data-secret1")
 
 	machineTemplateWithDifferentBootstrapDataSecret := machineTemplateWithBootstrapDataSecret.DeepCopy()
-	machineTemplateWithDifferentBootstrapDataSecret.Spec.Bootstrap.DataSecretName = ptr.To("data-secret2")
+	machineTemplateWithDifferentBootstrapDataSecret.Spec.Bootstrap.DataSecretName = new("data-secret2")
 
 	machineTemplateWithDifferentBootstrapConfigRef := machineTemplate.DeepCopy()
 	machineTemplateWithDifferentBootstrapConfigRef.Spec.Bootstrap.ConfigRef.Name = "bootstrap2"
@@ -415,7 +415,7 @@ func TestFindNewAndOldMachineSets(t *testing.T) {
 	matchingMSHigherReplicas.Spec.Replicas = ptr.To[int32](2)
 
 	matchingMSDiffersInPlaceMutableFields := generateMS(deployment)
-	matchingMSDiffersInPlaceMutableFields.Spec.Template.Spec.Deletion.NodeDrainTimeoutSeconds = ptr.To(int32(20))
+	matchingMSDiffersInPlaceMutableFields.Spec.Template.Spec.Deletion.NodeDrainTimeoutSeconds = new(int32(20))
 	matchingMSDiffersInPlaceMutableFields.Spec.Template.Spec.Taints = []clusterv1.MachineTaint{
 		{Key: "taint-key", Value: "taint-value", Effect: corev1.TaintEffectNoSchedule, Propagation: clusterv1.MachineTaintPropagationAlways},
 	}
@@ -871,7 +871,7 @@ func TestNewMSNewReplicas(t *testing.T) {
 			strategyType:       clusterv1.RollingUpdateMachineDeploymentStrategyType,
 			deploymentReplicas: 6,
 			maxSurge:           3,
-			maxSurgeLimit:      ptr.To(1),
+			maxSurgeLimit:      new(1),
 			oldMSReplicas:      5,
 			newMSReplicas:      2,
 			expected:           2, // without the limit it would scale up by +2 (6 MachineDeployment spec.replicas + 3 maxSurge - 7 current Machines)
@@ -882,7 +882,7 @@ func TestNewMSNewReplicas(t *testing.T) {
 			strategyType:       clusterv1.RollingUpdateMachineDeploymentStrategyType,
 			deploymentReplicas: 6,
 			maxSurge:           3,
-			maxSurgeLimit:      ptr.To(0),
+			maxSurgeLimit:      new(0),
 			oldMSReplicas:      3,
 			newMSReplicas:      2,
 			expected:           3, // +1 (6 MachineDeployment spec.replicas + 0 maxSurge - 5 current Machines), without the limit it would scale up by +4
@@ -893,7 +893,7 @@ func TestNewMSNewReplicas(t *testing.T) {
 			strategyType:       clusterv1.RollingUpdateMachineDeploymentStrategyType,
 			deploymentReplicas: 6,
 			maxSurge:           3,
-			maxSurgeLimit:      ptr.To(5),
+			maxSurgeLimit:      new(5),
 			oldMSReplicas:      5,
 			newMSReplicas:      2,
 			expected:           4, // +2 (6 MachineDeployment spec.replicas + 3 maxSurge - 7 current Machines)
@@ -931,8 +931,8 @@ func TestNewMSNewReplicas(t *testing.T) {
 			*(newDeployment.Spec.Replicas) = test.deploymentReplicas
 			newDeployment.Spec.Rollout.Strategy.Type = test.strategyType
 			newDeployment.Spec.Rollout.Strategy.RollingUpdate = clusterv1.MachineDeploymentRolloutStrategyRollingUpdate{
-				MaxUnavailable: ptr.To(intstr.FromInt32(1)),
-				MaxSurge:       ptr.To(intstr.FromInt32(test.maxSurge)),
+				MaxUnavailable: new(intstr.FromInt32(1)),
+				MaxSurge:       new(intstr.FromInt32(test.maxSurge)),
 			}
 			*(newMS.Spec.Replicas) = test.newMSReplicas
 			*(oldMS.Spec.Replicas) = test.oldMSReplicas
@@ -952,17 +952,17 @@ func TestDeploymentComplete(t *testing.T) {
 				Rollout: clusterv1.MachineDeploymentRolloutSpec{
 					Strategy: clusterv1.MachineDeploymentRolloutStrategy{
 						RollingUpdate: clusterv1.MachineDeploymentRolloutStrategyRollingUpdate{
-							MaxUnavailable: ptr.To(intstr.FromInt32(maxUnavailable)),
-							MaxSurge:       ptr.To(intstr.FromInt32(maxSurge)),
+							MaxUnavailable: new(intstr.FromInt32(maxUnavailable)),
+							MaxSurge:       new(intstr.FromInt32(maxSurge)),
 						},
 						Type: clusterv1.RollingUpdateMachineDeploymentStrategyType,
 					},
 				},
 			},
 			Status: clusterv1.MachineDeploymentStatus{
-				Replicas:          ptr.To[int32](current),
-				UpToDateReplicas:  ptr.To[int32](upToDate),
-				AvailableReplicas: ptr.To[int32](available),
+				Replicas:          new(current),
+				UpToDateReplicas:  new(upToDate),
+				AvailableReplicas: new(available),
 			},
 		}
 	}
@@ -1032,7 +1032,7 @@ func TestMaxUnavailable(t *testing.T) {
 				Rollout: clusterv1.MachineDeploymentRolloutSpec{
 					Strategy: clusterv1.MachineDeploymentRolloutStrategy{
 						RollingUpdate: clusterv1.MachineDeploymentRolloutStrategyRollingUpdate{
-							MaxSurge:       ptr.To(intstr.FromInt32(1)),
+							MaxSurge:       new(intstr.FromInt32(1)),
 							MaxUnavailable: &maxUnavailable,
 						},
 						Type: clusterv1.RollingUpdateMachineDeploymentStrategyType,
@@ -1109,8 +1109,8 @@ func TestMachineSetAnnotationsFromMachineDeployment(t *testing.T) {
 	tDeployment.Spec.Rollout.Strategy = clusterv1.MachineDeploymentRolloutStrategy{
 		Type: clusterv1.RollingUpdateMachineDeploymentStrategyType,
 		RollingUpdate: clusterv1.MachineDeploymentRolloutStrategyRollingUpdate{
-			MaxSurge:       ptr.To(intstr.FromInt32(1)),
-			MaxUnavailable: ptr.To(intstr.FromInt32(0)),
+			MaxSurge:       new(intstr.FromInt32(1)),
+			MaxUnavailable: new(intstr.FromInt32(0)),
 		},
 	}
 

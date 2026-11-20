@@ -106,7 +106,7 @@ func TestClusterDefaultAndValidateVariables(t *testing.T) {
 					Name: "location",
 					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 						{
-							Required: ptr.To(true),
+							Required: new(true),
 							From:     clusterv1.VariableDefinitionFromInline,
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
@@ -152,7 +152,7 @@ func TestClusterDefaultAndValidateVariables(t *testing.T) {
 					Name: "location",
 					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 						{
-							Required: ptr.To(true),
+							Required: new(true),
 							From:     clusterv1.VariableDefinitionFromInline,
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
@@ -194,7 +194,7 @@ func TestClusterDefaultAndValidateVariables(t *testing.T) {
 						Name: "location",
 						Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 							{
-								Required: ptr.To(true),
+								Required: new(true),
 								From:     clusterv1.VariableDefinitionFromInline,
 								Schema: clusterv1.VariableSchema{
 									OpenAPIV3Schema: clusterv1.JSONSchemaProps{
@@ -209,7 +209,7 @@ func TestClusterDefaultAndValidateVariables(t *testing.T) {
 						Name: "count",
 						Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 							{
-								Required: ptr.To(true),
+								Required: new(true),
 								From:     clusterv1.VariableDefinitionFromInline,
 								Schema: clusterv1.VariableSchema{
 									OpenAPIV3Schema: clusterv1.JSONSchemaProps{
@@ -253,7 +253,7 @@ func TestClusterDefaultAndValidateVariables(t *testing.T) {
 					Name: "location",
 					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 						{
-							Required: ptr.To(true),
+							Required: new(true),
 							From:     clusterv1.VariableDefinitionFromInline,
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
@@ -325,7 +325,7 @@ func TestClusterDefaultAndValidateVariables(t *testing.T) {
 					Name: "httpProxy",
 					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 						{
-							Required: ptr.To(true),
+							Required: new(true),
 							From:     clusterv1.VariableDefinitionFromInline,
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
@@ -455,7 +455,7 @@ func TestClusterDefaultAndValidateVariables(t *testing.T) {
 					Name: "location",
 					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 						{
-							Required: ptr.To(true),
+							Required: new(true),
 							From:     clusterv1.VariableDefinitionFromInline,
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
@@ -465,7 +465,7 @@ func TestClusterDefaultAndValidateVariables(t *testing.T) {
 							},
 						},
 						{
-							Required: ptr.To(true),
+							Required: new(true),
 							From:     "somepatch",
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
@@ -475,7 +475,7 @@ func TestClusterDefaultAndValidateVariables(t *testing.T) {
 							},
 						},
 						{
-							Required: ptr.To(true),
+							Required: new(true),
 							From:     "anotherpatch",
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
@@ -505,10 +505,10 @@ func TestClusterDefaultAndValidateVariables(t *testing.T) {
 			clusterClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
 				WithStatusVariables(clusterv1.ClusterClassStatusVariable{
 					Name:                "location",
-					DefinitionsConflict: ptr.To(false),
+					DefinitionsConflict: new(false),
 					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 						{
-							Required: ptr.To(true),
+							Required: new(true),
 							From:     clusterv1.VariableDefinitionFromInline,
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
@@ -518,7 +518,7 @@ func TestClusterDefaultAndValidateVariables(t *testing.T) {
 							},
 						},
 						{
-							Required: ptr.To(true),
+							Required: new(true),
 							From:     "somepatch",
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
@@ -528,7 +528,7 @@ func TestClusterDefaultAndValidateVariables(t *testing.T) {
 							},
 						},
 						{
-							Required: ptr.To(true),
+							Required: new(true),
 							From:     "anotherpatch",
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
@@ -567,10 +567,10 @@ func TestClusterDefaultAndValidateVariables(t *testing.T) {
 			clusterClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
 				WithStatusVariables(clusterv1.ClusterClassStatusVariable{
 					Name:                "location",
-					DefinitionsConflict: ptr.To(true),
+					DefinitionsConflict: new(true),
 					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 						{
-							Required: ptr.To(true),
+							Required: new(true),
 							From:     clusterv1.VariableDefinitionFromInline,
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
@@ -580,7 +580,7 @@ func TestClusterDefaultAndValidateVariables(t *testing.T) {
 							},
 						},
 						{
-							Required: ptr.To(true),
+							Required: new(true),
 							From:     "somepatch",
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
@@ -590,7 +590,7 @@ func TestClusterDefaultAndValidateVariables(t *testing.T) {
 							},
 						},
 						{
-							Required: ptr.To(true),
+							Required: new(true),
 							From:     "anotherpatch",
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
@@ -615,10 +615,10 @@ func TestClusterDefaultAndValidateVariables(t *testing.T) {
 			clusterClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
 				WithStatusVariables(clusterv1.ClusterClassStatusVariable{
 					Name:                "location",
-					DefinitionsConflict: ptr.To(true),
+					DefinitionsConflict: new(true),
 					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 						{
-							Required: ptr.To(true),
+							Required: new(true),
 							From:     clusterv1.VariableDefinitionFromInline,
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
@@ -628,7 +628,7 @@ func TestClusterDefaultAndValidateVariables(t *testing.T) {
 							},
 						},
 						{
-							Required: ptr.To(true),
+							Required: new(true),
 							From:     "somepatch",
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
@@ -638,7 +638,7 @@ func TestClusterDefaultAndValidateVariables(t *testing.T) {
 							},
 						},
 						{
-							Required: ptr.To(true),
+							Required: new(true),
 							From:     "anotherpatch",
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
@@ -675,7 +675,7 @@ func TestClusterDefaultAndValidateVariables(t *testing.T) {
 					Name: "cpu",
 					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 						{
-							Required: ptr.To(true),
+							Required: new(true),
 							From:     clusterv1.VariableDefinitionFromInline,
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
@@ -696,7 +696,7 @@ func TestClusterDefaultAndValidateVariables(t *testing.T) {
 					Name: "cpu",
 					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 						{
-							Required: ptr.To(true),
+							Required: new(true),
 							From:     clusterv1.VariableDefinitionFromInline,
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
@@ -723,7 +723,7 @@ func TestClusterDefaultAndValidateVariables(t *testing.T) {
 					Name: "cpu",
 					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 						{
-							Required: ptr.To(true),
+							Required: new(true),
 							From:     clusterv1.VariableDefinitionFromInline,
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
@@ -760,7 +760,7 @@ func TestClusterDefaultAndValidateVariables(t *testing.T) {
 					Name: "cpu",
 					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 						{
-							Required: ptr.To(true),
+							Required: new(true),
 							From:     clusterv1.VariableDefinitionFromInline,
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
@@ -797,7 +797,7 @@ func TestClusterDefaultAndValidateVariables(t *testing.T) {
 					Name: "cpu",
 					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 						{
-							Required: ptr.To(true),
+							Required: new(true),
 							From:     clusterv1.VariableDefinitionFromInline,
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
@@ -834,7 +834,7 @@ func TestClusterDefaultAndValidateVariables(t *testing.T) {
 					Name: "cpu",
 					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 						{
-							Required: ptr.To(true),
+							Required: new(true),
 							From:     clusterv1.VariableDefinitionFromInline,
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
@@ -872,7 +872,7 @@ func TestClusterDefaultAndValidateVariables(t *testing.T) {
 					Name: "cpu",
 					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 						{
-							Required: ptr.To(true),
+							Required: new(true),
 							From:     clusterv1.VariableDefinitionFromInline,
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
@@ -946,7 +946,7 @@ func TestClusterDefaultAndValidateVariables(t *testing.T) {
 						{
 							// For optional variables, it is optional to set top-level variables
 							// but overrides can be set even if the top-level variables are not set.
-							Required: ptr.To(false),
+							Required: new(false),
 							From:     clusterv1.VariableDefinitionFromInline,
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
@@ -1833,7 +1833,7 @@ func TestClusterTopologyValidation(t *testing.T) {
 				// Note: CRD is needed to look up the apiVersion from contract labels.
 				builder.GenericControlPlaneCRD,
 				builder.ControlPlane("fooboo", "cluster1-cp").WithVersion("v1.2.3+ANCBG0").
-					WithStatusFields(map[string]interface{}{"status.version": "v1.2.3+ANCBG0"}).
+					WithStatusFields(map[string]any{"status.version": "v1.2.3+ANCBG0"}).
 					Build(),
 			},
 		},
@@ -1924,7 +1924,7 @@ func TestClusterTopologyValidation(t *testing.T) {
 				// Note: CRD is needed to look up the apiVersion from contract labels.
 				builder.GenericControlPlaneCRD,
 				builder.ControlPlane("fooboo", "cluster1-cp").WithVersion("v1.2.3").
-					WithStatusFields(map[string]interface{}{"status.version": "v1.2.3"}).
+					WithStatusFields(map[string]any{"status.version": "v1.2.3"}).
 					Build(),
 			},
 		},
@@ -1949,7 +1949,7 @@ func TestClusterTopologyValidation(t *testing.T) {
 				// Note: CRD is needed to look up the apiVersion from contract labels.
 				builder.GenericControlPlaneCRD,
 				builder.ControlPlane("fooboo", "cluster1-cp").WithVersion("v1.2.3+ANCBG0").
-					WithStatusFields(map[string]interface{}{"status.version": "v1.2.3+ANCBG0"}).
+					WithStatusFields(map[string]any{"status.version": "v1.2.3+ANCBG0"}).
 					Build(),
 			},
 		},
@@ -1974,7 +1974,7 @@ func TestClusterTopologyValidation(t *testing.T) {
 				// Note: CRD is needed to look up the apiVersion from contract labels.
 				builder.GenericControlPlaneCRD,
 				builder.ControlPlane("fooboo", "cluster1-cp").WithVersion("v1.2.3").
-					WithStatusFields(map[string]interface{}{"status.version": "v1.2.3"}).
+					WithStatusFields(map[string]any{"status.version": "v1.2.3"}).
 					Build(),
 			},
 		},
@@ -2101,7 +2101,7 @@ func TestClusterTopologyValidation(t *testing.T) {
 				Build(),
 			additionalObjects: []client.Object{
 				builder.ControlPlane("fooboo", "cluster1-cp").WithVersion("v1.19.1").
-					WithStatusFields(map[string]interface{}{"status.version": "v1.19.1"}).
+					WithStatusFields(map[string]any{"status.version": "v1.19.1"}).
 					Build(),
 				// Note: CRD is needed to look up the apiVersion from contract labels.
 				builder.GenericControlPlaneCRD,
@@ -2183,7 +2183,7 @@ func TestClusterTopologyValidation(t *testing.T) {
 				Build(),
 			additionalObjects: []client.Object{
 				builder.ControlPlane("fooboo", "cluster1-cp").WithVersion("v1.19.1").
-					WithStatusFields(map[string]interface{}{"status.version": "v1.19.1"}).
+					WithStatusFields(map[string]any{"status.version": "v1.19.1"}).
 					Build(),
 				// Note: CRD is needed to look up the apiVersion from contract labels.
 				builder.GenericControlPlaneCRD,
@@ -2266,7 +2266,7 @@ func TestClusterTopologyValidation(t *testing.T) {
 				Build(),
 			additionalObjects: []client.Object{
 				builder.ControlPlane("fooboo", "cluster1-cp").WithVersion("v1.19.1").
-					WithStatusFields(map[string]interface{}{"status.version": "v1.19.1"}).
+					WithStatusFields(map[string]any{"status.version": "v1.19.1"}).
 					Build(),
 				builder.MachineDeployment("fooboo", "cluster1-workers1").WithLabels(map[string]string{
 					clusterv1.ClusterNameLabel:                          "cluster1",
@@ -2298,7 +2298,7 @@ func TestClusterTopologyValidation(t *testing.T) {
 				Build(),
 			additionalObjects: []client.Object{
 				builder.ControlPlane("fooboo", "cluster1-cp").WithVersion("v1.19.1").
-					WithStatusFields(map[string]interface{}{"status.version": "v1.19.1"}).
+					WithStatusFields(map[string]any{"status.version": "v1.19.1"}).
 					Build(),
 				builder.MachinePool("fooboo", "cluster1-pool1").WithLabels(map[string]string{
 					clusterv1.ClusterNameLabel:                    "cluster1",
@@ -2429,7 +2429,7 @@ func TestClusterTopologyValidationWithClient(t *testing.T) {
 						WithVersion("v1.22.2").
 						WithControlPlaneReplicas(3).
 						WithControlPlaneMachineHealthCheck(clusterv1.ControlPlaneTopologyHealthCheck{
-							Enabled: ptr.To(true),
+							Enabled: new(true),
 						}).
 						Build()).
 				Build(),
@@ -2450,7 +2450,7 @@ func TestClusterTopologyValidationWithClient(t *testing.T) {
 							Checks: clusterv1.ControlPlaneTopologyHealthCheckChecks{
 								UnhealthyNodeConditions:    []clusterv1.UnhealthyNodeCondition{},
 								UnhealthyMachineConditions: []clusterv1.UnhealthyMachineCondition{},
-								NodeStartupTimeoutSeconds:  ptr.To(int32(30)),
+								NodeStartupTimeoutSeconds:  new(int32(30)),
 							},
 						}).
 						Build()).
@@ -2474,7 +2474,7 @@ func TestClusterTopologyValidationWithClient(t *testing.T) {
 								UnhealthyExpressions: []clusterv1.UnhealthyExpression{
 									{Expression: "node.has_condition('Ready','False')"},
 								},
-								NodeStartupTimeoutSeconds: ptr.To(int32(30)),
+								NodeStartupTimeoutSeconds: new(int32(30)),
 							},
 						}).
 						Build()).
@@ -2497,7 +2497,7 @@ func TestClusterTopologyValidationWithClient(t *testing.T) {
 								UnhealthyExpressions: []clusterv1.UnhealthyExpression{
 									{Expression: "node.has_condition("},
 								},
-								NodeStartupTimeoutSeconds: ptr.To(int32(30)),
+								NodeStartupTimeoutSeconds: new(int32(30)),
 							},
 						}).
 						Build()).
@@ -2548,7 +2548,7 @@ func TestClusterTopologyValidationWithClient(t *testing.T) {
 						WithVersion("v1.22.2").
 						WithControlPlaneReplicas(3).
 						WithControlPlaneMachineHealthCheck(clusterv1.ControlPlaneTopologyHealthCheck{
-							Enabled: ptr.To(true),
+							Enabled: new(true),
 						}).
 						Build()).
 				Build(),
@@ -2559,14 +2559,14 @@ func TestClusterTopologyValidationWithClient(t *testing.T) {
 							{
 								Type:           corev1.NodeReady,
 								Status:         corev1.ConditionUnknown,
-								TimeoutSeconds: ptr.To(int32(5 * 60)),
+								TimeoutSeconds: new(int32(5 * 60)),
 							},
 						},
 						UnhealthyMachineConditions: []clusterv1.UnhealthyMachineCondition{
 							{
 								Type:           controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition,
 								Status:         metav1.ConditionUnknown,
-								TimeoutSeconds: ptr.To(int32(5 * 60)),
+								TimeoutSeconds: new(int32(5 * 60)),
 							},
 						},
 					},
@@ -2584,7 +2584,7 @@ func TestClusterTopologyValidationWithClient(t *testing.T) {
 						WithVersion("v1.22.2").
 						WithControlPlaneReplicas(3).
 						WithControlPlaneMachineHealthCheck(clusterv1.ControlPlaneTopologyHealthCheck{
-							Enabled: ptr.To(true),
+							Enabled: new(true),
 							Checks: clusterv1.ControlPlaneTopologyHealthCheckChecks{
 								UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
 									{
@@ -2620,7 +2620,7 @@ func TestClusterTopologyValidationWithClient(t *testing.T) {
 							builder.MachineDeploymentTopology("md1").
 								WithClass("worker-class").
 								WithMachineHealthCheck(clusterv1.MachineDeploymentTopologyHealthCheck{
-									Enabled: ptr.To(true),
+									Enabled: new(true),
 								}).
 								Build(),
 						).
@@ -2649,7 +2649,7 @@ func TestClusterTopologyValidationWithClient(t *testing.T) {
 									Checks: clusterv1.MachineDeploymentTopologyHealthCheckChecks{
 										UnhealthyNodeConditions:    []clusterv1.UnhealthyNodeCondition{},
 										UnhealthyMachineConditions: []clusterv1.UnhealthyMachineCondition{},
-										NodeStartupTimeoutSeconds:  ptr.To(int32(30)),
+										NodeStartupTimeoutSeconds:  new(int32(30)),
 									},
 								}).
 								Build(),
@@ -2680,7 +2680,7 @@ func TestClusterTopologyValidationWithClient(t *testing.T) {
 										UnhealthyExpressions: []clusterv1.UnhealthyExpression{
 											{Expression: "node.has_condition('Ready','False')"},
 										},
-										NodeStartupTimeoutSeconds: ptr.To(int32(30)),
+										NodeStartupTimeoutSeconds: new(int32(30)),
 									},
 								}).
 								Build(),
@@ -2710,7 +2710,7 @@ func TestClusterTopologyValidationWithClient(t *testing.T) {
 										UnhealthyExpressions: []clusterv1.UnhealthyExpression{
 											{Expression: "node.metadata.name == 'foo'"},
 										},
-										NodeStartupTimeoutSeconds: ptr.To(int32(30)),
+										NodeStartupTimeoutSeconds: new(int32(30)),
 									},
 								}).
 								Build(),
@@ -2737,7 +2737,7 @@ func TestClusterTopologyValidationWithClient(t *testing.T) {
 							builder.MachineDeploymentTopology("md1").
 								WithClass("worker-class").
 								WithMachineHealthCheck(clusterv1.MachineDeploymentTopologyHealthCheck{
-									Enabled: ptr.To(true),
+									Enabled: new(true),
 								}).
 								Build(),
 						).
@@ -2752,14 +2752,14 @@ func TestClusterTopologyValidationWithClient(t *testing.T) {
 									{
 										Type:           corev1.NodeReady,
 										Status:         corev1.ConditionUnknown,
-										TimeoutSeconds: ptr.To(int32(5 * 60)),
+										TimeoutSeconds: new(int32(5 * 60)),
 									},
 								},
 								UnhealthyMachineConditions: []clusterv1.UnhealthyMachineCondition{
 									{
 										Type:           controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition,
 										Status:         metav1.ConditionUnknown,
-										TimeoutSeconds: ptr.To(int32(5 * 60)),
+										TimeoutSeconds: new(int32(5 * 60)),
 									},
 								},
 							},
@@ -2782,7 +2782,7 @@ func TestClusterTopologyValidationWithClient(t *testing.T) {
 							builder.MachineDeploymentTopology("md1").
 								WithClass("worker-class").
 								WithMachineHealthCheck(clusterv1.MachineDeploymentTopologyHealthCheck{
-									Enabled: ptr.To(true),
+									Enabled: new(true),
 									Checks: clusterv1.MachineDeploymentTopologyHealthCheckChecks{
 										UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
 											{
@@ -3734,7 +3734,7 @@ func Test_validateTopologyVersionUpdate(t *testing.T) {
 	// A control plane that is up to date, so that only the version ceiling can reject an upgrade.
 	controlPlaneObjects := []client.Object{
 		builder.ControlPlane("fooboo", "cluster1-cp").WithVersion("v1.19.1").
-			WithStatusFields(map[string]interface{}{"status.version": "v1.19.1"}).
+			WithStatusFields(map[string]any{"status.version": "v1.19.1"}).
 			Build(),
 		// Note: CRD is needed to look up the apiVersion from contract labels.
 		builder.GenericControlPlaneCRD,
@@ -3877,7 +3877,7 @@ func Test_validateTopologyControlPlaneVersion(t *testing.T) {
 				Build(),
 			additionalObjects: []client.Object{
 				builder.ControlPlane("fooboo", "cluster1-cp").WithVersion("v1.19.1").
-					WithStatusFields(map[string]interface{}{"status.version": "v1.19.1"}).
+					WithStatusFields(map[string]any{"status.version": "v1.19.1"}).
 					Build(),
 				// Note: CRD is needed to look up the apiVersion from contract labels.
 				builder.GenericControlPlaneCRD,
@@ -3910,7 +3910,7 @@ func Test_validateTopologyControlPlaneVersion(t *testing.T) {
 				Build(),
 			additionalObjects: []client.Object{
 				builder.ControlPlane("fooboo", "cluster1-cp").WithVersion("v1.18.1").
-					WithStatusFields(map[string]interface{}{"status.version": "v1.17.1"}).
+					WithStatusFields(map[string]any{"status.version": "v1.17.1"}).
 					Build(),
 			},
 		},
@@ -3926,7 +3926,7 @@ func Test_validateTopologyControlPlaneVersion(t *testing.T) {
 				Build(),
 			additionalObjects: []client.Object{
 				builder.ControlPlane("fooboo", "cluster1-cp").WithVersion("v1.18.1").
-					WithStatusFields(map[string]interface{}{"status.version": "v1.18.1"}).
+					WithStatusFields(map[string]any{"status.version": "v1.18.1"}).
 					Build(),
 			},
 		},
@@ -4470,7 +4470,7 @@ func Test_validateTopologyWorkerVersionsUpdate(t *testing.T) {
 					controlPlaneStatus = tt.controlPlaneVersion
 				}
 				objs = append(objs, builder.ControlPlane("fooboo", "cluster1-cp").WithVersion(tt.controlPlaneVersion).
-					WithStatusFields(map[string]interface{}{"status.version": controlPlaneStatus}).
+					WithStatusFields(map[string]any{"status.version": controlPlaneStatus}).
 					Build())
 			}
 			if tt.runningMachineDeployment != "" {
@@ -5102,7 +5102,7 @@ func Test_validateMachineHealthChecks(t *testing.T) {
 			name: "Should warn when control plane healthCheck checks are set while healthCheck is disabled",
 			mutate: func(cluster *clusterv1.Cluster) {
 				cluster.Spec.Topology.ControlPlane.HealthCheck = clusterv1.ControlPlaneTopologyHealthCheck{
-					Enabled: ptr.To(false),
+					Enabled: new(false),
 					Checks: clusterv1.ControlPlaneTopologyHealthCheckChecks{
 						NodeStartupTimeoutSeconds: ptr.To[int32](30),
 					},
@@ -5114,7 +5114,7 @@ func Test_validateMachineHealthChecks(t *testing.T) {
 			name: "Should warn when MachineDeployment healthCheck checks are set while healthCheck is disabled",
 			mutate: func(cluster *clusterv1.Cluster) {
 				cluster.Spec.Topology.Workers.MachineDeployments[0].HealthCheck = clusterv1.MachineDeploymentTopologyHealthCheck{
-					Enabled: ptr.To(false),
+					Enabled: new(false),
 					Checks: clusterv1.MachineDeploymentTopologyHealthCheckChecks{
 						NodeStartupTimeoutSeconds: ptr.To[int32](30),
 					},
@@ -5126,7 +5126,7 @@ func Test_validateMachineHealthChecks(t *testing.T) {
 			name: "Should not warn when control plane healthCheck checks are set while healthCheck is enabled",
 			mutate: func(cluster *clusterv1.Cluster) {
 				cluster.Spec.Topology.ControlPlane.HealthCheck = clusterv1.ControlPlaneTopologyHealthCheck{
-					Enabled: ptr.To(true),
+					Enabled: new(true),
 					Checks: clusterv1.ControlPlaneTopologyHealthCheckChecks{
 						NodeStartupTimeoutSeconds: ptr.To[int32](30),
 					},
@@ -5137,7 +5137,7 @@ func Test_validateMachineHealthChecks(t *testing.T) {
 			name: "Should not warn when MachineDeployment healthCheck checks are set while healthCheck is enabled",
 			mutate: func(cluster *clusterv1.Cluster) {
 				cluster.Spec.Topology.Workers.MachineDeployments[0].HealthCheck = clusterv1.MachineDeploymentTopologyHealthCheck{
-					Enabled: ptr.To(true),
+					Enabled: new(true),
 					Checks: clusterv1.MachineDeploymentTopologyHealthCheckChecks{
 						NodeStartupTimeoutSeconds: ptr.To[int32](30),
 					},
@@ -5148,10 +5148,10 @@ func Test_validateMachineHealthChecks(t *testing.T) {
 			name: "Should not warn when healthCheck is disabled without checks or remediation",
 			mutate: func(cluster *clusterv1.Cluster) {
 				cluster.Spec.Topology.ControlPlane.HealthCheck = clusterv1.ControlPlaneTopologyHealthCheck{
-					Enabled: ptr.To(false),
+					Enabled: new(false),
 				}
 				cluster.Spec.Topology.Workers.MachineDeployments[0].HealthCheck = clusterv1.MachineDeploymentTopologyHealthCheck{
-					Enabled: ptr.To(false),
+					Enabled: new(false),
 				}
 			},
 		},

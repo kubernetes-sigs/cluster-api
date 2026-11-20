@@ -20,6 +20,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"maps"
 	"strings"
 	"testing"
 	"time"
@@ -322,7 +323,7 @@ func TestComputeControlPlaneInfrastructureMachineTemplate(t *testing.T) {
 		currentInfrastructureMachineTemplate := builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cluster1-template1").Build()
 
 		controlPlane := builder.ControlPlane(metav1.NamespaceDefault, "controlplane").Build()
-		err := contract.ControlPlane().MachineTemplate().InfrastructureRef().Set(controlPlane, ptr.To(contract.ObjToContractVersionedObjectReference(currentInfrastructureMachineTemplate)))
+		err := contract.ControlPlane().MachineTemplate().InfrastructureRef().Set(controlPlane, new(contract.ObjToContractVersionedObjectReference(currentInfrastructureMachineTemplate)))
 		g.Expect(err).ToNot(HaveOccurred())
 
 		// aggregating current cluster objects into ClusterState (simulating getCurrentState)
@@ -441,20 +442,20 @@ func TestComputeControlPlane(t *testing.T) {
 
 	jsonValue, err := json.Marshal(&clusterClassReadinessGates)
 	g.Expect(err).ToNot(HaveOccurred())
-	var expectedClusterClassReadinessGates []interface{}
+	var expectedClusterClassReadinessGates []any
 	g.Expect(json.Unmarshal(jsonValue, &expectedClusterClassReadinessGates)).To(Succeed())
 	jsonValue, err = json.Marshal(&readinessGates)
 	g.Expect(err).ToNot(HaveOccurred())
-	var expectedReadinessGates []interface{}
+	var expectedReadinessGates []any
 	g.Expect(json.Unmarshal(jsonValue, &expectedReadinessGates)).To(Succeed())
 
 	jsonValue, err = json.Marshal(&clusterClassTaints)
 	g.Expect(err).ToNot(HaveOccurred())
-	var expectedClusterClassTaints []interface{}
+	var expectedClusterClassTaints []any
 	g.Expect(json.Unmarshal(jsonValue, &expectedClusterClassTaints)).To(Succeed())
 	jsonValue, err = json.Marshal(&taints)
 	g.Expect(err).ToNot(HaveOccurred())
-	var expectedTaints []interface{}
+	var expectedTaints []any
 	g.Expect(json.Unmarshal(jsonValue, &expectedTaints)).To(Succeed())
 
 	scheme := runtime.NewScheme()
@@ -800,7 +801,7 @@ func TestComputeControlPlane(t *testing.T) {
 
 		assertNestedField(g, obj, version, contract.ControlPlane().Version().Path()...)
 		assertNestedField(g, obj, int64(replicas), contract.ControlPlane().Replicas().Path()...)
-		assertNestedField(g, obj, map[string]interface{}{
+		assertNestedField(g, obj, map[string]any{
 			"kind":       infrastructureMachineTemplate.GetKind(),
 			"namespace":  infrastructureMachineTemplate.GetNamespace(),
 			"name":       infrastructureMachineTemplate.GetName(),
@@ -884,7 +885,7 @@ func TestComputeControlPlane(t *testing.T) {
 
 		assertNestedField(g, obj, version, contract.ControlPlane().Version().Path()...)
 		assertNestedField(g, obj, int64(replicas), contract.ControlPlane().Replicas().Path()...)
-		assertNestedField(g, obj, map[string]interface{}{
+		assertNestedField(g, obj, map[string]any{
 			"kind":     infrastructureMachineTemplate.GetKind(),
 			"name":     infrastructureMachineTemplate.GetName(),
 			"apiGroup": infrastructureMachineTemplate.GroupVersionKind().Group,
@@ -942,10 +943,10 @@ func TestComputeControlPlane(t *testing.T) {
 			{
 				name: "use cluster.spec.topology.version if the control plane is already up to date",
 				currentControlPlane: builder.ControlPlane("test1", "cp1").
-					WithSpecFields(map[string]interface{}{
+					WithSpecFields(map[string]any{
 						"spec.version": "v1.2.3",
 					}).
-					WithStatusFields(map[string]interface{}{
+					WithStatusFields(map[string]any{
 						"status.version": "v1.2.3",
 					}).
 					Build(),
@@ -956,10 +957,10 @@ func TestComputeControlPlane(t *testing.T) {
 			{
 				name: "use controlplane.spec.version if the control plane's spec.version is not equal to status.version", // NOTE: there are a few other conditions preventing to pick up latest cluster.spec.topology.version (other than is upgrading which is test here); all those conditions are validated in TestComputeControlPlaneVersion
 				currentControlPlane: builder.ControlPlane("test1", "cp1").
-					WithSpecFields(map[string]interface{}{
+					WithSpecFields(map[string]any{
 						"spec.version": "v1.2.2",
 					}).
-					WithStatusFields(map[string]interface{}{
+					WithStatusFields(map[string]any{
 						"status.version": "v1.2.1",
 					}).
 					Build(),
@@ -970,11 +971,11 @@ func TestComputeControlPlane(t *testing.T) {
 			{
 				name: "use cluster.spec.topology.version if the control plane can upgrade and it is a simple upgrade",
 				currentControlPlane: builder.ControlPlane("test1", "cp1").
-					WithSpecFields(map[string]interface{}{
+					WithSpecFields(map[string]any{
 						"spec.version":  "v1.2.2",
 						"spec.replicas": int64(2),
 					}).
-					WithStatusFields(map[string]interface{}{
+					WithStatusFields(map[string]any{
 						"status.version":  "v1.2.2",
 						"status.replicas": int64(2),
 					}).
@@ -986,11 +987,11 @@ func TestComputeControlPlane(t *testing.T) {
 			{
 				name: "use intermediate version if the control plane can upgrade and it is a multistep upgrade",
 				currentControlPlane: builder.ControlPlane("test1", "cp1").
-					WithSpecFields(map[string]interface{}{
+					WithSpecFields(map[string]any{
 						"spec.version":  "v1.2.2",
 						"spec.replicas": int64(2),
 					}).
-					WithStatusFields(map[string]interface{}{
+					WithStatusFields(map[string]any{
 						"status.version":  "v1.2.2",
 						"status.replicas": int64(2),
 					}).
@@ -1002,11 +1003,11 @@ func TestComputeControlPlane(t *testing.T) {
 			{
 				name: "use cluster.spec.topology.version if the control plane can upgrade and we are at the last step of a multistep upgrade",
 				currentControlPlane: builder.ControlPlane("test1", "cp1").
-					WithSpecFields(map[string]interface{}{
+					WithSpecFields(map[string]any{
 						"spec.version":  "v1.4.2",
 						"spec.replicas": int64(2),
 					}).
-					WithStatusFields(map[string]interface{}{
+					WithStatusFields(map[string]any{
 						"status.version":  "v1.4.2",
 						"status.replicas": int64(2),
 					}).
@@ -1070,10 +1071,10 @@ func TestComputeControlPlane(t *testing.T) {
 		s := scope.New(clusterWithoutReplicas)
 		s.Current.ControlPlane = &scope.ControlPlaneState{
 			Object: builder.ControlPlane("test1", "cp1").
-				WithSpecFields(map[string]interface{}{
+				WithSpecFields(map[string]any{
 					"spec.version": "v1.2.2",
 				}).
-				WithStatusFields(map[string]interface{}{
+				WithStatusFields(map[string]any{
 					"status.version": "v1.2.1",
 				}).
 				Build(),
@@ -1242,10 +1243,10 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 			name:            "should return cluster.spec.topology.version if the control plane is already at the target version",
 			topologyVersion: "v1.2.3",
 			controlPlaneObj: builder.ControlPlane("test1", "cp1").
-				WithSpecFields(map[string]interface{}{
+				WithSpecFields(map[string]any{
 					"spec.version": "v1.2.3",
 				}).
-				WithStatusFields(map[string]interface{}{
+				WithStatusFields(map[string]any{
 					"status.version": "v1.2.3",
 				}).
 				Build(),
@@ -1259,10 +1260,10 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 			name:            "should return controlplane.spec.version if the control plane is upgrading",
 			topologyVersion: "v1.2.3",
 			controlPlaneObj: builder.ControlPlane("test1", "cp1").
-				WithSpecFields(map[string]interface{}{
+				WithSpecFields(map[string]any{
 					"spec.version": "v1.2.2",
 				}).
-				WithStatusFields(map[string]interface{}{
+				WithStatusFields(map[string]any{
 					"status.version": "v1.2.1",
 				}).
 				Build(),
@@ -1275,11 +1276,11 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 			name:            "should return controlplane.spec.version if control plane is not upgrading and not scaling and one of the MachineDeployments and one of the MachinePools is upgrading",
 			topologyVersion: "v1.2.3",
 			controlPlaneObj: builder.ControlPlane("test1", "cp1").
-				WithSpecFields(map[string]interface{}{
+				WithSpecFields(map[string]any{
 					"spec.version":  "v1.2.2",
 					"spec.replicas": int64(2),
 				}).
-				WithStatusFields(map[string]interface{}{
+				WithStatusFields(map[string]any{
 					"status.version":  "v1.2.2",
 					"status.replicas": int64(2),
 				}).
@@ -1299,11 +1300,11 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 			afterWorkersUpgradeResponse:       nonBlockingAfterWorkersUpgradeResponse,
 			topologyVersion:                   "v1.2.3",
 			controlPlaneObj: builder.ControlPlane("test1", "cp1").
-				WithSpecFields(map[string]interface{}{
+				WithSpecFields(map[string]any{
 					"spec.version":  "v1.2.2",
 					"spec.replicas": int64(2),
 				}).
-				WithStatusFields(map[string]interface{}{
+				WithStatusFields(map[string]any{
 					"status.version":  "v1.2.2",
 					"status.replicas": int64(2),
 				}).
@@ -1326,11 +1327,11 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 			beforeControlPlaneUpgradeResponse: nonBlockingBeforeControlPlaneUpgradeResponse,
 			topologyVersion:                   "v1.2.3",
 			controlPlaneObj: builder.ControlPlane("test1", "cp1").
-				WithSpecFields(map[string]interface{}{
+				WithSpecFields(map[string]any{
 					"spec.version":  "v1.2.2",
 					"spec.replicas": int64(2),
 				}).
-				WithStatusFields(map[string]interface{}{
+				WithStatusFields(map[string]any{
 					"status.version":  "v1.2.2",
 					"status.replicas": int64(1),
 				}).
@@ -1346,11 +1347,11 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 			beforeControlPlaneUpgradeResponse: nonBlockingBeforeControlPlaneUpgradeResponse,
 			topologyVersion:                   "v1.5.3",
 			controlPlaneObj: builder.ControlPlane("test1", "cp1").
-				WithSpecFields(map[string]interface{}{
+				WithSpecFields(map[string]any{
 					"spec.version":  "v1.2.2",
 					"spec.replicas": int64(2),
 				}).
-				WithStatusFields(map[string]interface{}{
+				WithStatusFields(map[string]any{
 					"status.version":  "v1.2.2",
 					"status.replicas": int64(2),
 				}).
@@ -1368,11 +1369,11 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 			beforeControlPlaneUpgradeResponse: nonBlockingBeforeControlPlaneUpgradeResponse,
 			topologyVersion:                   "v1.5.3",
 			controlPlaneObj: builder.ControlPlane("test1", "cp1").
-				WithSpecFields(map[string]interface{}{
+				WithSpecFields(map[string]any{
 					"spec.version":  "v1.4.2",
 					"spec.replicas": int64(2),
 				}).
-				WithStatusFields(map[string]interface{}{
+				WithStatusFields(map[string]any{
 					"status.version":  "v1.4.2",
 					"status.replicas": int64(2),
 				}).
@@ -1389,11 +1390,11 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 			beforeClusterUpgradeResponse: nonBlockingBeforeClusterUpgradeResponse,
 			topologyVersion:              "v1.5.3",
 			controlPlaneObj: builder.ControlPlane("test1", "cp1").
-				WithSpecFields(map[string]interface{}{
+				WithSpecFields(map[string]any{
 					"spec.version":  "v1.2.2",
 					"spec.replicas": int64(2),
 				}).
-				WithStatusFields(map[string]interface{}{
+				WithStatusFields(map[string]any{
 					"status.version":  "v1.2.2",
 					"status.replicas": int64(2),
 				}).
@@ -1412,11 +1413,11 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 			beforeClusterUpgradeResponse: nonBlockingBeforeClusterUpgradeResponse,
 			topologyVersion:              "v1.5.3",
 			controlPlaneObj: builder.ControlPlane("test1", "cp1").
-				WithSpecFields(map[string]interface{}{
+				WithSpecFields(map[string]any{
 					"spec.version":  "v1.2.2",
 					"spec.replicas": int64(2),
 				}).
-				WithStatusFields(map[string]interface{}{
+				WithStatusFields(map[string]any{
 					"status.version":  "v1.2.2",
 					"status.replicas": int64(2),
 				}).
@@ -1435,11 +1436,11 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 			beforeClusterUpgradeResponse: blockingBeforeClusterUpgradeResponse,
 			topologyVersion:              "v1.2.3",
 			controlPlaneObj: builder.ControlPlane("test1", "cp1").
-				WithSpecFields(map[string]interface{}{
+				WithSpecFields(map[string]any{
 					"spec.version":  "v1.2.2",
 					"spec.replicas": int64(2),
 				}).
-				WithStatusFields(map[string]interface{}{
+				WithStatusFields(map[string]any{
 					"status.version":  "v1.2.2",
 					"status.replicas": int64(2),
 				}).
@@ -1454,11 +1455,11 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 			beforeClusterUpgradeResponse: failureBeforeClusterUpgradeResponse,
 			topologyVersion:              "v1.2.3",
 			controlPlaneObj: builder.ControlPlane("test1", "cp1").
-				WithSpecFields(map[string]interface{}{
+				WithSpecFields(map[string]any{
 					"spec.version":  "v1.2.2",
 					"spec.replicas": int64(2),
 				}).
-				WithStatusFields(map[string]interface{}{
+				WithStatusFields(map[string]any{
 					"status.version":  "v1.2.2",
 					"status.replicas": int64(2),
 				}).
@@ -1471,11 +1472,11 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 			beforeClusterUpgradeResponse: nonBlockingBeforeClusterUpgradeResponse,
 			topologyVersion:              "v1.2.3",
 			controlPlaneObj: builder.ControlPlane("test1", "cp1").
-				WithSpecFields(map[string]interface{}{
+				WithSpecFields(map[string]any{
 					"spec.version":  "v1.2.2",
 					"spec.replicas": int64(2),
 				}).
-				WithStatusFields(map[string]interface{}{
+				WithStatusFields(map[string]any{
 					"status.version":  "v1.2.2",
 					"status.replicas": int64(2),
 				}).
@@ -1497,11 +1498,11 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 			beforeControlPlaneUpgradeResponse: blockingBeforeControlPlaneUpgradeResponse,
 			topologyVersion:                   "v1.2.3",
 			controlPlaneObj: builder.ControlPlane("test1", "cp1").
-				WithSpecFields(map[string]interface{}{
+				WithSpecFields(map[string]any{
 					"spec.version":  "v1.2.2",
 					"spec.replicas": int64(2),
 				}).
-				WithStatusFields(map[string]interface{}{
+				WithStatusFields(map[string]any{
 					"status.version":  "v1.2.2",
 					"status.replicas": int64(2),
 				}).
@@ -1517,11 +1518,11 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 			beforeControlPlaneUpgradeResponse: failureBeforeControlPlaneUpgradeResponse,
 			topologyVersion:                   "v1.2.3",
 			controlPlaneObj: builder.ControlPlane("test1", "cp1").
-				WithSpecFields(map[string]interface{}{
+				WithSpecFields(map[string]any{
 					"spec.version":  "v1.2.2",
 					"spec.replicas": int64(2),
 				}).
-				WithStatusFields(map[string]interface{}{
+				WithStatusFields(map[string]any{
 					"status.version":  "v1.2.2",
 					"status.replicas": int64(2),
 				}).
@@ -1536,11 +1537,11 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 			afterWorkersUpgradeResponse:       blockingAfterWorkersUpgradeResponse,
 			topologyVersion:                   "v1.2.3",
 			controlPlaneObj: builder.ControlPlane("test1", "cp1").
-				WithSpecFields(map[string]interface{}{
+				WithSpecFields(map[string]any{
 					"spec.version":  "v1.2.2",
 					"spec.replicas": int64(2),
 				}).
-				WithStatusFields(map[string]interface{}{
+				WithStatusFields(map[string]any{
 					"status.version":  "v1.2.2",
 					"status.replicas": int64(2),
 				}).
@@ -1562,11 +1563,11 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 			afterWorkersUpgradeResponse:       failureAfterWorkersUpgradeResponse,
 			topologyVersion:                   "v1.2.3",
 			controlPlaneObj: builder.ControlPlane("test1", "cp1").
-				WithSpecFields(map[string]interface{}{
+				WithSpecFields(map[string]any{
 					"spec.version":  "v1.2.2",
 					"spec.replicas": int64(2),
 				}).
-				WithStatusFields(map[string]interface{}{
+				WithStatusFields(map[string]any{
 					"status.version":  "v1.2.2",
 					"status.replicas": int64(2),
 				}).
@@ -1586,11 +1587,11 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 			beforeWorkersUpgradeResponse:      blockingBeforeWorkersUpgradeResponse,
 			topologyVersion:                   "v1.2.3",
 			controlPlaneObj: builder.ControlPlane("test1", "cp1").
-				WithSpecFields(map[string]interface{}{
+				WithSpecFields(map[string]any{
 					"spec.version":  "v1.2.2",
 					"spec.replicas": int64(2),
 				}).
-				WithStatusFields(map[string]interface{}{
+				WithStatusFields(map[string]any{
 					"status.version":  "v1.2.2",
 					"status.replicas": int64(2),
 				}).
@@ -1612,11 +1613,11 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 			beforeWorkersUpgradeResponse:      failureBeforeWorkersUpgradeResponse,
 			topologyVersion:                   "v1.2.3",
 			controlPlaneObj: builder.ControlPlane("test1", "cp1").
-				WithSpecFields(map[string]interface{}{
+				WithSpecFields(map[string]any{
 					"spec.version":  "v1.2.2",
 					"spec.replicas": int64(2),
 				}).
-				WithStatusFields(map[string]interface{}{
+				WithStatusFields(map[string]any{
 					"status.version":  "v1.2.2",
 					"status.replicas": int64(2),
 				}).
@@ -1652,7 +1653,7 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 									APIVersion: builder.InfrastructureGroupVersion.String(),
 									Manager:    "manager",
 									Operation:  "Apply",
-									Time:       ptr.To(metav1.Now()),
+									Time:       new(metav1.Now()),
 									FieldsType: "FieldsV1",
 								},
 							},
@@ -1829,12 +1830,12 @@ func TestComputeMachineDeployment(t *testing.T) {
 		{
 			Type:           corev1.NodeReady,
 			Status:         corev1.ConditionUnknown,
-			TimeoutSeconds: ptr.To(int32(5 * 60)),
+			TimeoutSeconds: new(int32(5 * 60)),
 		},
 		{
 			Type:           corev1.NodeReady,
 			Status:         corev1.ConditionFalse,
-			TimeoutSeconds: ptr.To(int32(5 * 60)),
+			TimeoutSeconds: new(int32(5 * 60)),
 		},
 	}
 
@@ -1842,16 +1843,16 @@ func TestComputeMachineDeployment(t *testing.T) {
 		{
 			Type:           controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition,
 			Status:         metav1.ConditionUnknown,
-			TimeoutSeconds: ptr.To(int32(5 * 60)),
+			TimeoutSeconds: new(int32(5 * 60)),
 		},
 		{
 			Type:           controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition,
 			Status:         metav1.ConditionFalse,
-			TimeoutSeconds: ptr.To(int32(5 * 60)),
+			TimeoutSeconds: new(int32(5 * 60)),
 		},
 	}
 
-	nodeTimeoutDuration := ptr.To(int32(1))
+	nodeTimeoutDuration := new(int32(1))
 
 	clusterClassFailureDomain := "A"
 	clusterClassDuration := int32(20)
@@ -1864,7 +1865,7 @@ func TestComputeMachineDeployment(t *testing.T) {
 	}
 	clusterClassHealthCheck := clusterv1.MachineDeploymentClassHealthCheck{
 		Remediation: clusterv1.MachineDeploymentClassHealthCheckRemediation{
-			MaxInFlight: ptr.To(intstr.FromInt32(5)),
+			MaxInFlight: new(intstr.FromInt32(5)),
 		},
 	}
 	clusterClassDeletionOrder := clusterv1.NewestMachineSetDeletionOrder
@@ -1930,7 +1931,7 @@ func TestComputeMachineDeployment(t *testing.T) {
 					Checks: clusterv1.MachineDeploymentClassHealthCheckChecks{
 						UnhealthyNodeConditions:    unhealthyNodeConditions,
 						UnhealthyMachineConditions: unhealthyMachineConditions,
-						NodeStartupTimeoutSeconds:  ptr.To(int32(1)),
+						NodeStartupTimeoutSeconds:  new(int32(1)),
 					},
 				},
 			},
@@ -1949,7 +1950,7 @@ func TestComputeMachineDeployment(t *testing.T) {
 	}
 	topologyHealthCheck := clusterv1.MachineDeploymentTopologyHealthCheck{
 		Remediation: clusterv1.MachineDeploymentTopologyHealthCheckRemediation{
-			MaxInFlight: ptr.To(intstr.FromInt32(1)),
+			MaxInFlight: new(intstr.FromInt32(1)),
 		},
 	}
 	topologyDeletionOrder := clusterv1.OldestMachineSetDeletionOrder
@@ -2139,7 +2140,7 @@ func TestComputeMachineDeployment(t *testing.T) {
 						Checks: clusterv1.MachineDeploymentClassHealthCheckChecks{
 							UnhealthyNodeConditions:    unhealthyNodeConditions,
 							UnhealthyMachineConditions: unhealthyMachineConditions,
-							NodeStartupTimeoutSeconds:  ptr.To(int32(1)),
+							NodeStartupTimeoutSeconds:  new(int32(1)),
 						},
 					},
 				},
@@ -2190,7 +2191,7 @@ func TestComputeMachineDeployment(t *testing.T) {
 						Checks: clusterv1.MachineDeploymentClassHealthCheckChecks{
 							UnhealthyNodeConditions:    unhealthyNodeConditions,
 							UnhealthyMachineConditions: unhealthyMachineConditions,
-							NodeStartupTimeoutSeconds:  ptr.To(int32(1)),
+							NodeStartupTimeoutSeconds:  new(int32(1)),
 						},
 					},
 				},
@@ -2309,11 +2310,11 @@ func TestComputeMachineDeployment(t *testing.T) {
 
 	t.Run("Should choose the correct version for machine deployment", func(t *testing.T) {
 		controlPlaneStable123 := builder.ControlPlane("test1", "cp1").
-			WithSpecFields(map[string]interface{}{
+			WithSpecFields(map[string]any{
 				"spec.version":  "v1.2.3",
 				"spec.replicas": int64(2),
 			}).
-			WithStatusFields(map[string]interface{}{
+			WithStatusFields(map[string]any{
 				"status.version":          "v1.2.3",
 				"status.replicas":         int64(2),
 				"status.upToDateReplicas": int64(2),
@@ -2355,7 +2356,7 @@ func TestComputeMachineDeployment(t *testing.T) {
 				name:                        "use machine deployment's spec.template.spec.version if one of the machine deployments is upgrading, concurrency limit reached",
 				upgradingMachineDeployments: []string{"upgrading-md1"},
 				upgradeConcurrency:          "1",
-				currentMDVersion:            ptr.To("v1.2.2"),
+				currentMDVersion:            new("v1.2.2"),
 				topologyVersion:             "v1.2.3",
 				upgradePlan:                 []string{"v1.2.3"},
 				expectedVersion:             "v1.2.2",
@@ -2364,7 +2365,7 @@ func TestComputeMachineDeployment(t *testing.T) {
 				name:                        "use cluster.spec.topology.version if one of the machine deployments is upgrading, concurrency limit not reached",
 				upgradingMachineDeployments: []string{"upgrading-md1"},
 				upgradeConcurrency:          "2",
-				currentMDVersion:            ptr.To("v1.2.2"),
+				currentMDVersion:            new("v1.2.2"),
 				topologyVersion:             "v1.2.3",
 				upgradePlan:                 []string{"v1.2.3"},
 				expectedVersion:             "v1.2.3",
@@ -2721,11 +2722,11 @@ func TestComputeMachinePool(t *testing.T) {
 
 	t.Run("Should choose the correct version for machine pool", func(t *testing.T) {
 		controlPlaneStable123 := builder.ControlPlane("test1", "cp1").
-			WithSpecFields(map[string]interface{}{
+			WithSpecFields(map[string]any{
 				"spec.version":  "v1.2.3",
 				"spec.replicas": int64(2),
 			}).
-			WithStatusFields(map[string]interface{}{
+			WithStatusFields(map[string]any{
 				"status.version":          "v1.2.3",
 				"status.replicas":         int64(2),
 				"status.upToDateReplicas": int64(2),
@@ -2767,7 +2768,7 @@ func TestComputeMachinePool(t *testing.T) {
 				name:                  "use machine pool's spec.template.spec.version if one of the machine pools is upgrading, concurrency limit reached",
 				upgradingMachinePools: []string{"upgrading-mp1"},
 				upgradeConcurrency:    "1",
-				currentMPVersion:      ptr.To("v1.2.2"),
+				currentMPVersion:      new("v1.2.2"),
 				topologyVersion:       "v1.2.3",
 				upgradePlan:           []string{"v1.2.3"},
 				expectedVersion:       "v1.2.2",
@@ -2776,7 +2777,7 @@ func TestComputeMachinePool(t *testing.T) {
 				name:                  "use cluster.spec.topology.version if one of the machine pools is upgrading, concurrency limit not reached",
 				upgradingMachinePools: []string{"upgrading-mp1"},
 				upgradeConcurrency:    "2",
-				currentMPVersion:      ptr.To("v1.2.2"),
+				currentMPVersion:      new("v1.2.2"),
 				topologyVersion:       "v1.2.3",
 				upgradePlan:           []string{"v1.2.3"},
 				expectedVersion:       "v1.2.3",
@@ -2809,7 +2810,7 @@ func TestComputeMachinePool(t *testing.T) {
 						WithVersion(*tt.currentMPVersion).
 						WithStatus(clusterv1.MachinePoolStatus{
 							ObservedGeneration: 2,
-							Replicas:           ptr.To(int32(2)),
+							Replicas:           new(int32(2)),
 							Deprecated: &clusterv1.MachinePoolDeprecatedStatus{
 								V1Beta1: &clusterv1.MachinePoolV1Beta1DeprecatedStatus{
 									ReadyReplicas:     2,
@@ -3506,7 +3507,7 @@ func TestIsMachinePoolDeferred(t *testing.T) {
 
 func TestTemplateToObject(t *testing.T) {
 	template := builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "infrastructureClusterTemplate").
-		WithSpecFields(map[string]interface{}{"spec.template.spec.fakeSetting": true}).
+		WithSpecFields(map[string]any{"spec.template.spec.fakeSetting": true}).
 		Build()
 	cluster := &clusterv1.Cluster{
 		ObjectMeta: metav1.ObjectMeta{
@@ -3568,7 +3569,7 @@ func TestTemplateToObject(t *testing.T) {
 
 func TestTemplateToTemplate(t *testing.T) {
 	template := builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "infrastructureClusterTemplate").
-		WithSpecFields(map[string]interface{}{"spec.template.spec.fakeSetting": true}).
+		WithSpecFields(map[string]any{"spec.template.spec.fakeSetting": true}).
 		Build()
 	annotations := template.GetAnnotations()
 	if annotations == nil {
@@ -3715,7 +3716,7 @@ func assertTemplateToTemplate(g *WithT, in assertTemplateInput) {
 	g.Expect(cloneSpec).To(BeComparableTo(expectedSpec))
 }
 
-func assertNestedField(g *WithT, obj *unstructured.Unstructured, value interface{}, fields ...string) {
+func assertNestedField(g *WithT, obj *unstructured.Unstructured, value any, fields ...string) {
 	g.THelper()
 	v, ok, err := unstructured.NestedFieldCopy(obj.UnstructuredContent(), fields...)
 
@@ -3733,17 +3734,13 @@ func assertNestedFieldUnset(g *WithT, obj *unstructured.Unstructured, fields ...
 
 func duplicateMachineDeploymentsState(s scope.MachineDeploymentsStateMap) scope.MachineDeploymentsStateMap {
 	n := make(scope.MachineDeploymentsStateMap)
-	for k, v := range s {
-		n[k] = v
-	}
+	maps.Copy(n, s)
 	return n
 }
 
 func duplicateMachinePoolsState(s scope.MachinePoolsStateMap) scope.MachinePoolsStateMap {
 	n := make(scope.MachinePoolsStateMap)
-	for k, v := range s {
-		n[k] = v
-	}
+	maps.Copy(n, s)
 	return n
 }
 
@@ -3778,30 +3775,30 @@ func Test_computeMachineHealthCheck(t *testing.T) {
 			{
 				Type:           corev1.NodeReady,
 				Status:         corev1.ConditionUnknown,
-				TimeoutSeconds: ptr.To(int32(5 * 60)),
+				TimeoutSeconds: new(int32(5 * 60)),
 			},
 			{
 				Type:           corev1.NodeReady,
 				Status:         corev1.ConditionFalse,
-				TimeoutSeconds: ptr.To(int32(5 * 60)),
+				TimeoutSeconds: new(int32(5 * 60)),
 			},
 		},
 		UnhealthyMachineConditions: []clusterv1.UnhealthyMachineCondition{
 			{
 				Type:           controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition,
 				Status:         metav1.ConditionUnknown,
-				TimeoutSeconds: ptr.To(int32(5 * 60)),
+				TimeoutSeconds: new(int32(5 * 60)),
 			},
 			{
 				Type:           controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition,
 				Status:         metav1.ConditionFalse,
-				TimeoutSeconds: ptr.To(int32(5 * 60)),
+				TimeoutSeconds: new(int32(5 * 60)),
 			},
 		},
 		UnhealthyExpressions: []clusterv1.UnhealthyExpression{
 			{Expression: "node.has_condition('Ready','False')"},
 		},
-		NodeStartupTimeoutSeconds: ptr.To(int32(1)),
+		NodeStartupTimeoutSeconds: new(int32(1)),
 	}
 	selector := &metav1.LabelSelector{MatchLabels: map[string]string{
 		"foo": "bar",
@@ -3831,30 +3828,30 @@ func Test_computeMachineHealthCheck(t *testing.T) {
 					{
 						Type:           corev1.NodeReady,
 						Status:         corev1.ConditionUnknown,
-						TimeoutSeconds: ptr.To(int32(5 * 60)),
+						TimeoutSeconds: new(int32(5 * 60)),
 					},
 					{
 						Type:           corev1.NodeReady,
 						Status:         corev1.ConditionFalse,
-						TimeoutSeconds: ptr.To(int32(5 * 60)),
+						TimeoutSeconds: new(int32(5 * 60)),
 					},
 				},
 				UnhealthyMachineConditions: []clusterv1.UnhealthyMachineCondition{
 					{
 						Type:           controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition,
 						Status:         metav1.ConditionUnknown,
-						TimeoutSeconds: ptr.To(int32(5 * 60)),
+						TimeoutSeconds: new(int32(5 * 60)),
 					},
 					{
 						Type:           controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition,
 						Status:         metav1.ConditionFalse,
-						TimeoutSeconds: ptr.To(int32(5 * 60)),
+						TimeoutSeconds: new(int32(5 * 60)),
 					},
 				},
 				UnhealthyExpressions: []clusterv1.UnhealthyExpression{
 					{Expression: "node.has_condition('Ready','False')"},
 				},
-				NodeStartupTimeoutSeconds: ptr.To(int32(1)),
+				NodeStartupTimeoutSeconds: new(int32(1)),
 			},
 		},
 	}
@@ -3878,10 +3875,10 @@ func TestCalculateRefDesiredAPIVersion(t *testing.T) {
 	}{
 		{
 			name: "Return desired ref if current ref is nil",
-			desiredReferencedObject: &unstructured.Unstructured{Object: map[string]interface{}{
+			desiredReferencedObject: &unstructured.Unstructured{Object: map[string]any{
 				"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
 				"kind":       "DockerCluster",
-				"metadata": map[string]interface{}{
+				"metadata": map[string]any{
 					"name":      "my-cluster-abc",
 					"namespace": metav1.NamespaceDefault,
 				},
@@ -3901,10 +3898,10 @@ func TestCalculateRefDesiredAPIVersion(t *testing.T) {
 				Name:       "my-cluster-abc",
 				Namespace:  metav1.NamespaceDefault,
 			},
-			desiredReferencedObject: &unstructured.Unstructured{Object: map[string]interface{}{
+			desiredReferencedObject: &unstructured.Unstructured{Object: map[string]any{
 				"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
 				"kind":       "DockerCluster",
-				"metadata": map[string]interface{}{
+				"metadata": map[string]any{
 					"name":      "my-cluster-abc",
 					"namespace": metav1.NamespaceDefault,
 				},
@@ -3919,10 +3916,10 @@ func TestCalculateRefDesiredAPIVersion(t *testing.T) {
 				Name:       "my-cluster-abc",
 				Namespace:  metav1.NamespaceDefault,
 			},
-			desiredReferencedObject: &unstructured.Unstructured{Object: map[string]interface{}{
+			desiredReferencedObject: &unstructured.Unstructured{Object: map[string]any{
 				"apiVersion": "infrastructure2.cluster.x-k8s.io/v1beta1",
 				"kind":       "DockerCluster",
-				"metadata": map[string]interface{}{
+				"metadata": map[string]any{
 					"name":      "my-cluster-abc",
 					"namespace": metav1.NamespaceDefault,
 				},
@@ -3943,10 +3940,10 @@ func TestCalculateRefDesiredAPIVersion(t *testing.T) {
 				Name:       "my-cluster-abc",
 				Namespace:  metav1.NamespaceDefault,
 			},
-			desiredReferencedObject: &unstructured.Unstructured{Object: map[string]interface{}{
+			desiredReferencedObject: &unstructured.Unstructured{Object: map[string]any{
 				"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
 				"kind":       "DockerCluster2",
-				"metadata": map[string]interface{}{
+				"metadata": map[string]any{
 					"name":      "my-cluster-abc",
 					"namespace": metav1.NamespaceDefault,
 				},
@@ -3967,10 +3964,10 @@ func TestCalculateRefDesiredAPIVersion(t *testing.T) {
 				Name:       "my-cluster-abc",
 				Namespace:  metav1.NamespaceDefault,
 			},
-			desiredReferencedObject: &unstructured.Unstructured{Object: map[string]interface{}{
+			desiredReferencedObject: &unstructured.Unstructured{Object: map[string]any{
 				"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
 				"kind":       "DockerCluster",
-				"metadata": map[string]interface{}{
+				"metadata": map[string]any{
 					"name":      "my-cluster-abc",
 					"namespace": metav1.NamespaceDefault,
 				},

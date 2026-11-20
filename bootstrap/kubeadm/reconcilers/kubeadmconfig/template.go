@@ -50,19 +50,19 @@ func (l *limitedWriter) Write(p []byte) (int, error) {
 // has no control plane ref or the referenced object does not expose spec.version) the key is omitted, so
 // template authors can detect its absence with {{ if .controlPlane }}, consistent with how builtin variables
 // behave.
-func templateData(controlPlaneVersion string) map[string]interface{} {
+func templateData(controlPlaneVersion string) map[string]any {
 	if controlPlaneVersion == "" {
-		return map[string]interface{}{}
+		return map[string]any{}
 	}
-	return map[string]interface{}{
-		"controlPlane": map[string]interface{}{
+	return map[string]any{
+		"controlPlane": map[string]any{
 			"version": controlPlaneVersion,
 		},
 	}
 }
 
 // renderTemplates renders template file contents and clears contentFormat on those entries.
-func renderTemplates(files []bootstrapv1.File, data map[string]interface{}) ([]bootstrapv1.File, error) {
+func renderTemplates(files []bootstrapv1.File, data map[string]any) ([]bootstrapv1.File, error) {
 	out := make([]bootstrapv1.File, len(files))
 	copy(out, files)
 	for i := range out {

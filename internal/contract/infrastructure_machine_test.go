@@ -24,7 +24,7 @@ import (
 )
 
 func TestInfrastructureMachine(t *testing.T) {
-	obj := &unstructured.Unstructured{Object: map[string]interface{}{}}
+	obj := &unstructured.Unstructured{Object: map[string]any{}}
 
 	t.Run("Manages spec.providerID", func(t *testing.T) {
 		g := NewWithT(t)
@@ -54,7 +54,7 @@ func TestInfrastructureMachine(t *testing.T) {
 
 		g.Expect(InfrastructureMachine().Provisioned("v1beta1").Path()).To(Equal(Path{"status", "ready"}))
 
-		objV1beta1 := &unstructured.Unstructured{Object: map[string]interface{}{}}
+		objV1beta1 := &unstructured.Unstructured{Object: map[string]any{}}
 		err = InfrastructureMachine().Provisioned("v1beta1").Set(objV1beta1, true)
 		g.Expect(err).ToNot(HaveOccurred())
 

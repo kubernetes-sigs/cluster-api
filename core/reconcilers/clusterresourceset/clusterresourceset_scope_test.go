@@ -24,7 +24,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
@@ -61,7 +60,7 @@ func TestReconcileStrategyScopeNeedsApply(t *testing.T) {
 									Name: "cp",
 									Kind: "ConfigMap",
 								},
-								Applied: ptr.To(false),
+								Applied: new(false),
 							},
 						},
 					},
@@ -84,7 +83,7 @@ func TestReconcileStrategyScopeNeedsApply(t *testing.T) {
 									Name: "cp",
 									Kind: "ConfigMap",
 								},
-								Applied: ptr.To(true),
+								Applied: new(true),
 								Hash:    "111",
 							},
 						},
@@ -109,7 +108,7 @@ func TestReconcileStrategyScopeNeedsApply(t *testing.T) {
 									Name: "cp",
 									Kind: "ConfigMap",
 								},
-								Applied: ptr.To(true),
+								Applied: new(true),
 								Hash:    "111",
 							},
 						},
@@ -149,7 +148,7 @@ func TestReconcileApplyOnceScopeNeedsApply(t *testing.T) {
 									Name: "cp",
 									Kind: "ConfigMap",
 								},
-								Applied: ptr.To(false),
+								Applied: new(false),
 							},
 						},
 					},
@@ -172,7 +171,7 @@ func TestReconcileApplyOnceScopeNeedsApply(t *testing.T) {
 									Name: "cp",
 									Kind: "ConfigMap",
 								},
-								Applied: ptr.To(true),
+								Applied: new(true),
 							},
 						},
 					},
@@ -203,10 +202,10 @@ func TestReconcileApplyOnceScopeApplyObj(t *testing.T) {
 		{
 			name: "object doesn't exist",
 			obj: &unstructured.Unstructured{
-				Object: map[string]interface{}{
+				Object: map[string]any{
 					"apiVersion": "v1",
 					"kind":       "ConfigMap",
-					"metadata": map[string]interface{}{
+					"metadata": map[string]any{
 						"name":      "my-cm",
 						"namespace": "that-ns",
 					},
@@ -224,10 +223,10 @@ func TestReconcileApplyOnceScopeApplyObj(t *testing.T) {
 				},
 			},
 			obj: &unstructured.Unstructured{
-				Object: map[string]interface{}{
+				Object: map[string]any{
 					"apiVersion": "v1",
 					"kind":       "ConfigMap",
-					"metadata": map[string]interface{}{
+					"metadata": map[string]any{
 						"name":      "my-cm",
 						"namespace": "that-ns",
 					},

@@ -216,7 +216,7 @@ func (webhook *KubeadmControlPlane) ValidateUpdate(_ context.Context, oldK, newK
 	if err != nil {
 		return nil, apierrors.NewInternalError(err)
 	}
-	jsonPatch := map[string]interface{}{}
+	jsonPatch := map[string]any{}
 	if err := json.Unmarshal(diff, &jsonPatch); err != nil {
 		return nil, apierrors.NewInternalError(err)
 	}
@@ -547,10 +547,10 @@ func pathsMatch(allowed, path []string) bool {
 }
 
 // paths builds a slice of paths that are being modified.
-func paths(path []string, diff map[string]interface{}) [][]string {
+func paths(path []string, diff map[string]any) [][]string {
 	allPaths := [][]string{}
 	for key, m := range diff {
-		nested, ok := m.(map[string]interface{})
+		nested, ok := m.(map[string]any)
 		if !ok {
 			// We have to use a copy of path, because otherwise the slice we append to
 			// allPaths would be overwritten in another iteration.

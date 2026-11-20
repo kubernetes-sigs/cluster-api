@@ -17,6 +17,7 @@ limitations under the License.
 package labels
 
 import (
+	"maps"
 	"regexp"
 	"testing"
 
@@ -159,9 +160,9 @@ func TestAddLabels(t *testing.T) {
 		{
 			name: "should add labels to a non empty unstructured",
 			obj: &unstructured.Unstructured{
-				Object: map[string]interface{}{
-					"metadata": map[string]interface{}{
-						"labels": map[string]interface{}{
+				Object: map[string]any{
+					"metadata": map[string]any{
+						"labels": map[string]any{
 							"foo": "bar",
 						},
 					},
@@ -331,19 +332,13 @@ func TestGetManagedLabels(t *testing.T) {
 
 	exampleRegex := regexp.MustCompile(`foo`)
 	defaultAndRegexLabels := map[string]string{}
-	for k, v := range defaultLabels {
-		defaultAndRegexLabels[k] = v
-	}
+	maps.Copy(defaultAndRegexLabels, defaultLabels)
 	defaultAndRegexLabels["foo"] = "bar"
 	defaultAndRegexLabels["wrong.test.foo.com"] = ""
 
 	allLabels := map[string]string{}
-	for k, v := range defaultLabels {
-		allLabels[k] = v
-	}
-	for k, v := range additionalLabels {
-		allLabels[k] = v
-	}
+	maps.Copy(allLabels, defaultLabels)
+	maps.Copy(allLabels, additionalLabels)
 
 	tests := []struct {
 		name                        string

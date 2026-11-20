@@ -512,7 +512,7 @@ func (g *gitHubRepository) downloadFilesFromRelease(ctx context.Context, release
 }
 
 // handleGithubErr wraps error messages.
-func (g *gitHubRepository) handleGithubErr(err error, message string, args ...interface{}) error {
+func (g *gitHubRepository) handleGithubErr(err error, message string, args ...any) error {
 	if _, ok := err.(*github.RateLimitError); ok {
 		return errRateLimit
 	}

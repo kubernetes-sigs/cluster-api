@@ -21,6 +21,7 @@ import (
 	"errors"
 	"fmt"
 	"maps"
+	"slices"
 	"testing"
 	"time"
 
@@ -34,7 +35,6 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
 	utilfeature "k8s.io/component-base/featuregate/testing"
-	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -144,7 +144,7 @@ func TestClusterReconciler_reconcileNewlyCreatedCluster(t *testing.T) {
 		objects = append(objects, mp.Object,
 			mp.InfrastructureMachinePoolObject, mp.BootstrapObject)
 	}
-	jsonPatch := []map[string]interface{}{
+	jsonPatch := []map[string]any{
 		{
 			"op":    "replace",
 			"path":  "/metadata/managedFields",
@@ -564,7 +564,7 @@ func TestClusterReconciler_reconcileDelete(t *testing.T) {
 			wantHookToBeCalled: true,
 			wantOkToDelete:     false,
 			wantErr:            false,
-			wantHookCacheEntry: ptr.To(cache.NewHookEntry(&clusterv1.Cluster{
+			wantHookCacheEntry: new(cache.NewHookEntry(&clusterv1.Cluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "test-ns",
 					Name:      "test-cluster",
@@ -624,7 +624,7 @@ func TestClusterReconciler_reconcileDelete(t *testing.T) {
 					APIVersion: builder.InfrastructureGroupVersion.String(),
 					Manager:    "manager",
 					Operation:  "Apply",
-					Time:       ptr.To(metav1.Now()),
+					Time:       new(metav1.Now()),
 					FieldsType: "FieldsV1",
 				},
 			})
@@ -799,7 +799,7 @@ func TestReconciler_callBeforeClusterCreateHook(t *testing.T) {
 			hookResponse: blockingResponse,
 			wantResult:   ctrl.Result{RequeueAfter: time.Duration(10) * time.Second},
 			wantErr:      false,
-			wantHookCacheEntry: ptr.To(cache.NewHookEntry(&clusterv1.Cluster{
+			wantHookCacheEntry: new(cache.NewHookEntry(&clusterv1.Cluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: metav1.NamespaceDefault,
 					Name:      "cluster-1",
@@ -836,7 +836,7 @@ func TestReconciler_callBeforeClusterCreateHook(t *testing.T) {
 									APIVersion: builder.InfrastructureGroupVersion.String(),
 									Manager:    "manager",
 									Operation:  "Apply",
-									Time:       ptr.To(metav1.Now()),
+									Time:       new(metav1.Now()),
 									FieldsType: "FieldsV1",
 								},
 							},
@@ -918,16 +918,16 @@ func setupTestEnvForIntegrationTests(ns *corev1.Namespace) (func() error, error)
 	// 1) Templates for Machine, Cluster, ControlPlane and Bootstrap.
 	infrastructureMachineTemplate1 := builder.TestInfrastructureMachineTemplate(ns.Name, infrastructureMachineTemplateName1).Build()
 	infrastructureMachineTemplate2 := builder.TestInfrastructureMachineTemplate(ns.Name, infrastructureMachineTemplateName2).
-		WithSpecFields(map[string]interface{}{"spec.template.spec.fakeSetting": true}).
+		WithSpecFields(map[string]any{"spec.template.spec.fakeSetting": true}).
 		Build()
 	infrastructureMachinePoolTemplate1 := builder.TestInfrastructureMachinePoolTemplate(ns.Name, infrastructureMachinePoolTemplateName1).Build()
 	infrastructureMachinePoolTemplate2 := builder.TestInfrastructureMachinePoolTemplate(ns.Name, infrastructureMachinePoolTemplateName2).
-		WithSpecFields(map[string]interface{}{"spec.template.fakeSetting": true}).
+		WithSpecFields(map[string]any{"spec.template.fakeSetting": true}).
 		Build()
 	infrastructureClusterTemplate1 := builder.TestInfrastructureClusterTemplate(ns.Name, "infraclustertemplate1").
 		Build()
 	infrastructureClusterTemplate2 := builder.TestInfrastructureClusterTemplate(ns.Name, "infraclustertemplate2").
-		WithSpecFields(map[string]interface{}{"spec.template.spec.alteredSetting": true}).
+		WithSpecFields(map[string]any{"spec.template.spec.alteredSetting": true}).
 		Build()
 	controlPlaneTemplate := builder.TestControlPlaneTemplate(ns.Name, "cp1").
 		Build()
@@ -1066,8 +1066,8 @@ func setupTestEnvForIntegrationTests(ns *corev1.Namespace) (func() error, error)
 	}
 	cleanup := func() error {
 		// Delete Objects in reverse, because we cannot delete a ClusterCLass if it is still used by a Cluster.
-		for i := len(initObjs) - 1; i >= 0; i-- {
-			if err := env.CleanupAndWait(ctx, initObjs[i]); err != nil {
+		for _, initObj := range slices.Backward(initObjs) {
+			if err := env.CleanupAndWait(ctx, initObj); err != nil {
 				return err
 			}
 		}
@@ -1081,12 +1081,12 @@ func setupTestEnvForIntegrationTests(ns *corev1.Namespace) (func() error, error)
 	}
 	// Set InfrastructureReady to true so ClusterCache creates the clusterAccessors.
 	patch := client.MergeFrom(cluster1.DeepCopy())
-	cluster1.Status.Initialization.InfrastructureProvisioned = ptr.To(true)
+	cluster1.Status.Initialization.InfrastructureProvisioned = new(true)
 	if err := env.Status().Patch(ctx, cluster1, patch); err != nil {
 		return nil, err
 	}
 	patch = client.MergeFrom(cluster2.DeepCopy())
-	cluster2.Status.Initialization.InfrastructureProvisioned = ptr.To(true)
+	cluster2.Status.Initialization.InfrastructureProvisioned = new(true)
 	if err := env.Status().Patch(ctx, cluster2, patch); err != nil {
 		return nil, err
 	}
@@ -1465,7 +1465,7 @@ func TestReconciler_DefaultCluster(t *testing.T) {
 					Name: "location",
 					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 						{
-							Required: ptr.To(true),
+							Required: new(true),
 							From:     clusterv1.VariableDefinitionFromInline,
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
@@ -1497,7 +1497,7 @@ func TestReconciler_DefaultCluster(t *testing.T) {
 					Name: "location",
 					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 						{
-							Required: ptr.To(true),
+							Required: new(true),
 							From:     clusterv1.VariableDefinitionFromInline,
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
@@ -1533,7 +1533,7 @@ func TestReconciler_DefaultCluster(t *testing.T) {
 						Name: "location",
 						Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 							{
-								Required: ptr.To(true),
+								Required: new(true),
 								From:     clusterv1.VariableDefinitionFromInline,
 								Schema: clusterv1.VariableSchema{
 									OpenAPIV3Schema: clusterv1.JSONSchemaProps{
@@ -1548,7 +1548,7 @@ func TestReconciler_DefaultCluster(t *testing.T) {
 						Name: "httpProxy",
 						Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 							{
-								Required: ptr.To(true),
+								Required: new(true),
 								From:     clusterv1.VariableDefinitionFromInline,
 								Schema: clusterv1.VariableSchema{
 									OpenAPIV3Schema: clusterv1.JSONSchemaProps{
@@ -1674,7 +1674,7 @@ func TestReconciler_ValidateCluster(t *testing.T) {
 					Name: "httpProxy",
 					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 						{
-							Required: ptr.To(false), // variable is not required.
+							Required: new(false), // variable is not required.
 							From:     clusterv1.VariableDefinitionFromInline,
 						},
 					},
@@ -1696,7 +1696,7 @@ func TestReconciler_ValidateCluster(t *testing.T) {
 					Name: "httpProxy",
 					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 						{
-							Required: ptr.To(true),
+							Required: new(true),
 							From:     clusterv1.VariableDefinitionFromInline,
 						},
 					},
@@ -1718,7 +1718,7 @@ func TestReconciler_ValidateCluster(t *testing.T) {
 					Name: "httpProxy",
 					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 						{
-							Required: ptr.To(true),
+							Required: new(true),
 							From:     clusterv1.VariableDefinitionFromInline,
 						},
 					},
@@ -1741,7 +1741,7 @@ func TestReconciler_ValidateCluster(t *testing.T) {
 					Name: "httpProxy",
 					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 						{
-							Required: ptr.To(true),
+							Required: new(true),
 							From:     clusterv1.VariableDefinitionFromInline,
 						},
 					},

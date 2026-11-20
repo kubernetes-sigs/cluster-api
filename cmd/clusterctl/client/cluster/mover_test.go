@@ -34,7 +34,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	addonsv1 "sigs.k8s.io/cluster-api/api/addons/v1beta2"
@@ -1516,7 +1515,7 @@ func Test_objectMover_checkProvisioningCompleted(t *testing.T) {
 							Name:      "cluster1",
 						},
 						Status: clusterv1.ClusterStatus{
-							Initialization: clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: ptr.To(false)},
+							Initialization: clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: new(false)},
 							Conditions: []metav1.Condition{
 								{Type: clusterv1.ClusterControlPlaneInitializedCondition, Status: metav1.ConditionTrue},
 							},
@@ -1540,7 +1539,7 @@ func Test_objectMover_checkProvisioningCompleted(t *testing.T) {
 							Name:      "cluster1",
 						},
 						Status: clusterv1.ClusterStatus{
-							Initialization: clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: ptr.To(true)},
+							Initialization: clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: new(true)},
 						},
 					},
 				},
@@ -1561,7 +1560,7 @@ func Test_objectMover_checkProvisioningCompleted(t *testing.T) {
 							Name:      "cluster1",
 						},
 						Status: clusterv1.ClusterStatus{
-							Initialization: clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: ptr.To(true)},
+							Initialization: clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: new(true)},
 							Conditions: []metav1.Condition{
 								{Type: clusterv1.ClusterControlPlaneInitializedCondition, Status: metav1.ConditionFalse},
 							},
@@ -1590,7 +1589,7 @@ func Test_objectMover_checkProvisioningCompleted(t *testing.T) {
 							},
 						},
 						Status: clusterv1.ClusterStatus{
-							Initialization: clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: ptr.To(true)},
+							Initialization: clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: new(true)},
 							Conditions: []metav1.Condition{
 								{Type: clusterv1.ClusterControlPlaneInitializedCondition, Status: metav1.ConditionTrue},
 							},
@@ -1615,7 +1614,7 @@ func Test_objectMover_checkProvisioningCompleted(t *testing.T) {
 							UID:       "cluster1",
 						},
 						Status: clusterv1.ClusterStatus{
-							Initialization: clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: ptr.To(true)},
+							Initialization: clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: new(true)},
 							Conditions: []metav1.Condition{
 								{Type: clusterv1.ClusterControlPlaneInitializedCondition, Status: metav1.ConditionTrue},
 							},
@@ -1661,7 +1660,7 @@ func Test_objectMover_checkProvisioningCompleted(t *testing.T) {
 							UID:       "cluster1",
 						},
 						Status: clusterv1.ClusterStatus{
-							Initialization: clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: ptr.To(true), ControlPlaneInitialized: ptr.To(true)},
+							Initialization: clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: new(true), ControlPlaneInitialized: new(true)},
 							Conditions: []metav1.Condition{
 								{Type: clusterv1.ClusterControlPlaneInitializedCondition, Status: metav1.ConditionTrue},
 							},
@@ -2072,7 +2071,7 @@ func Test_createTargetObject(t *testing.T) {
 								APIVersion: clusterv1.GroupVersion.String(),
 							},
 						}: {
-							Controller: ptr.To(true),
+							Controller: new(true),
 						},
 					},
 				},
@@ -2090,7 +2089,7 @@ func Test_createTargetObject(t *testing.T) {
 				}
 				g.Expect(toClient.Get(context.Background(), key, c)).To(Succeed())
 				g.Expect(c.OwnerReferences).To(HaveLen(1))
-				g.Expect(c.OwnerReferences[0].Controller).To(Equal(ptr.To(true)))
+				g.Expect(c.OwnerReferences[0].Controller).To(Equal(new(true)))
 			},
 		},
 		{

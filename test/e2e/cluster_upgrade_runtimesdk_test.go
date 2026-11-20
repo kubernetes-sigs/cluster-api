@@ -24,7 +24,6 @@ import (
 
 	"github.com/blang/semver/v4"
 	. "github.com/onsi/ginkgo/v2"
-	"k8s.io/utils/ptr"
 
 	clusterctlcluster "sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
 	"sigs.k8s.io/cluster-api/test/framework"
@@ -52,7 +51,7 @@ var _ = Describe("When upgrading a workload cluster using ClusterClass with Runt
 				}
 				framework.ValidateResourceVersionStable(ctx, resourceVersionInput)
 			},
-			Flavor: ptr.To("in-memory-topology"),
+			Flavor: new("in-memory-topology"),
 			// The runtime extension gets deployed to the test-extension-system namespace and is exposed
 			// by the test-extension-webhook-service.
 			// The below values are used when creating the cluster-wide ExtensionConfig to refer
@@ -84,7 +83,7 @@ var _ = Describe("When upgrading a workload cluster using ClusterClass in a diff
 				}
 				framework.ValidateResourceVersionStable(ctx, resourceVersionInput)
 			},
-			Flavor:                                ptr.To("in-memory-topology"),
+			Flavor:                                new("in-memory-topology"),
 			DeployClusterClassInSeparateNamespace: true,
 			// The runtime extension gets deployed to the test-extension-system namespace and is exposed
 			// by the test-extension-webhook-service.
@@ -105,7 +104,7 @@ var _ = Describe("When performing chained upgrades for workload cluster using Cl
 			BootstrapClusterProxy:  bootstrapClusterProxy,
 			ArtifactFolder:         artifactFolder,
 			SkipCleanup:            skipCleanup,
-			InfrastructureProvider: ptr.To("docker"),
+			InfrastructureProvider: new("docker"),
 			PostUpgrade: func(proxy framework.ClusterProxy, namespace, clusterName string) {
 				// This check ensures that the resourceVersions are stable, i.e. it verifies there are no
 				// continuous reconciles when everything should be stable.
@@ -120,7 +119,7 @@ var _ = Describe("When performing chained upgrades for workload cluster using Cl
 				framework.ValidateResourceVersionStable(ctx, resourceVersionInput)
 			},
 			// "upgrades" is the same as the "topology" flavor but with an additional MachinePool.
-			Flavor:                                ptr.To("upgrades-runtimesdk"),
+			Flavor:                                new("upgrades-runtimesdk"),
 			DeployClusterClassInSeparateNamespace: true,
 			// Setting Kubernetes version from
 			KubernetesVersionFrom: e2eConfig.MustGetVariable(KubernetesVersionChainedUpgradeFrom),

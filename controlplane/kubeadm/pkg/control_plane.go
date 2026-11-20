@@ -19,6 +19,7 @@ package pkg
 import (
 	"context"
 	"fmt"
+	"maps"
 	"sort"
 	"strings"
 
@@ -419,9 +420,7 @@ func (c *ControlPlane) SetPatchHelpers(patchHelpers map[string]*patch.Helper) {
 	if c.machinesPatchHelpers == nil {
 		c.machinesPatchHelpers = map[string]*patch.Helper{}
 	}
-	for machineName, patchHelper := range patchHelpers {
-		c.machinesPatchHelpers[machineName] = patchHelper
-	}
+	maps.Copy(c.machinesPatchHelpers, patchHelpers)
 }
 
 // GetWorkloadCluster builds a cluster object.

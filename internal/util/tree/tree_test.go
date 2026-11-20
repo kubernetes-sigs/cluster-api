@@ -617,7 +617,7 @@ func MatchTable(expected []string) gtype.GomegaMatcher {
 	return &Table{tableData: expected}
 }
 
-func (t *Table) Match(actual interface{}) (bool, error) {
+func (t *Table) Match(actual any) (bool, error) {
 	tableString := actual.(string)
 	tableParts := strings.Split(tableString, "\n")
 
@@ -631,12 +631,12 @@ func (t *Table) Match(actual interface{}) (bool, error) {
 	return true, nil
 }
 
-func (t *Table) FailureMessage(actual interface{}) string {
+func (t *Table) FailureMessage(actual any) string {
 	actualTable := strings.Split(actual.(string), "\n")
 	return fmt.Sprintf("Expected %v and received %v", t.tableData, actualTable)
 }
 
-func (t *Table) NegatedFailureMessage(actual interface{}) string {
+func (t *Table) NegatedFailureMessage(actual any) string {
 	actualTable := strings.Split(actual.(string), "\n")
 	return fmt.Sprintf("Expected %v and received %v", t.tableData, actualTable)
 }

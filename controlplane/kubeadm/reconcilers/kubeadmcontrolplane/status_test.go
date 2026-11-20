@@ -149,7 +149,7 @@ func TestKubeadmControlPlaneReconciler_setControlPlaneInitialized(t *testing.T) 
 			Cluster: &clusterv1.Cluster{},
 			KCP:     &controlplanev1.KubeadmControlPlane{},
 			Machines: collections.FromMachines(
-				&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m1", DeletionTimestamp: ptr.To(metav1.Now())}},
+				&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m1", DeletionTimestamp: new(metav1.Now())}},
 			),
 		}
 		controlPlane.InjectTestManagementCluster(&fakeManagementCluster{
@@ -237,7 +237,7 @@ func Test_setInitializedCondition(t *testing.T) {
 				KCP: &controlplanev1.KubeadmControlPlane{
 					Status: controlplanev1.KubeadmControlPlaneStatus{
 						Initialization: controlplanev1.KubeadmControlPlaneInitializationStatus{
-							ControlPlaneInitialized: ptr.To(true),
+							ControlPlaneInitialized: new(true),
 						},
 					},
 				},
@@ -479,8 +479,8 @@ func Test_setScalingUpCondition(t *testing.T) {
 			name: "Not scaling up",
 			controlPlane: &pkg.ControlPlane{
 				KCP: &controlplanev1.KubeadmControlPlane{
-					Spec:   controlplanev1.KubeadmControlPlaneSpec{Replicas: ptr.To(int32(3))},
-					Status: controlplanev1.KubeadmControlPlaneStatus{Replicas: ptr.To(int32(3))},
+					Spec:   controlplanev1.KubeadmControlPlaneSpec{Replicas: new(int32(3))},
+					Status: controlplanev1.KubeadmControlPlaneStatus{Replicas: new(int32(3))},
 				},
 				Machines: collections.FromMachines(
 					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m1"}},
@@ -499,7 +499,7 @@ func Test_setScalingUpCondition(t *testing.T) {
 			controlPlane: &pkg.ControlPlane{
 				KCP: &controlplanev1.KubeadmControlPlane{
 					Spec: controlplanev1.KubeadmControlPlaneSpec{
-						Replicas: ptr.To(int32(3)),
+						Replicas: new(int32(3)),
 						MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
 							Spec: controlplanev1.KubeadmControlPlaneMachineTemplateSpec{
 								InfrastructureRef: clusterv1.ContractVersionedObjectReference{
@@ -508,7 +508,7 @@ func Test_setScalingUpCondition(t *testing.T) {
 							},
 						},
 					},
-					Status: controlplanev1.KubeadmControlPlaneStatus{Replicas: ptr.To(int32(3))},
+					Status: controlplanev1.KubeadmControlPlaneStatus{Replicas: new(int32(3))},
 				},
 				Machines: collections.FromMachines(
 					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m1"}},
@@ -528,8 +528,8 @@ func Test_setScalingUpCondition(t *testing.T) {
 			name: "Scaling up",
 			controlPlane: &pkg.ControlPlane{
 				KCP: &controlplanev1.KubeadmControlPlane{
-					Spec:   controlplanev1.KubeadmControlPlaneSpec{Replicas: ptr.To(int32(5))},
-					Status: controlplanev1.KubeadmControlPlaneStatus{Replicas: ptr.To(int32(3))},
+					Spec:   controlplanev1.KubeadmControlPlaneSpec{Replicas: new(int32(5))},
+					Status: controlplanev1.KubeadmControlPlaneStatus{Replicas: new(int32(3))},
 				},
 				Machines: collections.FromMachines(
 					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m1"}},
@@ -548,9 +548,9 @@ func Test_setScalingUpCondition(t *testing.T) {
 			name: "Scaling up is always false when kcp is deleted",
 			controlPlane: &pkg.ControlPlane{
 				KCP: &controlplanev1.KubeadmControlPlane{
-					ObjectMeta: metav1.ObjectMeta{DeletionTimestamp: ptr.To(metav1.Time{Time: time.Now()})},
-					Spec:       controlplanev1.KubeadmControlPlaneSpec{Replicas: ptr.To(int32(5))},
-					Status:     controlplanev1.KubeadmControlPlaneStatus{Replicas: ptr.To(int32(3))},
+					ObjectMeta: metav1.ObjectMeta{DeletionTimestamp: new(metav1.Time{Time: time.Now()})},
+					Spec:       controlplanev1.KubeadmControlPlaneSpec{Replicas: new(int32(5))},
+					Status:     controlplanev1.KubeadmControlPlaneStatus{Replicas: new(int32(3))},
 				},
 				Machines: collections.FromMachines(
 					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m1"}},
@@ -569,7 +569,7 @@ func Test_setScalingUpCondition(t *testing.T) {
 			controlPlane: &pkg.ControlPlane{
 				KCP: &controlplanev1.KubeadmControlPlane{
 					Spec: controlplanev1.KubeadmControlPlaneSpec{
-						Replicas: ptr.To(int32(5)),
+						Replicas: new(int32(5)),
 						MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
 							Spec: controlplanev1.KubeadmControlPlaneMachineTemplateSpec{
 								InfrastructureRef: clusterv1.ContractVersionedObjectReference{
@@ -578,7 +578,7 @@ func Test_setScalingUpCondition(t *testing.T) {
 							},
 						},
 					},
-					Status: controlplanev1.KubeadmControlPlaneStatus{Replicas: ptr.To(int32(3))},
+					Status: controlplanev1.KubeadmControlPlaneStatus{Replicas: new(int32(3))},
 				},
 				Machines: collections.FromMachines(
 					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m1"}},
@@ -606,8 +606,8 @@ func Test_setScalingUpCondition(t *testing.T) {
 					},
 				},
 				KCP: &controlplanev1.KubeadmControlPlane{
-					Spec:   controlplanev1.KubeadmControlPlaneSpec{Replicas: ptr.To(int32(5))},
-					Status: controlplanev1.KubeadmControlPlaneStatus{Replicas: ptr.To(int32(3))},
+					Spec:   controlplanev1.KubeadmControlPlaneSpec{Replicas: new(int32(5))},
+					Status: controlplanev1.KubeadmControlPlaneStatus{Replicas: new(int32(3))},
 				},
 				Machines: collections.FromMachines(
 					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m1"}},
@@ -670,8 +670,8 @@ func Test_setScalingDownCondition(t *testing.T) {
 			name: "Not scaling down",
 			controlPlane: &pkg.ControlPlane{
 				KCP: &controlplanev1.KubeadmControlPlane{
-					Spec:   controlplanev1.KubeadmControlPlaneSpec{Replicas: ptr.To(int32(3))},
-					Status: controlplanev1.KubeadmControlPlaneStatus{Replicas: ptr.To(int32(3))},
+					Spec:   controlplanev1.KubeadmControlPlaneSpec{Replicas: new(int32(3))},
+					Status: controlplanev1.KubeadmControlPlaneStatus{Replicas: new(int32(3))},
 				},
 				Machines: collections.FromMachines(
 					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m1"}},
@@ -689,8 +689,8 @@ func Test_setScalingDownCondition(t *testing.T) {
 			name: "Scaling down",
 			controlPlane: &pkg.ControlPlane{
 				KCP: &controlplanev1.KubeadmControlPlane{
-					Spec:   controlplanev1.KubeadmControlPlaneSpec{Replicas: ptr.To(int32(3))},
-					Status: controlplanev1.KubeadmControlPlaneStatus{Replicas: ptr.To(int32(5))},
+					Spec:   controlplanev1.KubeadmControlPlaneSpec{Replicas: new(int32(3))},
+					Status: controlplanev1.KubeadmControlPlaneStatus{Replicas: new(int32(5))},
 				},
 				Machines: collections.FromMachines(
 					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m1"}},
@@ -711,9 +711,9 @@ func Test_setScalingDownCondition(t *testing.T) {
 			name: "Scaling down to zero when kcp is deleted",
 			controlPlane: &pkg.ControlPlane{
 				KCP: &controlplanev1.KubeadmControlPlane{
-					ObjectMeta: metav1.ObjectMeta{DeletionTimestamp: ptr.To(metav1.Time{Time: time.Now()})},
-					Spec:       controlplanev1.KubeadmControlPlaneSpec{Replicas: ptr.To(int32(3))},
-					Status:     controlplanev1.KubeadmControlPlaneStatus{Replicas: ptr.To(int32(5))},
+					ObjectMeta: metav1.ObjectMeta{DeletionTimestamp: new(metav1.Time{Time: time.Now()})},
+					Spec:       controlplanev1.KubeadmControlPlaneSpec{Replicas: new(int32(3))},
+					Status:     controlplanev1.KubeadmControlPlaneStatus{Replicas: new(int32(5))},
 				},
 				Machines: collections.FromMachines(
 					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m1"}},
@@ -734,11 +734,11 @@ func Test_setScalingDownCondition(t *testing.T) {
 			name: "Scaling down with one stale machine",
 			controlPlane: &pkg.ControlPlane{
 				KCP: &controlplanev1.KubeadmControlPlane{
-					Spec:   controlplanev1.KubeadmControlPlaneSpec{Replicas: ptr.To(int32(1))},
-					Status: controlplanev1.KubeadmControlPlaneStatus{Replicas: ptr.To(int32(3))},
+					Spec:   controlplanev1.KubeadmControlPlaneSpec{Replicas: new(int32(1))},
+					Status: controlplanev1.KubeadmControlPlaneStatus{Replicas: new(int32(3))},
 				},
 				Machines: collections.FromMachines(
-					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m1", DeletionTimestamp: ptr.To(metav1.Time{Time: time.Now().Add(-1 * time.Hour)})},
+					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m1", DeletionTimestamp: new(metav1.Time{Time: time.Now().Add(-1 * time.Hour)})},
 						Status: clusterv1.MachineStatus{
 							Conditions: []metav1.Condition{
 								{
@@ -774,12 +774,12 @@ After above Pods have been removed from the Node, the following Pods will be evi
 			name: "Scaling down with two stale machine",
 			controlPlane: &pkg.ControlPlane{
 				KCP: &controlplanev1.KubeadmControlPlane{
-					Spec:   controlplanev1.KubeadmControlPlaneSpec{Replicas: ptr.To(int32(1))},
-					Status: controlplanev1.KubeadmControlPlaneStatus{Replicas: ptr.To(int32(3))},
+					Spec:   controlplanev1.KubeadmControlPlaneSpec{Replicas: new(int32(1))},
+					Status: controlplanev1.KubeadmControlPlaneStatus{Replicas: new(int32(3))},
 				},
 				Machines: collections.FromMachines(
-					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m1", DeletionTimestamp: ptr.To(metav1.Time{Time: time.Now().Add(-1 * time.Hour)})}},
-					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m2", DeletionTimestamp: ptr.To(metav1.Time{Time: time.Now().Add(-1 * time.Hour)})}},
+					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m1", DeletionTimestamp: new(metav1.Time{Time: time.Now().Add(-1 * time.Hour)})}},
+					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m2", DeletionTimestamp: new(metav1.Time{Time: time.Now().Add(-1 * time.Hour)})}},
 					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m3"}},
 				),
 			},
@@ -802,8 +802,8 @@ After above Pods have been removed from the Node, the following Pods will be evi
 					},
 				},
 				KCP: &controlplanev1.KubeadmControlPlane{
-					Spec:   controlplanev1.KubeadmControlPlaneSpec{Replicas: ptr.To(int32(1))},
-					Status: controlplanev1.KubeadmControlPlaneStatus{Replicas: ptr.To(int32(3))},
+					Spec:   controlplanev1.KubeadmControlPlaneSpec{Replicas: new(int32(1))},
+					Status: controlplanev1.KubeadmControlPlaneStatus{Replicas: new(int32(3))},
 				},
 				Machines: collections.FromMachines(
 					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m1"}},
@@ -1166,7 +1166,7 @@ func Test_setAvailableCondition(t *testing.T) {
 				KCP: &controlplanev1.KubeadmControlPlane{
 					Status: controlplanev1.KubeadmControlPlaneStatus{
 						Initialization: controlplanev1.KubeadmControlPlaneInitializationStatus{
-							ControlPlaneInitialized: ptr.To(true),
+							ControlPlaneInitialized: new(true),
 						},
 						Conditions: []metav1.Condition{certificatesReady},
 					},
@@ -1198,7 +1198,7 @@ func Test_setAvailableCondition(t *testing.T) {
 				KCP: &controlplanev1.KubeadmControlPlane{
 					Status: controlplanev1.KubeadmControlPlaneStatus{
 						Initialization: controlplanev1.KubeadmControlPlaneInitializationStatus{
-							ControlPlaneInitialized: ptr.To(true),
+							ControlPlaneInitialized: new(true),
 						},
 						Conditions: []metav1.Condition{certificatesReady},
 					},
@@ -1258,7 +1258,7 @@ func Test_setAvailableCondition(t *testing.T) {
 					},
 					Status: controlplanev1.KubeadmControlPlaneStatus{
 						Initialization: controlplanev1.KubeadmControlPlaneInitializationStatus{
-							ControlPlaneInitialized: ptr.To(true),
+							ControlPlaneInitialized: new(true),
 						},
 						Conditions: []metav1.Condition{
 							{Type: controlplanev1.KubeadmControlPlaneInitializedCondition, Status: metav1.ConditionTrue, Reason: controlplanev1.KubeadmControlPlaneInitializedReason, LastTransitionTime: metav1.Time{Time: reconcileTime.Add(-5 * time.Second)}},
@@ -1287,7 +1287,7 @@ func Test_setAvailableCondition(t *testing.T) {
 					},
 					Status: controlplanev1.KubeadmControlPlaneStatus{
 						Initialization: controlplanev1.KubeadmControlPlaneInitializationStatus{
-							ControlPlaneInitialized: ptr.To(true),
+							ControlPlaneInitialized: new(true),
 						},
 						Conditions: []metav1.Condition{
 							{Type: controlplanev1.KubeadmControlPlaneInitializedCondition, Status: metav1.ConditionTrue, Reason: controlplanev1.KubeadmControlPlaneInitializedReason, LastTransitionTime: metav1.Time{Time: reconcileTime.Add(-5 * time.Minute)}},
@@ -1316,7 +1316,7 @@ func Test_setAvailableCondition(t *testing.T) {
 					},
 					Status: controlplanev1.KubeadmControlPlaneStatus{
 						Initialization: controlplanev1.KubeadmControlPlaneInitializationStatus{
-							ControlPlaneInitialized: ptr.To(true),
+							ControlPlaneInitialized: new(true),
 						},
 					},
 				},
@@ -1337,7 +1337,7 @@ func Test_setAvailableCondition(t *testing.T) {
 				KCP: &controlplanev1.KubeadmControlPlane{
 					Status: controlplanev1.KubeadmControlPlaneStatus{
 						Initialization: controlplanev1.KubeadmControlPlaneInitializationStatus{
-							ControlPlaneInitialized: ptr.To(true),
+							ControlPlaneInitialized: new(true),
 						},
 						Conditions: []metav1.Condition{certificatesReady},
 					},
@@ -1387,7 +1387,7 @@ func Test_setAvailableCondition(t *testing.T) {
 				KCP: &controlplanev1.KubeadmControlPlane{
 					Status: controlplanev1.KubeadmControlPlaneStatus{
 						Initialization: controlplanev1.KubeadmControlPlaneInitializationStatus{
-							ControlPlaneInitialized: ptr.To(true),
+							ControlPlaneInitialized: new(true),
 						},
 						Conditions: []metav1.Condition{certificatesReady},
 					},
@@ -1439,7 +1439,7 @@ func Test_setAvailableCondition(t *testing.T) {
 				KCP: &controlplanev1.KubeadmControlPlane{
 					Status: controlplanev1.KubeadmControlPlaneStatus{
 						Initialization: controlplanev1.KubeadmControlPlaneInitializationStatus{
-							ControlPlaneInitialized: ptr.To(true),
+							ControlPlaneInitialized: new(true),
 						},
 						Conditions: []metav1.Condition{certificatesReady},
 					},
@@ -1490,7 +1490,7 @@ func Test_setAvailableCondition(t *testing.T) {
 				KCP: &controlplanev1.KubeadmControlPlane{
 					Status: controlplanev1.KubeadmControlPlaneStatus{
 						Initialization: controlplanev1.KubeadmControlPlaneInitializationStatus{
-							ControlPlaneInitialized: ptr.To(true),
+							ControlPlaneInitialized: new(true),
 						},
 						Conditions: []metav1.Condition{certificatesReady},
 					},
@@ -1530,7 +1530,7 @@ func Test_setAvailableCondition(t *testing.T) {
 				KCP: &controlplanev1.KubeadmControlPlane{
 					Status: controlplanev1.KubeadmControlPlaneStatus{
 						Initialization: controlplanev1.KubeadmControlPlaneInitializationStatus{
-							ControlPlaneInitialized: ptr.To(true),
+							ControlPlaneInitialized: new(true),
 						},
 						Conditions: []metav1.Condition{certificatesReady},
 					},
@@ -1591,7 +1591,7 @@ func Test_setAvailableCondition(t *testing.T) {
 				KCP: &controlplanev1.KubeadmControlPlane{
 					Status: controlplanev1.KubeadmControlPlaneStatus{
 						Initialization: controlplanev1.KubeadmControlPlaneInitializationStatus{
-							ControlPlaneInitialized: ptr.To(true),
+							ControlPlaneInitialized: new(true),
 						},
 						Conditions: []metav1.Condition{certificatesReady},
 					},
@@ -1654,7 +1654,7 @@ func Test_setAvailableCondition(t *testing.T) {
 				KCP: &controlplanev1.KubeadmControlPlane{
 					Status: controlplanev1.KubeadmControlPlaneStatus{
 						Initialization: controlplanev1.KubeadmControlPlaneInitializationStatus{
-							ControlPlaneInitialized: ptr.To(true),
+							ControlPlaneInitialized: new(true),
 						},
 						Conditions: []metav1.Condition{certificatesReady},
 					},
@@ -1715,7 +1715,7 @@ func Test_setAvailableCondition(t *testing.T) {
 				KCP: &controlplanev1.KubeadmControlPlane{
 					Status: controlplanev1.KubeadmControlPlaneStatus{
 						Initialization: controlplanev1.KubeadmControlPlaneInitializationStatus{
-							ControlPlaneInitialized: ptr.To(true),
+							ControlPlaneInitialized: new(true),
 						},
 						Conditions: []metav1.Condition{certificatesReady},
 					},
@@ -1766,7 +1766,7 @@ func Test_setAvailableCondition(t *testing.T) {
 				KCP: &controlplanev1.KubeadmControlPlane{
 					Status: controlplanev1.KubeadmControlPlaneStatus{
 						Initialization: controlplanev1.KubeadmControlPlaneInitializationStatus{
-							ControlPlaneInitialized: ptr.To(true),
+							ControlPlaneInitialized: new(true),
 						},
 						Conditions: []metav1.Condition{certificatesReady},
 					},
@@ -1830,7 +1830,7 @@ func Test_setAvailableCondition(t *testing.T) {
 				KCP: &controlplanev1.KubeadmControlPlane{
 					Status: controlplanev1.KubeadmControlPlaneStatus{
 						Initialization: controlplanev1.KubeadmControlPlaneInitializationStatus{
-							ControlPlaneInitialized: ptr.To(true),
+							ControlPlaneInitialized: new(true),
 						},
 						Conditions: []metav1.Condition{certificatesReady},
 					},
@@ -1870,7 +1870,7 @@ func Test_setAvailableCondition(t *testing.T) {
 				KCP: &controlplanev1.KubeadmControlPlane{
 					Status: controlplanev1.KubeadmControlPlaneStatus{
 						Initialization: controlplanev1.KubeadmControlPlaneInitializationStatus{
-							ControlPlaneInitialized: ptr.To(true),
+							ControlPlaneInitialized: new(true),
 						},
 						Conditions: []metav1.Condition{certificatesReady},
 					},
@@ -1921,7 +1921,7 @@ func Test_setAvailableCondition(t *testing.T) {
 				KCP: &controlplanev1.KubeadmControlPlane{
 					Status: controlplanev1.KubeadmControlPlaneStatus{
 						Initialization: controlplanev1.KubeadmControlPlaneInitializationStatus{
-							ControlPlaneInitialized: ptr.To(true),
+							ControlPlaneInitialized: new(true),
 						},
 						Conditions: []metav1.Condition{certificatesReady},
 					},
@@ -1971,7 +1971,7 @@ func Test_setAvailableCondition(t *testing.T) {
 					},
 					Status: controlplanev1.KubeadmControlPlaneStatus{
 						Initialization: controlplanev1.KubeadmControlPlaneInitializationStatus{
-							ControlPlaneInitialized: ptr.To(true),
+							ControlPlaneInitialized: new(true),
 						},
 						Conditions: []metav1.Condition{certificatesReady},
 					},
@@ -2018,7 +2018,7 @@ func Test_setAvailableCondition(t *testing.T) {
 					},
 					Status: controlplanev1.KubeadmControlPlaneStatus{
 						Initialization: controlplanev1.KubeadmControlPlaneInitializationStatus{
-							ControlPlaneInitialized: ptr.To(true),
+							ControlPlaneInitialized: new(true),
 						},
 						Conditions: []metav1.Condition{certificatesReady},
 					},
@@ -2059,7 +2059,7 @@ func Test_setAvailableCondition(t *testing.T) {
 				KCP: &controlplanev1.KubeadmControlPlane{
 					Status: controlplanev1.KubeadmControlPlaneStatus{
 						Initialization: controlplanev1.KubeadmControlPlaneInitializationStatus{
-							ControlPlaneInitialized: ptr.To(true),
+							ControlPlaneInitialized: new(true),
 						},
 						Conditions: []metav1.Condition{certificatesNotReady},
 					},
@@ -2094,11 +2094,11 @@ func Test_setAvailableCondition(t *testing.T) {
 			controlPlane: &pkg.ControlPlane{
 				KCP: &controlplanev1.KubeadmControlPlane{
 					ObjectMeta: metav1.ObjectMeta{
-						DeletionTimestamp: ptr.To(metav1.Now()),
+						DeletionTimestamp: new(metav1.Now()),
 					},
 					Status: controlplanev1.KubeadmControlPlaneStatus{
 						Initialization: controlplanev1.KubeadmControlPlaneInitializationStatus{
-							ControlPlaneInitialized: ptr.To(true),
+							ControlPlaneInitialized: new(true),
 						},
 						Conditions: []metav1.Condition{certificatesReady},
 					},

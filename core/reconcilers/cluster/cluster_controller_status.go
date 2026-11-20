@@ -151,7 +151,7 @@ func setControlPlaneReplicas(_ context.Context, cluster *clusterv1.Cluster, cont
 			if unavailableReplicas, err := contract.ControlPlane().V1Beta1UnavailableReplicas().Get(controlPlane); err == nil && unavailableReplicas != nil {
 				if cluster.Status.ControlPlane.DesiredReplicas != nil {
 					if *cluster.Status.ControlPlane.DesiredReplicas >= int32(*unavailableReplicas) {
-						cluster.Status.ControlPlane.AvailableReplicas = ptr.To(*cluster.Status.ControlPlane.DesiredReplicas - int32(*unavailableReplicas))
+						cluster.Status.ControlPlane.AvailableReplicas = new(*cluster.Status.ControlPlane.DesiredReplicas - int32(*unavailableReplicas))
 					} else {
 						cluster.Status.ControlPlane.AvailableReplicas = ptr.To[int32](0)
 					}
@@ -182,15 +182,15 @@ func setControlPlaneReplicas(_ context.Context, cluster *clusterv1.Cluster, cont
 	// Otherwise this cluster control plane is composed by stand-alone machines, so we should count them.
 	var replicas, readyReplicas, availableReplicas, upToDateReplicas *int32
 	for _, machine := range controlPlaneMachines.UnsortedList() {
-		replicas = ptr.To(ptr.Deref(replicas, 0) + 1)
+		replicas = new(ptr.Deref(replicas, 0) + 1)
 		if conditions.IsTrue(machine, clusterv1.MachineReadyCondition) {
-			readyReplicas = ptr.To(ptr.Deref(readyReplicas, 0) + 1)
+			readyReplicas = new(ptr.Deref(readyReplicas, 0) + 1)
 		}
 		if conditions.IsTrue(machine, clusterv1.MachineAvailableCondition) {
-			availableReplicas = ptr.To(ptr.Deref(availableReplicas, 0) + 1)
+			availableReplicas = new(ptr.Deref(availableReplicas, 0) + 1)
 		}
 		if conditions.IsTrue(machine, clusterv1.MachineUpToDateCondition) {
-			upToDateReplicas = ptr.To(ptr.Deref(upToDateReplicas, 0) + 1)
+			upToDateReplicas = new(ptr.Deref(upToDateReplicas, 0) + 1)
 		}
 	}
 
@@ -220,38 +220,38 @@ func setWorkersReplicas(_ context.Context, cluster *clusterv1.Cluster, machinePo
 	standaloneWorkerMachines := []*clusterv1.Machine{}
 	for _, mp := range machinePools.Items {
 		if mp.Spec.Replicas != nil {
-			desiredReplicas = ptr.To(ptr.Deref(desiredReplicas, 0) + *mp.Spec.Replicas)
+			desiredReplicas = new(ptr.Deref(desiredReplicas, 0) + *mp.Spec.Replicas)
 		}
 		if mp.Status.Replicas != nil {
-			currentReplicas = ptr.To(ptr.Deref(currentReplicas, 0) + *mp.Status.Replicas)
+			currentReplicas = new(ptr.Deref(currentReplicas, 0) + *mp.Status.Replicas)
 		}
 		if mp.Status.ReadyReplicas != nil {
-			readyReplicas = ptr.To(ptr.Deref(readyReplicas, 0) + *mp.Status.ReadyReplicas)
+			readyReplicas = new(ptr.Deref(readyReplicas, 0) + *mp.Status.ReadyReplicas)
 		}
 		if mp.Status.AvailableReplicas != nil {
-			availableReplicas = ptr.To(ptr.Deref(availableReplicas, 0) + *mp.Status.AvailableReplicas)
+			availableReplicas = new(ptr.Deref(availableReplicas, 0) + *mp.Status.AvailableReplicas)
 		}
 		if mp.Status.UpToDateReplicas != nil {
-			upToDateReplicas = ptr.To(ptr.Deref(upToDateReplicas, 0) + *mp.Status.UpToDateReplicas)
+			upToDateReplicas = new(ptr.Deref(upToDateReplicas, 0) + *mp.Status.UpToDateReplicas)
 		}
 		workerVersions = append(workerVersions, mp.Status.Versions...)
 	}
 
 	for _, md := range machineDeployments.Items {
 		if md.Spec.Replicas != nil {
-			desiredReplicas = ptr.To(ptr.Deref(desiredReplicas, 0) + *md.Spec.Replicas)
+			desiredReplicas = new(ptr.Deref(desiredReplicas, 0) + *md.Spec.Replicas)
 		}
 		if md.Status.Replicas != nil {
-			currentReplicas = ptr.To(ptr.Deref(currentReplicas, 0) + *md.Status.Replicas)
+			currentReplicas = new(ptr.Deref(currentReplicas, 0) + *md.Status.Replicas)
 		}
 		if md.Status.ReadyReplicas != nil {
-			readyReplicas = ptr.To(ptr.Deref(readyReplicas, 0) + *md.Status.ReadyReplicas)
+			readyReplicas = new(ptr.Deref(readyReplicas, 0) + *md.Status.ReadyReplicas)
 		}
 		if md.Status.AvailableReplicas != nil {
-			availableReplicas = ptr.To(ptr.Deref(availableReplicas, 0) + *md.Status.AvailableReplicas)
+			availableReplicas = new(ptr.Deref(availableReplicas, 0) + *md.Status.AvailableReplicas)
 		}
 		if md.Status.UpToDateReplicas != nil {
-			upToDateReplicas = ptr.To(ptr.Deref(upToDateReplicas, 0) + *md.Status.UpToDateReplicas)
+			upToDateReplicas = new(ptr.Deref(upToDateReplicas, 0) + *md.Status.UpToDateReplicas)
 		}
 		workerVersions = append(workerVersions, md.Status.Versions...)
 	}
@@ -261,19 +261,19 @@ func setWorkersReplicas(_ context.Context, cluster *clusterv1.Cluster, machinePo
 			continue
 		}
 		if ms.Spec.Replicas != nil {
-			desiredReplicas = ptr.To(ptr.Deref(desiredReplicas, 0) + *ms.Spec.Replicas)
+			desiredReplicas = new(ptr.Deref(desiredReplicas, 0) + *ms.Spec.Replicas)
 		}
 		if ms.Status.Replicas != nil {
-			currentReplicas = ptr.To(ptr.Deref(currentReplicas, 0) + *ms.Status.Replicas)
+			currentReplicas = new(ptr.Deref(currentReplicas, 0) + *ms.Status.Replicas)
 		}
 		if ms.Status.ReadyReplicas != nil {
-			readyReplicas = ptr.To(ptr.Deref(readyReplicas, 0) + *ms.Status.ReadyReplicas)
+			readyReplicas = new(ptr.Deref(readyReplicas, 0) + *ms.Status.ReadyReplicas)
 		}
 		if ms.Status.AvailableReplicas != nil {
-			availableReplicas = ptr.To(ptr.Deref(availableReplicas, 0) + *ms.Status.AvailableReplicas)
+			availableReplicas = new(ptr.Deref(availableReplicas, 0) + *ms.Status.AvailableReplicas)
 		}
 		if ms.Status.UpToDateReplicas != nil {
-			upToDateReplicas = ptr.To(ptr.Deref(upToDateReplicas, 0) + *ms.Status.UpToDateReplicas)
+			upToDateReplicas = new(ptr.Deref(upToDateReplicas, 0) + *ms.Status.UpToDateReplicas)
 		}
 		workerVersions = append(workerVersions, ms.Status.Versions...)
 	}
@@ -283,20 +283,20 @@ func setWorkersReplicas(_ context.Context, cluster *clusterv1.Cluster, machinePo
 			continue
 		}
 		standaloneWorkerMachines = append(standaloneWorkerMachines, m)
-		currentReplicas = ptr.To(ptr.Deref(currentReplicas, 0) + 1)
+		currentReplicas = new(ptr.Deref(currentReplicas, 0) + 1)
 		if conditions.IsTrue(m, clusterv1.MachineReadyCondition) {
-			readyReplicas = ptr.To(ptr.Deref(readyReplicas, 0) + 1)
+			readyReplicas = new(ptr.Deref(readyReplicas, 0) + 1)
 		}
 		if conditions.IsTrue(m, clusterv1.MachineAvailableCondition) {
-			availableReplicas = ptr.To(ptr.Deref(availableReplicas, 0) + 1)
+			availableReplicas = new(ptr.Deref(availableReplicas, 0) + 1)
 		}
 		if conditions.IsTrue(m, clusterv1.MachineUpToDateCondition) {
-			upToDateReplicas = ptr.To(ptr.Deref(upToDateReplicas, 0) + 1)
+			upToDateReplicas = new(ptr.Deref(upToDateReplicas, 0) + 1)
 		}
 
 		// There is no concept of desired replicas for stand-alone machines, but for sake of consistency
 		// we consider the fact that the machine has been creates as equivalent to the intent to have one replica.
-		desiredReplicas = ptr.To(ptr.Deref(desiredReplicas, 0) + 1)
+		desiredReplicas = new(ptr.Deref(desiredReplicas, 0) + 1)
 	}
 	workerVersions = append(workerVersions, internalversion.VersionsFromMachines(standaloneWorkerMachines)...)
 
@@ -606,7 +606,7 @@ func setControlPlaneInitializedCondition(ctx context.Context, cluster *clusterv1
 				})
 				return
 			}
-			initialized = ptr.To(false)
+			initialized = new(false)
 		}
 
 		if *initialized {

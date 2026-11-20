@@ -187,7 +187,7 @@ func (v *viperReader) Set(key, value string) {
 	viper.Set(key, value)
 }
 
-func (v *viperReader) UnmarshalKey(key string, rawval interface{}) error {
+func (v *viperReader) UnmarshalKey(key string, rawval any) error {
 	return viper.UnmarshalKey(key, rawval)
 }
 

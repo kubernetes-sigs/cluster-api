@@ -165,7 +165,7 @@ func (f *clientWithFieldOwner) Patch(ctx context.Context, obj client.Object, pat
 	return f.WriterWithScheme.Patch(ctx, obj, patch, append([]client.PatchOption{client.FieldOwner(f.fieldOwner)}, opts...)...)
 }
 
-func fakeBootstrapRefDataSecretCreated(ref clusterv1.ContractVersionedObjectReference, namespace string, base map[string]interface{}, g *WithT) {
+func fakeBootstrapRefDataSecretCreated(ref clusterv1.ContractVersionedObjectReference, namespace string, base map[string]any, g *WithT) {
 	bref := (&unstructured.Unstructured{Object: base}).DeepCopy()
 	g.Eventually(func() error {
 		return env.Get(ctx, client.ObjectKey{Name: ref.Name, Namespace: namespace}, bref)
@@ -188,7 +188,7 @@ func fakeBootstrapRefDataSecretCreated(ref clusterv1.ContractVersionedObjectRefe
 	g.Expect(env.Status().Patch(ctx, bref, brefPatch)).To(Succeed())
 }
 
-func fakeInfrastructureRefProvisioned(ref clusterv1.ContractVersionedObjectReference, namespace string, base map[string]interface{}, g *WithT) string {
+func fakeInfrastructureRefProvisioned(ref clusterv1.ContractVersionedObjectReference, namespace string, base map[string]any, g *WithT) string {
 	iref := (&unstructured.Unstructured{Object: base}).DeepCopy()
 	g.Eventually(func() error {
 		return env.Get(ctx, client.ObjectKey{Name: ref.Name, Namespace: namespace}, iref)

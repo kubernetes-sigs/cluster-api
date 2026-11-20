@@ -17,6 +17,8 @@ limitations under the License.
 package ssa
 
 import (
+	"slices"
+
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
 	"sigs.k8s.io/cluster-api/internal/contract"
@@ -63,7 +65,7 @@ func FilterObject(obj *unstructured.Unstructured, input *FilterObjectInput) {
 // all of them are defined in reconcile_state.go and are targeting well-known fields inside nested maps.
 // Allowed paths / ignore paths which point to an array are not supported by the current implementation.
 func FilterIntent(ctx *FilterIntentInput) bool {
-	value, ok := ctx.Value.(map[string]interface{})
+	value, ok := ctx.Value.(map[string]any)
 	if !ok {
 		return false
 	}
@@ -90,7 +92,7 @@ func FilterIntent(ctx *FilterIntentInput) bool {
 		if FilterIntent(fieldCtx) {
 			gotDeletions = true
 			// Ensure we are not leaving empty maps around.
-			if v, ok := fieldCtx.Value.(map[string]interface{}); ok && len(v) == 0 {
+			if v, ok := fieldCtx.Value.(map[string]any); ok && len(v) == 0 {
 				delete(value, field)
 			}
 		}
@@ -105,7 +107,7 @@ type FilterIntentInput struct {
 	Path contract.Path
 
 	// the Value for the current Path.
-	Value interface{}
+	Value any
 
 	// ShouldFilter handle the func that determine if the current Path should be dropped or not.
 	ShouldFilter func(path contract.Path) bool
@@ -114,15 +116,10 @@ type FilterIntentInput struct {
 // IsPathAllowed returns true when the Path is one of the AllowedPaths.
 func IsPathAllowed(allowedPaths []contract.Path) func(path contract.Path) bool {
 	return func(path contract.Path) bool {
-		for _, p := range allowedPaths {
-			// NOTE: we allow everything Equal or one IsParentOf one of the allowed paths.
-			// e.g. if allowed Path is metadata.labels, we allow both metadata and metadata.labels;
-			// this is required because allowed Path is called recursively.
-			if path.Overlaps(p) {
-				return true
-			}
-		}
-		return false
+		// NOTE: we allow everything Equal or one IsParentOf one of the allowed paths.
+		// e.g. if allowed Path is metadata.labels, we allow both metadata and metadata.labels;
+		// this is required because allowed Path is called recursively.
+		return slices.ContainsFunc(allowedPaths, path.Overlaps)
 	}
 }
 
@@ -137,11 +134,6 @@ func IsPathNotAllowed(allowedPaths []contract.Path) func(path contract.Path) boo
 // IsPathIgnored returns true when the Path is one of the IgnorePaths.
 func IsPathIgnored(ignorePaths []contract.Path) func(path contract.Path) bool {
 	return func(path contract.Path) bool {
-		for _, p := range ignorePaths {
-			if path.Equal(p) {
-				return true
-			}
-		}
-		return false
+		return slices.ContainsFunc(ignorePaths, path.Equal)
 	}
 }

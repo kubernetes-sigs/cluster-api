@@ -34,7 +34,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	runtimeserializer "k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/utils/ptr"
 	"sigs.k8s.io/randfill"
 
 	addonsv1beta1 "sigs.k8s.io/cluster-api/api/addons/v1beta1"
@@ -171,8 +170,8 @@ func TestFuzzyConversion(t *testing.T) {
 	)
 }
 
-func ClusterFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
-	return []interface{}{
+func ClusterFuzzFuncs(_ runtimeserializer.CodecFactory) []any {
+	return []any{
 		hubClusterSpec,
 		hubClusterStatus,
 		hubClusterVariable,
@@ -224,7 +223,7 @@ func hubClusterStatus(in *clusterv1.ClusterStatus, c randfill.Continue) {
 			in.FailureDomains = append(in.FailureDomains,
 				clusterv1.FailureDomain{
 					Name:         fmt.Sprintf("%d-%s", i, c.String(255)), // Ensure valid unique non-empty names.
-					ControlPlane: ptr.To(c.Bool()),
+					ControlPlane: new(c.Bool()),
 				},
 			)
 		}
@@ -247,14 +246,14 @@ func hubClusterVariable(in *clusterv1.ClusterVariable, c randfill.Continue) {
 func hubFailureDomain(in *clusterv1.FailureDomain, c randfill.Continue) {
 	c.FillNoCustom(in)
 
-	in.ControlPlane = ptr.To(c.Bool())
+	in.ControlPlane = new(c.Bool())
 }
 
 func hubUnhealthyNodeCondition(in *clusterv1.UnhealthyNodeCondition, c randfill.Continue) {
 	c.FillNoCustom(in)
 
 	if in.TimeoutSeconds == nil {
-		in.TimeoutSeconds = ptr.To(int32(0)) // TimeoutSeconds is a required field and nil does not round trip
+		in.TimeoutSeconds = new(int32(0)) // TimeoutSeconds is a required field and nil does not round trip
 	}
 }
 
@@ -262,7 +261,7 @@ func hubUnhealthyMachineCondition(in *clusterv1.UnhealthyMachineCondition, c ran
 	c.FillNoCustom(in)
 
 	if in.TimeoutSeconds == nil {
-		in.TimeoutSeconds = ptr.To(int32(0)) // TimeoutSeconds is a required field and nil does not round trip
+		in.TimeoutSeconds = new(int32(0)) // TimeoutSeconds is a required field and nil does not round trip
 	}
 }
 
@@ -354,8 +353,8 @@ func spokeClusterVariable(in *clusterv1beta1.ClusterVariable, c randfill.Continu
 	in.DefinitionFrom = ""
 }
 
-func ClusterClassFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
-	return []interface{}{
+func ClusterClassFuzzFuncs(_ runtimeserializer.CodecFactory) []any {
+	return []any{
 		hubClusterClassVariable,
 		hubClusterClassStatusVariableDefinition,
 		hubClusterClassStatus,
@@ -382,7 +381,7 @@ func hubClusterClassVariable(in *clusterv1.ClusterClassVariable, c randfill.Cont
 	c.FillNoCustom(in)
 
 	if in.Required == nil {
-		in.Required = ptr.To(false) // Required is a required field and nil does not round trip
+		in.Required = new(false) // Required is a required field and nil does not round trip
 	}
 }
 
@@ -390,7 +389,7 @@ func hubClusterClassStatusVariableDefinition(in *clusterv1.ClusterClassStatusVar
 	c.FillNoCustom(in)
 
 	if in.Required == nil {
-		in.Required = ptr.To(false) // Required is a required field and nil does not round trip
+		in.Required = new(false) // Required is a required field and nil does not round trip
 	}
 }
 
@@ -438,18 +437,18 @@ func fillHubJSONSchemaProps(in *clusterv1.JSONSchemaProps, c randfill.Continue) 
 	in.Format = c.String(0)
 	in.Pattern = c.String(0)
 	if c.Bool() {
-		in.MaxItems = ptr.To(c.Int63())
-		in.MinItems = ptr.To(c.Int63())
-		in.MaxLength = ptr.To(c.Int63())
-		in.MinLength = ptr.To(c.Int63())
-		in.Maximum = ptr.To(c.Int63())
-		in.Maximum = ptr.To(c.Int63())
-		in.Minimum = ptr.To(c.Int63())
-		in.UniqueItems = ptr.To(c.Bool())
-		in.ExclusiveMaximum = ptr.To(c.Bool())
-		in.ExclusiveMinimum = ptr.To(c.Bool())
-		in.XPreserveUnknownFields = ptr.To(c.Bool())
-		in.XIntOrString = ptr.To(c.Bool())
+		in.MaxItems = new(c.Int63())
+		in.MinItems = new(c.Int63())
+		in.MaxLength = new(c.Int63())
+		in.MinLength = new(c.Int63())
+		in.Maximum = new(c.Int63())
+		in.Maximum = new(c.Int63())
+		in.Minimum = new(c.Int63())
+		in.UniqueItems = new(c.Bool())
+		in.ExclusiveMaximum = new(c.Bool())
+		in.ExclusiveMinimum = new(c.Bool())
+		in.XPreserveUnknownFields = new(c.Bool())
+		in.XIntOrString = new(c.Bool())
 	}
 
 	// Not every random byte array is valid JSON, e.g. a string without `""`,so we're setting valid values.
@@ -538,13 +537,13 @@ func fillSpokeJSONSchemaProps(in *clusterv1beta1.JSONSchemaProps, c randfill.Con
 	in.Format = c.String(0)
 	in.Pattern = c.String(0)
 	if c.Bool() {
-		in.MaxItems = ptr.To(c.Int63())
-		in.MinItems = ptr.To(c.Int63())
-		in.MaxLength = ptr.To(c.Int63())
-		in.MinLength = ptr.To(c.Int63())
-		in.Maximum = ptr.To(c.Int63())
-		in.Maximum = ptr.To(c.Int63())
-		in.Minimum = ptr.To(c.Int63())
+		in.MaxItems = new(c.Int63())
+		in.MinItems = new(c.Int63())
+		in.MaxLength = new(c.Int63())
+		in.MinLength = new(c.Int63())
+		in.Maximum = new(c.Int63())
+		in.Maximum = new(c.Int63())
+		in.Minimum = new(c.Int63())
 	}
 	in.UniqueItems = c.Bool()
 	in.ExclusiveMaximum = c.Bool()
@@ -578,8 +577,8 @@ func spokeLocalObjectTemplate(in *clusterv1beta1.LocalObjectTemplate, c randfill
 	}
 }
 
-func MachineFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
-	return []interface{}{
+func MachineFuzzFuncs(_ runtimeserializer.CodecFactory) []any {
+	return []any{
 		hubMachineSpec,
 		hubMachineStatus,
 		spokeMachine,
@@ -648,13 +647,13 @@ func spokeMachineSpec(in *clusterv1beta1.MachineSpec, c randfill.Continue) {
 	c.FillNoCustom(in)
 
 	if in.NodeDrainTimeout != nil {
-		in.NodeDrainTimeout = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
+		in.NodeDrainTimeout = new(metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
 	}
 	if in.NodeVolumeDetachTimeout != nil {
-		in.NodeVolumeDetachTimeout = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
+		in.NodeVolumeDetachTimeout = new(metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
 	}
 	if in.NodeDeletionTimeout != nil {
-		in.NodeDeletionTimeout = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
+		in.NodeDeletionTimeout = new(metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
 	}
 }
 
@@ -700,8 +699,8 @@ func spokeMachineStatus(in *clusterv1beta1.MachineStatus, c randfill.Continue) {
 	}
 }
 
-func MachineSetFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
-	return []interface{}{
+func MachineSetFuzzFuncs(_ runtimeserializer.CodecFactory) []any {
+	return []any{
 		hubMachineSetStatus,
 		hubMachineSpec,
 		spokeMachineSet,
@@ -722,7 +721,7 @@ func hubMachineSetStatus(in *clusterv1.MachineSetStatus, c randfill.Continue) {
 	// nil becomes &0 after hub => spoke => hub conversion
 	// This is acceptable as usually Replicas is set and controllers using older apiVersions are not writing MachineSet status.
 	if in.Replicas == nil {
-		in.Replicas = ptr.To(int32(0))
+		in.Replicas = new(int32(0))
 	}
 }
 
@@ -748,8 +747,8 @@ func spokeMachineSetStatus(in *clusterv1beta1.MachineSetStatus, c randfill.Conti
 	}
 }
 
-func MachineDeploymentFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
-	return []interface{}{
+func MachineDeploymentFuzzFuncs(_ runtimeserializer.CodecFactory) []any {
+	return []any{
 		hubMachineDeploymentStatus,
 		hubMachineSpec,
 		spokeMachineDeployment,
@@ -771,7 +770,7 @@ func hubMachineDeploymentStatus(in *clusterv1.MachineDeploymentStatus, c randfil
 	// nil becomes &0 after hub => spoke => hub conversion
 	// This is acceptable as usually Replicas is set and controllers using older apiVersions are not writing MachineSet status.
 	if in.Replicas == nil {
-		in.Replicas = ptr.To(int32(0))
+		in.Replicas = new(int32(0))
 	}
 }
 
@@ -828,8 +827,8 @@ func spokeMachineDeploymentStatus(in *clusterv1beta1.MachineDeploymentStatus, c 
 	}
 }
 
-func MachineHealthCheckFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
-	return []interface{}{
+func MachineHealthCheckFuzzFuncs(_ runtimeserializer.CodecFactory) []any {
+	return []any{
 		hubUnhealthyNodeCondition,
 		hubUnhealthyMachineCondition,
 		hubMachineHealthCheckStatus,
@@ -884,8 +883,8 @@ func spokeObjectReference(in *corev1.ObjectReference, c randfill.Continue) {
 	in.FieldPath = ""
 }
 
-func MachinePoolFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
-	return []interface{}{
+func MachinePoolFuzzFuncs(_ runtimeserializer.CodecFactory) []any {
+	return []any{
 		hubMachinePoolStatus,
 		hubMachineSpec,
 		spokeMachinePool,
@@ -907,7 +906,7 @@ func hubMachinePoolStatus(in *clusterv1.MachinePoolStatus, c randfill.Continue) 
 	// nil becomes &0 after hub => spoke => hub conversion
 	// This is acceptable as usually Replicas is set and controllers using older apiVersions are not writing MachineSet status.
 	if in.Replicas == nil {
-		in.Replicas = ptr.To(int32(0))
+		in.Replicas = new(int32(0))
 	}
 }
 
@@ -933,13 +932,13 @@ func spokeControlPlaneTopology(in *clusterv1beta1.ControlPlaneTopology, c randfi
 	c.FillNoCustom(in)
 
 	if in.NodeDrainTimeout != nil {
-		in.NodeDrainTimeout = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
+		in.NodeDrainTimeout = new(metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
 	}
 	if in.NodeVolumeDetachTimeout != nil {
-		in.NodeVolumeDetachTimeout = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
+		in.NodeVolumeDetachTimeout = new(metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
 	}
 	if in.NodeDeletionTimeout != nil {
-		in.NodeDeletionTimeout = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
+		in.NodeDeletionTimeout = new(metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
 	}
 
 	if in.Variables != nil && reflect.DeepEqual(in.Variables, &clusterv1beta1.ControlPlaneVariables{}) {
@@ -951,13 +950,13 @@ func spokeMachineDeploymentTopology(in *clusterv1beta1.MachineDeploymentTopology
 	c.FillNoCustom(in)
 
 	if in.NodeDrainTimeout != nil {
-		in.NodeDrainTimeout = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
+		in.NodeDrainTimeout = new(metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
 	}
 	if in.NodeVolumeDetachTimeout != nil {
-		in.NodeVolumeDetachTimeout = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
+		in.NodeVolumeDetachTimeout = new(metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
 	}
 	if in.NodeDeletionTimeout != nil {
-		in.NodeDeletionTimeout = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
+		in.NodeDeletionTimeout = new(metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
 	}
 	if in.Variables != nil && reflect.DeepEqual(in.Variables, &clusterv1beta1.MachineDeploymentVariables{}) {
 		in.Variables = nil
@@ -985,13 +984,13 @@ func spokeMachinePoolTopology(in *clusterv1beta1.MachinePoolTopology, c randfill
 	c.FillNoCustom(in)
 
 	if in.NodeDrainTimeout != nil {
-		in.NodeDrainTimeout = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
+		in.NodeDrainTimeout = new(metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
 	}
 	if in.NodeVolumeDetachTimeout != nil {
-		in.NodeVolumeDetachTimeout = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
+		in.NodeVolumeDetachTimeout = new(metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
 	}
 	if in.NodeDeletionTimeout != nil {
-		in.NodeDeletionTimeout = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
+		in.NodeDeletionTimeout = new(metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
 	}
 	if in.Variables != nil && reflect.DeepEqual(in.Variables, &clusterv1beta1.MachinePoolVariables{}) {
 		in.Variables = nil
@@ -1002,7 +1001,7 @@ func spokeMachineHealthCheckClass(in *clusterv1beta1.MachineHealthCheckClass, c 
 	c.FillNoCustom(in)
 
 	if in.NodeStartupTimeout != nil {
-		in.NodeStartupTimeout = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
+		in.NodeStartupTimeout = new(metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
 	}
 }
 
@@ -1010,13 +1009,13 @@ func spokeControlPlaneClass(in *clusterv1beta1.ControlPlaneClass, c randfill.Con
 	c.FillNoCustom(in)
 
 	if in.NodeDrainTimeout != nil {
-		in.NodeDrainTimeout = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
+		in.NodeDrainTimeout = new(metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
 	}
 	if in.NodeVolumeDetachTimeout != nil {
-		in.NodeVolumeDetachTimeout = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
+		in.NodeVolumeDetachTimeout = new(metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
 	}
 	if in.NodeDeletionTimeout != nil {
-		in.NodeDeletionTimeout = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
+		in.NodeDeletionTimeout = new(metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
 	}
 }
 
@@ -1024,13 +1023,13 @@ func spokeMachineDeploymentClass(in *clusterv1beta1.MachineDeploymentClass, c ra
 	c.FillNoCustom(in)
 
 	if in.NodeDrainTimeout != nil {
-		in.NodeDrainTimeout = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
+		in.NodeDrainTimeout = new(metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
 	}
 	if in.NodeVolumeDetachTimeout != nil {
-		in.NodeVolumeDetachTimeout = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
+		in.NodeVolumeDetachTimeout = new(metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
 	}
 	if in.NodeDeletionTimeout != nil {
-		in.NodeDeletionTimeout = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
+		in.NodeDeletionTimeout = new(metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
 	}
 	if in.Strategy != nil {
 		if in.Strategy.RollingUpdate != nil {
@@ -1055,13 +1054,13 @@ func spokeMachinePoolClass(in *clusterv1beta1.MachinePoolClass, c randfill.Conti
 	c.FillNoCustom(in)
 
 	if in.NodeDrainTimeout != nil {
-		in.NodeDrainTimeout = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
+		in.NodeDrainTimeout = new(metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
 	}
 	if in.NodeVolumeDetachTimeout != nil {
-		in.NodeVolumeDetachTimeout = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
+		in.NodeVolumeDetachTimeout = new(metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
 	}
 	if in.NodeDeletionTimeout != nil {
-		in.NodeDeletionTimeout = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
+		in.NodeDeletionTimeout = new(metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
 	}
 }
 
@@ -1069,7 +1068,7 @@ func spokeMachineHealthCheckSpec(in *clusterv1beta1.MachineHealthCheckSpec, c ra
 	c.FillNoCustom(in)
 
 	if in.NodeStartupTimeout != nil {
-		in.NodeStartupTimeout = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
+		in.NodeStartupTimeout = new(metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
 	}
 }
 
@@ -1108,8 +1107,8 @@ var testGVKs = []schema.GroupVersionKind{
 	},
 }
 
-func ClusterResourceSetFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
-	return []interface{}{
+func ClusterResourceSetFuzzFuncs(_ runtimeserializer.CodecFactory) []any {
+	return []any{
 		hubClusterResourceSetStatus,
 		spokeClusterResourceSetStatus,
 	}
@@ -1135,8 +1134,8 @@ func spokeClusterResourceSetStatus(in *addonsv1beta1.ClusterResourceSetStatus, c
 	}
 }
 
-func ClusterResourceSetBindingFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
-	return []interface{}{
+func ClusterResourceSetBindingFuzzFuncs(_ runtimeserializer.CodecFactory) []any {
+	return []any{
 		hubResourceBinding,
 		hubClusterResourceSetStatus,
 		spokeClusterResourceSetBindingSpec,
@@ -1147,7 +1146,7 @@ func hubResourceBinding(in *addonsv1.ResourceBinding, c randfill.Continue) {
 	c.FillNoCustom(in)
 
 	if in.Applied == nil {
-		in.Applied = ptr.To(false) // Applied is a required field and nil does not round trip
+		in.Applied = new(false) // Applied is a required field and nil does not round trip
 	}
 }
 
@@ -1168,8 +1167,8 @@ func spokeClusterResourceSetBindingSpec(in *addonsv1beta1.ClusterResourceSetBind
 	}
 }
 
-func IPAddressFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
-	return []interface{}{
+func IPAddressFuzzFuncs(_ runtimeserializer.CodecFactory) []any {
+	return []any{
 		hubIPAddressSpec,
 		spokeTypedLocalObjectReference,
 	}
@@ -1179,7 +1178,7 @@ func hubIPAddressSpec(in *ipamv1.IPAddressSpec, c randfill.Continue) {
 	c.FillNoCustom(in)
 
 	if in.Prefix == nil {
-		in.Prefix = ptr.To(int32(0)) // Prefix is a required field and nil does not round trip
+		in.Prefix = new(int32(0)) // Prefix is a required field and nil does not round trip
 	}
 }
 
@@ -1190,8 +1189,8 @@ func spokeTypedLocalObjectReference(in *corev1.TypedLocalObjectReference, c rand
 	}
 }
 
-func IPAddressClaimFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
-	return []interface{}{
+func IPAddressClaimFuzzFuncs(_ runtimeserializer.CodecFactory) []any {
+	return []any{
 		hubIPAddressClaimStatus,
 		spokeIPAddressClaimStatus,
 		spokeTypedLocalObjectReference,
@@ -1218,8 +1217,8 @@ func spokeIPAddressClaimStatus(in *ipamv1beta1.IPAddressClaimStatus, c randfill.
 	}
 }
 
-func ExtensionConfigFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
-	return []interface{}{
+func ExtensionConfigFuzzFuncs(_ runtimeserializer.CodecFactory) []any {
+	return []any{
 		hubExtensionConfigStatus,
 		spokeExtensionConfig,
 		spokeExtensionConfigStatus,

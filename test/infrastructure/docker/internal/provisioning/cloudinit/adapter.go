@@ -58,7 +58,7 @@ type action interface {
 // RawCloudInitToProvisioningCommands converts a cloudconfig to a list of commands to run in sequence on the node.
 func RawCloudInitToProvisioningCommands(config []byte, mapping kind.Mapping) ([]provisioning.Cmd, error) {
 	// validate cloudConfigScript is a valid yaml, as required by the cloud config specification
-	if err := yaml.Unmarshal(config, &map[string]interface{}{}); err != nil {
+	if err := yaml.Unmarshal(config, &map[string]any{}); err != nil {
 		return nil, pkgerrors.Wrapf(err, "cloud-config is not valid yaml")
 	}
 

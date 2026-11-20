@@ -63,14 +63,14 @@ func SimpleNameGenerator(base string) NameGenerator {
 // ControlPlaneNameGenerator returns a generator for creating a control plane name.
 func ControlPlaneNameGenerator(templateString, clusterName string) NameGenerator {
 	return newTemplateGenerator(templateString, clusterName,
-		map[string]interface{}{})
+		map[string]any{})
 }
 
 // MachineDeploymentNameGenerator returns a generator for creating a machinedeployment name.
 func MachineDeploymentNameGenerator(templateString, clusterName, topologyName string) NameGenerator {
 	return newTemplateGenerator(templateString, clusterName,
-		map[string]interface{}{
-			"machineDeployment": map[string]interface{}{
+		map[string]any{
+			"machineDeployment": map[string]any{
 				"topologyName": topologyName,
 			},
 		})
@@ -79,8 +79,8 @@ func MachineDeploymentNameGenerator(templateString, clusterName, topologyName st
 // MachinePoolNameGenerator returns a generator for creating a machinepool name.
 func MachinePoolNameGenerator(templateString, clusterName, topologyName string) NameGenerator {
 	return newTemplateGenerator(templateString, clusterName,
-		map[string]interface{}{
-			"machinePool": map[string]interface{}{
+		map[string]any{
+			"machinePool": map[string]any{
 				"topologyName": topologyName,
 			},
 		})
@@ -89,8 +89,8 @@ func MachinePoolNameGenerator(templateString, clusterName, topologyName string) 
 // KCPMachineNameGenerator returns a generator for creating a kcp machine name.
 func KCPMachineNameGenerator(templateString, clusterName, kubeadmControlPlaneName string) NameGenerator {
 	return newTemplateGenerator(templateString, clusterName,
-		map[string]interface{}{
-			"kubeadmControlPlane": map[string]interface{}{
+		map[string]any{
+			"kubeadmControlPlane": map[string]any{
 				"name": kubeadmControlPlaneName,
 			},
 		})
@@ -99,8 +99,8 @@ func KCPMachineNameGenerator(templateString, clusterName, kubeadmControlPlaneNam
 // MachineSetMachineNameGenerator returns a generator for creating a machineSet machine name.
 func MachineSetMachineNameGenerator(templateString, clusterName, machineSetName string) NameGenerator {
 	return newTemplateGenerator(templateString, clusterName,
-		map[string]interface{}{
-			"machineSet": map[string]interface{}{
+		map[string]any{
+			"machineSet": map[string]any{
 				"name": machineSetName,
 			},
 		})
@@ -109,18 +109,18 @@ func MachineSetMachineNameGenerator(templateString, clusterName, machineSetName 
 // InfraClusterNameGenerator returns a generator for creating a infrastructure cluster name.
 func InfraClusterNameGenerator(templateString, clusterName string) NameGenerator {
 	return newTemplateGenerator(templateString, clusterName,
-		map[string]interface{}{})
+		map[string]any{})
 }
 
 // templateGenerator parses the template string as text/template and executes it using
 // the passed data to generate a name.
 type templateGenerator struct {
 	template string
-	data     map[string]interface{}
+	data     map[string]any
 }
 
-func newTemplateGenerator(template, clusterName string, data map[string]interface{}) NameGenerator {
-	data["cluster"] = map[string]interface{}{
+func newTemplateGenerator(template, clusterName string, data map[string]any) NameGenerator {
+	data["cluster"] = map[string]any{
 		"name": clusterName,
 	}
 	data["random"] = utilrand.String(randomLength)

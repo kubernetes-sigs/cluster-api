@@ -126,7 +126,7 @@ func init() {
 }
 
 func validateShowConditions(showConditions string) error {
-	for _, filter := range strings.Split(showConditions, ",") {
+	for filter := range strings.SplitSeq(showConditions, ",") {
 		if strings.TrimSpace(filter) != filter {
 			return pkgerrors.Errorf("invalid --show-conditions value %q: whitespace is not allowed", showConditions)
 		}

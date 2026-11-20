@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"slices"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -85,16 +86,17 @@ func NewKey(messageIdentifier string, opts ...KeyOption) Key {
 		opt(parts)
 	}
 
-	scope := messageIdentifier
+	var scope strings.Builder
+	scope.WriteString(messageIdentifier)
 	for _, obj := range parts.objects {
-		scope += "|" + obj
+		scope.WriteString("|" + obj)
 	}
 	// Note: Values are quoted, so values containing the separator cannot collide with a different list of values.
-	values := ""
+	var values strings.Builder
 	for _, value := range parts.values {
-		values += "|" + strconv.Quote(value)
+		values.WriteString("|" + strconv.Quote(value))
 	}
-	return Key{scope: scope, values: values}
+	return Key{scope: scope.String(), values: values.String()}
 }
 
 type entry struct {

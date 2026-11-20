@@ -52,7 +52,7 @@ const (
 var stableReleaseMarkerPrefix = "go://sigs.k8s.io/cluster-api@v%s"
 var latestReleaseMarkerPrefix = "go://sigs.k8s.io/cluster-api@latest-v%s"
 
-func Byf(format string, a ...interface{}) {
+func Byf(format string, a ...any) {
 	By(fmt.Sprintf(format, a...))
 }
 
@@ -63,18 +63,18 @@ func HaveValidVersion(version string) types.GomegaMatcher {
 
 type validVersionMatcher struct{ version string }
 
-func (m *validVersionMatcher) Match(_ interface{}) (success bool, err error) {
+func (m *validVersionMatcher) Match(_ any) (success bool, err error) {
 	if _, err := semver.ParseTolerant(m.version); err != nil {
 		return false, err
 	}
 	return true, nil
 }
 
-func (m *validVersionMatcher) FailureMessage(_ interface{}) (message string) {
+func (m *validVersionMatcher) FailureMessage(_ any) (message string) {
 	return fmt.Sprintf("Expected\n%s\n%s", m.version, " to be a valid version ")
 }
 
-func (m *validVersionMatcher) NegatedFailureMessage(_ interface{}) (message string) {
+func (m *validVersionMatcher) NegatedFailureMessage(_ any) (message string) {
 	return fmt.Sprintf("Expected\n%s\n%s", m.version, " not to be a valid version ")
 }
 

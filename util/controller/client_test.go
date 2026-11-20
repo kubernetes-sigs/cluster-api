@@ -22,7 +22,6 @@ import (
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/utils/ptr"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util/test/builder"
@@ -46,7 +45,7 @@ func Test_Delete(t *testing.T) {
 				Spec: clusterv1.MachineSpec{
 					ClusterName: "test1",
 					Bootstrap: clusterv1.Bootstrap{
-						DataSecretName: ptr.To("data-secret"),
+						DataSecretName: new("data-secret"),
 					},
 					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
 						APIGroup: builder.InfrastructureGroupVersion.Group,

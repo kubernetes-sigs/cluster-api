@@ -27,7 +27,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	utilfeature "k8s.io/component-base/featuregate/testing"
-	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -75,7 +74,7 @@ func TestSetBootstrapReadyCondition(t *testing.T) {
 			machine: func() *clusterv1.Machine {
 				m := defaultMachine.DeepCopy()
 				m.Spec.Bootstrap.ConfigRef = clusterv1.ContractVersionedObjectReference{} // Overwriting ConfigRef to empty.
-				m.Spec.Bootstrap.DataSecretName = ptr.To("foo")
+				m.Spec.Bootstrap.DataSecretName = new("foo")
 				return m
 			}(),
 			bootstrapConfig: &contractv1.BootstrapConfig{
@@ -168,7 +167,7 @@ func TestSetBootstrapReadyCondition(t *testing.T) {
 			name: "Use status.BoostrapReady flag as a fallback Ready condition from bootstrap config is missing (ready true)",
 			machine: func() *clusterv1.Machine {
 				m := defaultMachine.DeepCopy()
-				m.Status.Initialization.BootstrapDataSecretCreated = ptr.To(true)
+				m.Status.Initialization.BootstrapDataSecretCreated = new(true)
 				return m
 			}(),
 			bootstrapConfig: &contractv1beta1.BootstrapConfig{
@@ -227,7 +226,7 @@ func TestSetBootstrapReadyCondition(t *testing.T) {
 			name: "bootstrap config that was ready not found while machine is deleting",
 			machine: func() *clusterv1.Machine {
 				m := defaultMachine.DeepCopy()
-				m.Status.Initialization.BootstrapDataSecretCreated = ptr.To(true)
+				m.Status.Initialization.BootstrapDataSecretCreated = new(true)
 				m.SetDeletionTimestamp(&metav1.Time{Time: time.Now()})
 				return m
 			}(),
@@ -381,7 +380,7 @@ func TestSetInfrastructureReadyCondition(t *testing.T) {
 			name: "Use status.InfrastructureReady flag as a fallback Ready condition from infra machine is missing (ready true)",
 			machine: func() *clusterv1.Machine {
 				m := defaultMachine.DeepCopy()
-				m.Status.Initialization.InfrastructureProvisioned = ptr.To(true)
+				m.Status.Initialization.InfrastructureProvisioned = new(true)
 				return m
 			}(),
 			infraMachine: &contractv1beta1.InfraMachine{
@@ -445,7 +444,7 @@ func TestSetInfrastructureReadyCondition(t *testing.T) {
 			machine: func() *clusterv1.Machine {
 				m := defaultMachine.DeepCopy()
 				m.SetDeletionTimestamp(&metav1.Time{Time: time.Now()})
-				m.Status.Initialization.InfrastructureProvisioned = ptr.To(true)
+				m.Status.Initialization.InfrastructureProvisioned = new(true)
 				return m
 			}(),
 			infraMachine:           nil,
@@ -477,7 +476,7 @@ func TestSetInfrastructureReadyCondition(t *testing.T) {
 			name: "infra machine not found after the machine has been initialized",
 			machine: func() *clusterv1.Machine {
 				m := defaultMachine.DeepCopy()
-				m.Status.Initialization.InfrastructureProvisioned = ptr.To(true)
+				m.Status.Initialization.InfrastructureProvisioned = new(true)
 				return m
 			}(),
 			infraMachine:           nil,
@@ -640,7 +639,7 @@ func TestSetNodeHealthyAndReadyConditions(t *testing.T) {
 			Namespace: metav1.NamespaceDefault,
 		},
 		Status: clusterv1.ClusterStatus{
-			Initialization: clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: ptr.To(true)},
+			Initialization: clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: new(true)},
 			Conditions: []metav1.Condition{
 				{Type: clusterv1.ClusterControlPlaneInitializedCondition, Status: metav1.ConditionTrue, LastTransitionTime: metav1.Time{Time: now.Add(-5 * time.Second)}},
 			},
@@ -660,7 +659,7 @@ func TestSetNodeHealthyAndReadyConditions(t *testing.T) {
 			name: "Cluster status.infrastructureReady is false",
 			cluster: func() *clusterv1.Cluster {
 				c := defaultCluster.DeepCopy()
-				c.Status.Initialization.InfrastructureProvisioned = ptr.To(false)
+				c.Status.Initialization.InfrastructureProvisioned = new(false)
 				return c
 			}(),
 			machine: defaultMachine.DeepCopy(),
@@ -2717,28 +2716,28 @@ func TestReconcileMachinePhases(t *testing.T) {
 	}
 
 	defaultBootstrap := &unstructured.Unstructured{
-		Object: map[string]interface{}{
+		Object: map[string]any{
 			"kind":       "GenericBootstrapConfig",
 			"apiVersion": clusterv1.GroupVersionBootstrap.String(),
-			"metadata": map[string]interface{}{
+			"metadata": map[string]any{
 				"name":      "bootstrap-config1",
 				"namespace": metav1.NamespaceDefault,
 			},
-			"spec":   map[string]interface{}{},
-			"status": map[string]interface{}{},
+			"spec":   map[string]any{},
+			"status": map[string]any{},
 		},
 	}
 
 	defaultInfra := &unstructured.Unstructured{
-		Object: map[string]interface{}{
+		Object: map[string]any{
 			"kind":       "GenericInfrastructureMachine",
 			"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
-			"metadata": map[string]interface{}{
+			"metadata": map[string]any{
 				"name":      "infra-config1",
 				"namespace": metav1.NamespaceDefault,
 			},
-			"spec":   map[string]interface{}{},
-			"status": map[string]interface{}{},
+			"spec":   map[string]any{},
+			"status": map[string]any{},
 		},
 	}
 
@@ -2766,7 +2765,7 @@ func TestReconcileMachinePhases(t *testing.T) {
 		g.Expect(env.Create(ctx, defaultKubeconfigSecret)).To(Succeed())
 		// Set InfrastructureReady to true so ClusterCache creates the clusterAccessor.
 		patch := client.MergeFrom(cluster.DeepCopy())
-		cluster.Status.Initialization.InfrastructureProvisioned = ptr.To(true)
+		cluster.Status.Initialization.InfrastructureProvisioned = new(true)
 		g.Expect(env.Status().Patch(ctx, cluster, patch)).To(Succeed())
 
 		g.Expect(env.Create(ctx, bootstrapConfig)).To(Succeed())
@@ -2819,7 +2818,7 @@ func TestReconcileMachinePhases(t *testing.T) {
 		g.Expect(env.Create(ctx, defaultKubeconfigSecret)).To(Succeed())
 		// Set InfrastructureReady to true so ClusterCache creates the clusterAccessor.
 		patch := client.MergeFrom(cluster.DeepCopy())
-		cluster.Status.Initialization.InfrastructureProvisioned = ptr.To(true)
+		cluster.Status.Initialization.InfrastructureProvisioned = new(true)
 		g.Expect(env.Status().Patch(ctx, cluster, patch)).To(Succeed())
 
 		g.Expect(env.Create(ctx, bootstrapConfig)).To(Succeed())
@@ -2863,7 +2862,7 @@ func TestReconcileMachinePhases(t *testing.T) {
 		g.Expect(env.Create(ctx, defaultKubeconfigSecret)).To(Succeed())
 		// Set InfrastructureReady to true so ClusterCache creates the clusterAccessor.
 		patch := client.MergeFrom(cluster.DeepCopy())
-		cluster.Status.Initialization.InfrastructureProvisioned = ptr.To(true)
+		cluster.Status.Initialization.InfrastructureProvisioned = new(true)
 		g.Expect(env.Status().Patch(ctx, cluster, patch)).To(Succeed())
 
 		g.Expect(env.Create(ctx, bootstrapConfig)).To(Succeed())
@@ -2935,7 +2934,7 @@ func TestReconcileMachinePhases(t *testing.T) {
 		g.Expect(env.Create(ctx, defaultKubeconfigSecret)).To(Succeed())
 		// Set InfrastructureReady to true so ClusterCache creates the clusterAccessor.
 		patch := client.MergeFrom(cluster.DeepCopy())
-		cluster.Status.Initialization.InfrastructureProvisioned = ptr.To(true)
+		cluster.Status.Initialization.InfrastructureProvisioned = new(true)
 		g.Expect(env.Status().Patch(ctx, cluster, patch)).To(Succeed())
 
 		g.Expect(env.Create(ctx, bootstrapConfig)).To(Succeed())
@@ -2960,12 +2959,12 @@ func TestReconcileMachinePhases(t *testing.T) {
 		// Set infra ready.
 		modifiedInfraMachine := infraMachine.DeepCopy()
 		g.Expect(unstructured.SetNestedField(modifiedInfraMachine.Object, true, "status", "initialization", "provisioned")).To(Succeed())
-		g.Expect(unstructured.SetNestedField(modifiedInfraMachine.Object, []interface{}{
-			map[string]interface{}{
+		g.Expect(unstructured.SetNestedField(modifiedInfraMachine.Object, []any{
+			map[string]any{
 				"type":    "InternalIP",
 				"address": "10.0.0.1",
 			},
-			map[string]interface{}{
+			map[string]any{
 				"type":    "InternalIP",
 				"address": "10.0.0.2",
 			},
@@ -3026,7 +3025,7 @@ func TestReconcileMachinePhases(t *testing.T) {
 		g.Expect(env.Create(ctx, defaultKubeconfigSecret)).To(Succeed())
 		// Set InfrastructureReady to true so ClusterCache creates the clusterAccessor.
 		patch := client.MergeFrom(cluster.DeepCopy())
-		cluster.Status.Initialization.InfrastructureProvisioned = ptr.To(true)
+		cluster.Status.Initialization.InfrastructureProvisioned = new(true)
 		g.Expect(env.Status().Patch(ctx, cluster, patch)).To(Succeed())
 
 		g.Expect(env.Create(ctx, bootstrapConfig)).To(Succeed())
@@ -3105,7 +3104,7 @@ func TestReconcileMachinePhases(t *testing.T) {
 		g.Expect(env.Create(ctx, defaultKubeconfigSecret)).To(Succeed())
 		// Set InfrastructureReady to true so ClusterCache creates the clusterAccessor.
 		patch := client.MergeFrom(cluster.DeepCopy())
-		cluster.Status.Initialization.InfrastructureProvisioned = ptr.To(true)
+		cluster.Status.Initialization.InfrastructureProvisioned = new(true)
 		g.Expect(env.Status().Patch(ctx, cluster, patch)).To(Succeed())
 
 		g.Expect(env.Create(ctx, bootstrapConfig)).To(Succeed())
@@ -3185,7 +3184,7 @@ func TestReconcileMachinePhases(t *testing.T) {
 		g.Expect(env.Create(ctx, defaultKubeconfigSecret)).To(Succeed())
 		// Set InfrastructureReady to true so ClusterCache creates the clusterAccessor.
 		patch := client.MergeFrom(cluster.DeepCopy())
-		cluster.Status.Initialization.InfrastructureProvisioned = ptr.To(true)
+		cluster.Status.Initialization.InfrastructureProvisioned = new(true)
 		g.Expect(env.Status().Patch(ctx, cluster, patch)).To(Succeed())
 
 		g.Expect(env.Create(ctx, bootstrapConfig)).To(Succeed())
@@ -3271,7 +3270,7 @@ func TestReconcileMachinePhases(t *testing.T) {
 		g.Expect(env.Create(ctx, defaultKubeconfigSecret)).To(Succeed())
 		// Set InfrastructureReady to true so ClusterCache creates the clusterAccessor.
 		patch := client.MergeFrom(cluster.DeepCopy())
-		cluster.Status.Initialization.InfrastructureProvisioned = ptr.To(true)
+		cluster.Status.Initialization.InfrastructureProvisioned = new(true)
 		g.Expect(env.Status().Patch(ctx, cluster, patch)).To(Succeed())
 
 		g.Expect(env.Create(ctx, bootstrapConfig)).To(Succeed())
@@ -3344,7 +3343,7 @@ func TestReconcileMachinePhases(t *testing.T) {
 		g.Expect(env.Create(ctx, defaultKubeconfigSecret)).To(Succeed())
 		// Set InfrastructureReady to true so ClusterCache creates the clusterAccessor.
 		patch := client.MergeFrom(cluster.DeepCopy())
-		cluster.Status.Initialization.InfrastructureProvisioned = ptr.To(true)
+		cluster.Status.Initialization.InfrastructureProvisioned = new(true)
 		g.Expect(env.Status().Patch(ctx, cluster, patch)).To(Succeed())
 
 		g.Expect(env.Create(ctx, bootstrapConfig)).To(Succeed())

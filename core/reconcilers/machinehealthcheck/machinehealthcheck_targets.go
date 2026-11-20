@@ -152,11 +152,12 @@ func (t *healthCheckTarget) needsRemediation(programCache cache.Cache[cel.Progra
 	// Combine all messages into a single comprehensive message
 	allMessages := append(append(unhealthyMachineMessages, unhealthyNodeMessages...), unhealthyExpressionsMessages...)
 
-	conditionMessage := "Health check failed:\n"
+	var conditionMessage strings.Builder
+	conditionMessage.WriteString("Health check failed:\n")
 	for i, m := range allMessages {
-		conditionMessage += fmt.Sprintf("  * %s", m)
+		fmt.Fprintf(&conditionMessage, "  * %s", m)
 		if i != len(allMessages)-1 {
-			conditionMessage += "\n"
+			conditionMessage.WriteString("\n")
 		}
 	}
 
@@ -164,7 +165,7 @@ func (t *healthCheckTarget) needsRemediation(programCache cache.Cache[cel.Progra
 		Type:    clusterv1.MachineHealthCheckSucceededCondition,
 		Status:  metav1.ConditionFalse,
 		Reason:  reason,
-		Message: conditionMessage,
+		Message: conditionMessage.String(),
 	})
 
 	// v1beta1 condition message formatting:

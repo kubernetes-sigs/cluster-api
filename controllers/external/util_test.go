@@ -169,16 +169,16 @@ func TestGenerateTemplate(t *testing.T) {
 		Kind:    "InfraMachineTemplate",
 	}
 
-	newTemplate := func(templateSpec map[string]interface{}) *unstructured.Unstructured {
+	newTemplate := func(templateSpec map[string]any) *unstructured.Unstructured {
 		return &unstructured.Unstructured{
-			Object: map[string]interface{}{
+			Object: map[string]any{
 				"apiVersion": templateGVK.GroupVersion().String(),
 				"kind":       templateGVK.Kind,
-				"metadata": map[string]interface{}{
+				"metadata": map[string]any{
 					"name":      templateName,
 					"namespace": metav1.NamespaceDefault,
 				},
-				"spec": map[string]interface{}{
+				"spec": map[string]any{
 					"template": templateSpec,
 				},
 			},
@@ -210,12 +210,12 @@ func TestGenerateTemplate(t *testing.T) {
 		expectedAnnotations      map[string]string
 		expectedOwnerRefs        []metav1.OwnerReference
 		expectSpecNotFound       bool
-		expectedSpec             map[string]interface{}
+		expectedSpec             map[string]any
 	}{
 		{
 			name: "generates a name when Name is not set, using TemplateRef for provenance annotations",
 			in: &GenerateTemplateInput{
-				Template:    newTemplate(map[string]interface{}{"spec": map[string]interface{}{"hello": "world"}}),
+				Template:    newTemplate(map[string]any{"spec": map[string]any{"hello": "world"}}),
 				TemplateRef: templateRef.DeepCopy(),
 				Namespace:   metav1.NamespaceDefault,
 				ClusterName: testClusterName,
@@ -232,12 +232,12 @@ func TestGenerateTemplate(t *testing.T) {
 				clusterv1.TemplateClonedFromNameAnnotation:      templateName,
 				clusterv1.TemplateClonedFromGroupKindAnnotation: templateGVK.GroupKind().String(),
 			},
-			expectedSpec: map[string]interface{}{"hello": "world"},
+			expectedSpec: map[string]any{"hello": "world"},
 		},
 		{
 			name: "uses the given Name instead of generating one",
 			in: &GenerateTemplateInput{
-				Template:    newTemplate(map[string]interface{}{"spec": map[string]interface{}{"hello": "world"}}),
+				Template:    newTemplate(map[string]any{"spec": map[string]any{"hello": "world"}}),
 				TemplateRef: templateRef.DeepCopy(),
 				Namespace:   metav1.NamespaceDefault,
 				Name:        "explicit-name",
@@ -255,18 +255,18 @@ func TestGenerateTemplate(t *testing.T) {
 				clusterv1.TemplateClonedFromNameAnnotation:      templateName,
 				clusterv1.TemplateClonedFromGroupKindAnnotation: templateGVK.GroupKind().String(),
 			},
-			expectedSpec: map[string]interface{}{"hello": "world"},
+			expectedSpec: map[string]any{"hello": "world"},
 		},
 		{
 			name: "tolerates a template without spec.template",
 			in: &GenerateTemplateInput{
-				Template: &unstructured.Unstructured{Object: map[string]interface{}{
+				Template: &unstructured.Unstructured{Object: map[string]any{
 					"kind":       templateGVK.Kind,
 					"apiVersion": templateGVK.GroupVersion().String(),
-					"metadata": map[string]interface{}{
+					"metadata": map[string]any{
 						"name": templateName,
 					},
-					"spec": map[string]interface{}{},
+					"spec": map[string]any{},
 				}},
 				TemplateRef: templateRef.DeepCopy(),
 				Namespace:   metav1.NamespaceDefault,
@@ -290,7 +290,7 @@ func TestGenerateTemplate(t *testing.T) {
 		{
 			name: "uses TemplateName and TemplateGroupKind instead of TemplateRef for provenance annotations",
 			in: &GenerateTemplateInput{
-				Template:          newTemplate(map[string]interface{}{"spec": map[string]interface{}{"hello": "world"}}),
+				Template:          newTemplate(map[string]any{"spec": map[string]any{"hello": "world"}}),
 				TemplateName:      templateName,
 				TemplateGroupKind: templateGVK.GroupKind(),
 				Namespace:         metav1.NamespaceDefault,
@@ -309,12 +309,12 @@ func TestGenerateTemplate(t *testing.T) {
 				clusterv1.TemplateClonedFromNameAnnotation:      templateName,
 				clusterv1.TemplateClonedFromGroupKindAnnotation: templateGVK.GroupKind().String(),
 			},
-			expectedSpec: map[string]interface{}{"hello": "world"},
+			expectedSpec: map[string]any{"hello": "world"},
 		},
 		{
 			name: "preserves an apiVersion/kind already set on spec.template",
 			in: &GenerateTemplateInput{
-				Template:    newTemplate(map[string]interface{}{"apiVersion": "custom.io/v2", "kind": "CustomKind", "spec": map[string]interface{}{"hello": "world"}}),
+				Template:    newTemplate(map[string]any{"apiVersion": "custom.io/v2", "kind": "CustomKind", "spec": map[string]any{"hello": "world"}}),
 				TemplateRef: templateRef.DeepCopy(),
 				Namespace:   metav1.NamespaceDefault,
 				Name:        "explicit-name",
@@ -332,12 +332,12 @@ func TestGenerateTemplate(t *testing.T) {
 				clusterv1.TemplateClonedFromNameAnnotation:      templateName,
 				clusterv1.TemplateClonedFromGroupKindAnnotation: templateGVK.GroupKind().String(),
 			},
-			expectedSpec: map[string]interface{}{"hello": "world"},
+			expectedSpec: map[string]any{"hello": "world"},
 		},
 		{
 			name: "merges owner ref, labels and annotations, with provenance annotations and cluster name label taking precedence",
 			in: &GenerateTemplateInput{
-				Template:    newTemplate(map[string]interface{}{"spec": map[string]interface{}{"hello": "world"}}),
+				Template:    newTemplate(map[string]any{"spec": map[string]any{"hello": "world"}}),
 				TemplateRef: templateRef.DeepCopy(),
 				Namespace:   metav1.NamespaceDefault,
 				Name:        "explicit-name",
@@ -370,12 +370,12 @@ func TestGenerateTemplate(t *testing.T) {
 				clusterv1.TemplateClonedFromGroupKindAnnotation: templateGVK.GroupKind().String(),
 			},
 			expectedOwnerRefs: []metav1.OwnerReference{*owner},
-			expectedSpec:      map[string]interface{}{"hello": "world"},
+			expectedSpec:      map[string]any{"hello": "world"},
 		},
 		{
 			name: "returns an error when both TemplateRef and TemplateName/TemplateGroupKind are set",
 			in: &GenerateTemplateInput{
-				Template:          newTemplate(map[string]interface{}{"spec": map[string]interface{}{"hello": "world"}}),
+				Template:          newTemplate(map[string]any{"spec": map[string]any{"hello": "world"}}),
 				TemplateRef:       templateRef.DeepCopy(),
 				TemplateName:      templateName,
 				TemplateGroupKind: templateGVK.GroupKind(),
@@ -387,7 +387,7 @@ func TestGenerateTemplate(t *testing.T) {
 		{
 			name: "returns an error when TemplateRef and TemplateName are set",
 			in: &GenerateTemplateInput{
-				Template:     newTemplate(map[string]interface{}{"spec": map[string]interface{}{"hello": "world"}}),
+				Template:     newTemplate(map[string]any{"spec": map[string]any{"hello": "world"}}),
 				TemplateRef:  templateRef.DeepCopy(),
 				TemplateName: templateName,
 				Namespace:    metav1.NamespaceDefault,
@@ -398,7 +398,7 @@ func TestGenerateTemplate(t *testing.T) {
 		{
 			name: "tolerates if neither TemplateRef nor TemplateName/TemplateGroupKind are set (and does not set cloned from annotations)",
 			in: &GenerateTemplateInput{
-				Template:    newTemplate(map[string]interface{}{"apiVersion": "custom.io/v2", "kind": "CustomKind", "spec": map[string]interface{}{"hello": "world"}}),
+				Template:    newTemplate(map[string]any{"apiVersion": "custom.io/v2", "kind": "CustomKind", "spec": map[string]any{"hello": "world"}}),
 				Namespace:   metav1.NamespaceDefault,
 				Name:        "explicit-name",
 				ClusterName: testClusterName,
@@ -412,7 +412,7 @@ func TestGenerateTemplate(t *testing.T) {
 			},
 			expectedLabels:      map[string]string{clusterv1.ClusterNameLabel: testClusterName},
 			expectedAnnotations: map[string]string{}, // No annotations
-			expectedSpec:        map[string]interface{}{"hello": "world"},
+			expectedSpec:        map[string]any{"hello": "world"},
 		},
 	}
 
@@ -487,26 +487,26 @@ func TestCreateFromTemplateResourceFound(t *testing.T) {
 	templateAPIVersion := "purple.io/v1"
 
 	template := unstructured.Unstructured{
-		Object: map[string]interface{}{
+		Object: map[string]any{
 			"kind":       templateKind,
 			"apiVersion": templateAPIVersion,
-			"metadata": map[string]interface{}{
+			"metadata": map[string]any{
 				"name":      templateName,
 				"namespace": metav1.NamespaceDefault,
 			},
-			"spec": map[string]interface{}{
-				"template": map[string]interface{}{
-					"metadata": map[string]interface{}{
-						"annotations": map[string]interface{}{
+			"spec": map[string]any{
+				"template": map[string]any{
+					"metadata": map[string]any{
+						"annotations": map[string]any{
 							"test-template": "annotations",
 							"precedence":    "template",
 						},
-						"labels": map[string]interface{}{
+						"labels": map[string]any{
 							"test-template": "label",
 							"precedence":    "template",
 						},
 					},
-					"spec": map[string]interface{}{
+					"spec": map[string]any{
 						"hello": "world",
 					},
 				},
@@ -596,16 +596,16 @@ func TestCreateFromTemplateResourceFoundNoOwner(t *testing.T) {
 	templateAPIVersion := "yellow.io/v1"
 
 	template := &unstructured.Unstructured{
-		Object: map[string]interface{}{
+		Object: map[string]any{
 			"kind":       templateKind,
 			"apiVersion": templateAPIVersion,
-			"metadata": map[string]interface{}{
+			"metadata": map[string]any{
 				"name":      templateName,
 				"namespace": metav1.NamespaceDefault,
 			},
-			"spec": map[string]interface{}{
-				"template": map[string]interface{}{
-					"spec": map[string]interface{}{
+			"spec": map[string]any{
+				"template": map[string]any{
+					"spec": map[string]any{
 						"hello": "world",
 					},
 				},
@@ -664,10 +664,10 @@ func TestCreateFromTemplateMissingSpec(t *testing.T) {
 	templateAPIVersion := "aqua.io/v1"
 
 	template := &unstructured.Unstructured{
-		Object: map[string]interface{}{
+		Object: map[string]any{
 			"kind":       templateKind,
 			"apiVersion": templateAPIVersion,
-			"metadata": map[string]interface{}{
+			"metadata": map[string]any{
 				"name":      templateName,
 				"namespace": metav1.NamespaceDefault,
 			},

@@ -63,7 +63,7 @@ func (input *BaseUserData) prepare() {
 	input.SentinelFileCommand = sentinelFileCommand
 }
 
-func generate(kind string, tpl string, data interface{}) ([]byte, error) {
+func generate(kind string, tpl string, data any) ([]byte, error) {
 	tm := template.New(kind).Funcs(defaultTemplateFuncMap)
 	if _, err := tm.Parse(filesTemplate); err != nil {
 		return nil, pkgerrors.Wrap(err, "failed to parse files template")

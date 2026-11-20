@@ -555,12 +555,12 @@ func transformControlPlaneAndEtcdConditions(messages []string) []string {
 	for _, m := range messages {
 		// Summary message are in the form of "* Condition: Message"; the following code
 		// figure out if this is a control plane condition.
-		sep := strings.Index(m, ":")
-		if sep == -1 {
+		before, after, ok := strings.Cut(m, ":")
+		if !ok {
 			out = append(out, m)
 			continue
 		}
-		c, msg := m[:sep], m[sep+1:]
+		c, msg := before, after
 		if !isControlPlaneCondition(c) {
 			// If the condition isn't a control plane condition, add to the output the message as is.
 			out = append(out, m)
@@ -681,7 +681,7 @@ func setUpToDateCondition(_ context.Context, m *clusterv1.Machine, ms *clusterv1
 
 	upToDate, notUpToDateResult := mdutil.MachineTemplateUpToDate(current, desired)
 
-	if !md.Spec.Rollout.After.IsZero() && md.Spec.Rollout.After.Before(ptr.To(metav1.Now())) && ms.CreationTimestamp.Before(ptr.To(md.Spec.Rollout.After)) {
+	if !md.Spec.Rollout.After.IsZero() && md.Spec.Rollout.After.Before(new(metav1.Now())) && ms.CreationTimestamp.Before(new(md.Spec.Rollout.After)) {
 		upToDate = false
 		notUpToDateResult.ConditionMessages = append(notUpToDateResult.ConditionMessages, "MachineDeployment spec.rolloutAfter expired")
 	}

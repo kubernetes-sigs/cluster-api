@@ -107,7 +107,7 @@ func TestClusterClassReconciler_reconcile(t *testing.T) {
 		WithVariables(
 			clusterv1.ClusterClassVariable{
 				Name:     "hdd",
-				Required: ptr.To(true),
+				Required: new(true),
 				Schema: clusterv1.VariableSchema{
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 						Type: "string",
@@ -116,7 +116,7 @@ func TestClusterClassReconciler_reconcile(t *testing.T) {
 			},
 			clusterv1.ClusterClassVariable{
 				Name:     "cpu",
-				Required: ptr.To(false),
+				Required: new(false),
 				Schema: clusterv1.VariableSchema{
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 						Type: "integer",
@@ -425,7 +425,7 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 			[]clusterv1.ClusterClassVariable{
 				{
 					Name:     "cpu",
-					Required: ptr.To(true),
+					Required: new(true),
 					Schema: clusterv1.VariableSchema{
 						OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 							Type: "integer",
@@ -455,7 +455,7 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 				},
 				{
 					Name:     "memory",
-					Required: ptr.To(false),
+					Required: new(false),
 					Schema: clusterv1.VariableSchema{
 						OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 							Type: "string",
@@ -485,7 +485,7 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 						{
 							From:     clusterv1.VariableDefinitionFromInline,
-							Required: ptr.To(true),
+							Required: new(true),
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 									Type: "integer",
@@ -514,14 +514,14 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 							},
 						},
 					},
-					DefinitionsConflict: ptr.To(false),
+					DefinitionsConflict: new(false),
 				},
 				{
 					Name: "memory",
 					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 						{
 							From:     clusterv1.VariableDefinitionFromInline,
-							Required: ptr.To(false),
+							Required: new(false),
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 									Type: "string",
@@ -533,7 +533,7 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 							},
 						},
 					},
-					DefinitionsConflict: ptr.To(false),
+					DefinitionsConflict: new(false),
 				},
 			},
 		},
@@ -557,7 +557,7 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 					{
 						Name: "cpu",
 						// Note: This schema must be exactly equal to the one in clusterClassWithInlineVariables to avoid conflicts.
-						Required: ptr.To(true),
+						Required: new(true),
 						Schema: clusterv1.VariableSchema{
 							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 								Type: "integer",
@@ -587,7 +587,7 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 					},
 					{
 						Name:     "memory",
-						Required: ptr.To(false),
+						Required: new(false),
 						Schema: clusterv1.VariableSchema{
 							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 								Type: "string",
@@ -627,11 +627,11 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 			want: []clusterv1.ClusterClassStatusVariable{
 				{
 					Name:                "cpu",
-					DefinitionsConflict: ptr.To(false),
+					DefinitionsConflict: new(false),
 					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 						{
 							From:     clusterv1.VariableDefinitionFromInline,
-							Required: ptr.To(true),
+							Required: new(true),
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 									Type: "integer",
@@ -661,7 +661,7 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 						},
 						{
 							From:     "patch1",
-							Required: ptr.To(true),
+							Required: new(true),
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 									Type: "integer",
@@ -693,7 +693,7 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 				},
 				{
 					Name:                "location",
-					DefinitionsConflict: ptr.To(false),
+					DefinitionsConflict: new(false),
 					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 						{
 							From: "patch1",
@@ -723,11 +723,11 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 				},
 				{
 					Name:                "memory",
-					DefinitionsConflict: ptr.To(false),
+					DefinitionsConflict: new(false),
 					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 						{
 							From:     clusterv1.VariableDefinitionFromInline,
-							Required: ptr.To(false),
+							Required: new(false),
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 									Type: "string",
@@ -740,7 +740,7 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 						},
 						{
 							From:     "patch1",
-							Required: ptr.To(false),
+							Required: new(false),
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 									Type: "string",
@@ -806,7 +806,7 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 				Variables: []clusterv1.ClusterClassVariable{
 					{
 						Name:     "cpu",
-						Required: ptr.To(false),
+						Required: new(false),
 						Schema: clusterv1.VariableSchema{
 							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 								Type: "string",
@@ -815,7 +815,7 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 					},
 					{
 						Name:     "memory",
-						Required: ptr.To(false),
+						Required: new(false),
 						Schema: clusterv1.VariableSchema{
 							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 								Type: "string",
@@ -873,11 +873,11 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 			want: []clusterv1.ClusterClassStatusVariable{
 				{
 					Name:                "cpu",
-					DefinitionsConflict: ptr.To(false),
+					DefinitionsConflict: new(false),
 					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 						{
 							From:     "patch1",
-							Required: ptr.To(false),
+							Required: new(false),
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 									Type: "string",
@@ -888,7 +888,7 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 				},
 				{
 					Name:                "httpProxy",
-					DefinitionsConflict: ptr.To(false),
+					DefinitionsConflict: new(false),
 					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 						{
 							From: "patch1",
@@ -912,7 +912,7 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 				},
 				{
 					Name:                "location",
-					DefinitionsConflict: ptr.To(false),
+					DefinitionsConflict: new(false),
 					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 						{
 							From: "patch1",
@@ -942,11 +942,11 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 				},
 				{
 					Name:                "memory",
-					DefinitionsConflict: ptr.To(false),
+					DefinitionsConflict: new(false),
 					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 						{
 							From:     "patch1",
-							Required: ptr.To(false),
+							Required: new(false),
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 									Type: "string",

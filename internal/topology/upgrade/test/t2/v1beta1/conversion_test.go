@@ -63,14 +63,14 @@ func TestFuzzyConversion(t *testing.T) {
 	}))
 }
 
-func XTestResourceTemplateFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
-	return []interface{}{
+func XTestResourceTemplateFuzzFuncs(_ runtimeserializer.CodecFactory) []any {
+	return []any{
 		spokeTestResourceSpec,
 	}
 }
 
-func XTestResourceFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
-	return []interface{}{
+func XTestResourceFuzzFuncs(_ runtimeserializer.CodecFactory) []any {
+	return []any{
 		spokeTestResourceSpec,
 	}
 }

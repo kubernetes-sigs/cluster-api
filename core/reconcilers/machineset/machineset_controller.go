@@ -22,6 +22,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"maps"
 	"math"
 	"sort"
 	"strconv"
@@ -1307,7 +1308,7 @@ func (r *Reconciler) startMoveMachines(ctx context.Context, s *scope, targetMSNa
 			Kind:       "MachineSet",
 			Name:       targetMS.Name,
 			UID:        targetMS.UID,
-			Controller: ptr.To(true),
+			Controller: new(true),
 		})
 
 		// Change machine's labels from current MS to target MS
@@ -1484,9 +1485,7 @@ func machineLabelsFromMachineSet(machineSet *clusterv1.MachineSet) map[string]st
 	// map between Machine and machineSet.Spec.Template.Labels. This would mean that adding the
 	// MachineSetNameLabel and MachineDeploymentNameLabel later on the Machine would also add the labels
 	// to machineSet.Spec.Template.Labels and thus modify the labels of the MachineSet.
-	for k, v := range machineSet.Spec.Template.Labels {
-		machineLabels[k] = v
-	}
+	maps.Copy(machineLabels, machineSet.Spec.Template.Labels)
 	// Always set the MachineSetNameLabel.
 	// Note: If a client tries to create a MachineSet without a selector, the MachineSet webhook
 	// will add this label automatically. But we want this label to always be present even if the MachineSet
@@ -1502,9 +1501,7 @@ func machineLabelsFromMachineSet(machineSet *clusterv1.MachineSet) map[string]st
 // machineAnnotationsFromMachineSet computes the annotations the Machine created from this MachineSet should have.
 func machineAnnotationsFromMachineSet(machineSet *clusterv1.MachineSet) map[string]string {
 	annotations := map[string]string{}
-	for k, v := range machineSet.Spec.Template.Annotations {
-		annotations[k] = v
-	}
+	maps.Copy(annotations, machineSet.Spec.Template.Annotations)
 	return annotations
 }
 

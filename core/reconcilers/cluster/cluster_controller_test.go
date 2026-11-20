@@ -220,7 +220,7 @@ func TestClusterReconciler(t *testing.T) {
 		g.Eventually(func() bool {
 			ph, err := patch.NewHelper(cluster, env)
 			g.Expect(err).ToNot(HaveOccurred())
-			cluster.Status.Initialization.InfrastructureProvisioned = ptr.To(true)
+			cluster.Status.Initialization.InfrastructureProvisioned = new(true)
 			g.Expect(ph.Patch(ctx, cluster, patch.WithStatusObservedGeneration{})).To(Succeed())
 			return true
 		}, timeout).Should(BeTrue())
@@ -327,7 +327,7 @@ func TestClusterReconciler(t *testing.T) {
 		g.Eventually(func() bool {
 			ph, err := patch.NewHelper(cluster, env)
 			g.Expect(err).ToNot(HaveOccurred())
-			cluster.Status.Initialization.InfrastructureProvisioned = ptr.To(true)
+			cluster.Status.Initialization.InfrastructureProvisioned = new(true)
 			cluster.Spec.InfrastructureRef = clusterv1.ContractVersionedObjectReference{
 				APIGroup: builder.InfrastructureGroupVersion.Group,
 				Kind:     builder.GenericInfrastructureClusterKind,
@@ -474,11 +474,11 @@ func TestClusterReconciler(t *testing.T) {
 					Name:     "inframachine",
 				},
 				Bootstrap: clusterv1.Bootstrap{
-					DataSecretName: ptr.To(""),
+					DataSecretName: new(""),
 				},
 			},
 		}
-		machine.Spec.Bootstrap.DataSecretName = ptr.To("test6-bootstrapdata")
+		machine.Spec.Bootstrap.DataSecretName = new("test6-bootstrapdata")
 		g.Expect(env.Create(ctx, machine)).To(Succeed())
 		key = client.ObjectKey{Name: machine.Name, Namespace: machine.Namespace}
 		defer func() {

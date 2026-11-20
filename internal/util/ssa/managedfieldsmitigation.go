@@ -116,7 +116,7 @@ func MigrateClusterAndMitigateManagedFieldsIssue(ctx context.Context, c client.C
 			Manager:    patchManager,
 			Operation:  metav1.ManagedFieldsOperationUpdate,
 			APIVersion: clusterv1.GroupVersion.String(),
-			Time:       ptr.To(metav1.Now()),
+			Time:       new(metav1.Now()),
 			FieldsType: "FieldsV1",
 			FieldsV1:   metav1.NewFieldsV1(`{"f:metadata":{"f:name":{}}}`),
 		})
@@ -124,7 +124,7 @@ func MigrateClusterAndMitigateManagedFieldsIssue(ctx context.Context, c client.C
 
 	// Create a patch to update only managedFields.
 	// Include resourceVersion to avoid race conditions.
-	jsonPatch := []map[string]interface{}{
+	jsonPatch := []map[string]any{
 		{
 			"op":    "replace",
 			"path":  "/metadata/managedFields",
@@ -224,7 +224,7 @@ func MitigateManagedFieldsIssue(ctx context.Context, c WriterWithScheme, obj cli
 			Manager:    fieldManager,
 			Operation:  metav1.ManagedFieldsOperationApply,
 			APIVersion: objGVK.GroupVersion().String(),
-			Time:       ptr.To(metav1.Now()),
+			Time:       new(metav1.Now()),
 			FieldsType: "FieldsV1",
 			FieldsV1:   metav1.NewFieldsV1(string(fieldsV1)),
 		})
@@ -232,7 +232,7 @@ func MitigateManagedFieldsIssue(ctx context.Context, c WriterWithScheme, obj cli
 
 	// Create a patch to update only managedFields.
 	// Include resourceVersion to avoid race conditions.
-	jsonPatch := []map[string]interface{}{
+	jsonPatch := []map[string]any{
 		{
 			"op":    "replace",
 			"path":  "/metadata/managedFields",
@@ -330,12 +330,7 @@ func computeManagedFields(obj client.Object, objGVK schema.GroupVersionKind) ([]
 
 func isManager(managers ...string) func(entry metav1.ManagedFieldsEntry) bool {
 	return func(entry metav1.ManagedFieldsEntry) bool {
-		for _, manager := range managers {
-			if entry.Manager == manager {
-				return true
-			}
-		}
-		return false
+		return slices.Contains(managers, entry.Manager)
 	}
 }
 

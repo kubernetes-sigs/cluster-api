@@ -75,7 +75,7 @@ func (f *FakeReader) Set(key, value string) {
 	f.variables[key] = value
 }
 
-func (f *FakeReader) UnmarshalKey(key string, rawval interface{}) error {
+func (f *FakeReader) UnmarshalKey(key string, rawval any) error {
 	data, err := f.Get(key)
 	if err != nil {
 		return nil //nolint:nilerr // We expect to not error if the key is not present

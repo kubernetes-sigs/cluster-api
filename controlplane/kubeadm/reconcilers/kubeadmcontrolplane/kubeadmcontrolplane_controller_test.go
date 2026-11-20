@@ -23,6 +23,7 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"fmt"
+	"maps"
 	"math/big"
 	"path"
 	"sync"
@@ -153,7 +154,7 @@ func TestReconcileUpdateObservedGeneration(t *testing.T) {
 	}, 10*time.Second).Should(Equal(generation))
 
 	// triggers a generation change by changing the spec
-	kcp.Spec.Replicas = ptr.To[int32](*kcp.Spec.Replicas + 2)
+	kcp.Spec.Replicas = new(*kcp.Spec.Replicas + 2)
 	g.Expect(env.Update(ctx, kcp)).To(Succeed())
 
 	// read kcp.Generation after the update
@@ -307,7 +308,7 @@ func TestReconcilePaused(t *testing.T) {
 
 	// Test: cluster is paused and kcp is not
 	cluster := newCluster(&types.NamespacedName{Namespace: metav1.NamespaceDefault, Name: clusterName})
-	cluster.Spec.Paused = ptr.To(true)
+	cluster.Spec.Paused = new(true)
 	kcp := &controlplanev1.KubeadmControlPlane{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: metav1.NamespaceDefault,
@@ -352,7 +353,7 @@ func TestReconcilePaused(t *testing.T) {
 	g.Expect(machineList.Items).To(BeEmpty())
 
 	// Test: kcp is paused and cluster is not
-	cluster.Spec.Paused = ptr.To(false)
+	cluster.Spec.Paused = new(false)
 	kcp.Annotations = map[string]string{}
 	kcp.Annotations[clusterv1.PausedAnnotation] = "paused"
 	_, err = r.Reconcile(ctx, ctrl.Request{NamespacedName: util.ObjectKey(kcp)})
@@ -363,7 +364,7 @@ func TestReconcileClusterNoEndpoints(t *testing.T) {
 	g := NewWithT(t)
 
 	cluster := newCluster(&types.NamespacedName{Name: "foo", Namespace: metav1.NamespaceDefault})
-	cluster.Status.Initialization.InfrastructureProvisioned = ptr.To(true)
+	cluster.Status.Initialization.InfrastructureProvisioned = new(true)
 
 	kcp := &controlplanev1.KubeadmControlPlane{
 		ObjectMeta: metav1.ObjectMeta{
@@ -447,7 +448,7 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 		cluster, kcp, tmpl := createClusterWithControlPlane(metav1.NamespaceDefault)
 		cluster.Spec.ControlPlaneEndpoint.Host = "bar"
 		cluster.Spec.ControlPlaneEndpoint.Port = 6443
-		cluster.Status.Initialization.InfrastructureProvisioned = ptr.To(true)
+		cluster.Status.Initialization.InfrastructureProvisioned = new(true)
 		kcp.Spec.Version = version
 
 		fmc := &fakeManagementCluster{
@@ -515,7 +516,7 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 		cluster, kcp, tmpl := createClusterWithControlPlane(metav1.NamespaceDefault)
 		cluster.Spec.ControlPlaneEndpoint.Host = "validhost"
 		cluster.Spec.ControlPlaneEndpoint.Port = 6443
-		cluster.Status.Initialization.InfrastructureProvisioned = ptr.To(true)
+		cluster.Status.Initialization.InfrastructureProvisioned = new(true)
 		kcp.Spec.Version = version
 
 		fmc := &fakeManagementCluster{
@@ -620,7 +621,7 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 		cluster, kcp, tmpl := createClusterWithControlPlane(metav1.NamespaceDefault)
 		cluster.Spec.ControlPlaneEndpoint.Host = "nodomain.example.com1"
 		cluster.Spec.ControlPlaneEndpoint.Port = 6443
-		cluster.Status.Initialization.InfrastructureProvisioned = ptr.To(true)
+		cluster.Status.Initialization.InfrastructureProvisioned = new(true)
 		kcp.Spec.Version = version
 
 		now := metav1.Now()
@@ -689,7 +690,7 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 		cluster, kcp, tmpl := createClusterWithControlPlane(metav1.NamespaceDefault)
 		cluster.Spec.ControlPlaneEndpoint.Host = "nodomain.example.com2"
 		cluster.Spec.ControlPlaneEndpoint.Port = 6443
-		cluster.Status.Initialization.InfrastructureProvisioned = ptr.To(true)
+		cluster.Status.Initialization.InfrastructureProvisioned = new(true)
 		kcp.Spec.Version = "v1.17.0"
 
 		fmc := &fakeManagementCluster{
@@ -747,7 +748,7 @@ func TestKubeadmControlPlaneReconciler_ensureOwnerReferences(t *testing.T) {
 	cluster, kcp, tmpl := createClusterWithControlPlane(metav1.NamespaceDefault)
 	cluster.Spec.ControlPlaneEndpoint.Host = "bar"
 	cluster.Spec.ControlPlaneEndpoint.Port = 6443
-	cluster.Status.Initialization.InfrastructureProvisioned = ptr.To(true)
+	cluster.Status.Initialization.InfrastructureProvisioned = new(true)
 	kcp.Spec.Version = "v1.21.0"
 	key, err := certs.NewPrivateKey()
 	g.Expect(err).ToNot(HaveOccurred())
@@ -833,7 +834,7 @@ func TestKubeadmControlPlaneReconciler_ensureOwnerReferences(t *testing.T) {
 					Kind:       "OtherController",
 					Name:       "name",
 					UID:        "uid",
-					Controller: ptr.To(true),
+					Controller: new(true),
 				},
 			})
 
@@ -883,8 +884,8 @@ func TestKubeadmControlPlaneReconciler_ensureOwnerReferences(t *testing.T) {
 					Kind:               "OtherController",
 					Name:               kcp.Name,
 					UID:                kcp.UID,
-					Controller:         ptr.To(true),
-					BlockOwnerDeletion: ptr.To(true),
+					Controller:         new(true),
+					BlockOwnerDeletion: new(true),
 				},
 			))
 
@@ -925,7 +926,7 @@ func TestReconcileCertificateExpiries(t *testing.T) {
 		},
 		Status: controlplanev1.KubeadmControlPlaneStatus{
 			Initialization: controlplanev1.KubeadmControlPlaneInitializationStatus{
-				ControlPlaneInitialized: ptr.To(true),
+				ControlPlaneInitialized: new(true),
 			},
 		},
 	}
@@ -1166,20 +1167,20 @@ func TestReconcileInitializeControlPlane(t *testing.T) {
 	g.Expect(env.Create(ctx, cluster)).To(Succeed())
 	patchHelper, err := patch.NewHelper(cluster, env)
 	g.Expect(err).ToNot(HaveOccurred())
-	cluster.Status.Initialization.InfrastructureProvisioned = ptr.To(true)
+	cluster.Status.Initialization.InfrastructureProvisioned = new(true)
 	g.Expect(patchHelper.Patch(ctx, cluster)).To(Succeed())
 
 	genericInfrastructureMachineTemplate := &unstructured.Unstructured{
-		Object: map[string]interface{}{
+		Object: map[string]any{
 			"kind":       builder.GenericInfrastructureMachineTemplateKind,
 			"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
-			"metadata": map[string]interface{}{
+			"metadata": map[string]any{
 				"name":      "infra-foo",
 				"namespace": cluster.Namespace,
 			},
-			"spec": map[string]interface{}{
-				"template": map[string]interface{}{
-					"spec": map[string]interface{}{
+			"spec": map[string]any{
+				"template": map[string]any{
+					"spec": map[string]any{
 						"hello": "world",
 					},
 				},
@@ -1412,22 +1413,22 @@ func TestReconcileInitializeControlPlane_withUserCA(t *testing.T) {
 	g.Expect(env.Create(ctx, cluster)).To(Succeed())
 	patchHelper, err := patch.NewHelper(cluster, env)
 	g.Expect(err).ToNot(HaveOccurred())
-	cluster.Status.Initialization.InfrastructureProvisioned = ptr.To(true)
+	cluster.Status.Initialization.InfrastructureProvisioned = new(true)
 	g.Expect(patchHelper.Patch(ctx, cluster)).To(Succeed())
 
 	g.Expect(env.CreateAndWait(ctx, certSecret)).To(Succeed())
 
 	genericInfrastructureMachineTemplate := &unstructured.Unstructured{
-		Object: map[string]interface{}{
+		Object: map[string]any{
 			"kind":       builder.GenericInfrastructureMachineTemplateKind,
 			"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
-			"metadata": map[string]interface{}{
+			"metadata": map[string]any{
 				"name":      "infra-foo",
 				"namespace": cluster.Namespace,
 			},
-			"spec": map[string]interface{}{
-				"template": map[string]interface{}{
-					"spec": map[string]interface{}{
+			"spec": map[string]any{
+				"template": map[string]any{
+					"spec": map[string]any{
 						"hello": "world",
 					},
 				},
@@ -1636,8 +1637,8 @@ func TestReconcileClusterCertificates(t *testing.T) {
 				Kind:               "KubeadmControlPlane",
 				Name:               kcp.Name,
 				UID:                kcp.UID,
-				Controller:         ptr.To(true),
-				BlockOwnerDeletion: ptr.To(true),
+				Controller:         new(true),
+				BlockOwnerDeletion: new(true),
 			}))
 		}
 	}
@@ -1755,26 +1756,26 @@ func TestKubeadmControlPlaneReconciler_syncMachines(t *testing.T) {
 	namespace, testCluster := setup(t, g)
 	defer teardown(t, g, namespace, testCluster)
 
-	duration5s := ptr.To(int32(5))
-	duration10s := ptr.To(int32(10))
+	duration5s := new(int32(5))
+	duration10s := new(int32(10))
 
 	// Existing InfraMachine
-	infraMachineSpec := map[string]interface{}{
+	infraMachineSpec := map[string]any{
 		"infra-field": "infra-value",
 	}
 	existingInfraMachine := &unstructured.Unstructured{
-		Object: map[string]interface{}{
+		Object: map[string]any{
 			"kind":       "GenericInfrastructureMachine",
 			"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
-			"metadata": map[string]interface{}{
+			"metadata": map[string]any{
 				"name":      "existing-inframachine",
 				"namespace": testCluster.Namespace,
-				"labels": map[string]interface{}{
+				"labels": map[string]any{
 					"preserved-label": "preserved-value",
 					"dropped-label":   "dropped-value",
 					"modified-label":  "modified-value",
 				},
-				"annotations": map[string]interface{}{
+				"annotations": map[string]any{
 					"preserved-annotation": "preserved-value",
 					"dropped-annotation":   "dropped-value",
 					"modified-annotation":  "modified-value",
@@ -2095,9 +2096,7 @@ func TestKubeadmControlPlaneReconciler_syncMachines(t *testing.T) {
 	g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(updatedInPlaceMutatingMachine), updatedInPlaceMutatingMachine)).To(Succeed())
 	g.Expect(updatedInPlaceMutatingMachine.Labels).To(Equal(expectedLabels))
 	expectedAnnotations := map[string]string{}
-	for k, v := range kcp.Spec.MachineTemplate.ObjectMeta.Annotations {
-		expectedAnnotations[k] = v
-	}
+	maps.Copy(expectedAnnotations, kcp.Spec.MachineTemplate.ObjectMeta.Annotations)
 	// The pre-terminate annotation should always be added
 	expectedAnnotations[controlplanev1.PreTerminateHookCleanupAnnotation] = ""
 	g.Expect(updatedInPlaceMutatingMachine.Annotations).To(Equal(expectedAnnotations))
@@ -2206,7 +2205,7 @@ func TestKubeadmControlPlaneReconciler_reconcileControlPlaneAndMachinesCondition
 		},
 		Status: controlplanev1.KubeadmControlPlaneStatus{
 			Initialization: controlplanev1.KubeadmControlPlaneInitializationStatus{
-				ControlPlaneInitialized: ptr.To(true),
+				ControlPlaneInitialized: new(true),
 			},
 			Conditions: []metav1.Condition{
 				{
@@ -2233,7 +2232,7 @@ func TestKubeadmControlPlaneReconciler_reconcileControlPlaneAndMachinesCondition
 			controlPlane: &pkg.ControlPlane{
 				KCP: func() *controlplanev1.KubeadmControlPlane {
 					kcp := defaultKCP.DeepCopy()
-					kcp.Status.Initialization.ControlPlaneInitialized = ptr.To(false)
+					kcp.Status.Initialization.ControlPlaneInitialized = new(false)
 					conditions.Set(kcp, metav1.Condition{
 						Type:   controlplanev1.KubeadmControlPlaneInitializedCondition,
 						Status: metav1.ConditionFalse,
@@ -5174,7 +5173,7 @@ func createClusterWithControlPlane(namespace string) (*clusterv1.Cluster, *contr
 					},
 				},
 			},
-			Replicas: ptr.To[int32](int32(3)),
+			Replicas: new(int32(3)),
 			Version:  "v1.31.0",
 			Rollout: controlplanev1.KubeadmControlPlaneRolloutSpec{
 				Strategy: controlplanev1.KubeadmControlPlaneRolloutStrategy{
@@ -5190,16 +5189,16 @@ func createClusterWithControlPlane(namespace string) (*clusterv1.Cluster, *contr
 	}
 
 	genericMachineTemplate := &unstructured.Unstructured{
-		Object: map[string]interface{}{
+		Object: map[string]any{
 			"kind":       builder.GenericInfrastructureMachineTemplateKind,
 			"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
-			"metadata": map[string]interface{}{
+			"metadata": map[string]any{
 				"name":      "infra-foo",
 				"namespace": namespace,
 			},
-			"spec": map[string]interface{}{
-				"template": map[string]interface{}{
-					"spec": map[string]interface{}{
+			"spec": map[string]any{
+				"template": map[string]any{
+					"spec": map[string]any{
 						"hello": "world",
 					},
 				},

@@ -53,7 +53,7 @@ type CreateNamespaceInput struct {
 
 // CreateNamespace is used to create a namespace object.
 // If name is empty, a "test-" + util.RandomString(6) name will be generated.
-func CreateNamespace(ctx context.Context, input CreateNamespaceInput, intervals ...interface{}) *corev1.Namespace {
+func CreateNamespace(ctx context.Context, input CreateNamespaceInput, intervals ...any) *corev1.Namespace {
 	Expect(ctx).NotTo(BeNil(), "ctx is required for DeleteNamespace")
 	Expect(input.Creator).NotTo(BeNil(), "input.Creator is required for CreateNamespace")
 	if input.Name == "" {
@@ -103,7 +103,7 @@ type DeleteNamespaceInput struct {
 }
 
 // DeleteNamespace is used to delete namespace object.
-func DeleteNamespace(ctx context.Context, input DeleteNamespaceInput, intervals ...interface{}) {
+func DeleteNamespace(ctx context.Context, input DeleteNamespaceInput, intervals ...any) {
 	Expect(ctx).NotTo(BeNil(), "ctx is required for DeleteNamespace")
 	Expect(input.Deleter).NotTo(BeNil(), "input.Deleter is required for DeleteNamespace")
 	Expect(input.Name).NotTo(BeEmpty(), "input.Name is required for DeleteNamespace")
@@ -157,17 +157,17 @@ func WatchNamespaceEvents(ctx context.Context, input WatchNamespaceEventsInput) 
 	)
 	eventInformer := informerFactory.Core().V1().Events().Informer()
 	_, err = eventInformer.AddEventHandler(toolscache.ResourceEventHandlerFuncs{
-		AddFunc: func(obj interface{}) {
+		AddFunc: func(obj any) {
 			e := obj.(*corev1.Event)
 			_, _ = fmt.Fprintf(f, "[New Event] %s\n\tresource: %s/%s/%s\n\treason: %s\n\tmessage: %s\n\tfull: %#v\n",
 				klog.KObj(e), e.InvolvedObject.APIVersion, e.InvolvedObject.Kind, e.InvolvedObject.Name, e.Reason, e.Message, e)
 		},
-		UpdateFunc: func(_, obj interface{}) {
+		UpdateFunc: func(_, obj any) {
 			e := obj.(*corev1.Event)
 			_, _ = fmt.Fprintf(f, "[Updated Event] %s\n\tresource: %s/%s/%s\n\treason: %s\n\tmessage: %s\n\tfull: %#v\n",
 				klog.KObj(e), e.InvolvedObject.APIVersion, e.InvolvedObject.Kind, e.InvolvedObject.Name, e.Reason, e.Message, e)
 		},
-		DeleteFunc: func(interface{}) {},
+		DeleteFunc: func(any) {},
 	})
 	Expect(err).ToNot(HaveOccurred())
 

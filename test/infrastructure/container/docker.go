@@ -27,6 +27,7 @@ import (
 	"io"
 	"net/netip"
 	"os"
+	"slices"
 	"strings"
 	"time"
 
@@ -37,7 +38,6 @@ import (
 	"github.com/moby/moby/client"
 	pkgerrors "github.com/pkg/errors"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
-	"k8s.io/utils/ptr"
 
 	"sigs.k8s.io/cluster-api/test/infrastructure/kind"
 )
@@ -433,7 +433,7 @@ func (d *dockerRuntime) RunContainer(ctx context.Context, runConfig *RunContaine
 		Tmpfs:         runConfig.Tmpfs,
 		PortBindings:  dockernetwork.PortMap{},
 		RestartPolicy: dockercontainer.RestartPolicy{Name: restartPolicy, MaximumRetryCount: restartMaximumRetryCount},
-		Init:          ptr.To(false),
+		Init:          new(false),
 	}
 	networkConfig := dockernetwork.NetworkingConfig{}
 
@@ -736,10 +736,8 @@ func (d *dockerRuntime) mountFuse(info dockersystem.Info) bool {
 			return false
 		}
 		for _, f := range sliceSlice {
-			for _, ff := range f {
-				if ff == "name=rootless" {
-					return true
-				}
+			if slices.Contains(f, "name=rootless") {
+				return true
 			}
 		}
 	}

@@ -37,7 +37,7 @@ type WaitForClusterMachineNodeRefsInput struct {
 }
 
 // WaitForClusterMachineNodeRefs waits until all nodes associated with a machine deployment exist.
-func WaitForClusterMachineNodeRefs(ctx context.Context, input WaitForClusterMachineNodeRefsInput, intervals ...interface{}) {
+func WaitForClusterMachineNodeRefs(ctx context.Context, input WaitForClusterMachineNodeRefsInput, intervals ...any) {
 	By("Waiting for the machines' nodes to exist")
 	machines := &clusterv1.MachineList{}
 
@@ -65,7 +65,7 @@ type WaitForClusterMachinesReadyInput struct {
 	Cluster    *clusterv1.Cluster
 }
 
-func WaitForClusterMachinesReady(ctx context.Context, input WaitForClusterMachinesReadyInput, intervals ...interface{}) {
+func WaitForClusterMachinesReady(ctx context.Context, input WaitForClusterMachinesReadyInput, intervals ...any) {
 	By("Waiting for the machines' nodes to be ready")
 	machines := &clusterv1.MachineList{}
 
@@ -99,7 +99,7 @@ type WaitForMachinesReadyInput struct {
 	Lister    Lister
 	Name      string
 	Namespace string
-	Intervals []interface{}
+	Intervals []any
 }
 
 func WaitForMachinesReady(ctx context.Context, input WaitForMachinesReadyInput) {

@@ -25,7 +25,6 @@ import (
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
@@ -267,7 +266,7 @@ func TestRemoveManagedFieldsForLabelsAndAnnotations(t *testing.T) {
 				// below encounters a conflict and uses the retry on conflict code path.
 				kubeadmConfig := tt.kubeadmConfig.DeepCopyObject().(*bootstrapv1.KubeadmConfig)
 				origKubeadmConfig := kubeadmConfig.DeepCopyObject().(*bootstrapv1.KubeadmConfig)
-				kubeadmConfig.Status.Initialization.DataSecretCreated = ptr.To(true)
+				kubeadmConfig.Status.Initialization.DataSecretCreated = new(true)
 				g.Expect(env.Client.Status().Patch(ctx, kubeadmConfig, client.MergeFrom(origKubeadmConfig), client.FieldOwner(classicManager))).To(Succeed())
 				g.Expect(cleanupTime(kubeadmConfig.GetManagedFields())).To(BeComparableTo(toManagedFields(tt.expectedManagedFieldsAfterStatusWrite)))
 			}
@@ -536,7 +535,7 @@ func TestMigrateManagedFields(t *testing.T) {
 
 			if tt.statusWriteAfterCreate {
 				origKubeadmConfig := tt.kubeadmConfig.DeepCopyObject().(*bootstrapv1.KubeadmConfig)
-				tt.kubeadmConfig.Status.Initialization.DataSecretCreated = ptr.To(true)
+				tt.kubeadmConfig.Status.Initialization.DataSecretCreated = new(true)
 				g.Expect(env.Client.Status().Patch(ctx, tt.kubeadmConfig, client.MergeFrom(origKubeadmConfig), client.FieldOwner(classicManager))).To(Succeed())
 				g.Expect(cleanupTime(tt.kubeadmConfig.GetManagedFields())).To(BeComparableTo(toManagedFields(tt.expectedManagedFieldsAfterStatusWrite)))
 			}

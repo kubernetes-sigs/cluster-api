@@ -27,7 +27,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/utils/ptr"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
@@ -50,7 +49,7 @@ func TestGenerate(t *testing.T) {
 							APIVersion: clusterv1.GroupVersionControlPlane.String(),
 							Kind:       "ControlPlaneTemplate",
 							MatchResources: clusterv1.PatchSelectorMatch{
-								ControlPlane: ptr.To(true),
+								ControlPlane: new(true),
 							},
 						},
 						JSONPatches: []clusterv1.JSONPatch{
@@ -156,7 +155,7 @@ func TestGenerate(t *testing.T) {
 						},
 						Object: runtime.RawExtension{
 							Object: &unstructured.Unstructured{
-								Object: map[string]interface{}{
+								Object: map[string]any{
 									"apiVersion": clusterv1.GroupVersionControlPlane.String(),
 									"kind":       "ControlPlaneTemplate",
 								},
@@ -199,7 +198,7 @@ func TestGenerate(t *testing.T) {
 							APIVersion: clusterv1.GroupVersionControlPlane.String(),
 							Kind:       "ControlPlaneTemplate",
 							MatchResources: clusterv1.PatchSelectorMatch{
-								ControlPlane: ptr.To(true),
+								ControlPlane: new(true),
 							},
 						},
 						JSONPatches: []clusterv1.JSONPatch{
@@ -322,7 +321,7 @@ func TestGenerate(t *testing.T) {
 						},
 						Object: runtime.RawExtension{
 							Object: &unstructured.Unstructured{
-								Object: map[string]interface{}{
+								Object: map[string]any{
 									"apiVersion": clusterv1.GroupVersionControlPlane.String(),
 									"kind":       "ControlPlaneTemplate",
 								},
@@ -346,7 +345,7 @@ func TestGenerate(t *testing.T) {
 						},
 						Object: runtime.RawExtension{
 							Object: &unstructured.Unstructured{
-								Object: map[string]interface{}{
+								Object: map[string]any{
 									"apiVersion": clusterv1.GroupVersionBootstrap.String(),
 									"kind":       "BootstrapTemplate",
 								},
@@ -370,7 +369,7 @@ func TestGenerate(t *testing.T) {
 						},
 						Object: runtime.RawExtension{
 							Object: &unstructured.Unstructured{
-								Object: map[string]interface{}{
+								Object: map[string]any{
 									"apiVersion": clusterv1.GroupVersionBootstrap.String(),
 									"kind":       "BootstrapTemplate",
 								},
@@ -436,7 +435,7 @@ func TestMatchesSelector(t *testing.T) {
 			req: &runtimehooksv1.GeneratePatchesRequestItem{
 				Object: runtime.RawExtension{
 					Object: &unstructured.Unstructured{
-						Object: map[string]interface{}{
+						Object: map[string]any{
 							"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
 							"kind":       "AzureMachineTemplate",
 						},
@@ -454,7 +453,7 @@ func TestMatchesSelector(t *testing.T) {
 			req: &runtimehooksv1.GeneratePatchesRequestItem{
 				Object: runtime.RawExtension{
 					Object: &unstructured.Unstructured{
-						Object: map[string]interface{}{
+						Object: map[string]any{
 							"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
 							"kind":       "AzureMachineTemplate",
 						},
@@ -472,7 +471,7 @@ func TestMatchesSelector(t *testing.T) {
 			req: &runtimehooksv1.GeneratePatchesRequestItem{
 				Object: runtime.RawExtension{
 					Object: &unstructured.Unstructured{
-						Object: map[string]interface{}{
+						Object: map[string]any{
 							"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
 							"kind":       "AzureClusterTemplate",
 						},
@@ -490,7 +489,7 @@ func TestMatchesSelector(t *testing.T) {
 				APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 				Kind:       "AzureClusterTemplate",
 				MatchResources: clusterv1.PatchSelectorMatch{
-					InfrastructureCluster: ptr.To(true),
+					InfrastructureCluster: new(true),
 				},
 			},
 			match: true,
@@ -500,7 +499,7 @@ func TestMatchesSelector(t *testing.T) {
 			req: &runtimehooksv1.GeneratePatchesRequestItem{
 				Object: runtime.RawExtension{
 					Object: &unstructured.Unstructured{
-						Object: map[string]interface{}{
+						Object: map[string]any{
 							"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
 							"kind":       "AzureClusterTemplate",
 						},
@@ -526,7 +525,7 @@ func TestMatchesSelector(t *testing.T) {
 			req: &runtimehooksv1.GeneratePatchesRequestItem{
 				Object: runtime.RawExtension{
 					Object: &unstructured.Unstructured{
-						Object: map[string]interface{}{
+						Object: map[string]any{
 							"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
 							"kind":       "AzureClusterTemplate",
 						},
@@ -544,7 +543,7 @@ func TestMatchesSelector(t *testing.T) {
 				APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 				Kind:       "AzureClusterTemplate",
 				MatchResources: clusterv1.PatchSelectorMatch{
-					InfrastructureCluster: ptr.To(false),
+					InfrastructureCluster: new(false),
 				},
 			},
 			match: false,
@@ -554,7 +553,7 @@ func TestMatchesSelector(t *testing.T) {
 			req: &runtimehooksv1.GeneratePatchesRequestItem{
 				Object: runtime.RawExtension{
 					Object: &unstructured.Unstructured{
-						Object: map[string]interface{}{
+						Object: map[string]any{
 							"apiVersion": clusterv1.GroupVersionControlPlane.String(),
 							"kind":       "ControlPlaneTemplate",
 						},
@@ -572,7 +571,7 @@ func TestMatchesSelector(t *testing.T) {
 				APIVersion: clusterv1.GroupVersionControlPlane.String(),
 				Kind:       "ControlPlaneTemplate",
 				MatchResources: clusterv1.PatchSelectorMatch{
-					ControlPlane: ptr.To(true),
+					ControlPlane: new(true),
 				},
 			},
 			match: true,
@@ -582,7 +581,7 @@ func TestMatchesSelector(t *testing.T) {
 			req: &runtimehooksv1.GeneratePatchesRequestItem{
 				Object: runtime.RawExtension{
 					Object: &unstructured.Unstructured{
-						Object: map[string]interface{}{
+						Object: map[string]any{
 							"apiVersion": clusterv1.GroupVersionControlPlane.String(),
 							"kind":       "ControlPlaneTemplate",
 						},
@@ -608,7 +607,7 @@ func TestMatchesSelector(t *testing.T) {
 			req: &runtimehooksv1.GeneratePatchesRequestItem{
 				Object: runtime.RawExtension{
 					Object: &unstructured.Unstructured{
-						Object: map[string]interface{}{
+						Object: map[string]any{
 							"apiVersion": clusterv1.GroupVersionControlPlane.String(),
 							"kind":       "ControlPlaneTemplate",
 						},
@@ -626,7 +625,7 @@ func TestMatchesSelector(t *testing.T) {
 				APIVersion: clusterv1.GroupVersionControlPlane.String(),
 				Kind:       "ControlPlaneTemplate",
 				MatchResources: clusterv1.PatchSelectorMatch{
-					ControlPlane: ptr.To(false),
+					ControlPlane: new(false),
 				},
 			},
 			match: false,
@@ -636,7 +635,7 @@ func TestMatchesSelector(t *testing.T) {
 			req: &runtimehooksv1.GeneratePatchesRequestItem{
 				Object: runtime.RawExtension{
 					Object: &unstructured.Unstructured{
-						Object: map[string]interface{}{
+						Object: map[string]any{
 							"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
 							"kind":       "AzureMachineTemplate",
 						},
@@ -654,7 +653,7 @@ func TestMatchesSelector(t *testing.T) {
 				APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 				Kind:       "AzureMachineTemplate",
 				MatchResources: clusterv1.PatchSelectorMatch{
-					ControlPlane: ptr.To(true),
+					ControlPlane: new(true),
 				},
 			},
 			match: true,
@@ -664,7 +663,7 @@ func TestMatchesSelector(t *testing.T) {
 			req: &runtimehooksv1.GeneratePatchesRequestItem{
 				Object: runtime.RawExtension{
 					Object: &unstructured.Unstructured{
-						Object: map[string]interface{}{
+						Object: map[string]any{
 							"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
 							"kind":       "AzureMachineTemplate",
 						},
@@ -682,7 +681,7 @@ func TestMatchesSelector(t *testing.T) {
 				APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 				Kind:       "AzureMachineTemplate",
 				MatchResources: clusterv1.PatchSelectorMatch{
-					ControlPlane: ptr.To(true),
+					ControlPlane: new(true),
 				},
 			},
 			match: true,
@@ -692,7 +691,7 @@ func TestMatchesSelector(t *testing.T) {
 			req: &runtimehooksv1.GeneratePatchesRequestItem{
 				Object: runtime.RawExtension{
 					Object: &unstructured.Unstructured{
-						Object: map[string]interface{}{
+						Object: map[string]any{
 							"apiVersion": clusterv1.GroupVersionBootstrap.String(),
 							"kind":       "BootstrapTemplate",
 						},
@@ -725,7 +724,7 @@ func TestMatchesSelector(t *testing.T) {
 			req: &runtimehooksv1.GeneratePatchesRequestItem{
 				Object: runtime.RawExtension{
 					Object: &unstructured.Unstructured{
-						Object: map[string]interface{}{
+						Object: map[string]any{
 							"apiVersion": clusterv1.GroupVersionBootstrap.String(),
 							"kind":       "BootstrapTemplate",
 						},
@@ -758,7 +757,7 @@ func TestMatchesSelector(t *testing.T) {
 			req: &runtimehooksv1.GeneratePatchesRequestItem{
 				Object: runtime.RawExtension{
 					Object: &unstructured.Unstructured{
-						Object: map[string]interface{}{
+						Object: map[string]any{
 							"apiVersion": clusterv1.GroupVersionBootstrap.String(),
 							"kind":       "BootstrapTemplate",
 						},
@@ -791,7 +790,7 @@ func TestMatchesSelector(t *testing.T) {
 			req: &runtimehooksv1.GeneratePatchesRequestItem{
 				Object: runtime.RawExtension{
 					Object: &unstructured.Unstructured{
-						Object: map[string]interface{}{
+						Object: map[string]any{
 							"apiVersion": clusterv1.GroupVersionBootstrap.String(),
 							"kind":       "BootstrapTemplate",
 						},
@@ -824,7 +823,7 @@ func TestMatchesSelector(t *testing.T) {
 			req: &runtimehooksv1.GeneratePatchesRequestItem{
 				Object: runtime.RawExtension{
 					Object: &unstructured.Unstructured{
-						Object: map[string]interface{}{
+						Object: map[string]any{
 							"apiVersion": clusterv1.GroupVersionBootstrap.String(),
 							"kind":       "BootstrapTemplate",
 						},
@@ -857,7 +856,7 @@ func TestMatchesSelector(t *testing.T) {
 			req: &runtimehooksv1.GeneratePatchesRequestItem{
 				Object: runtime.RawExtension{
 					Object: &unstructured.Unstructured{
-						Object: map[string]interface{}{
+						Object: map[string]any{
 							"apiVersion": clusterv1.GroupVersionBootstrap.String(),
 							"kind":       "BootstrapTemplate",
 						},
@@ -890,7 +889,7 @@ func TestMatchesSelector(t *testing.T) {
 			req: &runtimehooksv1.GeneratePatchesRequestItem{
 				Object: runtime.RawExtension{
 					Object: &unstructured.Unstructured{
-						Object: map[string]interface{}{
+						Object: map[string]any{
 							"apiVersion": clusterv1.GroupVersionBootstrap.String(),
 							"kind":       "BootstrapTemplate",
 						},
@@ -923,7 +922,7 @@ func TestMatchesSelector(t *testing.T) {
 			req: &runtimehooksv1.GeneratePatchesRequestItem{
 				Object: runtime.RawExtension{
 					Object: &unstructured.Unstructured{
-						Object: map[string]interface{}{
+						Object: map[string]any{
 							"apiVersion": clusterv1.GroupVersionBootstrap.String(),
 							"kind":       "BootstrapTemplate",
 						},
@@ -956,7 +955,7 @@ func TestMatchesSelector(t *testing.T) {
 			req: &runtimehooksv1.GeneratePatchesRequestItem{
 				Object: runtime.RawExtension{
 					Object: &unstructured.Unstructured{
-						Object: map[string]interface{}{
+						Object: map[string]any{
 							"apiVersion": clusterv1.GroupVersionBootstrap.String(),
 							"kind":       "BootstrapTemplate",
 						},
@@ -989,7 +988,7 @@ func TestMatchesSelector(t *testing.T) {
 			req: &runtimehooksv1.GeneratePatchesRequestItem{
 				Object: runtime.RawExtension{
 					Object: &unstructured.Unstructured{
-						Object: map[string]interface{}{
+						Object: map[string]any{
 							"apiVersion": clusterv1.GroupVersionBootstrap.String(),
 							"kind":       "BootstrapTemplate",
 						},
@@ -1022,7 +1021,7 @@ func TestMatchesSelector(t *testing.T) {
 			req: &runtimehooksv1.GeneratePatchesRequestItem{
 				Object: runtime.RawExtension{
 					Object: &unstructured.Unstructured{
-						Object: map[string]interface{}{
+						Object: map[string]any{
 							"apiVersion": clusterv1.GroupVersionBootstrap.String(),
 							"kind":       "BootstrapTemplate",
 						},
@@ -1053,7 +1052,7 @@ func TestMatchesSelector(t *testing.T) {
 			req: &runtimehooksv1.GeneratePatchesRequestItem{
 				Object: runtime.RawExtension{
 					Object: &unstructured.Unstructured{
-						Object: map[string]interface{}{
+						Object: map[string]any{
 							"apiVersion": clusterv1.GroupVersionBootstrap.String(),
 							"kind":       "BootstrapTemplate",
 						},
@@ -1084,7 +1083,7 @@ func TestMatchesSelector(t *testing.T) {
 			req: &runtimehooksv1.GeneratePatchesRequestItem{
 				Object: runtime.RawExtension{
 					Object: &unstructured.Unstructured{
-						Object: map[string]interface{}{
+						Object: map[string]any{
 							"apiVersion": clusterv1.GroupVersionBootstrap.String(),
 							"kind":       "BootstrapTemplate",
 						},
@@ -1113,7 +1112,7 @@ func TestMatchesSelector(t *testing.T) {
 			req: &runtimehooksv1.GeneratePatchesRequestItem{
 				Object: runtime.RawExtension{
 					Object: &unstructured.Unstructured{
-						Object: map[string]interface{}{
+						Object: map[string]any{
 							"apiVersion": clusterv1.GroupVersionBootstrap.String(),
 							"kind":       "BootstrapTemplate",
 						},
@@ -1142,7 +1141,7 @@ func TestMatchesSelector(t *testing.T) {
 			req: &runtimehooksv1.GeneratePatchesRequestItem{
 				Object: runtime.RawExtension{
 					Object: &unstructured.Unstructured{
-						Object: map[string]interface{}{
+						Object: map[string]any{
 							"apiVersion": clusterv1.GroupVersionBootstrap.String(),
 							"kind":       "BootstrapTemplate",
 						},
@@ -1175,7 +1174,7 @@ func TestMatchesSelector(t *testing.T) {
 			req: &runtimehooksv1.GeneratePatchesRequestItem{
 				Object: runtime.RawExtension{
 					Object: &unstructured.Unstructured{
-						Object: map[string]interface{}{
+						Object: map[string]any{
 							"apiVersion": clusterv1.GroupVersionBootstrap.String(),
 							"kind":       "BootstrapTemplate",
 						},
@@ -1208,7 +1207,7 @@ func TestMatchesSelector(t *testing.T) {
 			req: &runtimehooksv1.GeneratePatchesRequestItem{
 				Object: runtime.RawExtension{
 					Object: &unstructured.Unstructured{
-						Object: map[string]interface{}{
+						Object: map[string]any{
 							"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
 							"kind":       "AzureMachineTemplate",
 						},
@@ -1241,7 +1240,7 @@ func TestMatchesSelector(t *testing.T) {
 			req: &runtimehooksv1.GeneratePatchesRequestItem{
 				Object: runtime.RawExtension{
 					Object: &unstructured.Unstructured{
-						Object: map[string]interface{}{
+						Object: map[string]any{
 							"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
 							"kind":       "AzureMachinePoolTemplate",
 						},
@@ -1274,7 +1273,7 @@ func TestMatchesSelector(t *testing.T) {
 			req: &runtimehooksv1.GeneratePatchesRequestItem{
 				Object: runtime.RawExtension{
 					Object: &unstructured.Unstructured{
-						Object: map[string]interface{}{
+						Object: map[string]any{
 							"apiVersion": clusterv1.GroupVersionControlPlane.String(),
 							"kind":       "ControlPlaneTemplate",
 						},
@@ -1292,7 +1291,7 @@ func TestMatchesSelector(t *testing.T) {
 				APIVersion: clusterv1.GroupVersionControlPlane.String(),
 				Kind:       "ControlPlaneTemplate",
 				MatchResources: clusterv1.PatchSelectorMatch{
-					ControlPlane: ptr.To(true),
+					ControlPlane: new(true),
 				},
 			},
 			match: false,
@@ -2291,7 +2290,7 @@ func TestCalculateTemplateData(t *testing.T) {
 	tests := []struct {
 		name      string
 		variables map[string]apiextensionsv1.JSON
-		want      map[string]interface{}
+		want      map[string]any
 		wantErr   bool
 	}{
 		{
@@ -2316,7 +2315,7 @@ func TestCalculateTemplateData(t *testing.T) {
 				"numberVariable":  {Raw: []byte("2.5")},
 				"booleanVariable": {Raw: []byte("true")},
 			},
-			want: map[string]interface{}{
+			want: map[string]any{
 				"stringVariable":  "cluster-name",
 				"integerVariable": float64(4),
 				"numberVariable":  float64(2.5),
@@ -2329,23 +2328,23 @@ func TestCalculateTemplateData(t *testing.T) {
 				"builtin":      {Raw: []byte(`{"cluster":{"name":"cluster-name","namespace":"default","topology":{"class":"clusterClass1","version":"v1.22.0"}},"controlPlane":{"replicas":3},"machineDeployment":{"version":"v1.21.2"},"machinePool":{"version":"v1.21.2"}}`)},
 				"userVariable": {Raw: []byte(`"value"`)},
 			},
-			want: map[string]interface{}{
-				"builtin": map[string]interface{}{
-					"cluster": map[string]interface{}{
+			want: map[string]any{
+				"builtin": map[string]any{
+					"cluster": map[string]any{
 						"name":      "cluster-name",
 						"namespace": "default",
-						"topology": map[string]interface{}{
+						"topology": map[string]any{
 							"class":   "clusterClass1",
 							"version": "v1.22.0",
 						},
 					},
-					"controlPlane": map[string]interface{}{
+					"controlPlane": map[string]any{
 						"replicas": float64(3),
 					},
-					"machineDeployment": map[string]interface{}{
+					"machineDeployment": map[string]any{
 						"version": "v1.21.2",
 					},
-					"machinePool": map[string]interface{}{
+					"machinePool": map[string]any{
 						"version": "v1.21.2",
 					},
 				},

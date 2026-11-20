@@ -26,7 +26,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	addonsv1 "sigs.k8s.io/cluster-api/api/addons/v1beta2"
@@ -60,7 +59,7 @@ func TestGetorCreateClusterResourceSetBinding(t *testing.T) {
 								Name: "mySecret",
 								Kind: "Secret",
 							},
-							Applied:         ptr.To(true),
+							Applied:         new(true),
 							Hash:            "xyz",
 							LastAppliedTime: metav1.Time{Time: time.Now().UTC()},
 						},

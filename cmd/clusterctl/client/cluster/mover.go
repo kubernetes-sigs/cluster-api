@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"time"
 
@@ -401,7 +402,7 @@ func (o *objectMover) move(ctx context.Context, graph *objectGraph, toProxy Prox
 
 	// Delete all objects group by group in reverse order.
 	log.Info("Deleting objects from the source cluster")
-	for groupIndex := len(moveSequence.groups) - 1; groupIndex >= 0; groupIndex-- {
+	for groupIndex := range slices.Backward(moveSequence.groups) {
 		if err := o.deleteGroup(ctx, moveSequence.getGroup(groupIndex)); err != nil {
 			return err
 		}

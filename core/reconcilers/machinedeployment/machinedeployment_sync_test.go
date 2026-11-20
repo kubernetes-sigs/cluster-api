@@ -399,9 +399,9 @@ func newTestMachineDeployment(replicas, statusReplicas, upToDateReplicas, availa
 			},
 		},
 		Status: clusterv1.MachineDeploymentStatus{
-			Replicas:          ptr.To[int32](statusReplicas),
-			UpToDateReplicas:  ptr.To[int32](upToDateReplicas),
-			AvailableReplicas: ptr.To[int32](availableReplicas),
+			Replicas:          new(statusReplicas),
+			UpToDateReplicas:  new(upToDateReplicas),
+			AvailableReplicas: new(availableReplicas),
 		},
 	}
 	return d
@@ -416,11 +416,11 @@ func newTestMachinesetWithReplicas(name string, specReplicas, statusReplicas, av
 			Namespace:         metav1.NamespaceDefault,
 		},
 		Spec: clusterv1.MachineSetSpec{
-			Replicas: ptr.To[int32](specReplicas),
+			Replicas: new(specReplicas),
 		},
 		Status: clusterv1.MachineSetStatus{
-			Replicas:          ptr.To(statusReplicas),
-			AvailableReplicas: ptr.To[int32](availableReplicas),
+			Replicas:          new(statusReplicas),
+			AvailableReplicas: new(availableReplicas),
 			Deprecated: &clusterv1.MachineSetDeprecatedStatus{
 				V1Beta1: &clusterv1.MachineSetV1Beta1DeprecatedStatus{
 					Conditions: v1Beta1Conditions,
@@ -560,7 +560,7 @@ func TestCreateOrUpdateMachineSetsNilNewMS(t *testing.T) {
 			Annotations: map[string]string{},
 		},
 		Spec: clusterv1.MachineDeploymentSpec{
-			Paused: ptr.To(true),
+			Paused: new(true),
 		},
 	}
 

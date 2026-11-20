@@ -17,6 +17,8 @@ limitations under the License.
 package conditions
 
 import (
+	"slices"
+
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -136,13 +138,7 @@ func summary(from Getter, options ...MergeOption) *clusterv1.Condition {
 		}
 
 		if mergeOpt.conditionTypes != nil {
-			found := false
-			for _, t := range mergeOpt.conditionTypes {
-				if c.Type == t {
-					found = true
-					break
-				}
-			}
+			found := slices.Contains(mergeOpt.conditionTypes, c.Type)
 			if !found {
 				continue
 			}
@@ -150,11 +146,8 @@ func summary(from Getter, options ...MergeOption) *clusterv1.Condition {
 
 		// Keep track of the polarity of the condition we are starting from.
 		polarity := PositivePolarity
-		for _, t := range mergeOpt.negativeConditionTypes {
-			if c.Type == t {
-				polarity = NegativePolarity
-				break
-			}
+		if slices.Contains(mergeOpt.negativeConditionTypes, c.Type) {
+			polarity = NegativePolarity
 		}
 
 		conditionsInScope = append(conditionsInScope, localizedCondition{
@@ -168,13 +161,7 @@ func summary(from Getter, options ...MergeOption) *clusterv1.Condition {
 	// in scope are included in this subset or not.
 	if mergeOpt.addStepCounterIfOnlyConditionTypes != nil {
 		for _, c := range conditionsInScope {
-			found := false
-			for _, t := range mergeOpt.addStepCounterIfOnlyConditionTypes {
-				if c.Type == t {
-					found = true
-					break
-				}
-			}
+			found := slices.Contains(mergeOpt.addStepCounterIfOnlyConditionTypes, c.Type)
 			if !found {
 				mergeOpt.addStepCounter = false
 				break

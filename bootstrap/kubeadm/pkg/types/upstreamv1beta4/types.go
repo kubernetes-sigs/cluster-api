@@ -43,7 +43,7 @@ type InitConfiguration struct {
 
 	// NodeRegistration holds fields that relate to registering the new control-plane node to the cluster
 	// +optional
-	NodeRegistration NodeRegistrationOptions `json:"nodeRegistration,omitempty"`
+	NodeRegistration NodeRegistrationOptions `json:"nodeRegistration,omitempty"` //nolint:modernize // we don't want to change the upstream types to use omitzero here
 
 	// LocalAPIEndpoint represents the endpoint of the API server instance that's deployed on this control plane node
 	// In HA setups, this differs from ClusterConfiguration.ControlPlaneEndpoint in the sense that ControlPlaneEndpoint
@@ -52,7 +52,7 @@ type InitConfiguration struct {
 	// on. By default, kubeadm tries to auto-detect the IP of the default interface and use that, but in case that process
 	// fails you may set the desired value here.
 	// +optional
-	LocalAPIEndpoint APIEndpoint `json:"localAPIEndpoint,omitempty"`
+	LocalAPIEndpoint APIEndpoint `json:"localAPIEndpoint,omitempty"` //nolint:modernize // we don't want to change the upstream types to use omitzero here
 
 	// CertificateKey sets the key with which certificates and keys are encrypted prior to being uploaded in
 	// a secret in the cluster during the uploadcerts init phase.
@@ -84,11 +84,11 @@ type ClusterConfiguration struct {
 
 	// Etcd holds configuration for etcd.
 	// +optional
-	Etcd Etcd `json:"etcd,omitempty"`
+	Etcd Etcd `json:"etcd,omitempty"` //nolint:modernize // we don't want to change the upstream types to use omitzero here
 
 	// Networking holds configuration for the networking topology of the cluster.
 	// +optional
-	Networking Networking `json:"networking,omitempty"`
+	Networking Networking `json:"networking,omitempty"` //nolint:modernize // we don't want to change the upstream types to use omitzero here
 
 	// KubernetesVersion is the target version of the control plane.
 	// +optional
@@ -110,22 +110,22 @@ type ClusterConfiguration struct {
 
 	// APIServer contains extra settings for the API server control plane component
 	// +optional
-	APIServer APIServer `json:"apiServer,omitempty"`
+	APIServer APIServer `json:"apiServer,omitempty"` //nolint:modernize // we don't want to change the upstream types to use omitzero here
 
 	// ControllerManager contains extra settings for the controller manager control plane component
 	// +optional
-	ControllerManager ControlPlaneComponent `json:"controllerManager,omitempty"`
+	ControllerManager ControlPlaneComponent `json:"controllerManager,omitempty"` //nolint:modernize // we don't want to change the upstream types to use omitzero here
 
 	// Scheduler contains extra settings for the scheduler control plane component
 	// +optional
-	Scheduler ControlPlaneComponent `json:"scheduler,omitempty"`
+	Scheduler ControlPlaneComponent `json:"scheduler,omitempty"` //nolint:modernize // we don't want to change the upstream types to use omitzero here
 
 	// DNS defines the options for the DNS add-on installed in the cluster.
 	// +optional
-	DNS DNS `json:"dns,omitempty"`
+	DNS DNS `json:"dns,omitempty"` //nolint:modernize // we don't want to change the upstream types to use omitzero here
 
 	// Proxy defines the options for the proxy add-on installed in the cluster.
-	Proxy Proxy `json:"proxy,omitempty"`
+	Proxy Proxy `json:"proxy,omitempty"` //nolint:modernize // we don't want to change the upstream types to use omitzero here
 
 	// CertificatesDir specifies where to store or look for all required certificates.
 	// +optional
@@ -394,7 +394,7 @@ type JoinConfiguration struct {
 
 	// NodeRegistration holds fields that relate to registering the new control-plane node to the cluster
 	// +optional
-	NodeRegistration NodeRegistrationOptions `json:"nodeRegistration,omitempty"`
+	NodeRegistration NodeRegistrationOptions `json:"nodeRegistration,omitempty"` //nolint:modernize // we don't want to change the upstream types to use omitzero here
 
 	// CACertPath is the path to the SSL certificate authority used to
 	// secure communications between node and control-plane.
@@ -430,7 +430,7 @@ type JoinConfiguration struct {
 type JoinControlPlane struct {
 	// LocalAPIEndpoint represents the endpoint of the API server instance to be deployed on this node.
 	// +optional
-	LocalAPIEndpoint APIEndpoint `json:"localAPIEndpoint,omitempty"`
+	LocalAPIEndpoint APIEndpoint `json:"localAPIEndpoint,omitempty"` //nolint:modernize // we don't want to change the upstream types to use omitzero here
 
 	// CertificateKey is the key that is used for decryption of certificates after they are downloaded from the secret
 	// upon joining a new control plane node. The corresponding encryption key is in the InitConfiguration.

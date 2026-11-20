@@ -20,7 +20,6 @@ package e2e
 
 import (
 	. "github.com/onsi/ginkgo/v2"
-	"k8s.io/utils/ptr"
 )
 
 var _ = Describe("When using the autoscaler with Cluster API using ClusterClass [ClusterClass]", Label("ClusterClass"), func() {
@@ -34,7 +33,7 @@ var _ = Describe("When using the autoscaler with Cluster API using ClusterClass 
 			InfrastructureMachineTemplateKind:     "devmachinetemplates",
 			InfrastructureMachinePoolTemplateKind: "devmachinepooltemplates",
 			InfrastructureMachinePoolKind:         "devmachinepools",
-			Flavor:                                ptr.To("topology-autoscaler"),
+			Flavor:                                new("topology-autoscaler"),
 			AutoscalerVersion:                     "v1.36.0",
 			ScaleToAndFromZero:                    true,
 		}

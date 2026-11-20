@@ -24,7 +24,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	utilfeature "k8s.io/component-base/featuregate/testing"
-	"k8s.io/utils/ptr"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/pkg/features"
@@ -58,7 +57,7 @@ func TestValidatePatches(t *testing.T) {
 										APIVersion: clusterv1.GroupVersionControlPlane.String(),
 										Kind:       "ControlPlaneTemplate",
 										MatchResources: clusterv1.PatchSelectorMatch{
-											ControlPlane: ptr.To(true),
+											ControlPlane: new(true),
 										},
 									},
 									JSONPatches: []clusterv1.JSONPatch{
@@ -81,7 +80,7 @@ func TestValidatePatches(t *testing.T) {
 										APIVersion: clusterv1.GroupVersionControlPlane.String(),
 										Kind:       "ControlPlaneTemplate",
 										MatchResources: clusterv1.PatchSelectorMatch{
-											ControlPlane: ptr.To(true),
+											ControlPlane: new(true),
 										},
 									},
 									JSONPatches: []clusterv1.JSONPatch{
@@ -100,7 +99,7 @@ func TestValidatePatches(t *testing.T) {
 					Variables: []clusterv1.ClusterClassVariable{
 						{
 							Name:     "variableName1",
-							Required: ptr.To(true),
+							Required: new(true),
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 									Type: "string",
@@ -109,7 +108,7 @@ func TestValidatePatches(t *testing.T) {
 						},
 						{
 							Name:     "variableName2",
-							Required: ptr.To(true),
+							Required: new(true),
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 									Type: "string",
@@ -143,7 +142,7 @@ func TestValidatePatches(t *testing.T) {
 										APIVersion: clusterv1.GroupVersionControlPlane.String(),
 										Kind:       "ControlPlaneTemplate",
 										MatchResources: clusterv1.PatchSelectorMatch{
-											ControlPlane: ptr.To(true),
+											ControlPlane: new(true),
 										},
 									},
 									JSONPatches: []clusterv1.JSONPatch{
@@ -162,7 +161,7 @@ func TestValidatePatches(t *testing.T) {
 					Variables: []clusterv1.ClusterClassVariable{
 						{
 							Name:     "variableName",
-							Required: ptr.To(true),
+							Required: new(true),
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 									Type: "string",
@@ -194,7 +193,7 @@ func TestValidatePatches(t *testing.T) {
 										APIVersion: clusterv1.GroupVersionControlPlane.String(),
 										Kind:       "ControlPlaneTemplate",
 										MatchResources: clusterv1.PatchSelectorMatch{
-											ControlPlane: ptr.To(true),
+											ControlPlane: new(true),
 										},
 									},
 									JSONPatches: []clusterv1.JSONPatch{
@@ -217,7 +216,7 @@ func TestValidatePatches(t *testing.T) {
 										APIVersion: clusterv1.GroupVersionControlPlane.String(),
 										Kind:       "ControlPlaneTemplate",
 										MatchResources: clusterv1.PatchSelectorMatch{
-											ControlPlane: ptr.To(true),
+											ControlPlane: new(true),
 										},
 									},
 									JSONPatches: []clusterv1.JSONPatch{
@@ -236,7 +235,7 @@ func TestValidatePatches(t *testing.T) {
 					Variables: []clusterv1.ClusterClassVariable{
 						{
 							Name:     "variableName1",
-							Required: ptr.To(true),
+							Required: new(true),
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 									Type: "string",
@@ -245,7 +244,7 @@ func TestValidatePatches(t *testing.T) {
 						},
 						{
 							Name:     "variableName2",
-							Required: ptr.To(true),
+							Required: new(true),
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 									Type: "string",
@@ -321,7 +320,7 @@ func TestValidatePatches(t *testing.T) {
 										APIVersion: clusterv1.GroupVersionControlPlane.String(),
 										Kind:       "ControlPlaneTemplate",
 										MatchResources: clusterv1.PatchSelectorMatch{
-											ControlPlane: ptr.To(true),
+											ControlPlane: new(true),
 										},
 									},
 									JSONPatches: []clusterv1.JSONPatch{
@@ -361,7 +360,7 @@ func TestValidatePatches(t *testing.T) {
 										APIVersion: clusterv1.GroupVersionControlPlane.String(),
 										Kind:       "ControlPlaneTemplate",
 										MatchResources: clusterv1.PatchSelectorMatch{
-											ControlPlane: ptr.To(true),
+											ControlPlane: new(true),
 										},
 									},
 									JSONPatches: []clusterv1.JSONPatch{
@@ -399,7 +398,7 @@ func TestValidatePatches(t *testing.T) {
 										APIVersion: clusterv1.GroupVersionControlPlane.String(),
 										Kind:       "ControlPlaneTemplate",
 										MatchResources: clusterv1.PatchSelectorMatch{
-											ControlPlane: ptr.To(true),
+											ControlPlane: new(true),
 										},
 									},
 									JSONPatches: []clusterv1.JSONPatch{
@@ -418,7 +417,7 @@ func TestValidatePatches(t *testing.T) {
 					Variables: []clusterv1.ClusterClassVariable{
 						{
 							Name:     "variableName",
-							Required: ptr.To(true),
+							Required: new(true),
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 									Type: "string",
@@ -449,7 +448,7 @@ func TestValidatePatches(t *testing.T) {
 										APIVersion: clusterv1.GroupVersionControlPlane.String(),
 										Kind:       "ControlPlaneTemplate",
 										MatchResources: clusterv1.PatchSelectorMatch{
-											ControlPlane: ptr.To(true),
+											ControlPlane: new(true),
 										},
 									},
 									JSONPatches: []clusterv1.JSONPatch{
@@ -468,7 +467,7 @@ func TestValidatePatches(t *testing.T) {
 					Variables: []clusterv1.ClusterClassVariable{
 						{
 							Name:     "variableName",
-							Required: ptr.To(true),
+							Required: new(true),
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 									Type: "string",
@@ -500,7 +499,7 @@ func TestValidatePatches(t *testing.T) {
 										APIVersion: clusterv1.GroupVersionControlPlane.String(),
 										Kind:       "ControlPlaneTemplate",
 										MatchResources: clusterv1.PatchSelectorMatch{
-											ControlPlane: ptr.To(true),
+											ControlPlane: new(true),
 										},
 									},
 									JSONPatches: []clusterv1.JSONPatch{
@@ -519,7 +518,7 @@ func TestValidatePatches(t *testing.T) {
 					Variables: []clusterv1.ClusterClassVariable{
 						{
 							Name:     "variableName",
-							Required: ptr.To(true),
+							Required: new(true),
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 									Type: "string",
@@ -551,7 +550,7 @@ func TestValidatePatches(t *testing.T) {
 										APIVersion: clusterv1.GroupVersionControlPlane.String(),
 										Kind:       "ControlPlaneTemplate",
 										MatchResources: clusterv1.PatchSelectorMatch{
-											ControlPlane: ptr.To(true),
+											ControlPlane: new(true),
 										},
 									},
 									JSONPatches: []clusterv1.JSONPatch{
@@ -570,7 +569,7 @@ func TestValidatePatches(t *testing.T) {
 					Variables: []clusterv1.ClusterClassVariable{
 						{
 							Name:     "variableName",
-							Required: ptr.To(true),
+							Required: new(true),
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 									Type: "string",
@@ -602,7 +601,7 @@ func TestValidatePatches(t *testing.T) {
 										APIVersion: clusterv1.GroupVersionControlPlane.String(),
 										Kind:       "ControlPlaneTemplate",
 										MatchResources: clusterv1.PatchSelectorMatch{
-											ControlPlane: ptr.To(true),
+											ControlPlane: new(true),
 										},
 									},
 									JSONPatches: []clusterv1.JSONPatch{
@@ -621,7 +620,7 @@ func TestValidatePatches(t *testing.T) {
 					Variables: []clusterv1.ClusterClassVariable{
 						{
 							Name:     "variableName",
-							Required: ptr.To(true),
+							Required: new(true),
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 									Type: "string",
@@ -655,7 +654,7 @@ func TestValidatePatches(t *testing.T) {
 										APIVersion: clusterv1.GroupVersionControlPlane.String(),
 										Kind:       "ControlPlaneTemplate",
 										MatchResources: clusterv1.PatchSelectorMatch{
-											ControlPlane: ptr.To(true),
+											ControlPlane: new(true),
 										},
 									},
 									JSONPatches: []clusterv1.JSONPatch{
@@ -692,7 +691,7 @@ func TestValidatePatches(t *testing.T) {
 										APIVersion: clusterv1.GroupVersionControlPlane.String(),
 										Kind:       "ControlPlaneTemplate",
 										MatchResources: clusterv1.PatchSelectorMatch{
-											ControlPlane: ptr.To(true),
+											ControlPlane: new(true),
 										},
 									},
 									JSONPatches: []clusterv1.JSONPatch{
@@ -712,7 +711,7 @@ func TestValidatePatches(t *testing.T) {
 					Variables: []clusterv1.ClusterClassVariable{
 						{
 							Name:     "variableName",
-							Required: ptr.To(true),
+							Required: new(true),
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 									Type: "string",
@@ -745,7 +744,7 @@ func TestValidatePatches(t *testing.T) {
 										APIVersion: clusterv1.GroupVersionControlPlane.String(),
 										Kind:       "ControlPlaneTemplate",
 										MatchResources: clusterv1.PatchSelectorMatch{
-											ControlPlane: ptr.To(true),
+											ControlPlane: new(true),
 										},
 									},
 									JSONPatches: []clusterv1.JSONPatch{
@@ -782,7 +781,7 @@ func TestValidatePatches(t *testing.T) {
 										APIVersion: clusterv1.GroupVersionControlPlane.String(),
 										Kind:       "ControlPlaneTemplate",
 										MatchResources: clusterv1.PatchSelectorMatch{
-											ControlPlane: ptr.To(true),
+											ControlPlane: new(true),
 										},
 									},
 									JSONPatches: []clusterv1.JSONPatch{
@@ -822,7 +821,7 @@ func TestValidatePatches(t *testing.T) {
 										APIVersion: clusterv1.GroupVersionControlPlane.String(),
 										Kind:       "ControlPlaneTemplate",
 										MatchResources: clusterv1.PatchSelectorMatch{
-											ControlPlane: ptr.To(true),
+											ControlPlane: new(true),
 										},
 									},
 									JSONPatches: []clusterv1.JSONPatch{
@@ -862,7 +861,7 @@ func TestValidatePatches(t *testing.T) {
 										APIVersion: clusterv1.GroupVersionControlPlane.String(),
 										Kind:       "ControlPlaneTemplate",
 										MatchResources: clusterv1.PatchSelectorMatch{
-											ControlPlane: ptr.To(true),
+											ControlPlane: new(true),
 										},
 									},
 									JSONPatches: []clusterv1.JSONPatch{
@@ -904,7 +903,7 @@ func TestValidatePatches(t *testing.T) {
 										APIVersion: clusterv1.GroupVersionControlPlane.String(),
 										Kind:       "ControlPlaneTemplate",
 										MatchResources: clusterv1.PatchSelectorMatch{
-											ControlPlane: ptr.To(true),
+											ControlPlane: new(true),
 										},
 									},
 									JSONPatches: []clusterv1.JSONPatch{
@@ -941,7 +940,7 @@ func TestValidatePatches(t *testing.T) {
 										APIVersion: clusterv1.GroupVersionControlPlane.String(),
 										Kind:       "ControlPlaneTemplate",
 										MatchResources: clusterv1.PatchSelectorMatch{
-											ControlPlane: ptr.To(true),
+											ControlPlane: new(true),
 										},
 									},
 									JSONPatches: []clusterv1.JSONPatch{
@@ -961,7 +960,7 @@ func TestValidatePatches(t *testing.T) {
 					Variables: []clusterv1.ClusterClassVariable{
 						{
 							Name:     "variableName",
-							Required: ptr.To(true),
+							Required: new(true),
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 									Type: "string",
@@ -994,7 +993,7 @@ func TestValidatePatches(t *testing.T) {
 										APIVersion: clusterv1.GroupVersionControlPlane.String(),
 										Kind:       "ControlPlaneTemplate",
 										MatchResources: clusterv1.PatchSelectorMatch{
-											ControlPlane: ptr.To(true),
+											ControlPlane: new(true),
 										},
 									},
 									JSONPatches: []clusterv1.JSONPatch{
@@ -1013,7 +1012,7 @@ func TestValidatePatches(t *testing.T) {
 					Variables: []clusterv1.ClusterClassVariable{
 						{
 							Name:     "variableName",
-							Required: ptr.To(true),
+							Required: new(true),
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 									Type: "string",
@@ -1044,7 +1043,7 @@ func TestValidatePatches(t *testing.T) {
 										APIVersion: clusterv1.GroupVersionControlPlane.String(),
 										Kind:       "ControlPlaneTemplate",
 										MatchResources: clusterv1.PatchSelectorMatch{
-											ControlPlane: ptr.To(true),
+											ControlPlane: new(true),
 										},
 									},
 									JSONPatches: []clusterv1.JSONPatch{
@@ -1064,7 +1063,7 @@ func TestValidatePatches(t *testing.T) {
 					Variables: []clusterv1.ClusterClassVariable{
 						{
 							Name:     "variableName",
-							Required: ptr.To(true),
+							Required: new(true),
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 									Type: "string",
@@ -1097,7 +1096,7 @@ func TestValidatePatches(t *testing.T) {
 										APIVersion: clusterv1.GroupVersionControlPlane.String(),
 										Kind:       "ControlPlaneTemplate",
 										MatchResources: clusterv1.PatchSelectorMatch{
-											ControlPlane: ptr.To(true),
+											ControlPlane: new(true),
 										},
 									},
 									JSONPatches: []clusterv1.JSONPatch{
@@ -1116,7 +1115,7 @@ func TestValidatePatches(t *testing.T) {
 					Variables: []clusterv1.ClusterClassVariable{
 						{
 							Name:     "variableName",
-							Required: ptr.To(true),
+							Required: new(true),
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 									Type: "string",
@@ -1147,7 +1146,7 @@ func TestValidatePatches(t *testing.T) {
 										APIVersion: clusterv1.GroupVersionControlPlane.String(),
 										Kind:       "ControlPlaneTemplate",
 										MatchResources: clusterv1.PatchSelectorMatch{
-											ControlPlane: ptr.To(true),
+											ControlPlane: new(true),
 										},
 									},
 									JSONPatches: []clusterv1.JSONPatch{
@@ -1166,7 +1165,7 @@ func TestValidatePatches(t *testing.T) {
 					Variables: []clusterv1.ClusterClassVariable{
 						{
 							Name:     "variableName",
-							Required: ptr.To(true),
+							Required: new(true),
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 									Type: "string",
@@ -1197,7 +1196,7 @@ func TestValidatePatches(t *testing.T) {
 										APIVersion: clusterv1.GroupVersionControlPlane.String(),
 										Kind:       "ControlPlaneTemplate",
 										MatchResources: clusterv1.PatchSelectorMatch{
-											ControlPlane: ptr.To(true),
+											ControlPlane: new(true),
 										},
 									},
 									JSONPatches: []clusterv1.JSONPatch{
@@ -1216,7 +1215,7 @@ func TestValidatePatches(t *testing.T) {
 					Variables: []clusterv1.ClusterClassVariable{
 						{
 							Name:     "variableName",
-							Required: ptr.To(true),
+							Required: new(true),
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 									Type: "object",
@@ -1252,7 +1251,7 @@ func TestValidatePatches(t *testing.T) {
 										APIVersion: clusterv1.GroupVersionControlPlane.String(),
 										Kind:       "ControlPlaneTemplate",
 										MatchResources: clusterv1.PatchSelectorMatch{
-											ControlPlane: ptr.To(true),
+											ControlPlane: new(true),
 										},
 									},
 									JSONPatches: []clusterv1.JSONPatch{
@@ -1292,7 +1291,7 @@ func TestValidatePatches(t *testing.T) {
 										APIVersion: clusterv1.GroupVersionControlPlane.String(),
 										Kind:       "ControlPlaneTemplate",
 										MatchResources: clusterv1.PatchSelectorMatch{
-											ControlPlane: ptr.To(true),
+											ControlPlane: new(true),
 										},
 									},
 									JSONPatches: []clusterv1.JSONPatch{
@@ -1464,8 +1463,8 @@ func Test_validateSelectors(t *testing.T) {
 				APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 				Kind:       "InfrastructureClusterTemplate",
 				MatchResources: clusterv1.PatchSelectorMatch{
-					ControlPlane:           ptr.To(false),
-					InfrastructureCluster:  ptr.To(false),
+					ControlPlane:           new(false),
+					InfrastructureCluster:  new(false),
 					MachineDeploymentClass: &clusterv1.PatchSelectorMatchMachineDeploymentClass{},
 					MachinePoolClass:       &clusterv1.PatchSelectorMatchMachinePoolClass{},
 				},
@@ -1487,7 +1486,7 @@ func Test_validateSelectors(t *testing.T) {
 				APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 				Kind:       "InfrastructureClusterTemplate",
 				MatchResources: clusterv1.PatchSelectorMatch{
-					InfrastructureCluster: ptr.To(true),
+					InfrastructureCluster: new(true),
 				},
 			},
 			clusterClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
@@ -1506,7 +1505,7 @@ func Test_validateSelectors(t *testing.T) {
 				APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 				Kind:       "InfrastructureClusterTemplate",
 				MatchResources: clusterv1.PatchSelectorMatch{
-					InfrastructureCluster: ptr.To(true),
+					InfrastructureCluster: new(true),
 				},
 			},
 			clusterClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
@@ -1526,7 +1525,7 @@ func Test_validateSelectors(t *testing.T) {
 				APIVersion: clusterv1.GroupVersionControlPlane.String(),
 				Kind:       "ControlPlaneTemplate",
 				MatchResources: clusterv1.PatchSelectorMatch{
-					ControlPlane: ptr.To(true),
+					ControlPlane: new(true),
 				},
 			},
 			clusterClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
@@ -1545,7 +1544,7 @@ func Test_validateSelectors(t *testing.T) {
 				APIVersion: clusterv1.GroupVersionControlPlane.String(),
 				Kind:       "ControlPlaneTemplate",
 				MatchResources: clusterv1.PatchSelectorMatch{
-					ControlPlane: ptr.To(true),
+					ControlPlane: new(true),
 				},
 			},
 			clusterClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
@@ -1565,7 +1564,7 @@ func Test_validateSelectors(t *testing.T) {
 				APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 				Kind:       "InfrastructureMachineTemplate",
 				MatchResources: clusterv1.PatchSelectorMatch{
-					ControlPlane: ptr.To(true),
+					ControlPlane: new(true),
 				},
 			},
 			clusterClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
@@ -1591,7 +1590,7 @@ func Test_validateSelectors(t *testing.T) {
 				APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 				Kind:       "InfrastructureMachineTemplate",
 				MatchResources: clusterv1.PatchSelectorMatch{
-					ControlPlane: ptr.To(true),
+					ControlPlane: new(true),
 				},
 			},
 			clusterClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
@@ -1804,7 +1803,7 @@ func Test_validateSelectors(t *testing.T) {
 					MachineDeploymentClass: &clusterv1.PatchSelectorMatchMachineDeploymentClass{
 						Names: []string{"bb"},
 					},
-					ControlPlane: ptr.To(false),
+					ControlPlane: new(false),
 				},
 			},
 			clusterClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
@@ -2125,8 +2124,8 @@ func Test_validateSelectors(t *testing.T) {
 				APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 				Kind:       "InfrastructureClusterTemplate",
 				MatchResources: clusterv1.PatchSelectorMatch{
-					InfrastructureCluster: ptr.To(true),
-					ControlPlane:          ptr.To(true),
+					InfrastructureCluster: new(true),
+					ControlPlane:          new(true),
 				},
 			},
 			clusterClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
@@ -2163,7 +2162,7 @@ func Test_validateSelectors(t *testing.T) {
 					MachineDeploymentClass: &clusterv1.PatchSelectorMatchMachineDeploymentClass{
 						Names: []string{"bb"},
 					},
-					ControlPlane: ptr.To(true),
+					ControlPlane: new(true),
 				},
 			},
 			clusterClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
@@ -2212,7 +2211,7 @@ func Test_validateSelectors(t *testing.T) {
 					MachineDeploymentClass: &clusterv1.PatchSelectorMatchMachineDeploymentClass{
 						Names: []string{"aa", "bb"},
 					},
-					ControlPlane: ptr.To(true),
+					ControlPlane: new(true),
 				},
 			},
 			clusterClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
@@ -2268,7 +2267,7 @@ func Test_validateSelectors(t *testing.T) {
 					MachineDeploymentClass: &clusterv1.PatchSelectorMatchMachineDeploymentClass{
 						Names: []string{"bb"},
 					},
-					ControlPlane: ptr.To(true),
+					ControlPlane: new(true),
 				},
 			},
 			clusterClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
@@ -2309,8 +2308,8 @@ func Test_validateSelectors(t *testing.T) {
 				APIVersion: clusterv1.GroupVersionInfrastructure.String(),
 				Kind:       "NotMatchingInfrastructureMachineTemplate",
 				MatchResources: clusterv1.PatchSelectorMatch{
-					ControlPlane:          ptr.To(true),
-					InfrastructureCluster: ptr.To(true),
+					ControlPlane:          new(true),
+					InfrastructureCluster: new(true),
 					MachineDeploymentClass: &clusterv1.PatchSelectorMatchMachineDeploymentClass{
 						Names: []string{"bb"},
 					},

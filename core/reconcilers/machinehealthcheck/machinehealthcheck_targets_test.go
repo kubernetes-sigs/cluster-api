@@ -18,6 +18,7 @@ package machinehealthcheck
 
 import (
 	"fmt"
+	"maps"
 	"testing"
 	"time"
 
@@ -25,7 +26,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/record"
-	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -71,14 +71,14 @@ func TestGetTargetsFromMHC(t *testing.T) {
 					{
 						Type:           corev1.NodeReady,
 						Status:         corev1.ConditionUnknown,
-						TimeoutSeconds: ptr.To(int32(5 * 60)),
+						TimeoutSeconds: new(int32(5 * 60)),
 					},
 				},
 				UnhealthyMachineConditions: []clusterv1.UnhealthyMachineCondition{
 					{
 						Type:           controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition,
 						Status:         metav1.ConditionUnknown,
-						TimeoutSeconds: ptr.To(int32(5 * 60)),
+						TimeoutSeconds: new(int32(5 * 60)),
 					},
 				},
 			},
@@ -243,24 +243,24 @@ func TestHealthCheckTargets(t *testing.T) {
 					{
 						Type:           corev1.NodeReady,
 						Status:         corev1.ConditionUnknown,
-						TimeoutSeconds: ptr.To(timeoutForUnhealthyNodeConditions),
+						TimeoutSeconds: new(timeoutForUnhealthyNodeConditions),
 					},
 					{
 						Type:           corev1.NodeReady,
 						Status:         corev1.ConditionFalse,
-						TimeoutSeconds: ptr.To(timeoutForUnhealthyNodeConditions),
+						TimeoutSeconds: new(timeoutForUnhealthyNodeConditions),
 					},
 				},
 				UnhealthyMachineConditions: []clusterv1.UnhealthyMachineCondition{
 					{
 						Type:           controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition,
 						Status:         metav1.ConditionUnknown,
-						TimeoutSeconds: ptr.To(timeoutForUnhealthyMachineConditions),
+						TimeoutSeconds: new(timeoutForUnhealthyMachineConditions),
 					},
 					{
 						Type:           controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition,
 						Status:         metav1.ConditionFalse,
-						TimeoutSeconds: ptr.To(timeoutForUnhealthyMachineConditions),
+						TimeoutSeconds: new(timeoutForUnhealthyMachineConditions),
 					},
 				},
 			},
@@ -851,9 +851,7 @@ func TestHealthCheckTargets(t *testing.T) {
 func newTestMachine(name, namespace, clusterName, nodeName string, labels map[string]string) *clusterv1.Machine {
 	// Copy the labels so that the map is unique to each test Machine
 	l := make(map[string]string)
-	for k, v := range labels {
-		l[k] = v
-	}
+	maps.Copy(l, labels)
 	l[clusterv1.ClusterNameLabel] = clusterName
 
 	bootstrap := "bootstrap"
@@ -871,8 +869,8 @@ func newTestMachine(name, namespace, clusterName, nodeName string, labels map[st
 		},
 		Status: clusterv1.MachineStatus{
 			Initialization: clusterv1.MachineInitializationStatus{
-				InfrastructureProvisioned:  ptr.To(true),
-				BootstrapDataSecretCreated: ptr.To(true),
+				InfrastructureProvisioned:  new(true),
+				BootstrapDataSecretCreated: new(true),
 			},
 			Phase: string(clusterv1.MachinePhaseRunning),
 			NodeRef: clusterv1.MachineNodeReference{
@@ -912,9 +910,7 @@ func newTestUnhealthyNode(name string, condition corev1.NodeConditionType, statu
 func newTestUnhealthyMachine(name, namespace, clusterName, nodeName string, labels map[string]string, condition string, status metav1.ConditionStatus, reason string, now time.Time, unhealthyDuration time.Duration) *clusterv1.Machine {
 	// Copy the labels so that the map is unique to each test Machine
 	l := make(map[string]string)
-	for k, v := range labels {
-		l[k] = v
-	}
+	maps.Copy(l, labels)
 	l[clusterv1.ClusterNameLabel] = clusterName
 
 	bootstrap := "bootstrap"
@@ -940,8 +936,8 @@ func newTestUnhealthyMachine(name, namespace, clusterName, nodeName string, labe
 				},
 			},
 			Initialization: clusterv1.MachineInitializationStatus{
-				InfrastructureProvisioned:  ptr.To(true),
-				BootstrapDataSecretCreated: ptr.To(true),
+				InfrastructureProvisioned:  new(true),
+				BootstrapDataSecretCreated: new(true),
 			},
 			Phase: string(clusterv1.MachinePhaseRunning),
 			NodeRef: clusterv1.MachineNodeReference{
@@ -951,11 +947,11 @@ func newTestUnhealthyMachine(name, namespace, clusterName, nodeName string, labe
 	}
 }
 
-func newFailedHealthCheckV1Beta1Condition(reason string, messageFormat string, messageArgs ...interface{}) clusterv1.Condition {
+func newFailedHealthCheckV1Beta1Condition(reason string, messageFormat string, messageArgs ...any) clusterv1.Condition {
 	return *v1beta1conditions.FalseCondition(clusterv1.MachineHealthCheckSucceededV1Beta1Condition, reason, clusterv1.ConditionSeverityWarning, messageFormat, messageArgs...)
 }
 
-func newFailedHealthCheckCondition(reason string, messageFormat string, messageArgs ...interface{}) metav1.Condition {
+func newFailedHealthCheckCondition(reason string, messageFormat string, messageArgs ...any) metav1.Condition {
 	return metav1.Condition{
 		Type:    clusterv1.MachineHealthCheckSucceededCondition,
 		Status:  metav1.ConditionFalse,

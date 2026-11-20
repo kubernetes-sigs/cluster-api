@@ -67,12 +67,12 @@ type UpgradeClusterTopologyAndWaitForUpgradeInput struct {
 	MachineDeployments                   []*clusterv1.MachineDeployment
 	MachinePools                         []*clusterv1.MachinePool
 	KubernetesUpgradeVersion             string
-	WaitForControlPlaneToBeUpgraded      []interface{}
-	WaitForMachineDeploymentToBeUpgraded []interface{}
-	WaitForMachinePoolToBeUpgraded       []interface{}
-	WaitForKubeProxyUpgrade              []interface{}
-	WaitForDNSUpgrade                    []interface{}
-	WaitForEtcdUpgrade                   []interface{}
+	WaitForControlPlaneToBeUpgraded      []any
+	WaitForMachineDeploymentToBeUpgraded []any
+	WaitForMachinePoolToBeUpgraded       []any
+	WaitForKubeProxyUpgrade              []any
+	WaitForDNSUpgrade                    []any
+	WaitForEtcdUpgrade                   []any
 	PreWaitForControlPlaneToBeUpgraded   func()
 	PreWaitForWorkersToBeUpgraded        func()
 	SkipKubeProxyCheck                   bool

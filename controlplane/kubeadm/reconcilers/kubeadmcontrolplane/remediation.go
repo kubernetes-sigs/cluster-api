@@ -530,10 +530,10 @@ func pickMachineToBeRemediatedByConditionState(i, j *clusterv1.Machine, conditio
 	jCondition := conditions.IsTrue(j, conditionType)
 
 	if !iCondition && jCondition {
-		return ptr.To(true)
+		return new(true)
 	}
 	if iCondition && !jCondition {
-		return ptr.To(false)
+		return new(false)
 	}
 	return nil
 }
@@ -989,6 +989,6 @@ func (r *RemediationData) ToStatus() controlplanev1.LastRemediationStatus {
 	return controlplanev1.LastRemediationStatus{
 		Machine:    r.Machine,
 		Time:       r.Timestamp,
-		RetryCount: ptr.To(int32(r.RetryCount)),
+		RetryCount: new(int32(r.RetryCount)),
 	}
 }

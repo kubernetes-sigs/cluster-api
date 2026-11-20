@@ -29,7 +29,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	. "sigs.k8s.io/controller-runtime/pkg/envtest/komega"
@@ -144,7 +143,7 @@ func testGetCurrentState(t *testing.T, controlPlaneContractVersion string) {
 		Build()
 	machineDeploymentWithDeletionTimestamp := machineDeployment.DeepCopy()
 	machineDeploymentWithDeletionTimestamp.Finalizers = []string{clusterv1.MachineDeploymentFinalizer} // required by fake client
-	machineDeploymentWithDeletionTimestamp.DeletionTimestamp = ptr.To(metav1.Now())
+	machineDeploymentWithDeletionTimestamp.DeletionTimestamp = new(metav1.Now())
 	machineDeployment2 := builder.MachineDeployment(metav1.NamespaceDefault, "md2").
 		WithLabels(map[string]string{
 			clusterv1.ClusterNameLabel:                          "cluster1",
@@ -162,24 +161,24 @@ func testGetCurrentState(t *testing.T, controlPlaneContractVersion string) {
 			{
 				Type:           corev1.NodeReady,
 				Status:         corev1.ConditionUnknown,
-				TimeoutSeconds: ptr.To(int32(5 * 60)),
+				TimeoutSeconds: new(int32(5 * 60)),
 			},
 			{
 				Type:           corev1.NodeReady,
 				Status:         corev1.ConditionFalse,
-				TimeoutSeconds: ptr.To(int32(5 * 60)),
+				TimeoutSeconds: new(int32(5 * 60)),
 			},
 		}).
 		WithUnhealthyMachineConditions([]clusterv1.UnhealthyMachineCondition{
 			{
 				Type:           controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition,
 				Status:         metav1.ConditionUnknown,
-				TimeoutSeconds: ptr.To(int32(5 * 60)),
+				TimeoutSeconds: new(int32(5 * 60)),
 			},
 			{
 				Type:           controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition,
 				Status:         metav1.ConditionFalse,
-				TimeoutSeconds: ptr.To(int32(5 * 60)),
+				TimeoutSeconds: new(int32(5 * 60)),
 			},
 		}).
 		WithClusterName("cluster1").
@@ -191,24 +190,24 @@ func testGetCurrentState(t *testing.T, controlPlaneContractVersion string) {
 			{
 				Type:           corev1.NodeReady,
 				Status:         corev1.ConditionUnknown,
-				TimeoutSeconds: ptr.To(int32(5 * 60)),
+				TimeoutSeconds: new(int32(5 * 60)),
 			},
 			{
 				Type:           corev1.NodeReady,
 				Status:         corev1.ConditionFalse,
-				TimeoutSeconds: ptr.To(int32(5 * 60)),
+				TimeoutSeconds: new(int32(5 * 60)),
 			},
 		}).
 		WithUnhealthyMachineConditions([]clusterv1.UnhealthyMachineCondition{
 			{
 				Type:           controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition,
 				Status:         metav1.ConditionUnknown,
-				TimeoutSeconds: ptr.To(int32(5 * 60)),
+				TimeoutSeconds: new(int32(5 * 60)),
 			},
 			{
 				Type:           controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition,
 				Status:         metav1.ConditionFalse,
-				TimeoutSeconds: ptr.To(int32(5 * 60)),
+				TimeoutSeconds: new(int32(5 * 60)),
 			},
 		}).
 		WithClusterName("cluster1").
@@ -1241,7 +1240,7 @@ func TestAlignRefAPIVersion(t *testing.T) {
 	}{
 		{
 			name: "Use apiVersion from ClusterClass: group and kind is the same (+/- Template suffix)",
-			templateFromClusterClass: &unstructured.Unstructured{Object: map[string]interface{}{
+			templateFromClusterClass: &unstructured.Unstructured{Object: map[string]any{
 				"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
 				"kind":       "DockerClusterTemplate",
 			}},
@@ -1261,7 +1260,7 @@ func TestAlignRefAPIVersion(t *testing.T) {
 		},
 		{
 			name: "Use apiVersion from ClusterClass: group and kind is the same",
-			templateFromClusterClass: &unstructured.Unstructured{Object: map[string]interface{}{
+			templateFromClusterClass: &unstructured.Unstructured{Object: map[string]any{
 				"apiVersion": clusterv1.GroupVersionBootstrap.String(),
 				"kind":       builder.GenericBootstrapConfigKind,
 			}},
@@ -1281,7 +1280,7 @@ func TestAlignRefAPIVersion(t *testing.T) {
 		},
 		{
 			name: "Use apiVersion from CRD: kind is different",
-			templateFromClusterClass: &unstructured.Unstructured{Object: map[string]interface{}{
+			templateFromClusterClass: &unstructured.Unstructured{Object: map[string]any{
 				"apiVersion": clusterv1.GroupVersionBootstrap.String(),
 				"kind":       "DifferentConfigTemplate",
 			}},
@@ -1302,7 +1301,7 @@ func TestAlignRefAPIVersion(t *testing.T) {
 		},
 		{
 			name: "Use apiVersion from CRD: group is different",
-			templateFromClusterClass: &unstructured.Unstructured{Object: map[string]interface{}{
+			templateFromClusterClass: &unstructured.Unstructured{Object: map[string]any{
 				"apiVersion": "different.bootstrap.cluster.x-k8s.io/v1beta2",
 				"kind":       builder.GenericBootstrapConfigKind,
 			}},

@@ -85,7 +85,7 @@ type ApplyAutoscalerToWorkloadClusterInput struct {
 // - Applies the workload YAML after processing the yaml (template processing) to the workload cluster.
 // The autoscaler deployment on the workload cluster uses a kubeconfig based on the token created in the above step to
 // access the management cluster.
-func ApplyAutoscalerToWorkloadCluster(ctx context.Context, input ApplyAutoscalerToWorkloadClusterInput, intervals ...interface{}) {
+func ApplyAutoscalerToWorkloadCluster(ctx context.Context, input ApplyAutoscalerToWorkloadClusterInput, intervals ...any) {
 	By("Creating the autoscaler deployment in the workload cluster")
 
 	workloadYamlTemplate, err := os.ReadFile(input.WorkloadYamlPath)
@@ -154,7 +154,7 @@ type AddScaleUpDeploymentAndWaitInput struct {
 }
 
 // AddScaleUpDeploymentAndWait create a deployment that will trigger the autoscaler to scale up and create a new machine.
-func AddScaleUpDeploymentAndWait(ctx context.Context, input AddScaleUpDeploymentAndWaitInput, intervals ...interface{}) {
+func AddScaleUpDeploymentAndWait(ctx context.Context, input AddScaleUpDeploymentAndWaitInput, intervals ...any) {
 	By("Create a scale up deployment with resource requests to force scale up")
 	if input.ContainerImage == "" {
 		input.ContainerImage = "registry.k8s.io/pause:3.10.1"
@@ -191,7 +191,7 @@ func AddScaleUpDeploymentAndWait(ctx context.Context, input AddScaleUpDeployment
 			},
 		},
 		Spec: appsv1.DeploymentSpec{
-			Replicas: ptr.To[int32](int32(replicas)),
+			Replicas: new(int32(replicas)),
 			Selector: &metav1.LabelSelector{
 				MatchLabels: map[string]string{
 					"app": "scale-up",
@@ -235,7 +235,7 @@ func AddScaleUpDeploymentAndWait(ctx context.Context, input AddScaleUpDeployment
 type DeleteScaleUpDeploymentAndWaitInput struct {
 	ClusterProxy  ClusterProxy
 	Name          string
-	WaitForDelete []interface{}
+	WaitForDelete []any
 }
 
 // DeleteScaleUpDeploymentAndWait deletes the scale up deployment and waits for it to be deleted.
@@ -266,7 +266,7 @@ type ScaleScaleUpDeploymentAndWaitInput struct {
 }
 
 // ScaleScaleUpDeploymentAndWait scales the scale up deployment to a given value and waits for it to become ready.
-func ScaleScaleUpDeploymentAndWait(ctx context.Context, input ScaleScaleUpDeploymentAndWaitInput, intervals ...interface{}) {
+func ScaleScaleUpDeploymentAndWait(ctx context.Context, input ScaleScaleUpDeploymentAndWaitInput, intervals ...any) {
 	By("Retrieving the scale up deployment")
 	deployment := &appsv1.Deployment{}
 	deploymentName := "scale-up"
@@ -325,7 +325,7 @@ func ProcessYAML(input *ProcessYAMLInput) ([]byte, error) {
 type DisableAutoscalerForMachineDeploymentTopologyAndWaitInput struct {
 	ClusterProxy                  ClusterProxy
 	Cluster                       *clusterv1.Cluster
-	WaitForAnnotationsToBeDropped []interface{}
+	WaitForAnnotationsToBeDropped []any
 }
 
 // DisableAutoscalerForMachineDeploymentTopologyAndWait drop the autoscaler annotations from the MachineDeploymentTopology
@@ -383,7 +383,7 @@ type EnableAutoscalerForMachineDeploymentTopologyAndWaitInput struct {
 	Cluster                     *clusterv1.Cluster
 	NodeGroupMinSize            string
 	NodeGroupMaxSize            string
-	WaitForAnnotationsToBeAdded []interface{}
+	WaitForAnnotationsToBeAdded []any
 }
 
 func EnableAutoscalerForMachineDeploymentTopologyAndWait(ctx context.Context, input EnableAutoscalerForMachineDeploymentTopologyAndWaitInput) {
@@ -429,7 +429,7 @@ func EnableAutoscalerForMachineDeploymentTopologyAndWait(ctx context.Context, in
 type DisableAutoscalerForMachinePoolTopologyAndWaitInput struct {
 	ClusterProxy                  ClusterProxy
 	Cluster                       *clusterv1.Cluster
-	WaitForAnnotationsToBeDropped []interface{}
+	WaitForAnnotationsToBeDropped []any
 }
 
 // DisableAutoscalerForMachinePoolTopologyAndWait drop the autoscaler annotations from the MachinePoolTopology
@@ -487,7 +487,7 @@ type EnableAutoscalerForMachinePoolTopologyAndWaitInput struct {
 	Cluster                     *clusterv1.Cluster
 	NodeGroupMinSize            string
 	NodeGroupMaxSize            string
-	WaitForAnnotationsToBeAdded []interface{}
+	WaitForAnnotationsToBeAdded []any
 }
 
 func EnableAutoscalerForMachinePoolTopologyAndWait(ctx context.Context, input EnableAutoscalerForMachinePoolTopologyAndWaitInput) {

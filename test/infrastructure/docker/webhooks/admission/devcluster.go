@@ -23,7 +23,6 @@ import (
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/util/validation/field"
-	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
@@ -89,7 +88,7 @@ func defaultDevClusterSpec(s *infrav1.DevClusterSpec) {
 
 		for i, fd := range s.Backend.Docker.FailureDomains {
 			if fd.ControlPlane == nil {
-				fd.ControlPlane = ptr.To(false)
+				fd.ControlPlane = new(false)
 			}
 			s.Backend.Docker.FailureDomains[i] = fd
 		}

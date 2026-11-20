@@ -216,7 +216,7 @@ func TestComputeDesiredOldMS(t *testing.T) {
 }
 
 func TestComputeDesiredMS(t *testing.T) {
-	duration10s := ptr.To(int32(10))
+	duration10s := new(int32(10))
 	namingTemplateKey := "test"
 
 	infraRef := clusterv1.ContractVersionedObjectReference{
@@ -323,7 +323,7 @@ func TestComputeDesiredMS(t *testing.T) {
 		uid := apirand.String(5)
 		name := "foo"
 		finalizers := []string{"pre-existing-finalizer"}
-		replicas := ptr.To(int32(1))
+		replicas := new(int32(1))
 		uniqueLabelValue := "123"
 		currentMS := &clusterv1.MachineSet{
 			ObjectMeta: metav1.ObjectMeta{
@@ -609,7 +609,7 @@ func machineSetControllerMutatorCreateMachines(_ context.Context, ms *clusterv1.
 							APIVersion: clusterv1.GroupVersion.String(),
 							Kind:       "MachineSet",
 							Name:       ms.Name,
-							Controller: ptr.To(true),
+							Controller: new(true),
 						},
 					},
 				},
@@ -688,7 +688,7 @@ func machineSetControllerMutatorMoveMachines(_ context.Context, ms *clusterv1.Ma
 				APIVersion: clusterv1.GroupVersion.String(),
 				Kind:       "MachineSet",
 				Name:       targetMS.Name,
-				Controller: ptr.To(true),
+				Controller: new(true),
 			},
 		}
 		m.Annotations[clusterv1.PendingAcknowledgeMoveAnnotation] = ""
@@ -761,7 +761,7 @@ func machineSetControllerMutatorUpdateStatus(_ context.Context, ms *clusterv1.Ma
 	// determine availability. Here we are looking at the UpdateInProgress, which is a
 	// one of the info considered by the MachineAvailable condition.
 
-	ms.Status.Replicas = ptr.To(int32(len(scope.machineSetMachines[ms.Name])))
+	ms.Status.Replicas = new(int32(len(scope.machineSetMachines[ms.Name])))
 	availableReplicas := int32(0)
 	upToDateReplicas := int32(0)
 	for _, m := range scope.machineSetMachines[ms.Name] {
@@ -858,9 +858,9 @@ func computeDesiredRolloutScope(current *rolloutScope, desiredMachineNames []str
 	var newMS *clusterv1.MachineSet
 	for _, currentMS := range current.machineSets {
 		oldMS := currentMS.DeepCopy()
-		oldMS.Spec.Replicas = ptr.To(int32(0))
-		oldMS.Status.Replicas = ptr.To(int32(0))
-		oldMS.Status.AvailableReplicas = ptr.To(int32(0))
+		oldMS.Spec.Replicas = new(int32(0))
+		oldMS.Status.Replicas = new(int32(0))
+		oldMS.Status.AvailableReplicas = new(int32(0))
 		desired.machineSets = append(desired.machineSets, oldMS)
 
 		if upToDate, _ := mdutil.MachineTemplateUpToDate(&oldMS.Spec.Template, &desired.machineDeployment.Spec.Template); upToDate {
@@ -1158,7 +1158,7 @@ func newFileLogger(t *testing.T, name, fileName string) *fileLogger {
 	return l
 }
 
-func (l *fileLogger) Logf(format string, args ...interface{}) {
+func (l *fileLogger) Logf(format string, args ...any) {
 	l.t.Logf(format, args...)
 
 	// this codes takes a log line that has been formatted for t.Logf and change it
@@ -1166,8 +1166,8 @@ func (l *fileLogger) Logf(format string, args ...interface{}) {
 	s := strings.TrimSuffix(fmt.Sprintf(format, args...), "\n")
 	sb := &strings.Builder{}
 	if strings.Contains(s, "\n") {
-		lines := strings.Split(s, "\n")
-		for _, line := range lines {
+		lines := strings.SplitSeq(s, "\n")
+		for line := range lines {
 			indent := "  "
 			if strings.HasPrefix(line, "[") {
 				indent = ""
@@ -1280,8 +1280,8 @@ func withRollingUpdateStrategy(maxSurge, maxUnavailable int32) func(md *clusterv
 		md.Spec.Rollout.Strategy = clusterv1.MachineDeploymentRolloutStrategy{
 			Type: clusterv1.RollingUpdateMachineDeploymentStrategyType,
 			RollingUpdate: clusterv1.MachineDeploymentRolloutStrategyRollingUpdate{
-				MaxSurge:       ptr.To(intstr.FromInt32(maxSurge)),
-				MaxUnavailable: ptr.To(intstr.FromInt32(maxUnavailable)),
+				MaxSurge:       new(intstr.FromInt32(maxSurge)),
+				MaxUnavailable: new(intstr.FromInt32(maxUnavailable)),
 			},
 		}
 	}
@@ -1316,7 +1316,7 @@ func createMD(failureDomain string, replicas int32, options ...machineDeployment
 
 func withStatusAvailableReplicas(r int32) fakeMachineSetOption {
 	return func(ms *clusterv1.MachineSet) {
-		ms.Status.AvailableReplicas = ptr.To(r)
+		ms.Status.AvailableReplicas = new(r)
 	}
 }
 
@@ -1337,11 +1337,11 @@ func createMS(name, failureDomain string, replicas int32, opts ...fakeMachineSet
 		Spec: clusterv1.MachineSetSpec{
 			// Note: using failureDomain as a template field to determine upToDate
 			Template: clusterv1.MachineTemplateSpec{Spec: clusterv1.MachineSpec{FailureDomain: failureDomain}},
-			Replicas: ptr.To(replicas),
+			Replicas: new(replicas),
 		},
 		Status: clusterv1.MachineSetStatus{
-			Replicas:          ptr.To(replicas),
-			AvailableReplicas: ptr.To(replicas),
+			Replicas:          new(replicas),
+			AvailableReplicas: new(replicas),
 		},
 	}
 	for _, opt := range opts {
@@ -1368,7 +1368,7 @@ func createM(name, ownedByMS, failureDomain string, opts ...fakeMachinesOption) 
 					APIVersion: clusterv1.GroupVersion.String(),
 					Kind:       "MachineSet",
 					Name:       ownedByMS,
-					Controller: ptr.To(true),
+					Controller: new(true),
 				},
 			},
 		},

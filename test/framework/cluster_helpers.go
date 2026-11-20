@@ -49,7 +49,7 @@ type CreateClusterInput struct {
 }
 
 // CreateCluster will create the Cluster and InfraCluster objects.
-func CreateCluster(ctx context.Context, input CreateClusterInput, intervals ...interface{}) {
+func CreateCluster(ctx context.Context, input CreateClusterInput, intervals ...any) {
 	By("creating an InfrastructureCluster resource")
 	Eventually(func() error {
 		return input.Creator.Create(ctx, input.InfraCluster)
@@ -138,7 +138,7 @@ type WaitForClusterToProvisionInput struct {
 }
 
 // WaitForClusterToProvision will wait for a cluster to have a phase status of provisioned.
-func WaitForClusterToProvision(ctx context.Context, input WaitForClusterToProvisionInput, intervals ...interface{}) *clusterv1.Cluster {
+func WaitForClusterToProvision(ctx context.Context, input WaitForClusterToProvisionInput, intervals ...any) *clusterv1.Cluster {
 	cluster := &clusterv1.Cluster{}
 	By("Waiting for cluster to enter the provisioned phase")
 	Eventually(func() (string, error) {
@@ -176,7 +176,7 @@ type WaitForClusterDeletedInput struct {
 }
 
 // WaitForClusterDeleted waits until the cluster object has been deleted.
-func WaitForClusterDeleted(ctx context.Context, input WaitForClusterDeletedInput, intervals ...interface{}) {
+func WaitForClusterDeleted(ctx context.Context, input WaitForClusterDeletedInput, intervals ...any) {
 	Expect(ctx).NotTo(BeNil(), "ctx is required for WaitForClusterDeleted")
 	Expect(input.ClusterProxy).NotTo(BeNil(), "input.ClusterProxy is required for WaitForClusterDeleted")
 	Expect(input.ClusterctlConfigPath).NotTo(BeEmpty(), "input.ClusterctlConfigPath is required for WaitForClusterDeleted")
@@ -226,7 +226,7 @@ type DiscoveryAndWaitForClusterInput struct {
 }
 
 // DiscoveryAndWaitForCluster discovers a cluster object in a namespace and waits for the cluster infrastructure to be provisioned.
-func DiscoveryAndWaitForCluster(ctx context.Context, input DiscoveryAndWaitForClusterInput, intervals ...interface{}) *clusterv1.Cluster {
+func DiscoveryAndWaitForCluster(ctx context.Context, input DiscoveryAndWaitForClusterInput, intervals ...any) *clusterv1.Cluster {
 	Expect(ctx).NotTo(BeNil(), "ctx is required for DiscoveryAndWaitForCluster")
 	Expect(input.Getter).ToNot(BeNil(), "Invalid argument. input.Getter can't be nil when calling DiscoveryAndWaitForCluster")
 	Expect(input.Namespace).ToNot(BeNil(), "Invalid argument. input.Namespace can't be empty when calling DiscoveryAndWaitForCluster")
@@ -262,7 +262,7 @@ type DeleteClusterAndWaitInput struct {
 }
 
 // DeleteClusterAndWait deletes a cluster object and waits for it to be gone.
-func DeleteClusterAndWait(ctx context.Context, input DeleteClusterAndWaitInput, intervals ...interface{}) {
+func DeleteClusterAndWait(ctx context.Context, input DeleteClusterAndWaitInput, intervals ...any) {
 	Expect(ctx).NotTo(BeNil(), "ctx is required for DeleteClusterAndWait")
 	Expect(input.ClusterProxy).ToNot(BeNil(), "Invalid argument. input.ClusterProxy can't be nil when calling DeleteClusterAndWait")
 	Expect(input.ClusterctlConfigPath).ToNot(BeNil(), "Invalid argument. input.ClusterctlConfigPath can't be nil when calling DeleteClusterAndWait")
@@ -296,7 +296,7 @@ type DeleteAllClustersAndWaitInput struct {
 }
 
 // DeleteAllClustersAndWait deletes a cluster object and waits for it to be gone.
-func DeleteAllClustersAndWait(ctx context.Context, input DeleteAllClustersAndWaitInput, intervals ...interface{}) {
+func DeleteAllClustersAndWait(ctx context.Context, input DeleteAllClustersAndWaitInput, intervals ...any) {
 	Expect(ctx).NotTo(BeNil(), "ctx is required for DeleteAllClustersAndWait")
 	Expect(input.ClusterProxy).ToNot(BeNil(), "Invalid argument. input.ClusterProxy can't be nil when calling DeleteAllClustersAndWait")
 	Expect(input.ClusterctlConfigPath).ToNot(BeNil(), "Invalid argument. input.ClusterctlConfigPath can't be nil when calling DeleteAllClustersAndWait")

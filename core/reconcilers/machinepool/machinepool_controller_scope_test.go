@@ -37,16 +37,16 @@ func TestHasMachinePoolMachines(t *testing.T) {
 		},
 		{
 			name: "returns false when infrastructureMachineKind is absent",
-			infraPool: &unstructured.Unstructured{Object: map[string]interface{}{
-				"status": map[string]interface{}{},
+			infraPool: &unstructured.Unstructured{Object: map[string]any{
+				"status": map[string]any{},
 			}},
 			want:    false,
 			wantErr: false,
 		},
 		{
 			name: "returns false when infrastructureMachineKind is empty string",
-			infraPool: &unstructured.Unstructured{Object: map[string]interface{}{
-				"status": map[string]interface{}{
+			infraPool: &unstructured.Unstructured{Object: map[string]any{
+				"status": map[string]any{
 					"infrastructureMachineKind": "",
 				},
 			}},
@@ -55,8 +55,8 @@ func TestHasMachinePoolMachines(t *testing.T) {
 		},
 		{
 			name: "returns true when infrastructureMachineKind is set",
-			infraPool: &unstructured.Unstructured{Object: map[string]interface{}{
-				"status": map[string]interface{}{
+			infraPool: &unstructured.Unstructured{Object: map[string]any{
+				"status": map[string]any{
 					"infrastructureMachineKind": "DockerMachine",
 				},
 			}},
@@ -65,8 +65,8 @@ func TestHasMachinePoolMachines(t *testing.T) {
 		},
 		{
 			name: "returns error when infrastructureMachineKind is malformed",
-			infraPool: &unstructured.Unstructured{Object: map[string]interface{}{
-				"status": map[string]interface{}{
+			infraPool: &unstructured.Unstructured{Object: map[string]any{
+				"status": map[string]any{
 					"infrastructureMachineKind": int64(1),
 				},
 			}},

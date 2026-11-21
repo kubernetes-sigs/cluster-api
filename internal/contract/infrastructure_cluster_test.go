@@ -21,13 +21,12 @@ import (
 
 	. "github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/utils/ptr"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
 
 func TestInfrastructureCluster(t *testing.T) {
-	obj := &unstructured.Unstructured{Object: map[string]interface{}{}}
+	obj := &unstructured.Unstructured{Object: map[string]any{}}
 
 	t.Run("Manages spec.ControlPlaneEndpoint", func(t *testing.T) {
 		g := NewWithT(t)
@@ -62,7 +61,7 @@ func TestInfrastructureCluster(t *testing.T) {
 
 		g.Expect(InfrastructureCluster().Provisioned("v1beta1").Path()).To(Equal(Path{"status", "ready"}))
 
-		objV1beta1 := &unstructured.Unstructured{Object: map[string]interface{}{}}
+		objV1beta1 := &unstructured.Unstructured{Object: map[string]any{}}
 		err = InfrastructureCluster().Provisioned("v1beta1").Set(objV1beta1, true)
 		g.Expect(err).ToNot(HaveOccurred())
 
@@ -103,7 +102,7 @@ func TestInfrastructureCluster(t *testing.T) {
 		failureDomains := []clusterv1.FailureDomain{
 			{
 				Name:         "domain1",
-				ControlPlane: ptr.To(true),
+				ControlPlane: new(true),
 				Attributes: map[string]string{
 					"key1": "value1",
 					"key2": "value2",
@@ -111,7 +110,7 @@ func TestInfrastructureCluster(t *testing.T) {
 			},
 			{
 				Name:         "domain2",
-				ControlPlane: ptr.To(false),
+				ControlPlane: new(false),
 				Attributes: map[string]string{
 					"key3": "value3",
 					"key4": "value4",
@@ -128,20 +127,20 @@ func TestInfrastructureCluster(t *testing.T) {
 		g.Expect(got).ToNot(BeNil())
 		g.Expect(got).To(BeComparableTo(failureDomains))
 
-		infraClusterV1Beta1 := &unstructured.Unstructured{Object: map[string]interface{}{
+		infraClusterV1Beta1 := &unstructured.Unstructured{Object: map[string]any{
 			"kind":       "GenericInfrastructureCluster",
 			"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
-			"status": map[string]interface{}{
-				"failureDomains": map[string]interface{}{
-					"oldDomain": map[string]interface{}{
+			"status": map[string]any{
+				"failureDomains": map[string]any{
+					"oldDomain": map[string]any{
 						"controlPlane": true,
-						"attributes": map[string]interface{}{
+						"attributes": map[string]any{
 							"attribute1": "value1",
 						},
 					},
-					"newdomain": map[string]interface{}{
+					"newdomain": map[string]any{
 						"controlPlane": true,
-						"attributes": map[string]interface{}{
+						"attributes": map[string]any{
 							"attribute2": "value2",
 						},
 					},
@@ -155,36 +154,36 @@ func TestInfrastructureCluster(t *testing.T) {
 		g.Expect(got).To(BeComparableTo([]clusterv1.FailureDomain{
 			{
 				Name:         "newdomain",
-				ControlPlane: ptr.To(true),
+				ControlPlane: new(true),
 				Attributes: map[string]string{
 					"attribute2": "value2",
 				},
 			},
 			{
 				Name:         "oldDomain",
-				ControlPlane: ptr.To(true),
+				ControlPlane: new(true),
 				Attributes: map[string]string{
 					"attribute1": "value1",
 				},
 			},
 		}))
 
-		infraClusterV1Beta2 := &unstructured.Unstructured{Object: map[string]interface{}{
+		infraClusterV1Beta2 := &unstructured.Unstructured{Object: map[string]any{
 			"kind":       "GenericInfrastructureCluster",
 			"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
-			"status": map[string]interface{}{
-				"failureDomains": []interface{}{
-					map[string]interface{}{
+			"status": map[string]any{
+				"failureDomains": []any{
+					map[string]any{
 						"name":         "oldDomain",
 						"controlPlane": true,
-						"attributes": map[string]interface{}{
+						"attributes": map[string]any{
 							"attribute1": "value1",
 						},
 					},
-					map[string]interface{}{
+					map[string]any{
 						"name":         "newdomain",
 						"controlPlane": true,
-						"attributes": map[string]interface{}{
+						"attributes": map[string]any{
 							"attribute2": "value2",
 						},
 					},
@@ -198,14 +197,14 @@ func TestInfrastructureCluster(t *testing.T) {
 		g.Expect(got).To(BeComparableTo([]clusterv1.FailureDomain{
 			{
 				Name:         "newdomain",
-				ControlPlane: ptr.To(true),
+				ControlPlane: new(true),
 				Attributes: map[string]string{
 					"attribute2": "value2",
 				},
 			},
 			{
 				Name:         "oldDomain",
-				ControlPlane: ptr.To(true),
+				ControlPlane: new(true),
 				Attributes: map[string]string{
 					"attribute1": "value1",
 				},
@@ -224,8 +223,8 @@ func TestInfrastructureClusterIgnorePaths(t *testing.T) {
 		{
 			name: "No ignore paths when controlPlaneEndpoint is not set",
 			infrastructureCluster: &unstructured.Unstructured{
-				Object: map[string]interface{}{
-					"spec": map[string]interface{}{
+				Object: map[string]any{
+					"spec": map[string]any{
 						"server": "1.2.3.4",
 					},
 				},
@@ -235,8 +234,8 @@ func TestInfrastructureClusterIgnorePaths(t *testing.T) {
 		{
 			name: "No ignore paths when controlPlaneEndpoint is nil",
 			infrastructureCluster: &unstructured.Unstructured{
-				Object: map[string]interface{}{
-					"spec": map[string]interface{}{
+				Object: map[string]any{
+					"spec": map[string]any{
 						"controlPlaneEndpoint": nil,
 					},
 				},
@@ -246,9 +245,9 @@ func TestInfrastructureClusterIgnorePaths(t *testing.T) {
 		{
 			name: "No ignore paths when controlPlaneEndpoint is an empty object",
 			infrastructureCluster: &unstructured.Unstructured{
-				Object: map[string]interface{}{
-					"spec": map[string]interface{}{
-						"controlPlaneEndpoint": map[string]interface{}{},
+				Object: map[string]any{
+					"spec": map[string]any{
+						"controlPlaneEndpoint": map[string]any{},
 					},
 				},
 			},
@@ -257,9 +256,9 @@ func TestInfrastructureClusterIgnorePaths(t *testing.T) {
 		{
 			name: "Don't ignore host when controlPlaneEndpoint.host is set",
 			infrastructureCluster: &unstructured.Unstructured{
-				Object: map[string]interface{}{
-					"spec": map[string]interface{}{
-						"controlPlaneEndpoint": map[string]interface{}{
+				Object: map[string]any{
+					"spec": map[string]any{
+						"controlPlaneEndpoint": map[string]any{
 							"host": "example.com",
 						},
 					},
@@ -270,9 +269,9 @@ func TestInfrastructureClusterIgnorePaths(t *testing.T) {
 		{
 			name: "Ignore host when controlPlaneEndpoint.host is set to its zero value",
 			infrastructureCluster: &unstructured.Unstructured{
-				Object: map[string]interface{}{
-					"spec": map[string]interface{}{
-						"controlPlaneEndpoint": map[string]interface{}{
+				Object: map[string]any{
+					"spec": map[string]any{
+						"controlPlaneEndpoint": map[string]any{
 							"host": "",
 						},
 					},
@@ -285,9 +284,9 @@ func TestInfrastructureClusterIgnorePaths(t *testing.T) {
 		{
 			name: "Don't ignore port when controlPlaneEndpoint.port is set",
 			infrastructureCluster: &unstructured.Unstructured{
-				Object: map[string]interface{}{
-					"spec": map[string]interface{}{
-						"controlPlaneEndpoint": map[string]interface{}{
+				Object: map[string]any{
+					"spec": map[string]any{
+						"controlPlaneEndpoint": map[string]any{
 							"port": int64(6443),
 						},
 					},
@@ -298,9 +297,9 @@ func TestInfrastructureClusterIgnorePaths(t *testing.T) {
 		{
 			name: "Ignore port when controlPlaneEndpoint.port is set to its zero value",
 			infrastructureCluster: &unstructured.Unstructured{
-				Object: map[string]interface{}{
-					"spec": map[string]interface{}{
-						"controlPlaneEndpoint": map[string]interface{}{
+				Object: map[string]any{
+					"spec": map[string]any{
+						"controlPlaneEndpoint": map[string]any{
 							"port": int64(0),
 						},
 					},
@@ -313,9 +312,9 @@ func TestInfrastructureClusterIgnorePaths(t *testing.T) {
 		{
 			name: "Ignore host and port when controlPlaneEndpoint host and port are set to their zero values",
 			infrastructureCluster: &unstructured.Unstructured{
-				Object: map[string]interface{}{
-					"spec": map[string]interface{}{
-						"controlPlaneEndpoint": map[string]interface{}{
+				Object: map[string]any{
+					"spec": map[string]any{
+						"controlPlaneEndpoint": map[string]any{
 							"host": "",
 							"port": int64(0),
 						},
@@ -330,9 +329,9 @@ func TestInfrastructureClusterIgnorePaths(t *testing.T) {
 		{
 			name: "Ignore host when controlPlaneEndpoint host is to its zero values, even if port is set",
 			infrastructureCluster: &unstructured.Unstructured{
-				Object: map[string]interface{}{
-					"spec": map[string]interface{}{
-						"controlPlaneEndpoint": map[string]interface{}{
+				Object: map[string]any{
+					"spec": map[string]any{
+						"controlPlaneEndpoint": map[string]any{
 							"host": "",
 							"port": int64(6443),
 						},
@@ -346,9 +345,9 @@ func TestInfrastructureClusterIgnorePaths(t *testing.T) {
 		{
 			name: "Ignore port when controlPlaneEndpoint port is to its zero values, even if host is set",
 			infrastructureCluster: &unstructured.Unstructured{
-				Object: map[string]interface{}{
-					"spec": map[string]interface{}{
-						"controlPlaneEndpoint": map[string]interface{}{
+				Object: map[string]any{
+					"spec": map[string]any{
+						"controlPlaneEndpoint": map[string]any{
 							"host": "example.com",
 							"port": int64(0),
 						},

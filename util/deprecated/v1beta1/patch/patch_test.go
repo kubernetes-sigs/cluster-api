@@ -49,10 +49,10 @@ func TestPatchHelper(t *testing.T) {
 
 	t.Run("should patch an unstructured object", func(t *testing.T) {
 		obj := &unstructured.Unstructured{
-			Object: map[string]interface{}{
+			Object: map[string]any{
 				"kind":       "GenericBootstrapConfig",
 				"apiVersion": "bootstrap.cluster.x-k8s.io/v1beta2",
-				"metadata": map[string]interface{}{
+				"metadata": map[string]any{
 					"generateName": "test-bootstrap-",
 					"namespace":    ns.Name,
 				},
@@ -75,7 +75,7 @@ func TestPatchHelper(t *testing.T) {
 				return env.Get(ctx, key, obj)
 			}).Should(Succeed())
 
-			obj.Object["status"] = map[string]interface{}{
+			obj.Object["status"] = map[string]any{
 				"ready": true,
 			}
 			g.Expect(env.Status().Update(ctx, obj)).To(Succeed())

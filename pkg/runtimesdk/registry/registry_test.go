@@ -208,7 +208,7 @@ type ContainExtensionMatcher struct {
 	name string
 }
 
-func (matcher *ContainExtensionMatcher) Match(actual interface{}) (success bool, err error) {
+func (matcher *ContainExtensionMatcher) Match(actual any) (success bool, err error) {
 	ext, ok := actual.([]*ExtensionRegistration)
 	if !ok {
 		return false, pkgerrors.Errorf("Expecting *ExtensionRegistration, got %t", actual)
@@ -222,10 +222,10 @@ func (matcher *ContainExtensionMatcher) Match(actual interface{}) (success bool,
 	return false, nil
 }
 
-func (matcher *ContainExtensionMatcher) FailureMessage(actual interface{}) (message string) {
+func (matcher *ContainExtensionMatcher) FailureMessage(actual any) (message string) {
 	return format.Message(actual, "to contain element matching", matcher.name)
 }
 
-func (matcher *ContainExtensionMatcher) NegatedFailureMessage(actual interface{}) (message string) {
+func (matcher *ContainExtensionMatcher) NegatedFailureMessage(actual any) (message string) {
 	return format.Message(actual, "not to contain element matching", matcher.name)
 }

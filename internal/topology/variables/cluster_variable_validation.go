@@ -135,7 +135,7 @@ func validateRequiredVariables(values map[string]*clusterv1.ClusterVariable, def
 // ValidateClusterVariable validates a clusterVariable.
 func ValidateClusterVariable(ctx context.Context, value, oldValue *clusterv1.ClusterVariable, definition *clusterv1.ClusterClassVariable, fldPath *field.Path) field.ErrorList {
 	// Parse JSON value.
-	var variableValue interface{}
+	var variableValue any
 	// Only try to unmarshal the clusterVariable if it is not nil, otherwise the variableValue is nil.
 	// Note: A clusterVariable with a nil value is the result of setting the variable value to "null" via YAML.
 	if value.Value.Raw != nil {
@@ -176,7 +176,7 @@ func ValidateClusterVariable(ctx context.Context, value, oldValue *clusterv1.Clu
 	// Structural schema pruning does not work with scalar values,
 	// so we wrap the schema and the variable in objects.
 	// <variable-name>: <variable-value>
-	wrappedVariable := map[string]interface{}{
+	wrappedVariable := map[string]any{
 		"variableValue": variableValue,
 	}
 	// type: object
@@ -209,15 +209,15 @@ func ValidateClusterVariable(ctx context.Context, value, oldValue *clusterv1.Clu
 	}
 
 	// Only extract old variable value if there are CEL validations and if the old variable is not nil.
-	var oldWrappedVariable map[string]interface{}
+	var oldWrappedVariable map[string]any
 	if oldValue != nil && oldValue.Value.Raw != nil {
-		var oldVariableValue interface{}
+		var oldVariableValue any
 		if err := json.Unmarshal(oldValue.Value.Raw, &oldVariableValue); err != nil {
 			return field.ErrorList{field.Invalid(fldPath.Child("value"), string(oldValue.Value.Raw),
 				fmt.Sprintf("old value of variable %q could not be parsed: %v", value.Name, err))}
 		}
 
-		oldWrappedVariable = map[string]interface{}{
+		oldWrappedVariable = map[string]any{
 			"variableValue": oldVariableValue,
 		}
 	}
@@ -242,7 +242,7 @@ func ValidateClusterVariable(ctx context.Context, value, oldValue *clusterv1.Clu
 // validateUnknownFields validates the given variableValue for unknown fields.
 // This func returns an error if there are variable fields in variableValue that are not defined in
 // variableSchema and if x-kubernetes-preserve-unknown-fields is not set.
-func validateUnknownFields(fldPath *field.Path, clusterVariable *clusterv1.ClusterVariable, wrappedVariable map[string]interface{}, ss *structuralschema.Structural) field.ErrorList {
+func validateUnknownFields(fldPath *field.Path, clusterVariable *clusterv1.ClusterVariable, wrappedVariable map[string]any, ss *structuralschema.Structural) field.ErrorList {
 	// Run Prune to check if it would drop any unknown fields.
 	opts := structuralschema.UnknownFieldPathOptions{
 		// TrackUnknownFieldPaths has to be true so PruneWithOptions returns the unknown fields.

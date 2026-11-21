@@ -235,7 +235,7 @@ func TestMachinePoolBootstrapValidation(t *testing.T) {
 		},
 		{
 			name:      "should not return error if dataSecretName is set",
-			bootstrap: clusterv1.Bootstrap{DataSecretName: ptr.To("test")},
+			bootstrap: clusterv1.Bootstrap{DataSecretName: new("test")},
 			expectErr: false,
 		},
 		{
@@ -375,7 +375,7 @@ func TestMachinePoolClusterNamesEqual(t *testing.T) {
 						Spec: clusterv1.MachineSpec{
 							ClusterName: tt.specTemplateSpecClusterName,
 							Bootstrap: clusterv1.Bootstrap{
-								DataSecretName: ptr.To("data-secret"),
+								DataSecretName: new("data-secret"),
 							},
 						},
 					},

@@ -115,5 +115,5 @@ type Reader interface {
 	Set(key, value string)
 
 	// UnmarshalKey reads a configuration value and unmarshals it into the provided value object.
-	UnmarshalKey(key string, value interface{}) error
+	UnmarshalKey(key string, value any) error
 }

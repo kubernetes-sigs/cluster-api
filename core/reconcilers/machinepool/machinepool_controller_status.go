@@ -23,7 +23,6 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
@@ -77,9 +76,9 @@ func setReplicas(mp *clusterv1.MachinePool, hasMachinePoolMachines bool, machine
 		}
 	}
 
-	mp.Status.ReadyReplicas = ptr.To(readyReplicas)
-	mp.Status.AvailableReplicas = ptr.To(availableReplicas)
-	mp.Status.UpToDateReplicas = ptr.To(upToDateReplicas)
+	mp.Status.ReadyReplicas = new(readyReplicas)
+	mp.Status.AvailableReplicas = new(availableReplicas)
+	mp.Status.UpToDateReplicas = new(upToDateReplicas)
 	mp.Status.Versions = internalversion.VersionsFromMachines(machines)
 }
 

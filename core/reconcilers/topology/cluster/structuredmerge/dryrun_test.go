@@ -139,7 +139,7 @@ type objectBuilder struct {
 }
 
 func newObjectBuilder() objectBuilder {
-	u := &unstructured.Unstructured{Object: map[string]interface{}{}}
+	u := &unstructured.Unstructured{Object: map[string]any{}}
 	u.SetName("test")
 	u.SetNamespace("default")
 

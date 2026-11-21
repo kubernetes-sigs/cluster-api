@@ -22,9 +22,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"maps"
 	"math"
 	"math/rand"
 	"reflect"
+	"slices"
 	"strings"
 	"time"
 
@@ -426,7 +428,7 @@ func refersTo(ref *metav1.OwnerReference, obj client.Object, objGK schema.GroupK
 
 // UnstructuredUnmarshalField is a wrapper around json and unstructured objects to decode and copy a specific field
 // value into an object.
-func UnstructuredUnmarshalField(obj *unstructured.Unstructured, v interface{}, fields ...string) error {
+func UnstructuredUnmarshalField(obj *unstructured.Unstructured, v any, fields ...string) error {
 	if obj == nil || obj.Object == nil {
 		return pkgerrors.Errorf("failed to unmarshal unstructured object: object is nil")
 	}
@@ -745,7 +747,7 @@ func LowestNonZeroInt32(i, j int32) int32 {
 }
 
 // IsNil returns an error if the passed interface is equal to nil or if it has an interface value of nil.
-func IsNil(i interface{}) bool {
+func IsNil(i any) bool {
 	if i == nil {
 		return true
 	}
@@ -758,12 +760,10 @@ func IsNil(i interface{}) bool {
 
 // MergeMap merges maps.
 // NOTE: In case a key exists in multiple maps, the value of the first map is preserved.
-func MergeMap(maps ...map[string]string) map[string]string {
+func MergeMap(mapss ...map[string]string) map[string]string {
 	m := make(map[string]string)
-	for i := len(maps) - 1; i >= 0; i-- {
-		for k, v := range maps[i] {
-			m[k] = v
-		}
+	for _, m0 := range slices.Backward(mapss) {
+		maps.Copy(m, m0)
 	}
 
 	// Nil the result if the map is empty, thus avoiding triggering infinite reconcile

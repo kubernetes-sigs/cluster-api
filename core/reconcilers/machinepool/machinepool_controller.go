@@ -30,7 +30,6 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
-	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -98,7 +97,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 		return pkgerrors.New("Client, APIReader and ClusterCache must not be nil")
 	}
 
-	r.predicateLog = ptr.To(ctrl.LoggerFrom(ctx).WithValues("controller", "machinepool"))
+	r.predicateLog = new(ctrl.LoggerFrom(ctx).WithValues("controller", "machinepool"))
 	clusterToMachinePools, err := util.ClusterToTypedObjectsMapper(mgr.GetClient(), &clusterv1.MachinePoolList{}, mgr.GetScheme())
 	if err != nil {
 		return err

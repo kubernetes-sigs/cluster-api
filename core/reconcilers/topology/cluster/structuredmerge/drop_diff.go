@@ -25,8 +25,8 @@ import "sigs.k8s.io/cluster-api/internal/contract"
 // all of them are defined in reconcile_state.go and are targeting well-known fields inside nested maps.
 // Allowed paths / ignore paths which point to an array are not supported by the current implementation.
 func dropDiff(ctx *dropDiffInput) {
-	original, _ := ctx.original.(map[string]interface{})
-	modified, _ := ctx.modified.(map[string]interface{})
+	original, _ := ctx.original.(map[string]any)
+	modified, _ := ctx.modified.(map[string]any)
 	for field := range modified {
 		fieldCtx := &dropDiffInput{
 			// Compose the path for the nested field.
@@ -53,7 +53,7 @@ func dropDiff(ctx *dropDiffInput) {
 		dropDiff(fieldCtx)
 
 		// Ensure we are not leaving empty maps around.
-		if v, ok := fieldCtx.modified.(map[string]interface{}); ok && len(v) == 0 {
+		if v, ok := fieldCtx.modified.(map[string]any); ok && len(v) == 0 {
 			delete(modified, field)
 		}
 	}
@@ -65,8 +65,8 @@ type dropDiffInput struct {
 	path contract.Path
 
 	// the original and the modified value for the current path.
-	original interface{}
-	modified interface{}
+	original any
+	modified any
 
 	// shouldDropDiffFunc handle the func that determine if the current path should be dropped or not.
 	shouldDropDiffFunc func(path contract.Path) bool

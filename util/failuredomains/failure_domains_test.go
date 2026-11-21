@@ -22,7 +22,6 @@ import (
 
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
@@ -117,11 +116,11 @@ func TestPickMost(t *testing.T) {
 	fds := []clusterv1.FailureDomain{
 		{
 			Name:         a,
-			ControlPlane: ptr.To(true),
+			ControlPlane: new(true),
 		},
 		{
 			Name:         b,
-			ControlPlane: ptr.To(true),
+			ControlPlane: new(true),
 		},
 	}
 	machinea := &clusterv1.Machine{Spec: clusterv1.MachineSpec{FailureDomain: a}}
@@ -160,7 +159,7 @@ func TestPickMost(t *testing.T) {
 			fds: []clusterv1.FailureDomain{
 				{
 					Name:         a,
-					ControlPlane: ptr.To(true),
+					ControlPlane: new(true),
 				},
 			},
 			allMachines:      collections.FromMachines(machinenil.DeepCopy()),
@@ -172,7 +171,7 @@ func TestPickMost(t *testing.T) {
 			fds: []clusterv1.FailureDomain{
 				{
 					Name:         a,
-					ControlPlane: ptr.To(true),
+					ControlPlane: new(true),
 				},
 			},
 			allMachines:      collections.FromMachines(machineb.DeepCopy()),
@@ -211,14 +210,14 @@ func TestPickFewestNew(t *testing.T) {
 	c := "us-west-1c"
 
 	fds3 := []clusterv1.FailureDomain{
-		{Name: a, ControlPlane: ptr.To(true)},
-		{Name: b, ControlPlane: ptr.To(true)},
-		{Name: c, ControlPlane: ptr.To(true)},
+		{Name: a, ControlPlane: new(true)},
+		{Name: b, ControlPlane: new(true)},
+		{Name: c, ControlPlane: new(true)},
 	}
 
 	fds2 := []clusterv1.FailureDomain{
-		{Name: a, ControlPlane: ptr.To(true)},
-		{Name: b, ControlPlane: ptr.To(true)},
+		{Name: a, ControlPlane: new(true)},
+		{Name: b, ControlPlane: new(true)},
 	}
 
 	fds0 := []clusterv1.FailureDomain{}
@@ -501,14 +500,14 @@ func TestPickMostNew(t *testing.T) {
 	c := "us-west-1c"
 
 	fds3 := []clusterv1.FailureDomain{
-		{Name: a, ControlPlane: ptr.To(true)},
-		{Name: b, ControlPlane: ptr.To(true)},
-		{Name: c, ControlPlane: ptr.To(true)},
+		{Name: a, ControlPlane: new(true)},
+		{Name: b, ControlPlane: new(true)},
+		{Name: c, ControlPlane: new(true)},
 	}
 
 	fds2 := []clusterv1.FailureDomain{
-		{Name: a, ControlPlane: ptr.To(true)},
-		{Name: b, ControlPlane: ptr.To(true)},
+		{Name: a, ControlPlane: new(true)},
+		{Name: b, ControlPlane: new(true)},
 	}
 
 	fds0 := []clusterv1.FailureDomain{}
@@ -843,8 +842,8 @@ func TestCountByFailureDomain(t *testing.T) {
 	b := "us-west-1b"
 
 	fds := []clusterv1.FailureDomain{
-		{Name: a, ControlPlane: ptr.To(true)},
-		{Name: b, ControlPlane: ptr.To(true)},
+		{Name: a, ControlPlane: new(true)},
+		{Name: b, ControlPlane: new(true)},
 	}
 	machinea1 := &clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "a1"}, Spec: clusterv1.MachineSpec{FailureDomain: a}}
 	machinea2 := &clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "a2"}, Spec: clusterv1.MachineSpec{FailureDomain: a}}

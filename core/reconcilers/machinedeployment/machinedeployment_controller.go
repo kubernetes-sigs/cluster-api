@@ -393,7 +393,7 @@ func (r *Reconciler) createOrUpdateMachineSetsAndSyncMachineDeploymentRevision(c
 	for _, ms := range allMSs {
 		// Update spec.Replicas in the MachineSet.
 		if scaleIntent, ok := p.scaleIntents[ms.Name]; ok {
-			ms.Spec.Replicas = ptr.To(scaleIntent)
+			ms.Spec.Replicas = new(scaleIntent)
 		}
 
 		diff := p.getMachineSetDiff(ms)

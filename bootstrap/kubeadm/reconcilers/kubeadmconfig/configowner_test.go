@@ -52,13 +52,13 @@ func TestGetConfigOwner(t *testing.T) {
 				Spec: clusterv1.MachineSpec{
 					ClusterName: "my-cluster",
 					Bootstrap: clusterv1.Bootstrap{
-						DataSecretName: ptr.To("my-data-secret"),
+						DataSecretName: new("my-data-secret"),
 					},
 					Version: "v1.19.6",
 				},
 				Status: clusterv1.MachineStatus{
 					Initialization: clusterv1.MachineInitializationStatus{
-						InfrastructureProvisioned: ptr.To(true),
+						InfrastructureProvisioned: new(true),
 					},
 				},
 			}
@@ -112,7 +112,7 @@ func TestGetConfigOwner(t *testing.T) {
 				},
 				Status: clusterv1.MachinePoolStatus{
 					Initialization: clusterv1.MachinePoolInitializationStatus{
-						InfrastructureProvisioned: ptr.To(true),
+						InfrastructureProvisioned: new(true),
 					},
 				},
 			}
@@ -215,7 +215,7 @@ func TestHasNodeRefs(t *testing.T) {
 			},
 			Status: clusterv1.MachineStatus{
 				Initialization: clusterv1.MachineInitializationStatus{
-					InfrastructureProvisioned: ptr.To(true),
+					InfrastructureProvisioned: new(true),
 				},
 				NodeRef: clusterv1.MachineNodeReference{
 					Name: "node-0",

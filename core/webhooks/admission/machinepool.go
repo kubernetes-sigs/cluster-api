@@ -27,7 +27,6 @@ import (
 	admissionv1 "k8s.io/api/admission/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/util/validation/field"
-	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
@@ -89,11 +88,11 @@ func (webhook *MachinePool) Default(ctx context.Context, m *clusterv1.MachinePoo
 		return err
 	}
 
-	m.Spec.Replicas = ptr.To[int32](replicas)
+	m.Spec.Replicas = new(replicas)
 
 	// Set the default value for the node deletion timeout.
 	if m.Spec.Template.Spec.Deletion.NodeDeletionTimeoutSeconds == nil {
-		m.Spec.Template.Spec.Deletion.NodeDeletionTimeoutSeconds = ptr.To(defaultNodeDeletionTimeoutSeconds)
+		m.Spec.Template.Spec.Deletion.NodeDeletionTimeoutSeconds = new(defaultNodeDeletionTimeoutSeconds)
 	}
 
 	// tolerate version strings without a "v" prefix: prepend it if it's not there.

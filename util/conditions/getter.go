@@ -127,7 +127,7 @@ func UnstructuredGetAll(sourceObj runtime.Unstructured) ([]metav1.Condition, err
 
 	value, exists, err := unstructured.NestedFieldNoCopy(sourceObj.UnstructuredContent(), "status", "v1beta2", "conditions")
 	if exists && err == nil {
-		if conditions, ok := value.([]interface{}); ok {
+		if conditions, ok := value.([]any); ok {
 			r, err := convertFromUnstructuredConditions(conditions)
 			if err != nil {
 				return nil, pkgerrors.Wrapf(err, "failed to convert status.v1beta2.conditions from %s to []metav1.Condition", ownerInfo.Kind)
@@ -138,7 +138,7 @@ func UnstructuredGetAll(sourceObj runtime.Unstructured) ([]metav1.Condition, err
 
 	value, exists, err = unstructured.NestedFieldNoCopy(sourceObj.UnstructuredContent(), "status", "conditions")
 	if exists && err == nil {
-		if conditions, ok := value.([]interface{}); ok {
+		if conditions, ok := value.([]any); ok {
 			r, err := convertFromUnstructuredConditions(conditions)
 			if err != nil {
 				return nil, pkgerrors.Wrapf(err, "failed to convert status.conditions from %s to []metav1.Condition", ownerInfo.Kind)
@@ -171,14 +171,14 @@ func UnstructuredGet(sourceObj runtime.Unstructured, sourceConditionType string)
 // convertFromUnstructuredConditions converts []interface{} to []metav1.Condition; this operation must account for
 // objects which are not transitioning to metav1.Condition, or not yet fully transitioned, and thus a best
 // effort conversion of values to metav1.Condition is performed.
-func convertFromUnstructuredConditions(conditions []interface{}) ([]metav1.Condition, error) {
+func convertFromUnstructuredConditions(conditions []any) ([]metav1.Condition, error) {
 	if conditions == nil {
 		return nil, nil
 	}
 
 	convertedConditions := make([]metav1.Condition, 0, len(conditions))
 	for _, c := range conditions {
-		cMap, ok := c.(map[string]interface{})
+		cMap, ok := c.(map[string]any)
 		if !ok || cMap == nil {
 			continue
 		}

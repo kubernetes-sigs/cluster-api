@@ -18,6 +18,7 @@ package desiredstate
 
 import (
 	"fmt"
+	"maps"
 	"testing"
 
 	"github.com/blang/semver/v4"
@@ -28,7 +29,6 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
@@ -50,8 +50,8 @@ func Test_ComputeDesiredMachine(t *testing.T) {
 			Namespace: metav1.NamespaceDefault,
 		},
 	}
-	duration5s := ptr.To(int32(5))
-	duration10s := ptr.To(int32(10))
+	duration5s := new(int32(5))
+	duration10s := new(int32(10))
 	kcpMachineTemplateObjectMeta := clusterv1.ObjectMeta{
 		Labels: map[string]string{
 			"machineTemplateLabel": "machineTemplateLabelValue",
@@ -512,9 +512,7 @@ func Test_ComputeDesiredMachine(t *testing.T) {
 				g.Expect(desiredMachine.UID).To(Equal(machineUID))
 				// Verify annotations.
 				expectedAnnotations := map[string]string{}
-				for k, v := range kcpMachineTemplateObjectMeta.Annotations {
-					expectedAnnotations[k] = v
-				}
+				maps.Copy(expectedAnnotations, kcpMachineTemplateObjectMeta.Annotations)
 				expectedAnnotations[controlplanev1.RemediationForAnnotation] = remediationData
 				// The pre-terminate annotation should always be added
 				expectedAnnotations[controlplanev1.PreTerminateHookCleanupAnnotation] = ""
@@ -548,9 +546,7 @@ func Test_ComputeDesiredMachine(t *testing.T) {
 				}
 				// Verify annotations.
 				expectedAnnotations := map[string]string{}
-				for k, v := range kcpMachineTemplateObjectMeta.Annotations {
-					expectedAnnotations[k] = v
-				}
+				maps.Copy(expectedAnnotations, kcpMachineTemplateObjectMeta.Annotations)
 				// The pre-terminate annotation should always be added
 				expectedAnnotations[controlplanev1.PreTerminateHookCleanupAnnotation] = ""
 				g.Expect(desiredMachine.Annotations).To(Equal(expectedAnnotations))
@@ -564,9 +560,7 @@ func Test_ComputeDesiredMachine(t *testing.T) {
 			// Verify that the machineTemplate.ObjectMeta has been propagated to the Machine.
 			// Verify labels.
 			expectedLabels := map[string]string{}
-			for k, v := range kcpMachineTemplateObjectMeta.Labels {
-				expectedLabels[k] = v
-			}
+			maps.Copy(expectedLabels, kcpMachineTemplateObjectMeta.Labels)
 			expectedLabels[clusterv1.ClusterNameLabel] = cluster.Name
 			expectedLabels[clusterv1.MachineControlPlaneLabel] = ""
 			expectedLabels[clusterv1.MachineControlPlaneNameLabel] = tt.kcp.Name
@@ -601,7 +595,7 @@ func Test_ComputeDesiredKubeadmConfig(t *testing.T) {
 						KubeletExtraArgs: []bootstrapv1.Arg{
 							{
 								Name:  "v",
-								Value: ptr.To("4"),
+								Value: new("4"),
 							},
 						},
 					},
@@ -611,7 +605,7 @@ func Test_ComputeDesiredKubeadmConfig(t *testing.T) {
 						KubeletExtraArgs: []bootstrapv1.Arg{
 							{
 								Name:  "v",
-								Value: ptr.To("8"),
+								Value: new("8"),
 							},
 						},
 					},
@@ -699,16 +693,16 @@ func Test_ComputeDesiredInfraMachine(t *testing.T) {
 		},
 	}
 	infrastructureMachineTemplate := &unstructured.Unstructured{
-		Object: map[string]interface{}{
+		Object: map[string]any{
 			"kind":       builder.GenericInfrastructureMachineTemplateKind,
 			"apiVersion": builder.InfrastructureGroupVersion.String(),
-			"metadata": map[string]interface{}{
+			"metadata": map[string]any{
 				"name":      "infra-machine-template-1",
 				"namespace": cluster.Namespace,
 			},
-			"spec": map[string]interface{}{
-				"template": map[string]interface{}{
-					"spec": map[string]interface{}{
+			"spec": map[string]any{
+				"template": map[string]any{
+					"spec": map[string]any{
 						"hello": "world",
 					},
 				},
@@ -734,52 +728,52 @@ func Test_ComputeDesiredInfraMachine(t *testing.T) {
 		},
 	}
 	expectedInfraMachineWithoutOwner := &unstructured.Unstructured{
-		Object: map[string]interface{}{
+		Object: map[string]any{
 			"kind":       builder.GenericInfrastructureMachineKind,
 			"apiVersion": builder.InfrastructureGroupVersion.String(),
-			"metadata": map[string]interface{}{
+			"metadata": map[string]any{
 				"name":      "machine-1",
 				"namespace": cluster.Namespace,
-				"labels": map[string]interface{}{
+				"labels": map[string]any{
 					clusterv1.ClusterNameLabel:             cluster.Name,
 					clusterv1.MachineControlPlaneLabel:     "",
 					clusterv1.MachineControlPlaneNameLabel: kcp.Name,
 				},
-				"annotations": map[string]interface{}{
+				"annotations": map[string]any{
 					clusterv1.TemplateClonedFromNameAnnotation:      "infra-machine-template-1",
 					clusterv1.TemplateClonedFromGroupKindAnnotation: "GenericInfrastructureMachineTemplate.infrastructure.cluster.x-k8s.io",
 				},
 			},
-			"spec": map[string]interface{}{
+			"spec": map[string]any{
 				"hello": "world",
 			},
 		},
 	}
 	preExistingInfraMachineOwnedByMachine := &unstructured.Unstructured{
-		Object: map[string]interface{}{
+		Object: map[string]any{
 			"kind":       builder.GenericInfrastructureMachineKind,
 			"apiVersion": builder.InfrastructureGroupVersion.String(),
-			"metadata": map[string]interface{}{
+			"metadata": map[string]any{
 				"name":      "machine-1",
 				"namespace": cluster.Namespace,
-				"labels": map[string]interface{}{
+				"labels": map[string]any{
 					clusterv1.ClusterNameLabel:             cluster.Name,
 					clusterv1.MachineControlPlaneLabel:     "",
 					clusterv1.MachineControlPlaneNameLabel: kcp.Name,
 				},
-				"annotations": map[string]interface{}{
+				"annotations": map[string]any{
 					clusterv1.TemplateClonedFromNameAnnotation:      "infra-machine-template-1",
 					clusterv1.TemplateClonedFromGroupKindAnnotation: "GenericInfrastructureMachineTemplate.infrastructure.cluster.x-k8s.io",
 				},
-				"ownerReferences": []interface{}{
-					map[string]interface{}{
+				"ownerReferences": []any{
+					map[string]any{
 						"apiVersion": clusterv1.GroupVersion.String(),
 						"kind":       "Machine",
 						"name":       "machine-1",
 					},
 				},
 			},
-			"spec": map[string]interface{}{
+			"spec": map[string]any{
 				"hello": "world",
 			},
 		},

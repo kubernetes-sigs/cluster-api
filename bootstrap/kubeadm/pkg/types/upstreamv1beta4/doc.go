@@ -21,4 +21,4 @@ limitations under the License.
 //
 // +k8s:conversion-gen=sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2
 // +k8s:deepcopy-gen=package
-package upstreamv1beta4 // import "sigs.k8s.io/cluster-api/bootstrap/kubeadm/pkg/types/upstreamv1beta4"
+package upstreamv1beta4

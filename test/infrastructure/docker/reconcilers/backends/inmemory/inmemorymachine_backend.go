@@ -253,7 +253,7 @@ func (r *MachineBackendReconciler) reconcileNormalCloudMachine(ctx context.Conte
 	// TODO: consider if to surface VM provisioned also on the cloud machine (currently it surfaces only on the inMemoryMachine)
 
 	inMemoryMachine.Spec.ProviderID = calculateProviderID(inMemoryMachine)
-	inMemoryMachine.Status.Initialization.Provisioned = ptr.To(true)
+	inMemoryMachine.Status.Initialization.Provisioned = new(true)
 	inMemoryMachine.Status.FailureDomain = machine.Spec.FailureDomain
 	v1beta1conditions.MarkTrue(inMemoryMachine, infrav1.VMProvisionedCondition)
 	conditions.Set(inMemoryMachine, metav1.Condition{

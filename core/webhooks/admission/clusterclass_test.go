@@ -28,7 +28,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/version"
 	utilfeature "k8s.io/component-base/featuregate/testing"
-	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -699,17 +698,17 @@ func TestClusterClassValidation(t *testing.T) {
 							{
 								Type:           corev1.NodeReady,
 								Status:         corev1.ConditionUnknown,
-								TimeoutSeconds: ptr.To(int32(5 * 60)),
+								TimeoutSeconds: new(int32(5 * 60)),
 							},
 						},
 						UnhealthyMachineConditions: []clusterv1.UnhealthyMachineCondition{
 							{
 								Type:           controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition,
 								Status:         metav1.ConditionUnknown,
-								TimeoutSeconds: ptr.To(int32(5 * 60)),
+								TimeoutSeconds: new(int32(5 * 60)),
 							},
 						},
-						NodeStartupTimeoutSeconds: ptr.To(int32(60)),
+						NodeStartupTimeoutSeconds: new(int32(60)),
 					},
 				}).
 				Build(),
@@ -728,7 +727,7 @@ func TestClusterClassValidation(t *testing.T) {
 				}).
 				WithControlPlaneMachineHealthCheck(clusterv1.ControlPlaneClassHealthCheck{
 					Checks: clusterv1.ControlPlaneClassHealthCheckChecks{
-						NodeStartupTimeoutSeconds: ptr.To(int32(60)),
+						NodeStartupTimeoutSeconds: new(int32(60)),
 					},
 				}).
 				Build(),
@@ -748,7 +747,7 @@ func TestClusterClassValidation(t *testing.T) {
 				}).
 				WithControlPlaneMachineHealthCheck(clusterv1.ControlPlaneClassHealthCheck{
 					Checks: clusterv1.ControlPlaneClassHealthCheckChecks{
-						NodeStartupTimeoutSeconds: ptr.To(int32(60)),
+						NodeStartupTimeoutSeconds: new(int32(60)),
 					},
 				}).
 				Build(),
@@ -765,7 +764,7 @@ func TestClusterClassValidation(t *testing.T) {
 				// No ControlPlaneMachineInfrastructure makes this an invalid creation request.
 				WithControlPlaneMachineHealthCheck(clusterv1.ControlPlaneClassHealthCheck{
 					Checks: clusterv1.ControlPlaneClassHealthCheckChecks{
-						NodeStartupTimeoutSeconds: ptr.To(int32(60)),
+						NodeStartupTimeoutSeconds: new(int32(60)),
 					},
 				}).
 				Build(),
@@ -784,7 +783,7 @@ func TestClusterClassValidation(t *testing.T) {
 						Build()).
 				WithControlPlaneMachineHealthCheck(clusterv1.ControlPlaneClassHealthCheck{
 					Checks: clusterv1.ControlPlaneClassHealthCheckChecks{
-						NodeStartupTimeoutSeconds: ptr.To(int32(60)),
+						NodeStartupTimeoutSeconds: new(int32(60)),
 					},
 				}).
 				Build(),
@@ -810,17 +809,17 @@ func TestClusterClassValidation(t *testing.T) {
 									{
 										Type:           corev1.NodeReady,
 										Status:         corev1.ConditionUnknown,
-										TimeoutSeconds: ptr.To(int32(5 * 60)),
+										TimeoutSeconds: new(int32(5 * 60)),
 									},
 								},
 								UnhealthyMachineConditions: []clusterv1.UnhealthyMachineCondition{
 									{
 										Type:           controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition,
 										Status:         metav1.ConditionUnknown,
-										TimeoutSeconds: ptr.To(int32(5 * 60)),
+										TimeoutSeconds: new(int32(5 * 60)),
 									},
 								},
-								NodeStartupTimeoutSeconds: ptr.To(int32(60)),
+								NodeStartupTimeoutSeconds: new(int32(60)),
 							},
 						}).
 						Build()).
@@ -846,7 +845,7 @@ func TestClusterClassValidation(t *testing.T) {
 									{
 										Type:           corev1.NodeReady,
 										Status:         corev1.ConditionUnknown,
-										TimeoutSeconds: ptr.To(int32(5 * 60)),
+										TimeoutSeconds: new(int32(5 * 60)),
 									},
 								},
 								// nodeStartupTimeout is too short here.
@@ -854,10 +853,10 @@ func TestClusterClassValidation(t *testing.T) {
 									{
 										Type:           controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition,
 										Status:         metav1.ConditionUnknown,
-										TimeoutSeconds: ptr.To(int32(5 * 60)),
+										TimeoutSeconds: new(int32(5 * 60)),
 									},
 								},
-								NodeStartupTimeoutSeconds: ptr.To(int32(10)),
+								NodeStartupTimeoutSeconds: new(int32(10)),
 							},
 						}).
 						Build()).
@@ -970,7 +969,7 @@ func TestClusterClassValidation(t *testing.T) {
 							builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap1").Build()).
 						WithMachineHealthCheckClass(clusterv1.MachineDeploymentClassHealthCheck{
 							Checks: clusterv1.MachineDeploymentClassHealthCheckChecks{
-								NodeStartupTimeoutSeconds: ptr.To(int32(60)),
+								NodeStartupTimeoutSeconds: new(int32(60)),
 							},
 						}).
 						Build()).
@@ -2346,7 +2345,7 @@ func TestClusterClassValidationWithClusterAwareChecks(t *testing.T) {
 					WithTopology(builder.ClusterTopology().
 						WithClass("clusterclass1").
 						WithControlPlaneMachineHealthCheck(clusterv1.ControlPlaneTopologyHealthCheck{
-							Enabled: ptr.To(true),
+							Enabled: new(true),
 						}).
 						Build()).
 					Build(),
@@ -2363,14 +2362,14 @@ func TestClusterClassValidationWithClusterAwareChecks(t *testing.T) {
 							{
 								Type:           corev1.NodeReady,
 								Status:         corev1.ConditionUnknown,
-								TimeoutSeconds: ptr.To(int32(5 * 60)),
+								TimeoutSeconds: new(int32(5 * 60)),
 							},
 						},
 						UnhealthyMachineConditions: []clusterv1.UnhealthyMachineCondition{
 							{
 								Type:           controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition,
 								Status:         metav1.ConditionUnknown,
-								TimeoutSeconds: ptr.To(int32(5 * 60)),
+								TimeoutSeconds: new(int32(5 * 60)),
 							},
 						},
 					},
@@ -2406,14 +2405,14 @@ func TestClusterClassValidationWithClusterAwareChecks(t *testing.T) {
 							{
 								Type:           corev1.NodeReady,
 								Status:         corev1.ConditionUnknown,
-								TimeoutSeconds: ptr.To(int32(5 * 60)),
+								TimeoutSeconds: new(int32(5 * 60)),
 							},
 						},
 						UnhealthyMachineConditions: []clusterv1.UnhealthyMachineCondition{
 							{
 								Type:           controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition,
 								Status:         metav1.ConditionUnknown,
-								TimeoutSeconds: ptr.To(int32(5 * 60)),
+								TimeoutSeconds: new(int32(5 * 60)),
 							},
 						},
 					},
@@ -2435,20 +2434,20 @@ func TestClusterClassValidationWithClusterAwareChecks(t *testing.T) {
 					WithTopology(builder.ClusterTopology().
 						WithClass("clusterclass1").
 						WithControlPlaneMachineHealthCheck(clusterv1.ControlPlaneTopologyHealthCheck{
-							Enabled: ptr.To(true),
+							Enabled: new(true),
 							Checks: clusterv1.ControlPlaneTopologyHealthCheckChecks{
 								UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
 									{
 										Type:           corev1.NodeReady,
 										Status:         corev1.ConditionUnknown,
-										TimeoutSeconds: ptr.To(int32(5 * 60)),
+										TimeoutSeconds: new(int32(5 * 60)),
 									},
 								},
 								UnhealthyMachineConditions: []clusterv1.UnhealthyMachineCondition{
 									{
 										Type:           controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition,
 										Status:         metav1.ConditionUnknown,
-										TimeoutSeconds: ptr.To(int32(5 * 60)),
+										TimeoutSeconds: new(int32(5 * 60)),
 									},
 								},
 							},
@@ -2468,14 +2467,14 @@ func TestClusterClassValidationWithClusterAwareChecks(t *testing.T) {
 							{
 								Type:           corev1.NodeReady,
 								Status:         corev1.ConditionUnknown,
-								TimeoutSeconds: ptr.To(int32(5 * 60)),
+								TimeoutSeconds: new(int32(5 * 60)),
 							},
 						},
 						UnhealthyMachineConditions: []clusterv1.UnhealthyMachineCondition{
 							{
 								Type:           controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition,
 								Status:         metav1.ConditionUnknown,
-								TimeoutSeconds: ptr.To(int32(5 * 60)),
+								TimeoutSeconds: new(int32(5 * 60)),
 							},
 						},
 					},
@@ -2499,7 +2498,7 @@ func TestClusterClassValidationWithClusterAwareChecks(t *testing.T) {
 						WithMachineDeployment(builder.MachineDeploymentTopology("md1").
 							WithClass("mdclass1").
 							WithMachineHealthCheck(clusterv1.MachineDeploymentTopologyHealthCheck{
-								Enabled: ptr.To(true),
+								Enabled: new(true),
 							}).
 							Build()).
 						Build()).
@@ -2523,14 +2522,14 @@ func TestClusterClassValidationWithClusterAwareChecks(t *testing.T) {
 									{
 										Type:           corev1.NodeReady,
 										Status:         corev1.ConditionUnknown,
-										TimeoutSeconds: ptr.To(int32(5 * 60)),
+										TimeoutSeconds: new(int32(5 * 60)),
 									},
 								},
 								UnhealthyMachineConditions: []clusterv1.UnhealthyMachineCondition{
 									{
 										Type:           controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition,
 										Status:         metav1.ConditionUnknown,
-										TimeoutSeconds: ptr.To(int32(5 * 60)),
+										TimeoutSeconds: new(int32(5 * 60)),
 									},
 								},
 							},
@@ -2585,14 +2584,14 @@ func TestClusterClassValidationWithClusterAwareChecks(t *testing.T) {
 									{
 										Type:           corev1.NodeReady,
 										Status:         corev1.ConditionUnknown,
-										TimeoutSeconds: ptr.To(int32(5 * 60)),
+										TimeoutSeconds: new(int32(5 * 60)),
 									},
 								},
 								UnhealthyMachineConditions: []clusterv1.UnhealthyMachineCondition{
 									{
 										Type:           controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition,
 										Status:         metav1.ConditionUnknown,
-										TimeoutSeconds: ptr.To(int32(5 * 60)),
+										TimeoutSeconds: new(int32(5 * 60)),
 									},
 								},
 							},
@@ -2626,20 +2625,20 @@ func TestClusterClassValidationWithClusterAwareChecks(t *testing.T) {
 						WithMachineDeployment(builder.MachineDeploymentTopology("md1").
 							WithClass("mdclass1").
 							WithMachineHealthCheck(clusterv1.MachineDeploymentTopologyHealthCheck{
-								Enabled: ptr.To(true),
+								Enabled: new(true),
 								Checks: clusterv1.MachineDeploymentTopologyHealthCheckChecks{
 									UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
 										{
 											Type:           corev1.NodeReady,
 											Status:         corev1.ConditionUnknown,
-											TimeoutSeconds: ptr.To(int32(5 * 60)),
+											TimeoutSeconds: new(int32(5 * 60)),
 										},
 									},
 									UnhealthyMachineConditions: []clusterv1.UnhealthyMachineCondition{
 										{
 											Type:           controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition,
 											Status:         metav1.ConditionUnknown,
-											TimeoutSeconds: ptr.To(int32(5 * 60)),
+											TimeoutSeconds: new(int32(5 * 60)),
 										},
 									},
 								},
@@ -2666,14 +2665,14 @@ func TestClusterClassValidationWithClusterAwareChecks(t *testing.T) {
 									{
 										Type:           corev1.NodeReady,
 										Status:         corev1.ConditionUnknown,
-										TimeoutSeconds: ptr.To(int32(5 * 60)),
+										TimeoutSeconds: new(int32(5 * 60)),
 									},
 								},
 								UnhealthyMachineConditions: []clusterv1.UnhealthyMachineCondition{
 									{
 										Type:           controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition,
 										Status:         metav1.ConditionUnknown,
-										TimeoutSeconds: ptr.To(int32(5 * 60)),
+										TimeoutSeconds: new(int32(5 * 60)),
 									},
 								},
 							},

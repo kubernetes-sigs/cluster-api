@@ -68,12 +68,13 @@ func (i *CreateRepositoryInput) RegisterClusterResourceSetConfigMapTransformatio
 
 	i.FileTransformations = append(i.FileTransformations, func(template []byte) ([]byte, error) {
 		oldData := fmt.Sprintf("data: ${%s}", envSubstVar)
-		newData := "data:\n"
-		newData += "  resources: |\n"
-		for _, l := range strings.Split(string(manifestData), "\n") {
-			newData += strings.Repeat(" ", 4) + l + "\n"
+		var newData strings.Builder
+		newData.WriteString("data:\n")
+		newData.WriteString("  resources: |\n")
+		for l := range strings.SplitSeq(string(manifestData), "\n") {
+			newData.WriteString(strings.Repeat(" ", 4) + l + "\n")
 		}
-		return bytes.ReplaceAll(template, []byte(oldData), []byte(newData)), nil
+		return bytes.ReplaceAll(template, []byte(oldData), []byte(newData.String())), nil
 	})
 }
 
@@ -130,7 +131,7 @@ func CreateRepository(ctx context.Context, input CreateRepositoryInput) string {
 	// creates a clusterctl config file to be used for working with such repository
 	clusterctlConfigFile := &clusterctlConfig{
 		Path: filepath.Join(input.RepositoryFolder, clusterctlConfigFileName),
-		Values: map[string]interface{}{
+		Values: map[string]any{
 			"providers":       providers,
 			"overridesFolder": overridePath,
 		},
@@ -163,7 +164,7 @@ func CopyAndAmendClusterctlConfig(_ context.Context, input CopyAndAmendClusterct
 
 	// Overwrite variables.
 	if clusterctlConfigFile.Values == nil {
-		clusterctlConfigFile.Values = map[string]interface{}{}
+		clusterctlConfigFile.Values = map[string]any{}
 	}
 	for key, value := range input.Variables {
 		clusterctlConfigFile.Values[key] = value

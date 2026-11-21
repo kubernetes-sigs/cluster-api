@@ -79,7 +79,7 @@ func Test_ObjectPauser(t *testing.T) {
 							Name:      "md-1",
 						},
 						Spec: clusterv1.MachineDeploymentSpec{
-							Paused: ptr.To(true),
+							Paused: new(true),
 						},
 					},
 				},

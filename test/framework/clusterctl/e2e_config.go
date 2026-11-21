@@ -20,12 +20,14 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"maps"
 	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
 	"regexp"
 	"runtime"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -36,7 +38,6 @@ import (
 	pkgerrors "github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/util/version"
 	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/utils/ptr"
 	"sigs.k8s.io/yaml"
 
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
@@ -262,13 +263,9 @@ func (c *E2EConfig) DeepCopy() *E2EConfig {
 	out.Providers = make([]ProviderConfig, len(c.Providers))
 	copy(out.Providers, c.Providers)
 	out.Variables = make(map[string]string, len(c.Variables))
-	for key, val := range c.Variables {
-		out.Variables[key] = val
-	}
+	maps.Copy(out.Variables, c.Variables)
 	out.Intervals = make(map[string][]string, len(c.Intervals))
-	for key, val := range c.Intervals {
-		out.Intervals[key] = val
-	}
+	maps.Copy(out.Intervals, c.Intervals)
 	return out
 }
 
@@ -544,7 +541,7 @@ func (c *E2EConfig) AbsPaths(basePath string) {
 	}
 }
 
-func errInvalidArg(format string, args ...interface{}) error {
+func errInvalidArg(format string, args ...any) error {
 	msg := fmt.Sprintf(format, args...)
 	return pkgerrors.Errorf("invalid argument: %s", msg)
 }
@@ -750,26 +747,21 @@ func (c *E2EConfig) getProviders(t clusterctlv1.ProviderType) []string {
 }
 
 func (c *E2EConfig) HasDockerProvider() bool {
-	for _, i := range c.InfrastructureProviders() {
-		if i == "docker" {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(c.InfrastructureProviders(), "docker")
 }
 
 // GetIntervals returns the intervals to be applied to a Eventually operation.
 // It searches for [spec]/[key] intervals first, and if it is not found, it searches
 // for default/[key]. If also the default/[key] intervals are not found,
 // ginkgo DefaultEventuallyTimeout and DefaultEventuallyPollingInterval are used.
-func (c *E2EConfig) GetIntervals(spec, key string) []interface{} {
+func (c *E2EConfig) GetIntervals(spec, key string) []any {
 	intervals, ok := c.Intervals[fmt.Sprintf("%s/%s", spec, key)]
 	if !ok {
 		if intervals, ok = c.Intervals[fmt.Sprintf("default/%s", key)]; !ok {
 			return nil
 		}
 	}
-	intervalsInterfaces := make([]interface{}, len(intervals))
+	intervalsInterfaces := make([]any, len(intervals))
 	for i := range intervals {
 		intervalsInterfaces[i] = intervals[i]
 	}
@@ -820,7 +812,7 @@ func (c *E2EConfig) MustGetInt64PtrVariable(varName string) *int64 {
 
 	wCount, err := strconv.ParseInt(wCountStr, 10, 64)
 	Expect(err).ToNot(HaveOccurred())
-	return ptr.To[int64](wCount)
+	return new(wCount)
 }
 
 // MustGetInt32PtrVariable returns an Int32Ptr variable from the e2e config file.
@@ -832,7 +824,7 @@ func (c *E2EConfig) MustGetInt32PtrVariable(varName string) *int32 {
 
 	wCount, err := strconv.ParseUint(wCountStr, 10, 32)
 	Expect(err).ToNot(HaveOccurred())
-	return ptr.To[int32](int32(wCount))
+	return new(int32(wCount))
 }
 
 // GetProviderVersions returns the sorted list of versions defined for a provider.

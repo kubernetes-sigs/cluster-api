@@ -369,8 +369,8 @@ func renderValueTemplate(valueTemplate string, variables map[string]apiextension
 //     "numberVariable": <float64>2.5,
 //     "booleanVariable": <bool>true,
 //     }
-func calculateTemplateData(variables map[string]apiextensionsv1.JSON) (map[string]interface{}, error) {
-	res := make(map[string]interface{}, len(variables))
+func calculateTemplateData(variables map[string]apiextensionsv1.JSON) (map[string]any, error) {
+	res := make(map[string]any, len(variables))
 
 	// Marshal the variables into a byte array.
 	tmp, err := json.Marshal(variables)

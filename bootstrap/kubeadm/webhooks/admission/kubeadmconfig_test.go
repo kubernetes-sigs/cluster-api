@@ -309,7 +309,7 @@ func TestKubeadmConfigValidate(t *testing.T) {
 					Format: bootstrapv1.Ignition,
 					Users: []bootstrapv1.User{
 						{
-							Inactive: ptr.To(true),
+							Inactive: new(true),
 						},
 					},
 				},

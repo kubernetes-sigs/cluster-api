@@ -18,6 +18,7 @@ package annotations
 
 import (
 	"fmt"
+	"maps"
 	"regexp"
 	"testing"
 
@@ -161,9 +162,9 @@ func TestAddAnnotations(t *testing.T) {
 		{
 			name: "should add annotations to a non empty unstructured",
 			obj: &unstructured.Unstructured{
-				Object: map[string]interface{}{
-					"metadata": map[string]interface{}{
-						"annotations": map[string]interface{}{
+				Object: map[string]any{
+					"metadata": map[string]any{
+						"annotations": map[string]any{
 							"foo": "bar",
 						},
 					},
@@ -305,9 +306,7 @@ func TestGetManagedAnnotations(t *testing.T) {
 
 	exampleRegex := regexp.MustCompile(`foo`)
 	defaultAndRegexAnnotations := map[string]string{}
-	for k, v := range defaultAnnotations {
-		defaultAndRegexAnnotations[k] = v
-	}
+	maps.Copy(defaultAndRegexAnnotations, defaultAnnotations)
 	defaultAndRegexAnnotations["foo"] = "bar"
 	defaultAndRegexAnnotations["wrong.test.foo.example.com"] = ""
 
@@ -316,23 +315,13 @@ func TestGetManagedAnnotations(t *testing.T) {
 		clusterv1.OwnerNameAnnotation: ms.Name,
 	}
 	defaultAndOwnerRefAnnotations := map[string]string{}
-	for k, v := range defaultAnnotations {
-		defaultAndOwnerRefAnnotations[k] = v
-	}
-	for k, v := range ownerRefAnnotations {
-		defaultAndOwnerRefAnnotations[k] = v
-	}
+	maps.Copy(defaultAndOwnerRefAnnotations, defaultAnnotations)
+	maps.Copy(defaultAndOwnerRefAnnotations, ownerRefAnnotations)
 
 	allAnnotations := map[string]string{}
-	for k, v := range defaultAnnotations {
-		allAnnotations[k] = v
-	}
-	for k, v := range additionalAnnotations {
-		allAnnotations[k] = v
-	}
-	for k, v := range ownerRefAnnotations {
-		allAnnotations[k] = v
-	}
+	maps.Copy(allAnnotations, defaultAnnotations)
+	maps.Copy(allAnnotations, additionalAnnotations)
+	maps.Copy(allAnnotations, ownerRefAnnotations)
 
 	tests := []struct {
 		name                             string

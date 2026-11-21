@@ -23,7 +23,6 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apimachineryconversion "k8s.io/apimachinery/pkg/conversion"
-	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
@@ -157,7 +156,7 @@ func Convert_upstreamv1beta4_NodeRegistrationOptions_To_v1beta2_NodeRegistration
 	if in.Taints == nil {
 		out.Taints = nil
 	} else {
-		out.Taints = ptr.To(in.Taints)
+		out.Taints = new(in.Taints)
 	}
 	return autoConvert_upstreamv1beta4_NodeRegistrationOptions_To_v1beta2_NodeRegistrationOptions(in, out, s)
 }
@@ -191,7 +190,7 @@ func Convert_upstreamv1beta4_APIServer_To_v1beta2_APIServer(in *APIServer, out *
 	if in.ExtraEnvs == nil {
 		out.ExtraEnvs = nil
 	} else {
-		out.ExtraEnvs = ptr.To(make([]bootstrapv1.EnvVar, len(in.ExtraEnvs)))
+		out.ExtraEnvs = new(make([]bootstrapv1.EnvVar, len(in.ExtraEnvs)))
 		for i := range in.ExtraEnvs {
 			if err := Convert_upstreamv1beta4_EnvVar_To_v1beta2_EnvVar(&(in.ExtraEnvs)[i], &(*out.ExtraEnvs)[i], s); err != nil {
 				return err
@@ -216,7 +215,7 @@ func Convert_upstreamv1beta4_ControlPlaneComponent_To_v1beta2_ControllerManager(
 	if in.ExtraEnvs == nil {
 		out.ExtraEnvs = nil
 	} else {
-		out.ExtraEnvs = ptr.To(make([]bootstrapv1.EnvVar, len(in.ExtraEnvs)))
+		out.ExtraEnvs = new(make([]bootstrapv1.EnvVar, len(in.ExtraEnvs)))
 		for i := range in.ExtraEnvs {
 			if err := Convert_upstreamv1beta4_EnvVar_To_v1beta2_EnvVar(&(in.ExtraEnvs)[i], &(*out.ExtraEnvs)[i], s); err != nil {
 				return err
@@ -238,7 +237,7 @@ func Convert_upstreamv1beta4_ControlPlaneComponent_To_v1beta2_Scheduler(in *Cont
 	if in.ExtraEnvs == nil {
 		out.ExtraEnvs = nil
 	} else {
-		out.ExtraEnvs = ptr.To(make([]bootstrapv1.EnvVar, len(in.ExtraEnvs)))
+		out.ExtraEnvs = new(make([]bootstrapv1.EnvVar, len(in.ExtraEnvs)))
 		for i := range in.ExtraEnvs {
 			if err := Convert_upstreamv1beta4_EnvVar_To_v1beta2_EnvVar(&(in.ExtraEnvs)[i], &(*out.ExtraEnvs)[i], s); err != nil {
 				return err
@@ -252,7 +251,7 @@ func Convert_upstreamv1beta4_LocalEtcd_To_v1beta2_LocalEtcd(in *LocalEtcd, out *
 	if in.ExtraEnvs == nil {
 		out.ExtraEnvs = nil
 	} else {
-		out.ExtraEnvs = ptr.To(make([]bootstrapv1.EnvVar, len(in.ExtraEnvs)))
+		out.ExtraEnvs = new(make([]bootstrapv1.EnvVar, len(in.ExtraEnvs)))
 		for i := range in.ExtraEnvs {
 			if err := Convert_upstreamv1beta4_EnvVar_To_v1beta2_EnvVar(&(in.ExtraEnvs)[i], &(*out.ExtraEnvs)[i], s); err != nil {
 				return err
@@ -507,7 +506,7 @@ func Convert_v1beta2_BootstrapToken_To_upstreamv1beta4_BootstrapToken(in *bootst
 	}
 	out.TTL = clusterv1.ConvertFromSeconds(in.TTLSeconds)
 	if !reflect.DeepEqual(in.Expires, metav1.Time{}) {
-		out.Expires = ptr.To(in.Expires)
+		out.Expires = new(in.Expires)
 	}
 	if !reflect.DeepEqual(in.Token, bootstrapv1.BootstrapTokenString{}) {
 		out.Token = &BootstrapTokenString{}
@@ -580,19 +579,19 @@ func (src *ClusterConfiguration) GetAdditionalData(data *upstream.AdditionalData
 	}
 
 	if src.KubernetesVersion != "" {
-		data.KubernetesVersion = ptr.To(src.KubernetesVersion)
+		data.KubernetesVersion = new(src.KubernetesVersion)
 	}
 	if src.ClusterName != "" {
-		data.ClusterName = ptr.To(src.ClusterName)
+		data.ClusterName = new(src.ClusterName)
 	}
 	if src.Networking.DNSDomain != "" {
-		data.DNSDomain = ptr.To(src.Networking.DNSDomain)
+		data.DNSDomain = new(src.Networking.DNSDomain)
 	}
 	if src.Networking.ServiceSubnet != "" {
-		data.ServiceSubnet = ptr.To(src.Networking.ServiceSubnet)
+		data.ServiceSubnet = new(src.Networking.ServiceSubnet)
 	}
 	if src.Networking.PodSubnet != "" {
-		data.PodSubnet = ptr.To(src.Networking.PodSubnet)
+		data.PodSubnet = new(src.Networking.PodSubnet)
 	}
 
 	// NOTE: for kubeadm v1beta4 types we are not reading ControlPlaneComponentHealthCheckSeconds into additional data
@@ -619,5 +618,5 @@ func convertFromDays(in int32) *metav1.Duration {
 	if in == 0 {
 		return nil
 	}
-	return ptr.To(metav1.Duration{Duration: time.Duration(in) * time.Hour * 24})
+	return new(metav1.Duration{Duration: time.Duration(in) * time.Hour * 24})
 }

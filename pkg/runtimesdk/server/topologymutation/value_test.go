@@ -20,7 +20,6 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
-	"k8s.io/utils/ptr"
 )
 
 func TestParsePathSegment(t *testing.T) {
@@ -43,7 +42,7 @@ func TestParsePathSegment(t *testing.T) {
 			segment: "arrayProperty[5]",
 			wantPathSegment: &pathSegment{
 				path:  "arrayProperty",
-				index: ptr.To(5),
+				index: new(5),
 			},
 		},
 		{

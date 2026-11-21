@@ -37,7 +37,7 @@ type WaitForKubeProxyUpgradeInput struct {
 }
 
 // WaitForKubeProxyUpgrade waits until kube-proxy version matches with the kubernetes version. This is called during KCP upgrade.
-func WaitForKubeProxyUpgrade(ctx context.Context, input WaitForKubeProxyUpgradeInput, intervals ...interface{}) {
+func WaitForKubeProxyUpgrade(ctx context.Context, input WaitForKubeProxyUpgradeInput, intervals ...any) {
 	By("Ensuring kube-proxy has the correct image")
 
 	// Validate the kube-proxy image according to how KCP sets the image in the kube-proxy DaemonSet.

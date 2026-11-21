@@ -37,15 +37,15 @@ func TestCopyFields(t *testing.T) {
 			name: "Field both in src and dest, no-op when equal",
 			input: CopyFieldsInput{
 				Src: &unstructured.Unstructured{
-					Object: map[string]interface{}{
-						"spec": map[string]interface{}{
+					Object: map[string]any{
+						"spec": map[string]any{
 							"A": "A",
 						},
 					},
 				},
 				Dest: &unstructured.Unstructured{
-					Object: map[string]interface{}{
-						"spec": map[string]interface{}{
+					Object: map[string]any{
+						"spec": map[string]any{
 							"A": "A",
 						},
 					},
@@ -58,8 +58,8 @@ func TestCopyFields(t *testing.T) {
 				},
 			},
 			want: &unstructured.Unstructured{
-				Object: map[string]interface{}{
-					"spec": map[string]interface{}{
+				Object: map[string]any{
+					"spec": map[string]any{
 						"A": "A",
 					},
 				},
@@ -69,15 +69,15 @@ func TestCopyFields(t *testing.T) {
 			name: "Field both in src and dest, overwrite dest when different",
 			input: CopyFieldsInput{
 				Src: &unstructured.Unstructured{
-					Object: map[string]interface{}{
-						"spec": map[string]interface{}{
+					Object: map[string]any{
+						"spec": map[string]any{
 							"A": "A",
 						},
 					},
 				},
 				Dest: &unstructured.Unstructured{
-					Object: map[string]interface{}{
-						"spec": map[string]interface{}{
+					Object: map[string]any{
+						"spec": map[string]any{
 							"A": "A-different",
 						},
 					},
@@ -90,8 +90,8 @@ func TestCopyFields(t *testing.T) {
 				},
 			},
 			want: &unstructured.Unstructured{
-				Object: map[string]interface{}{
-					"spec": map[string]interface{}{
+				Object: map[string]any{
+					"spec": map[string]any{
 						"A": "A",
 					},
 				},
@@ -101,10 +101,10 @@ func TestCopyFields(t *testing.T) {
 			name: "Nested field both in src and dest, no-op when equal",
 			input: CopyFieldsInput{
 				Src: &unstructured.Unstructured{
-					Object: map[string]interface{}{
-						"spec": map[string]interface{}{
-							"template": map[string]interface{}{
-								"spec": map[string]interface{}{
+					Object: map[string]any{
+						"spec": map[string]any{
+							"template": map[string]any{
+								"spec": map[string]any{
 									"A": "A",
 								},
 							},
@@ -112,10 +112,10 @@ func TestCopyFields(t *testing.T) {
 					},
 				},
 				Dest: &unstructured.Unstructured{
-					Object: map[string]interface{}{
-						"spec": map[string]interface{}{
-							"template": map[string]interface{}{
-								"spec": map[string]interface{}{
+					Object: map[string]any{
+						"spec": map[string]any{
+							"template": map[string]any{
+								"spec": map[string]any{
 									"A": "A",
 								},
 							},
@@ -130,10 +130,10 @@ func TestCopyFields(t *testing.T) {
 				},
 			},
 			want: &unstructured.Unstructured{
-				Object: map[string]interface{}{
-					"spec": map[string]interface{}{
-						"template": map[string]interface{}{
-							"spec": map[string]interface{}{
+				Object: map[string]any{
+					"spec": map[string]any{
+						"template": map[string]any{
+							"spec": map[string]any{
 								"A": "A",
 							},
 						},
@@ -145,10 +145,10 @@ func TestCopyFields(t *testing.T) {
 			name: "Nested field both in src and dest, overwrite dest when different",
 			input: CopyFieldsInput{
 				Src: &unstructured.Unstructured{
-					Object: map[string]interface{}{
-						"spec": map[string]interface{}{
-							"template": map[string]interface{}{
-								"spec": map[string]interface{}{
+					Object: map[string]any{
+						"spec": map[string]any{
+							"template": map[string]any{
+								"spec": map[string]any{
 									"A": "A",
 								},
 							},
@@ -156,10 +156,10 @@ func TestCopyFields(t *testing.T) {
 					},
 				},
 				Dest: &unstructured.Unstructured{
-					Object: map[string]interface{}{
-						"spec": map[string]interface{}{
-							"template": map[string]interface{}{
-								"spec": map[string]interface{}{
+					Object: map[string]any{
+						"spec": map[string]any{
+							"template": map[string]any{
+								"spec": map[string]any{
 									"A": "A-different",
 								},
 							},
@@ -174,10 +174,10 @@ func TestCopyFields(t *testing.T) {
 				},
 			},
 			want: &unstructured.Unstructured{
-				Object: map[string]interface{}{
-					"spec": map[string]interface{}{
-						"template": map[string]interface{}{
-							"spec": map[string]interface{}{
+				Object: map[string]any{
+					"spec": map[string]any{
+						"template": map[string]any{
+							"spec": map[string]any{
 								"A": "A",
 							},
 						},
@@ -189,14 +189,14 @@ func TestCopyFields(t *testing.T) {
 			name: "Field only in src, copy to dest",
 			input: CopyFieldsInput{
 				Src: &unstructured.Unstructured{
-					Object: map[string]interface{}{
-						"spec": map[string]interface{}{
+					Object: map[string]any{
+						"spec": map[string]any{
 							"foo": "bar",
 						},
 					},
 				},
 				Dest: &unstructured.Unstructured{
-					Object: map[string]interface{}{},
+					Object: map[string]any{},
 				},
 				Fields: []CopyFieldsInputField{
 					{
@@ -206,8 +206,8 @@ func TestCopyFields(t *testing.T) {
 				},
 			},
 			want: &unstructured.Unstructured{
-				Object: map[string]interface{}{
-					"spec": map[string]interface{}{
+				Object: map[string]any{
+					"spec": map[string]any{
 						"foo": "bar",
 					},
 				},
@@ -217,10 +217,10 @@ func TestCopyFields(t *testing.T) {
 			name: "Nested field only in src, copy to dest",
 			input: CopyFieldsInput{
 				Src: &unstructured.Unstructured{
-					Object: map[string]interface{}{
-						"spec": map[string]interface{}{
-							"template": map[string]interface{}{
-								"spec": map[string]interface{}{
+					Object: map[string]any{
+						"spec": map[string]any{
+							"template": map[string]any{
+								"spec": map[string]any{
 									"A": "A",
 								},
 							},
@@ -228,7 +228,7 @@ func TestCopyFields(t *testing.T) {
 					},
 				},
 				Dest: &unstructured.Unstructured{
-					Object: map[string]interface{}{},
+					Object: map[string]any{},
 				},
 				Fields: []CopyFieldsInputField{
 					{
@@ -238,10 +238,10 @@ func TestCopyFields(t *testing.T) {
 				},
 			},
 			want: &unstructured.Unstructured{
-				Object: map[string]interface{}{
-					"spec": map[string]interface{}{
-						"template": map[string]interface{}{
-							"spec": map[string]interface{}{
+				Object: map[string]any{
+					"spec": map[string]any{
+						"template": map[string]any{
+							"spec": map[string]any{
 								"A": "A",
 							},
 						},
@@ -253,10 +253,10 @@ func TestCopyFields(t *testing.T) {
 			name: "Copy field from spec.template.spec in src to spec in dest",
 			input: CopyFieldsInput{
 				Src: &unstructured.Unstructured{
-					Object: map[string]interface{}{
-						"spec": map[string]interface{}{
-							"template": map[string]interface{}{
-								"spec": map[string]interface{}{
+					Object: map[string]any{
+						"spec": map[string]any{
+							"template": map[string]any{
+								"spec": map[string]any{
 									"A": "A",
 								},
 							},
@@ -264,7 +264,7 @@ func TestCopyFields(t *testing.T) {
 					},
 				},
 				Dest: &unstructured.Unstructured{
-					Object: map[string]interface{}{},
+					Object: map[string]any{},
 				},
 				Fields: []CopyFieldsInputField{
 					{
@@ -274,8 +274,8 @@ func TestCopyFields(t *testing.T) {
 				},
 			},
 			want: &unstructured.Unstructured{
-				Object: map[string]interface{}{
-					"spec": map[string]interface{}{
+				Object: map[string]any{
+					"spec": map[string]any{
 						"A": "A",
 					},
 				},
@@ -285,10 +285,10 @@ func TestCopyFields(t *testing.T) {
 			name: "Copy field from spec.template.spec in src to spec in dest (overwrite when different)",
 			input: CopyFieldsInput{
 				Src: &unstructured.Unstructured{
-					Object: map[string]interface{}{
-						"spec": map[string]interface{}{
-							"template": map[string]interface{}{
-								"spec": map[string]interface{}{
+					Object: map[string]any{
+						"spec": map[string]any{
+							"template": map[string]any{
+								"spec": map[string]any{
 									"A": "A",
 								},
 							},
@@ -296,8 +296,8 @@ func TestCopyFields(t *testing.T) {
 					},
 				},
 				Dest: &unstructured.Unstructured{
-					Object: map[string]interface{}{
-						"spec": map[string]interface{}{
+					Object: map[string]any{
+						"spec": map[string]any{
 							"A": "A-different",
 						},
 					},
@@ -310,8 +310,8 @@ func TestCopyFields(t *testing.T) {
 				},
 			},
 			want: &unstructured.Unstructured{
-				Object: map[string]interface{}{
-					"spec": map[string]interface{}{
+				Object: map[string]any{
+					"spec": map[string]any{
 						"A": "A",
 					},
 				},
@@ -321,12 +321,12 @@ func TestCopyFields(t *testing.T) {
 			name: "Field both in src and dest, overwrite when different and preserve fields",
 			input: CopyFieldsInput{
 				Src: &unstructured.Unstructured{
-					Object: map[string]interface{}{
-						"spec": map[string]interface{}{
-							"template": map[string]interface{}{
-								"spec": map[string]interface{}{
-									"machineTemplate": map[string]interface{}{
-										"infrastructureRef": map[string]interface{}{
+					Object: map[string]any{
+						"spec": map[string]any{
+							"template": map[string]any{
+								"spec": map[string]any{
+									"machineTemplate": map[string]any{
+										"infrastructureRef": map[string]any{
 											"apiVersion": "invalid",
 											"kind":       "invalid",
 											"namespace":  "invalid",
@@ -342,10 +342,10 @@ func TestCopyFields(t *testing.T) {
 					},
 				},
 				Dest: &unstructured.Unstructured{
-					Object: map[string]interface{}{
-						"spec": map[string]interface{}{
-							"machineTemplate": map[string]interface{}{
-								"infrastructureRef": map[string]interface{}{
+					Object: map[string]any{
+						"spec": map[string]any{
+							"machineTemplate": map[string]any{
+								"infrastructureRef": map[string]any{
 									"apiVersion": "v1",
 									"kind":       "kind",
 									"namespace":  "namespace",
@@ -371,10 +371,10 @@ func TestCopyFields(t *testing.T) {
 				},
 			},
 			want: &unstructured.Unstructured{
-				Object: map[string]interface{}{
-					"spec": map[string]interface{}{
-						"machineTemplate": map[string]interface{}{
-							"infrastructureRef": map[string]interface{}{
+				Object: map[string]any{
+					"spec": map[string]any{
+						"machineTemplate": map[string]any{
+							"infrastructureRef": map[string]any{
 								"apiVersion": "v1",
 								"kind":       "kind",
 								"namespace":  "namespace",
@@ -392,15 +392,15 @@ func TestCopyFields(t *testing.T) {
 			name: "Field not in src, no-op",
 			input: CopyFieldsInput{
 				Src: &unstructured.Unstructured{
-					Object: map[string]interface{}{
-						"differentSpec": map[string]interface{}{
+					Object: map[string]any{
+						"differentSpec": map[string]any{
 							"B": "B",
 						},
 					},
 				},
 				Dest: &unstructured.Unstructured{
-					Object: map[string]interface{}{
-						"spec": map[string]interface{}{
+					Object: map[string]any{
+						"spec": map[string]any{
 							"A": "A",
 						},
 					},
@@ -413,8 +413,8 @@ func TestCopyFields(t *testing.T) {
 				},
 			},
 			want: &unstructured.Unstructured{
-				Object: map[string]interface{}{
-					"spec": map[string]interface{}{
+				Object: map[string]any{
+					"spec": map[string]any{
 						"A": "A",
 					},
 				},
@@ -424,14 +424,14 @@ func TestCopyFields(t *testing.T) {
 			name: "Copy metadata.labels & metadata.annotations",
 			input: CopyFieldsInput{
 				Src: &unstructured.Unstructured{
-					Object: map[string]interface{}{
-						"metadata": map[string]interface{}{
-							"labels": map[string]interface{}{
+					Object: map[string]any{
+						"metadata": map[string]any{
+							"labels": map[string]any{
 								"label-keep":   "label-keep-value",
 								"label-update": "label-update-new-value",
 								"label-add":    "label-add-value",
 							},
-							"annotations": map[string]interface{}{
+							"annotations": map[string]any{
 								"annotation-keep":   "annotation-keep-value",
 								"annotation-update": "annotation-update-new-value",
 								"annotation-add":    "annotation-add-value",
@@ -440,9 +440,9 @@ func TestCopyFields(t *testing.T) {
 					},
 				},
 				Dest: &unstructured.Unstructured{
-					Object: map[string]interface{}{
-						"metadata": map[string]interface{}{
-							"labels": map[string]interface{}{
+					Object: map[string]any{
+						"metadata": map[string]any{
+							"labels": map[string]any{
 								clusterv1.ClusterNameLabel:                          "cluster-1",
 								clusterv1.ClusterTopologyOwnedLabel:                 "",
 								clusterv1.ClusterTopologyMachineDeploymentNameLabel: "md-topology-1",
@@ -451,7 +451,7 @@ func TestCopyFields(t *testing.T) {
 								"label-update": "label-update-value",
 								"label-delete": "label-delete-value",
 							},
-							"annotations": map[string]interface{}{
+							"annotations": map[string]any{
 								clusterv1.TemplateClonedFromNameAnnotation:      "cloned-from-name",
 								clusterv1.TemplateClonedFromGroupKindAnnotation: "cloned-from-kind",
 								"annotation-keep":   "annotation-keep-value",
@@ -476,9 +476,9 @@ func TestCopyFields(t *testing.T) {
 				},
 			},
 			want: &unstructured.Unstructured{
-				Object: map[string]interface{}{
-					"metadata": map[string]interface{}{
-						"labels": map[string]interface{}{
+				Object: map[string]any{
+					"metadata": map[string]any{
+						"labels": map[string]any{
 							clusterv1.ClusterNameLabel:                          "cluster-1",
 							clusterv1.ClusterTopologyOwnedLabel:                 "",
 							clusterv1.ClusterTopologyMachineDeploymentNameLabel: "md-topology-1",
@@ -487,7 +487,7 @@ func TestCopyFields(t *testing.T) {
 							"label-update": "label-update-new-value",
 							"label-add":    "label-add-value",
 						},
-						"annotations": map[string]interface{}{
+						"annotations": map[string]any{
 							clusterv1.TemplateClonedFromNameAnnotation:      "cloned-from-name",
 							clusterv1.TemplateClonedFromGroupKindAnnotation: "cloned-from-kind",
 							"annotation-keep":   "annotation-keep-value",

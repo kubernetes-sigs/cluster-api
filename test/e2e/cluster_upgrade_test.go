@@ -44,7 +44,7 @@ var _ = Describe("When upgrading a workload cluster using ClusterClass and testi
 			BootstrapClusterProxy: bootstrapClusterProxy,
 			ArtifactFolder:        artifactFolder,
 			SkipCleanup:           skipCleanup,
-			Flavor:                ptr.To("topology"),
+			Flavor:                new("topology"),
 		}
 	})
 })
@@ -57,7 +57,7 @@ var _ = Describe("When upgrading a workload cluster using ClusterClass [ClusterC
 			BootstrapClusterProxy: bootstrapClusterProxy,
 			ArtifactFolder:        artifactFolder,
 			SkipCleanup:           skipCleanup,
-			Flavor:                ptr.To("topology"),
+			Flavor:                new("topology"),
 			// This test is run in CI in parallel with other tests. To keep the test duration reasonable
 			// the conformance tests are skipped.
 			ControlPlaneMachineCount: ptr.To[int64](1),
@@ -79,9 +79,9 @@ var _ = Describe("When upgrading a workload cluster using ClusterClass with a HA
 			// This test is run in CI in parallel with other tests. To keep the test duration reasonable
 			// the conformance tests are skipped.
 			SkipConformanceTests:     true,
-			ControlPlaneMachineCount: ptr.To[int64](controlPlaneMachineCount),
+			ControlPlaneMachineCount: new(controlPlaneMachineCount),
 			WorkerMachineCount:       ptr.To[int64](1),
-			Flavor:                   ptr.To("kcp-pre-drain"),
+			Flavor:                   new("kcp-pre-drain"),
 			PreWaitForControlPlaneToBeUpgraded: func(managementClusterProxy framework.ClusterProxy, workloadClusterNamespace, workloadClusterName string) {
 				log.Logf("Waiting for control-plane machines to have the upgraded Kubernetes version")
 
@@ -212,7 +212,7 @@ var _ = Describe("When upgrading a workload cluster using ClusterClass with a HA
 			SkipConformanceTests:     true,
 			ControlPlaneMachineCount: ptr.To[int64](3),
 			WorkerMachineCount:       ptr.To[int64](1),
-			Flavor:                   ptr.To("kcp-scale-in"),
+			Flavor:                   new("kcp-scale-in"),
 		}
 	})
 })

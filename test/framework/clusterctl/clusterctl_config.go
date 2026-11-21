@@ -29,7 +29,7 @@ import (
 // The main responsibility for this structure is to point clusterctl to the local repository that should be used for E2E tests.
 type clusterctlConfig struct {
 	Path   string
-	Values map[string]interface{}
+	Values map[string]any
 }
 
 // providerConfig mirrors the clusterctl config.Provider interface and allows serialization of the corresponding info into a clusterctl config file.

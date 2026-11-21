@@ -18,6 +18,7 @@ package repository
 
 import (
 	"fmt"
+	"maps"
 	"sort"
 	"strings"
 
@@ -315,10 +316,10 @@ func addNamespaceIfMissing(objs []unstructured.Unstructured, targetNamespace str
 	// if there isn't an object with Kind Namespace, add it
 	if !namespaceObjectFound {
 		objs = append(objs, unstructured.Unstructured{
-			Object: map[string]interface{}{
+			Object: map[string]any{
 				"apiVersion": "v1",
 				"kind":       namespaceKind,
-				"metadata": map[string]interface{}{
+				"metadata": map[string]any{
 					"name": targetNamespace,
 				},
 			},
@@ -547,9 +548,7 @@ func addCommonLabels(objs []unstructured.Unstructured, provider config.Provider)
 		if labels == nil {
 			labels = map[string]string{}
 		}
-		for k, v := range getCommonLabels(provider) {
-			labels[k] = v
-		}
+		maps.Copy(labels, getCommonLabels(provider))
 		o.SetLabels(labels)
 	}
 

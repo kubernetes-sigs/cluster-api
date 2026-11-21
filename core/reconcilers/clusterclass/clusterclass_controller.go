@@ -371,7 +371,7 @@ func (r *Reconciler) reconcileVariables(ctx context.Context, s *scope) (ctrl.Res
 func addNewStatusVariable(variable clusterv1.ClusterClassVariable, from string) *clusterv1.ClusterClassStatusVariable {
 	return &clusterv1.ClusterClassStatusVariable{
 		Name:                variable.Name,
-		DefinitionsConflict: ptr.To(false),
+		DefinitionsConflict: new(false),
 		Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 			{
 				From:                      from,
@@ -399,7 +399,7 @@ func addDefinitionToExistingStatusVariable(variable clusterv1.ClusterClassVariab
 		if ptr.Deref(currentDefinition.Required, false) != ptr.Deref(newVariableDefinition.Required, false) ||
 			!reflect.DeepEqual(dropFalsePtrBool(&currentDefinition.Schema.OpenAPIV3Schema), dropFalsePtrBool(&newVariableDefinition.Schema.OpenAPIV3Schema)) ||
 			!reflect.DeepEqual(currentDefinition.DeprecatedV1Beta1Metadata, newVariableDefinition.DeprecatedV1Beta1Metadata) {
-			combinedVariable.DefinitionsConflict = ptr.To(true)
+			combinedVariable.DefinitionsConflict = new(true)
 		}
 	}
 	return combinedVariable
@@ -539,9 +539,10 @@ func matchNamespace(ctx context.Context, c client.Client, selector labels.Select
 
 func cacheKeyFunc(extensionName, extensionConfigResourceVersion string, request runtimehooksv1.RequestObject) string {
 	// Note: registration.Name is identical to the value of the patch.External.DiscoverVariablesExtension field in the ClusterClass.
-	s := fmt.Sprintf("%s-%s", extensionName, extensionConfigResourceVersion)
+	var s strings.Builder
+	fmt.Fprintf(&s, "%s-%s", extensionName, extensionConfigResourceVersion)
 	for k, v := range request.GetSettings() {
-		s += fmt.Sprintf(",%s=%s", k, v)
+		fmt.Fprintf(&s, ",%s=%s", k, v)
 	}
-	return s
+	return s.String()
 }

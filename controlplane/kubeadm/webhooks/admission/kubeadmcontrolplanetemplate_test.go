@@ -24,7 +24,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	utilfeature "k8s.io/component-base/featuregate/testing"
-	"k8s.io/utils/ptr"
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
@@ -47,7 +46,7 @@ func TestKubeadmControlPlaneTemplateValidationFeatureGateEnabled(t *testing.T) {
 						MachineTemplate: controlplanev1.KubeadmControlPlaneTemplateMachineTemplate{
 							Spec: controlplanev1.KubeadmControlPlaneTemplateMachineTemplateSpec{
 								Deletion: controlplanev1.KubeadmControlPlaneTemplateMachineTemplateDeletionSpec{
-									NodeDrainTimeoutSeconds: ptr.To(int32(1)),
+									NodeDrainTimeoutSeconds: new(int32(1)),
 								},
 							},
 						},
@@ -79,7 +78,7 @@ func TestKubeadmControlPlaneTemplateValidationFeatureGateDisabled(t *testing.T) 
 						MachineTemplate: controlplanev1.KubeadmControlPlaneTemplateMachineTemplate{
 							Spec: controlplanev1.KubeadmControlPlaneTemplateMachineTemplateSpec{
 								Deletion: controlplanev1.KubeadmControlPlaneTemplateMachineTemplateDeletionSpec{
-									NodeDrainTimeoutSeconds: ptr.To(int32(1)),
+									NodeDrainTimeoutSeconds: new(int32(1)),
 								},
 							},
 						},
@@ -144,7 +143,7 @@ func TestKubeadmControlPlaneTemplateUpdateValidation(t *testing.T) {
 						MachineTemplate: controlplanev1.KubeadmControlPlaneTemplateMachineTemplate{
 							Spec: controlplanev1.KubeadmControlPlaneTemplateMachineTemplateSpec{
 								Deletion: controlplanev1.KubeadmControlPlaneTemplateMachineTemplateDeletionSpec{
-									NodeDrainTimeoutSeconds: ptr.To(int32(10 * 60)),
+									NodeDrainTimeoutSeconds: new(int32(10 * 60)),
 								},
 							},
 						},
@@ -163,7 +162,7 @@ func TestKubeadmControlPlaneTemplateUpdateValidation(t *testing.T) {
 						MachineTemplate: controlplanev1.KubeadmControlPlaneTemplateMachineTemplate{
 							Spec: controlplanev1.KubeadmControlPlaneTemplateMachineTemplateSpec{
 								Deletion: controlplanev1.KubeadmControlPlaneTemplateMachineTemplateDeletionSpec{
-									NodeDrainTimeoutSeconds: ptr.To(int32(10 * 60)),
+									NodeDrainTimeoutSeconds: new(int32(10 * 60)),
 								},
 							},
 						},
@@ -185,7 +184,7 @@ func TestKubeadmControlPlaneTemplateUpdateValidation(t *testing.T) {
 						MachineTemplate: controlplanev1.KubeadmControlPlaneTemplateMachineTemplate{
 							Spec: controlplanev1.KubeadmControlPlaneTemplateMachineTemplateSpec{
 								Deletion: controlplanev1.KubeadmControlPlaneTemplateMachineTemplateDeletionSpec{
-									NodeDrainTimeoutSeconds: ptr.To(int32(10 * 60)),
+									NodeDrainTimeoutSeconds: new(int32(10 * 60)),
 								},
 							},
 						},
@@ -208,7 +207,7 @@ func TestKubeadmControlPlaneTemplateUpdateValidation(t *testing.T) {
 						MachineTemplate: controlplanev1.KubeadmControlPlaneTemplateMachineTemplate{
 							Spec: controlplanev1.KubeadmControlPlaneTemplateMachineTemplateSpec{
 								Deletion: controlplanev1.KubeadmControlPlaneTemplateMachineTemplateDeletionSpec{
-									NodeDrainTimeoutSeconds: ptr.To(int32(10 * 60)),
+									NodeDrainTimeoutSeconds: new(int32(10 * 60)),
 								},
 							},
 						},
@@ -232,7 +231,7 @@ func TestKubeadmControlPlaneTemplateUpdateValidation(t *testing.T) {
 							Strategy: controlplanev1.KubeadmControlPlaneRolloutStrategy{
 								Type: controlplanev1.RollingUpdateStrategyType,
 								RollingUpdate: controlplanev1.KubeadmControlPlaneRolloutStrategyRollingUpdate{
-									MaxSurge: ptr.To(intstr.FromInt32(1)),
+									MaxSurge: new(intstr.FromInt32(1)),
 								},
 							},
 						},

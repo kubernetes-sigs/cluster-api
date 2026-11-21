@@ -52,7 +52,7 @@ func TestKubeadmConfigTemplateDefault(t *testing.T) {
 	// Expect defaulting for dry-run request.
 	dryRunCtx := admission.NewContextWithRequest(ctx, admission.Request{
 		AdmissionRequest: admissionv1.AdmissionRequest{
-			DryRun: ptr.To(true),
+			DryRun: new(true),
 		},
 	})
 	kubeadmConfigTemplate.Annotations = map[string]string{

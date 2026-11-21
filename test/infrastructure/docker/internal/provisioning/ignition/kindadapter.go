@@ -47,7 +47,7 @@ conntrack:
 // RawIgnitionToProvisioningCommands converts an Ignition YAML document to a slice of commands.
 func RawIgnitionToProvisioningCommands(config []byte) ([]provisioning.Cmd, error) {
 	// Ensure Ignition is a valid YAML document.
-	if err := yaml.Unmarshal(config, &map[string]interface{}{}); err != nil {
+	if err := yaml.Unmarshal(config, &map[string]any{}); err != nil {
 		return nil, pkgerrors.Wrapf(err, "invalid YAML")
 	}
 

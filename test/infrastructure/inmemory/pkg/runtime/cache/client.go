@@ -18,6 +18,7 @@ package cache
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 
@@ -274,13 +275,7 @@ func (c *cache) store(resourceGroup string, obj client.Object, replaceExisting b
 func updateTrackerOwnerReferences(tracker *resourceGroupTracker, oldObj, newObj client.Object, objRef ownReference) {
 	if oldObj != nil {
 		for _, oldOwnerRef := range oldObj.GetOwnerReferences() {
-			ownerRefStillExists := false
-			for _, newOwnerRef := range newObj.GetOwnerReferences() {
-				if oldOwnerRef == newOwnerRef {
-					ownerRefStillExists = true
-					break
-				}
-			}
+			ownerRefStillExists := slices.Contains(newObj.GetOwnerReferences(), oldOwnerRef)
 
 			if !ownerRefStillExists {
 				// Remove ownerRef from tracker (if necessary) as it has been removed from object.
@@ -298,11 +293,8 @@ func updateTrackerOwnerReferences(tracker *resourceGroupTracker, oldObj, newObj 
 	for _, newOwnerRef := range newObj.GetOwnerReferences() {
 		ownerRefAlreadyExisted := false
 		if oldObj != nil {
-			for _, oldOwnerRef := range oldObj.GetOwnerReferences() {
-				if newOwnerRef == oldOwnerRef {
-					ownerRefAlreadyExisted = true
-					break
-				}
+			if slices.Contains(oldObj.GetOwnerReferences(), newOwnerRef) {
+				ownerRefAlreadyExisted = true
 			}
 		}
 

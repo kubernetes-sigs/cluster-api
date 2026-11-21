@@ -19,9 +19,11 @@ package e2e
 import (
 	"context"
 	"fmt"
+	"maps"
 	"math/rand"
 	"os"
 	"path/filepath"
+	"slices"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -206,9 +208,9 @@ func ClusterClassRolloutSpec(ctx context.Context, inputGetter func() ClusterClas
 					"Cluster.topology.controlPlane.newAnnotation": "Cluster.topology.controlPlane.newAnnotationValue",
 				}
 				topology.Rollout.After = metav1.NewTime(time.Now().Add(24 * time.Hour))
-				topology.Deletion.NodeDrainTimeoutSeconds = ptr.To(rand.Int31n(20))        //nolint:gosec
-				topology.Deletion.NodeDeletionTimeoutSeconds = ptr.To(rand.Int31n(20))     //nolint:gosec
-				topology.Deletion.NodeVolumeDetachTimeoutSeconds = ptr.To(rand.Int31n(20)) //nolint:gosec
+				topology.Deletion.NodeDrainTimeoutSeconds = new(rand.Int31n(20))        //nolint:gosec
+				topology.Deletion.NodeDeletionTimeoutSeconds = new(rand.Int31n(20))     //nolint:gosec
+				topology.Deletion.NodeVolumeDetachTimeoutSeconds = new(rand.Int31n(20)) //nolint:gosec
 			},
 			WaitForControlPlane: input.E2EConfig.GetIntervals(specName, "wait-control-plane"),
 		})
@@ -224,10 +226,10 @@ func ClusterClassRolloutSpec(ctx context.Context, inputGetter func() ClusterClas
 				topology.Metadata.Annotations = map[string]string{
 					"Cluster.topology.machineDeployment.newAnnotation": "Cluster.topology.machineDeployment.newAnnotationValue",
 				}
-				topology.Deletion.NodeDrainTimeoutSeconds = ptr.To(rand.Int31n(20))        //nolint:gosec
-				topology.Deletion.NodeDeletionTimeoutSeconds = ptr.To(rand.Int31n(20))     //nolint:gosec
-				topology.Deletion.NodeVolumeDetachTimeoutSeconds = ptr.To(rand.Int31n(20)) //nolint:gosec
-				topology.MinReadySeconds = ptr.To[int32](rand.Int31n(20))                  //nolint:gosec
+				topology.Deletion.NodeDrainTimeoutSeconds = new(rand.Int31n(20))        //nolint:gosec
+				topology.Deletion.NodeDeletionTimeoutSeconds = new(rand.Int31n(20))     //nolint:gosec
+				topology.Deletion.NodeVolumeDetachTimeoutSeconds = new(rand.Int31n(20)) //nolint:gosec
+				topology.MinReadySeconds = new(rand.Int31n(20))                         //nolint:gosec
 				topology.Rollout.After = metav1.NewTime(time.Now().Add(24 * time.Hour))
 				topology.Rollout.Strategy = clusterv1.MachineDeploymentTopologyRolloutStrategy{
 					Type: clusterv1.RollingUpdateMachineDeploymentStrategyType,
@@ -255,10 +257,10 @@ func ClusterClassRolloutSpec(ctx context.Context, inputGetter func() ClusterClas
 				topology.Metadata.Annotations = map[string]string{
 					"Cluster.topology.machinePool.newAnnotation": "Cluster.topology.machinePool.newAnnotationValue",
 				}
-				topology.Deletion.NodeDrainTimeoutSeconds = ptr.To(rand.Int31n(20))        //nolint:gosec
-				topology.Deletion.NodeDeletionTimeoutSeconds = ptr.To(rand.Int31n(20))     //nolint:gosec
-				topology.Deletion.NodeVolumeDetachTimeoutSeconds = ptr.To(rand.Int31n(20)) //nolint:gosec
-				topology.MinReadySeconds = ptr.To[int32](rand.Int31n(20))                  //nolint:gosec
+				topology.Deletion.NodeDrainTimeoutSeconds = new(rand.Int31n(20))        //nolint:gosec
+				topology.Deletion.NodeDeletionTimeoutSeconds = new(rand.Int31n(20))     //nolint:gosec
+				topology.Deletion.NodeVolumeDetachTimeoutSeconds = new(rand.Int31n(20)) //nolint:gosec
+				topology.MinReadySeconds = new(rand.Int31n(20))                         //nolint:gosec
 			},
 			WaitForMachinePools: input.E2EConfig.GetIntervals(specName, "wait-machine-pool-nodes"),
 		})
@@ -463,7 +465,7 @@ func ClusterClassRolloutSpec(ctx context.Context, inputGetter func() ClusterClas
 			ClusterProxy: input.BootstrapClusterProxy,
 			ClusterClass: clusterResources.ClusterClass,
 			Cluster:      clusterResources.Cluster,
-			ModifyControlPlaneFields: map[string]interface{}{
+			ModifyControlPlaneFields: map[string]any{
 				"spec.kubeadmConfigSpec.verbosity": int64(4),
 			},
 			WaitForControlPlane: input.E2EConfig.GetIntervals(specName, "wait-control-plane"),
@@ -473,7 +475,7 @@ func ClusterClassRolloutSpec(ctx context.Context, inputGetter func() ClusterClas
 			ClusterProxy: input.BootstrapClusterProxy,
 			ClusterClass: clusterResources.ClusterClass,
 			Cluster:      clusterResources.Cluster,
-			ModifyBootstrapConfigTemplateFields: map[string]interface{}{
+			ModifyBootstrapConfigTemplateFields: map[string]any{
 				"spec.template.spec.verbosity": int64(4),
 			},
 			WaitForMachineDeployments: input.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),
@@ -483,7 +485,7 @@ func ClusterClassRolloutSpec(ctx context.Context, inputGetter func() ClusterClas
 			ClusterProxy: input.BootstrapClusterProxy,
 			ClusterClass: clusterResources.ClusterClass,
 			Cluster:      clusterResources.Cluster,
-			ModifyBootstrapConfigTemplateFields: map[string]interface{}{
+			ModifyBootstrapConfigTemplateFields: map[string]any{
 				"spec.template.spec.verbosity": int64(4),
 			},
 			WaitForMachinePools: input.E2EConfig.GetIntervals(specName, "wait-machine-pool-nodes"),
@@ -1289,13 +1291,11 @@ type unionMap map[string]string
 
 // union merges maps.
 // NOTE: In case a key exists in multiple maps, the value of the first map is preserved.
-func union(maps ...map[string]string) unionMap {
+func union(mapss ...map[string]string) unionMap {
 	res := make(map[string]string)
 
-	for i := len(maps) - 1; i >= 0; i-- {
-		for k, v := range maps[i] {
-			res[k] = v
-		}
+	for _, m := range slices.Backward(mapss) {
+		maps.Copy(res, m)
 	}
 
 	return res
@@ -1527,7 +1527,7 @@ type modifyControlPlaneViaClusterAndWaitInput struct {
 	ClusterProxy               framework.ClusterProxy
 	Cluster                    *clusterv1.Cluster
 	ModifyControlPlaneTopology func(topology *clusterv1.ControlPlaneTopology)
-	WaitForControlPlane        []interface{}
+	WaitForControlPlane        []any
 }
 
 // modifyControlPlaneViaClusterAndWait modifies the ControlPlaneTopology of a Cluster topology via ModifyControlPlaneTopology.
@@ -1570,7 +1570,7 @@ type modifyMachineDeploymentViaClusterAndWaitInput struct {
 	ClusterProxy                    framework.ClusterProxy
 	Cluster                         *clusterv1.Cluster
 	ModifyMachineDeploymentTopology func(topology *clusterv1.MachineDeploymentTopology)
-	WaitForMachineDeployments       []interface{}
+	WaitForMachineDeployments       []any
 }
 
 // modifyMachineDeploymentViaClusterAndWait modifies the MachineDeploymentTopology of a Cluster topology via ModifyMachineDeploymentTopology.
@@ -1616,7 +1616,7 @@ type modifyMachinePoolViaClusterAndWaitInput struct {
 	ClusterProxy              framework.ClusterProxy
 	Cluster                   *clusterv1.Cluster
 	ModifyMachinePoolTopology func(topology *clusterv1.MachinePoolTopology)
-	WaitForMachinePools       []interface{}
+	WaitForMachinePools       []any
 }
 
 // modifyMachinePoolViaClusterAndWait modifies the MachinePoolTopology of a Cluster topology via ModifyMachinePoolTopology.
@@ -1659,12 +1659,8 @@ func modifyMachinePoolViaClusterAndWait(ctx context.Context, input modifyMachine
 
 func expectMapsToBeEquivalent(g Gomega, m1, m2 map[string]string, ignoreKeys ...string) {
 	m1Copy, m2Copy := map[string]string{}, map[string]string{}
-	for k, v := range m1 {
-		m1Copy[k] = v
-	}
-	for k, v := range m2 {
-		m2Copy[k] = v
-	}
+	maps.Copy(m1Copy, m1)
+	maps.Copy(m2Copy, m2)
 	for _, key := range ignoreKeys {
 		delete(m1Copy, key)
 		delete(m2Copy, key)

@@ -169,8 +169,8 @@ func ClusterUpgradeConformanceSpec(ctx context.Context, inputGetter func() Clust
 				Namespace:                namespace.Name,
 				ClusterName:              clusterName,
 				KubernetesVersion:        input.E2EConfig.MustGetVariable(KubernetesVersionUpgradeFrom),
-				ControlPlaneMachineCount: ptr.To[int64](controlPlaneMachineCount),
-				WorkerMachineCount:       ptr.To[int64](workerMachineCount),
+				ControlPlaneMachineCount: new(controlPlaneMachineCount),
+				WorkerMachineCount:       new(workerMachineCount),
 			},
 			ControlPlaneWaiters:          input.ControlPlaneWaiters,
 			WaitForClusterIntervals:      input.E2EConfig.GetIntervals(specName, "wait-cluster"),
@@ -232,11 +232,11 @@ func ClusterUpgradeConformanceSpec(ctx context.Context, inputGetter func() Clust
 			)
 
 			if input.E2EConfig.HasVariable(CPMachineTemplateUpgradeTo) {
-				upgradeCPMachineTemplateTo = ptr.To(input.E2EConfig.MustGetVariable(CPMachineTemplateUpgradeTo))
+				upgradeCPMachineTemplateTo = new(input.E2EConfig.MustGetVariable(CPMachineTemplateUpgradeTo))
 			}
 
 			if input.E2EConfig.HasVariable(WorkersMachineTemplateUpgradeTo) {
-				upgradeWorkersMachineTemplateTo = ptr.To(input.E2EConfig.MustGetVariable(WorkersMachineTemplateUpgradeTo))
+				upgradeWorkersMachineTemplateTo = new(input.E2EConfig.MustGetVariable(WorkersMachineTemplateUpgradeTo))
 			}
 
 			framework.UpgradeControlPlaneAndWaitForUpgrade(ctx, framework.UpgradeControlPlaneAndWaitForUpgradeInput{

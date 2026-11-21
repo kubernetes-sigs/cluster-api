@@ -21,6 +21,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"maps"
 	"reflect"
 	"sort"
 	"strconv"
@@ -514,7 +515,7 @@ func GetActualReplicaCountForMachineSets(machineSets []*clusterv1.MachineSet) *i
 	var totalActualReplicas *int32
 	for _, ms := range machineSets {
 		if ms != nil && ms.Status.Replicas != nil {
-			totalActualReplicas = ptr.To(ptr.Deref(totalActualReplicas, 0) + *ms.Status.Replicas)
+			totalActualReplicas = new(ptr.Deref(totalActualReplicas, 0) + *ms.Status.Replicas)
 		}
 	}
 	return totalActualReplicas
@@ -572,7 +573,7 @@ func GetReadyReplicaCountForMachineSets(machineSets []*clusterv1.MachineSet) *in
 	var totalReadyReplicas *int32
 	for _, ms := range machineSets {
 		if ms != nil && ms.Status.ReadyReplicas != nil {
-			totalReadyReplicas = ptr.To(ptr.Deref(totalReadyReplicas, 0) + *ms.Status.ReadyReplicas)
+			totalReadyReplicas = new(ptr.Deref(totalReadyReplicas, 0) + *ms.Status.ReadyReplicas)
 		}
 	}
 	return totalReadyReplicas
@@ -584,7 +585,7 @@ func GetAvailableReplicaCountForMachineSets(machineSets []*clusterv1.MachineSet)
 	var totalAvailableReplicas *int32
 	for _, ms := range machineSets {
 		if ms != nil && ms.Status.AvailableReplicas != nil {
-			totalAvailableReplicas = ptr.To(ptr.Deref(totalAvailableReplicas, 0) + *ms.Status.AvailableReplicas)
+			totalAvailableReplicas = new(ptr.Deref(totalAvailableReplicas, 0) + *ms.Status.AvailableReplicas)
 		}
 	}
 	return totalAvailableReplicas
@@ -596,7 +597,7 @@ func GetUptoDateReplicaCountForMachineSets(machineSets []*clusterv1.MachineSet) 
 	var totalUpToDateReplicas *int32
 	for _, ms := range machineSets {
 		if ms != nil && ms.Status.UpToDateReplicas != nil {
-			totalUpToDateReplicas = ptr.To(ptr.Deref(totalUpToDateReplicas, 0) + *ms.Status.UpToDateReplicas)
+			totalUpToDateReplicas = new(ptr.Deref(totalUpToDateReplicas, 0) + *ms.Status.UpToDateReplicas)
 		}
 	}
 	return totalUpToDateReplicas
@@ -744,9 +745,7 @@ func CloneAndAddLabel(labels map[string]string, labelKey, labelValue string) map
 	}
 	// Clone.
 	newLabels := map[string]string{}
-	for key, value := range labels {
-		newLabels[key] = value
-	}
+	maps.Copy(newLabels, labels)
 	newLabels[labelKey] = labelValue
 	return newLabels
 }
@@ -765,9 +764,7 @@ func CloneSelectorAndAddLabel(selector *metav1.LabelSelector, labelKey, labelVal
 	// TODO(madhusudancs): Check if you can use deepCopy_extensions_LabelSelector here.
 	newSelector.MatchLabels = make(map[string]string)
 	if selector.MatchLabels != nil {
-		for key, val := range selector.MatchLabels {
-			newSelector.MatchLabels[key] = val
-		}
+		maps.Copy(newSelector.MatchLabels, selector.MatchLabels)
 	}
 	newSelector.MatchLabels[labelKey] = labelValue
 

@@ -18,6 +18,7 @@ package framework
 
 import (
 	"context"
+	"slices"
 
 	. "github.com/onsi/gomega"
 	appsv1 "k8s.io/api/apps/v1"
@@ -50,10 +51,5 @@ func skipDeployment(d *appsv1.Deployment, excludeNamespaces []string) bool {
 	if !d.DeletionTimestamp.IsZero() {
 		return true
 	}
-	for _, n := range excludeNamespaces {
-		if d.Namespace == n {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(excludeNamespaces, d.Namespace)
 }

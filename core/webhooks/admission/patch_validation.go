@@ -383,7 +383,7 @@ func validateJSONPatchValues(jsonPatch clusterv1.JSONPatch, variableSet map[stri
 	// Attempt to marshal the JSON to discover if it  is valid. If jsonPatch.Value.Raw is set to nil skip this check
 	// and accept the nil value.
 	if jsonPatch.Value != nil && jsonPatch.Value.Raw != nil {
-		var v interface{}
+		var v any
 		if err := json.Unmarshal(jsonPatch.Value.Raw, &v); err != nil {
 			allErrs = append(allErrs,
 				field.Invalid(
@@ -530,8 +530,8 @@ var builtinVariables = sets.Set[string]{}.Insert(
 func validateIndexAccess(jsonPatch clusterv1.JSONPatch, path *field.Path) field.ErrorList {
 	var allErrs field.ErrorList
 
-	pathParts := strings.Split(jsonPatch.Path, "/")
-	for _, part := range pathParts {
+	pathParts := strings.SplitSeq(jsonPatch.Path, "/")
+	for part := range pathParts {
 		// Check if the path segment is a valid number. If an error is thrown continue to the next segment.
 		index, err := strconv.Atoi(part)
 		if err != nil {
@@ -559,7 +559,7 @@ func validateIndexAccess(jsonPatch clusterv1.JSONPatch, path *field.Path) field.
 	return allErrs
 }
 
-func prettyPrint(v interface{}) string {
+func prettyPrint(v any) string {
 	b, err := json.MarshalIndent(v, "", "  ")
 	if err != nil {
 		return pkgerrors.Wrapf(err, "failed to marshal field value").Error()

@@ -477,12 +477,12 @@ func getChildPrefix(currentPrefix string, childIndex, childCount int) string {
 // getMultilineConditionPrefix return the tree view prefix for a multiline condition.
 func getMultilineConditionPrefix(currentPrefix string) string {
 	// All ├─ should be replaced by |, so all the existing hierarchic dependencies are carried on
-	if strings.HasSuffix(currentPrefix, firstElemPrefix) {
-		return strings.TrimSuffix(currentPrefix, firstElemPrefix) + pipe
+	if before, ok := strings.CutSuffix(currentPrefix, firstElemPrefix); ok {
+		return before + pipe
 	}
 	// All └─ should be replaced by " " because we are under the last element of the tree (nothing to carry on)
-	if strings.HasSuffix(currentPrefix, lastElemPrefix) {
-		return strings.TrimSuffix(currentPrefix, lastElemPrefix)
+	if before, ok := strings.CutSuffix(currentPrefix, lastElemPrefix); ok {
+		return before
 	}
 
 	return "?"
@@ -848,7 +848,7 @@ var re = regexp.MustCompile(`[\s]+`)
 // If the string contains line breaks, those are preserved.
 func formatParagraph(text string, maxWidth int) string {
 	lines := []string{}
-	for _, l := range strings.Split(text, "\n") {
+	for l := range strings.SplitSeq(text, "\n") {
 		tmp := ""
 		for _, c := range l {
 			if c == ' ' {

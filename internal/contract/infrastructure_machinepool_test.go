@@ -24,7 +24,7 @@ import (
 )
 
 func TestInfrastructureMachinePool(t *testing.T) {
-	obj := &unstructured.Unstructured{Object: map[string]interface{}{}}
+	obj := &unstructured.Unstructured{Object: map[string]any{}}
 
 	t.Run("Manages status.initialization.provisioned", func(t *testing.T) {
 		g := NewWithT(t)
@@ -41,7 +41,7 @@ func TestInfrastructureMachinePool(t *testing.T) {
 
 		g.Expect(InfrastructureMachinePool().Provisioned("v1beta1").Path()).To(Equal(Path{"status", "ready"}))
 
-		objV1beta1 := &unstructured.Unstructured{Object: map[string]interface{}{}}
+		objV1beta1 := &unstructured.Unstructured{Object: map[string]any{}}
 		err = InfrastructureMachinePool().Provisioned("v1beta1").Set(objV1beta1, true)
 		g.Expect(err).ToNot(HaveOccurred())
 
@@ -53,7 +53,7 @@ func TestInfrastructureMachinePool(t *testing.T) {
 	t.Run("Falls back to status.ready when status.initialization.provisioned is not set", func(t *testing.T) {
 		g := NewWithT(t)
 
-		objWithFallback := &unstructured.Unstructured{Object: map[string]interface{}{}}
+		objWithFallback := &unstructured.Unstructured{Object: map[string]any{}}
 		err := unstructured.SetNestedField(objWithFallback.Object, true, "status", "ready")
 		g.Expect(err).ToNot(HaveOccurred())
 
@@ -65,7 +65,7 @@ func TestInfrastructureMachinePool(t *testing.T) {
 	t.Run("Does not fall back to status.ready when status.initialization.provisioned is set", func(t *testing.T) {
 		g := NewWithT(t)
 
-		objWithBoth := &unstructured.Unstructured{Object: map[string]interface{}{}}
+		objWithBoth := &unstructured.Unstructured{Object: map[string]any{}}
 		err := unstructured.SetNestedField(objWithBoth.Object, false, "status", "initialization", "provisioned")
 		g.Expect(err).ToNot(HaveOccurred())
 		err = unstructured.SetNestedField(objWithBoth.Object, true, "status", "ready")
@@ -79,7 +79,7 @@ func TestInfrastructureMachinePool(t *testing.T) {
 	t.Run("Returns ErrFieldNotFound when neither status.initialization.provisioned nor status.ready are set", func(t *testing.T) {
 		g := NewWithT(t)
 
-		emptyObj := &unstructured.Unstructured{Object: map[string]interface{}{}}
+		emptyObj := &unstructured.Unstructured{Object: map[string]any{}}
 
 		_, err := InfrastructureMachinePool().Provisioned("v1beta2").Get(emptyObj)
 		g.Expect(err).To(MatchError(ErrFieldNotFound))

@@ -121,7 +121,7 @@ func (c *Converter) convertGenericList(doc *document, targetGV schema.GroupVersi
 	}
 
 	typedDecoder := serializer.NewCodecFactory(c.scheme).UniversalDeserializer()
-	items := make([]interface{}, len(list.Items))
+	items := make([]any, len(list.Items))
 	var converted, passedThrough int
 	for i := range list.Items {
 		gvk := list.Items[i].GroupVersionKind()

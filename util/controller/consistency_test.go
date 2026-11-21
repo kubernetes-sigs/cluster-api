@@ -190,16 +190,14 @@ func TestConsistencyStore_EnsureWrittenRecord_Concurrent(t *testing.T) {
 	var firstRecord *ownerRecord
 	var once sync.Once
 	for range numGoroutines {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			r := store.ensureWrittenRecord(owner, uid1)
 			assert.Equal(t, uid1, r.ownerUID)
 			once.Do(func() {
 				firstRecord = r
 			})
 			assert.Same(t, firstRecord, r)
-		}()
+		})
 	}
 	wg.Wait()
 	require.NotNil(t, firstRecord)
@@ -209,16 +207,14 @@ func TestConsistencyStore_EnsureWrittenRecord_Concurrent(t *testing.T) {
 	var replacementRecord *ownerRecord
 	var replaceOnce sync.Once
 	for range numGoroutines {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			r := store.ensureWrittenRecord(owner, uid2)
 			assert.Equal(t, uid2, r.ownerUID)
 			replaceOnce.Do(func() {
 				replacementRecord = r
 			})
 			assert.Same(t, replacementRecord, r)
-		}()
+		})
 	}
 	wg.Wait()
 	require.NotNil(t, replacementRecord)

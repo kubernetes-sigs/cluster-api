@@ -87,7 +87,7 @@ func (r *Reconciler) reconcileExternal(ctx context.Context, cluster *clusterv1.C
 		if cluster.Status.Deprecated.V1Beta1 == nil {
 			cluster.Status.Deprecated.V1Beta1 = &clusterv1.ClusterV1Beta1DeprecatedStatus{}
 		}
-		cluster.Status.Deprecated.V1Beta1.FailureMessage = ptr.To(
+		cluster.Status.Deprecated.V1Beta1.FailureMessage = new(
 			fmt.Sprintf("Failure detected from referenced resource %v with name %q: %s",
 				obj.GroupVersionKind(), obj.GetName(), failureMessage),
 		)
@@ -102,7 +102,7 @@ func ensureOwnerRefAndLabel(ctx context.Context, c client.Client, obj *unstructu
 		Kind:       "Cluster",
 		Name:       cluster.Name,
 		UID:        cluster.UID,
-		Controller: ptr.To(cluster.Spec.Topology.IsDefined()),
+		Controller: new(cluster.Spec.Topology.IsDefined()),
 	}
 
 	if util.HasExactOwnerRef(obj.GetOwnerReferences(), desiredOwnerRef) &&
@@ -146,7 +146,7 @@ func (r *Reconciler) reconcileInfrastructure(ctx context.Context, s *scope) (ctr
 	if !s.cluster.Spec.InfrastructureRef.IsDefined() {
 		// if the cluster is not deleted, and the cluster is not using a ClusterClass, mark the infrastructure as ready to unblock other provisioning workflows.
 		if s.cluster.DeletionTimestamp.IsZero() {
-			cluster.Status.Initialization.InfrastructureProvisioned = ptr.To(true)
+			cluster.Status.Initialization.InfrastructureProvisioned = new(true)
 			v1beta1conditions.MarkTrue(cluster, clusterv1.InfrastructureReadyV1Beta1Condition)
 		}
 		return ctrl.Result{}, nil
@@ -242,7 +242,7 @@ func (r *Reconciler) reconcileInfrastructure(ctx context.Context, s *scope) (ctr
 	if !ptr.Deref(cluster.Status.Initialization.InfrastructureProvisioned, false) {
 		r.recorder.Eventf(cluster, corev1.EventTypeNormal, "InfrastructureReady", "Cluster %s InfrastructureProvisioned is now True", cluster.Name)
 	}
-	cluster.Status.Initialization.InfrastructureProvisioned = ptr.To(true)
+	cluster.Status.Initialization.InfrastructureProvisioned = new(true)
 
 	return ctrl.Result{}, nil
 }
@@ -344,7 +344,7 @@ func (r *Reconciler) reconcileControlPlane(ctx context.Context, s *scope) (ctrl.
 	if !ptr.Deref(cluster.Status.Initialization.ControlPlaneInitialized, false) {
 		r.recorder.Eventf(cluster, corev1.EventTypeNormal, "ControlPlaneInitialized", "Cluster %s ControlPlaneInitialized is now True", cluster.Name)
 	}
-	cluster.Status.Initialization.ControlPlaneInitialized = ptr.To(true)
+	cluster.Status.Initialization.ControlPlaneInitialized = new(true)
 
 	return ctrl.Result{}, nil
 }

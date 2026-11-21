@@ -33,7 +33,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/resourceversion"
 	"k8s.io/client-go/tools/record"
-	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
@@ -304,16 +303,16 @@ func TestCloneConfigsAndGenerateMachineAndSyncMachines(t *testing.T) {
 	}
 
 	genericInfrastructureMachineTemplate := &unstructured.Unstructured{
-		Object: map[string]interface{}{
+		Object: map[string]any{
 			"kind":       "GenericInfrastructureMachineTemplate",
 			"apiVersion": clusterv1.GroupVersionInfrastructure.String(),
-			"metadata": map[string]interface{}{
+			"metadata": map[string]any{
 				"name":      "infra-foo",
 				"namespace": cluster.Namespace,
 			},
-			"spec": map[string]interface{}{
-				"template": map[string]interface{}{
-					"spec": map[string]interface{}{
+			"spec": map[string]any{
+				"template": map[string]any{
+					"spec": map[string]any{
 						"hello": "world",
 					},
 				},
@@ -342,7 +341,7 @@ func TestCloneConfigsAndGenerateMachineAndSyncMachines(t *testing.T) {
 						KubeletExtraArgs: []bootstrapv1.Arg{
 							{
 								Name:  "v",
-								Value: ptr.To("8"),
+								Value: new("8"),
 							},
 						},
 					},
@@ -566,7 +565,7 @@ func TestCloneConfigsAndGenerateMachineAndSyncMachines(t *testing.T) {
 	}})))
 
 	// Purge managedFields from objects.
-	jsonPatch := []map[string]interface{}{
+	jsonPatch := []map[string]any{
 		{
 			"op":    "replace",
 			"path":  "/metadata/managedFields",
@@ -623,16 +622,16 @@ func TestCloneConfigsAndGenerateMachineFailInfraMachineCreation(t *testing.T) {
 	}
 
 	genericMachineTemplate := &unstructured.Unstructured{
-		Object: map[string]interface{}{
+		Object: map[string]any{
 			"kind":       builder.GenericInfrastructureMachineTemplateKind,
 			"apiVersion": builder.InfrastructureGroupVersion.String(),
-			"metadata": map[string]interface{}{
+			"metadata": map[string]any{
 				"name":      "infra-foo",
 				"namespace": cluster.Namespace,
 			},
-			"spec": map[string]interface{}{
-				"template": map[string]interface{}{
-					"spec": map[string]interface{}{
+			"spec": map[string]any{
+				"template": map[string]any{
+					"spec": map[string]any{
 						"hello": "world",
 					},
 				},
@@ -707,16 +706,16 @@ func TestCloneConfigsAndGenerateMachineFailKubeadmConfigCreation(t *testing.T) {
 	}
 
 	genericMachineTemplate := &unstructured.Unstructured{
-		Object: map[string]interface{}{
+		Object: map[string]any{
 			"kind":       builder.GenericInfrastructureMachineTemplateKind,
 			"apiVersion": builder.InfrastructureGroupVersion.String(),
-			"metadata": map[string]interface{}{
+			"metadata": map[string]any{
 				"name":      "infra-foo",
 				"namespace": cluster.Namespace,
 			},
-			"spec": map[string]interface{}{
-				"template": map[string]interface{}{
-					"spec": map[string]interface{}{
+			"spec": map[string]any{
+				"template": map[string]any{
+					"spec": map[string]any{
 						"hello": "world",
 					},
 				},
@@ -794,16 +793,16 @@ func TestCloneConfigsAndGenerateMachineFailMachineCreation(t *testing.T) {
 	}
 
 	genericMachineTemplate := &unstructured.Unstructured{
-		Object: map[string]interface{}{
+		Object: map[string]any{
 			"kind":       builder.GenericInfrastructureMachineTemplateKind,
 			"apiVersion": builder.InfrastructureGroupVersion.String(),
-			"metadata": map[string]interface{}{
+			"metadata": map[string]any{
 				"name":      "infra-foo",
 				"namespace": cluster.Namespace,
 			},
-			"spec": map[string]interface{}{
-				"template": map[string]interface{}{
-					"spec": map[string]interface{}{
+			"spec": map[string]any{
+				"template": map[string]any{
+					"spec": map[string]any{
 						"hello": "world",
 					},
 				},
@@ -888,8 +887,8 @@ func TestKubeadmControlPlaneReconciler_adoptKubeconfigSecret(t *testing.T) {
 		UID:                "5",
 		Kind:               "OtherController",
 		APIVersion:         clusterv1.GroupVersion.String(),
-		Controller:         ptr.To(true),
-		BlockOwnerDeletion: ptr.To(true),
+		Controller:         new(true),
+		BlockOwnerDeletion: new(true),
 	}
 
 	// A KubeadmConfig secret created by CAPI controllers with no owner references.
@@ -933,8 +932,8 @@ func TestKubeadmControlPlaneReconciler_adoptKubeconfigSecret(t *testing.T) {
 				UID:                kcp.UID,
 				Kind:               "KubeadmControlPlane",
 				APIVersion:         controlplanev1.GroupVersion.String(),
-				Controller:         ptr.To(true),
-				BlockOwnerDeletion: ptr.To(true),
+				Controller:         new(true),
+				BlockOwnerDeletion: new(true),
 			},
 		},
 		{
@@ -945,8 +944,8 @@ func TestKubeadmControlPlaneReconciler_adoptKubeconfigSecret(t *testing.T) {
 				UID:                kcp.UID,
 				Kind:               "KubeadmControlPlane",
 				APIVersion:         controlplanev1.GroupVersion.String(),
-				Controller:         ptr.To(true),
-				BlockOwnerDeletion: ptr.To(true),
+				Controller:         new(true),
+				BlockOwnerDeletion: new(true),
 			},
 		},
 		{

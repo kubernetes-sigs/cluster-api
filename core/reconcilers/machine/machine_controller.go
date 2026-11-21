@@ -36,7 +36,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
-	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -136,7 +135,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 		return pkgerrors.New("RuntimeClient must not be nil when InPlaceUpdates feature gate is enabled")
 	}
 
-	r.predicateLog = ptr.To(ctrl.LoggerFrom(ctx).WithValues("controller", "machine"))
+	r.predicateLog = new(ctrl.LoggerFrom(ctx).WithValues("controller", "machine"))
 	clusterToMachines, err := util.ClusterToTypedObjectsMapper(mgr.GetClient(), &clusterv1.MachineList{}, mgr.GetScheme())
 	if err != nil {
 		return err

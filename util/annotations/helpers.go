@@ -104,7 +104,7 @@ func GetManagedAnnotations(m *clusterv1.Machine, additionalSyncMachineAnnotation
 	}
 	for key, value := range m.GetAnnotations() {
 		// Always sync CAPI's default annotation node domain
-		dnsSubdomainOrName := strings.Split(key, "/")[0]
+		dnsSubdomainOrName, _, _ := strings.Cut(key, "/")
 		if dnsSubdomainOrName == clusterv1.ManagedNodeAnnotationDomain || strings.HasSuffix(dnsSubdomainOrName, "."+clusterv1.ManagedNodeAnnotationDomain) {
 			managedAnnotations[key] = value
 			continue

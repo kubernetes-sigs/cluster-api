@@ -18,6 +18,7 @@ package v1beta1
 
 import (
 	"reflect"
+	"slices"
 
 	"github.com/google/go-cmp/cmp"
 	pkgerrors "github.com/pkg/errors"
@@ -95,12 +96,7 @@ type applyOptions struct {
 }
 
 func (o *applyOptions) isOwnedCondition(t clusterv1.ConditionType) bool {
-	for _, i := range o.ownedConditions {
-		if i == t {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(o.ownedConditions, t)
 }
 
 // ApplyOption defines an option for applying a condition patch.

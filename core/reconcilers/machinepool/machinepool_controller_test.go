@@ -288,22 +288,22 @@ func TestMachinePoolOwnerReference(t *testing.T) {
 
 func TestReconcileMachinePoolRequest(t *testing.T) {
 	infraMachinePool := unstructured.Unstructured{
-		Object: map[string]interface{}{
+		Object: map[string]any{
 			"kind":       builder.TestInfrastructureMachinePoolKind,
 			"apiVersion": builder.InfrastructureGroupVersion.String(),
-			"metadata": map[string]interface{}{
+			"metadata": map[string]any{
 				"name":      "infra-config1",
 				"namespace": metav1.NamespaceDefault,
 			},
-			"spec": map[string]interface{}{
-				"providerIDList": []interface{}{
+			"spec": map[string]any{
+				"providerIDList": []any{
 					"test://id-1",
 				},
 			},
-			"status": map[string]interface{}{
-				"initialization": map[string]interface{}{"provisioned": true},
-				"addresses": []interface{}{
-					map[string]interface{}{
+			"status": map[string]any{
+				"initialization": map[string]any{"provisioned": true},
+				"addresses": []any{
+					map[string]any{
 						"type":    "InternalIP",
 						"address": "10.0.0.1",
 					},
@@ -317,10 +317,10 @@ func TestReconcileMachinePoolRequest(t *testing.T) {
 	}
 
 	bootstrapConfig := &unstructured.Unstructured{
-		Object: map[string]interface{}{
+		Object: map[string]any{
 			"kind":       builder.TestBootstrapConfigKind,
 			"apiVersion": builder.BootstrapGroupVersion.String(),
-			"metadata": map[string]interface{}{
+			"metadata": map[string]any{
 				"name":      "test-bootstrap",
 				"namespace": metav1.NamespaceDefault,
 			},
@@ -360,12 +360,12 @@ func TestReconcileMachinePoolRequest(t *testing.T) {
 								Kind:     builder.TestInfrastructureMachinePoolKind,
 								Name:     "infra-config1",
 							},
-							Bootstrap: clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
+							Bootstrap: clusterv1.Bootstrap{DataSecretName: new("data")},
 						},
 					},
 				},
 				Status: clusterv1.MachinePoolStatus{
-					Replicas: ptr.To(int32(1)),
+					Replicas: new(int32(1)),
 					Deprecated: &clusterv1.MachinePoolDeprecatedStatus{
 						V1Beta1: &clusterv1.MachinePoolV1Beta1DeprecatedStatus{
 							ReadyReplicas: 1,
@@ -411,9 +411,9 @@ func TestReconcileMachinePoolRequest(t *testing.T) {
 								Kind:     builder.TestInfrastructureMachinePoolKind,
 								Name:     "infra-config1-already-deleted", // Use an InfrastructureMachinePool that doesn't exist, so reconcileDelete doesn't get stuck on deletion
 							},
-							Bootstrap: clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
+							Bootstrap: clusterv1.Bootstrap{DataSecretName: new("data")},
 							Deletion: clusterv1.MachineDeletionSpec{
-								NodeDeletionTimeoutSeconds: ptr.To(int32(10 * 60)),
+								NodeDeletionTimeoutSeconds: new(int32(10 * 60)),
 							},
 						},
 					},
@@ -475,9 +475,9 @@ func TestReconcileMachinePoolRequest(t *testing.T) {
 								Kind:     builder.TestInfrastructureMachinePoolKind,
 								Name:     "infra-config1-already-deleted", // Use an InfrastructureMachinePool that doesn't exist, so reconcileDelete doesn't get stuck on deletion
 							},
-							Bootstrap: clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
+							Bootstrap: clusterv1.Bootstrap{DataSecretName: new("data")},
 							Deletion: clusterv1.MachineDeletionSpec{
-								NodeDeletionTimeoutSeconds: ptr.To(int32(10 * 60)),
+								NodeDeletionTimeoutSeconds: new(int32(10 * 60)),
 							},
 						},
 					},
@@ -539,9 +539,9 @@ func TestReconcileMachinePoolRequest(t *testing.T) {
 								Kind:     builder.TestInfrastructureMachinePoolKind,
 								Name:     "infra-config1-already-deleted", // Use an InfrastructureMachinePool that doesn't exist, so reconcileDelete doesn't get stuck on deletion
 							},
-							Bootstrap: clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
+							Bootstrap: clusterv1.Bootstrap{DataSecretName: new("data")},
 							Deletion: clusterv1.MachineDeletionSpec{
-								NodeDeletionTimeoutSeconds: ptr.To(int32(10)), // timeout passed
+								NodeDeletionTimeoutSeconds: new(int32(10)), // timeout passed
 							},
 						},
 					},
@@ -616,7 +616,7 @@ func TestReconcileMachinePoolRequest(t *testing.T) {
 					Controller:      externalfake.Controller{},
 					Cache:           &informertest.FakeInformers{},
 					Scheme:          clientFake.Scheme(),
-					PredicateLogger: ptr.To(logr.New(log.NullLogSink{})),
+					PredicateLogger: new(logr.New(log.NullLogSink{})),
 				},
 			}
 
@@ -679,7 +679,7 @@ func TestMachinePoolNodeDeleteTimeoutPassed(t *testing.T) {
 					Template: clusterv1.MachineTemplateSpec{
 						Spec: clusterv1.MachineSpec{
 							Deletion: clusterv1.MachineDeletionSpec{
-								NodeDeletionTimeoutSeconds: ptr.To(int32(0)),
+								NodeDeletionTimeoutSeconds: new(int32(0)),
 							},
 						},
 					},
@@ -699,7 +699,7 @@ func TestMachinePoolNodeDeleteTimeoutPassed(t *testing.T) {
 					Template: clusterv1.MachineTemplateSpec{
 						Spec: clusterv1.MachineSpec{
 							Deletion: clusterv1.MachineDeletionSpec{
-								NodeDeletionTimeoutSeconds: ptr.To(int32(60)),
+								NodeDeletionTimeoutSeconds: new(int32(60)),
 							},
 						},
 					},
@@ -719,7 +719,7 @@ func TestMachinePoolNodeDeleteTimeoutPassed(t *testing.T) {
 					Template: clusterv1.MachineTemplateSpec{
 						Spec: clusterv1.MachineSpec{
 							Deletion: clusterv1.MachineDeletionSpec{
-								NodeDeletionTimeoutSeconds: ptr.To(int32(10)),
+								NodeDeletionTimeoutSeconds: new(int32(10)),
 							},
 						},
 					},
@@ -745,10 +745,10 @@ func TestReconcileMachinePoolDeleteExternal(t *testing.T) {
 	}
 
 	bootstrapConfig := &unstructured.Unstructured{
-		Object: map[string]interface{}{
+		Object: map[string]any{
 			"kind":       builder.TestBootstrapConfigKind,
 			"apiVersion": builder.BootstrapGroupVersion.String(),
-			"metadata": map[string]interface{}{
+			"metadata": map[string]any{
 				"name":      "delete-bootstrap",
 				"namespace": metav1.NamespaceDefault,
 			},
@@ -757,10 +757,10 @@ func TestReconcileMachinePoolDeleteExternal(t *testing.T) {
 	bootstrapConfigGVK := bootstrapConfig.GroupVersionKind()
 
 	infraConfig := &unstructured.Unstructured{
-		Object: map[string]interface{}{
+		Object: map[string]any{
 			"kind":       builder.TestInfrastructureMachinePoolKind,
 			"apiVersion": builder.InfrastructureGroupVersion.String(),
-			"metadata": map[string]interface{}{
+			"metadata": map[string]any{
 				"name":      "delete-infra",
 				"namespace": metav1.NamespaceDefault,
 			},
@@ -893,7 +893,7 @@ func TestRemoveMachinePoolFinalizerAfterDeleteReconcile(t *testing.T) {
 						Kind:     builder.TestInfrastructureMachinePoolKind,
 						Name:     "infra-config1",
 					},
-					Bootstrap: clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
+					Bootstrap: clusterv1.Bootstrap{DataSecretName: new("data")},
 				},
 			},
 		},
@@ -933,15 +933,15 @@ func TestMachinePoolConditions(t *testing.T) {
 
 	bootstrapConfig := func(dataSecretCreated bool) *unstructured.Unstructured {
 		return &unstructured.Unstructured{
-			Object: map[string]interface{}{
+			Object: map[string]any{
 				"kind":       builder.TestBootstrapConfigKind,
 				"apiVersion": builder.BootstrapGroupVersion.String(),
-				"metadata": map[string]interface{}{
+				"metadata": map[string]any{
 					"name":      "bootstrap1",
 					"namespace": metav1.NamespaceDefault,
 				},
-				"status": map[string]interface{}{
-					"initialization": map[string]interface{}{
+				"status": map[string]any{
+					"initialization": map[string]any{
 						"dataSecretCreated": dataSecretCreated,
 					},
 					"dataSecretName": "data",
@@ -952,18 +952,18 @@ func TestMachinePoolConditions(t *testing.T) {
 
 	infraConfig := func(ready bool) *unstructured.Unstructured {
 		return &unstructured.Unstructured{
-			Object: map[string]interface{}{
+			Object: map[string]any{
 				"kind":       builder.TestInfrastructureMachinePoolKind,
 				"apiVersion": builder.InfrastructureGroupVersion.String(),
-				"metadata": map[string]interface{}{
+				"metadata": map[string]any{
 					"name":      "infra1",
 					"namespace": metav1.NamespaceDefault,
 				},
-				"status": map[string]interface{}{
-					"initialization": map[string]interface{}{"provisioned": ready},
+				"status": map[string]any{
+					"initialization": map[string]any{"provisioned": ready},
 				},
-				"spec": map[string]interface{}{
-					"providerIDList": []interface{}{
+				"spec": map[string]any{
+					"providerIDList": []any{
 						"azure://westus2/id-node-4",
 						"aws://us-east-1/id-node-1",
 					},
@@ -1048,7 +1048,7 @@ func TestMachinePoolConditions(t *testing.T) {
 					{Name: "node-1"},
 					{Name: "azure-node-4"},
 				}
-				mp.Status.Replicas = ptr.To(int32(2))
+				mp.Status.Replicas = new(int32(2))
 				if mp.Status.Deprecated == nil {
 					mp.Status.Deprecated = &clusterv1.MachinePoolDeprecatedStatus{}
 				}
@@ -1211,7 +1211,7 @@ func TestMachinePoolConditions(t *testing.T) {
 					Controller:      externalfake.Controller{},
 					Cache:           &informertest.FakeInformers{},
 					Scheme:          clientFake.Scheme(),
-					PredicateLogger: ptr.To(logr.New(log.NullLogSink{})),
+					PredicateLogger: new(logr.New(log.NullLogSink{})),
 				},
 			}
 
@@ -1241,8 +1241,8 @@ func addConditionsToExternal(u *unstructured.Unstructured, newConditions cluster
 
 // addV1Beta1ConditionToExternal adds a condition list to an external object.
 func addV1Beta1ConditionToExternal(u *unstructured.Unstructured, c clusterv1.Condition) {
-	err := unstructured.SetNestedSlice(u.Object, []interface{}{
-		map[string]interface{}{
+	err := unstructured.SetNestedSlice(u.Object, []any{
+		map[string]any{
 			"type":     string(c.Type),
 			"status":   string(c.Status),
 			"severity": string(c.Severity),

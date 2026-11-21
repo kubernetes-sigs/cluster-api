@@ -28,7 +28,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	runtimeserializer "k8s.io/apimachinery/pkg/runtime/serializer"
-	"k8s.io/utils/ptr"
 	"sigs.k8s.io/randfill"
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
@@ -74,8 +73,8 @@ func TestFuzzyConversion(t *testing.T) {
 	}))
 }
 
-func fuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
-	return []interface{}{
+func fuzzFuncs(_ runtimeserializer.CodecFactory) []any {
+	return []any{
 		spokeClusterConfigurationFuzzer,
 		spokeDNSFuzzer,
 		spokeInitConfigurationFuzzer,
@@ -91,8 +90,8 @@ func fuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	}
 }
 
-func initConfigurationFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
-	return []interface{}{
+func initConfigurationFuzzFuncs(_ runtimeserializer.CodecFactory) []any {
+	return []any{
 		spokeBootstrapToken,
 		spokeBootstrapTokenString,
 	}
@@ -106,8 +105,8 @@ func spokeClusterConfigurationFuzzer(obj *ClusterConfiguration, c randfill.Conti
 	c.FillNoCustom(obj)
 
 	obj.Proxy = Proxy{}
-	obj.CertificateValidityPeriod = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31n(3*365)+1) * time.Hour * 24})
-	obj.CACertificateValidityPeriod = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31n(100*365)+1) * time.Hour * 24})
+	obj.CertificateValidityPeriod = new(metav1.Duration{Duration: time.Duration(c.Int31n(3*365)+1) * time.Hour * 24})
+	obj.CACertificateValidityPeriod = new(metav1.Duration{Duration: time.Duration(c.Int31n(100*365)+1) * time.Hour * 24})
 
 	// Drop the following fields as they have been removed in v1beta2, so we don't have to preserve them.
 	obj.Networking.ServiceSubnet = ""
@@ -179,12 +178,12 @@ func spokeTimeoutsFuzzer(obj *Timeouts, c randfill.Continue) {
 	c.FillNoCustom(obj)
 
 	if c.Bool() {
-		obj.ControlPlaneComponentHealthCheck = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
-		obj.KubeletHealthCheck = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
-		obj.KubernetesAPICall = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
-		obj.EtcdAPICall = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
-		obj.TLSBootstrap = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
-		obj.Discovery = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
+		obj.ControlPlaneComponentHealthCheck = new(metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
+		obj.KubeletHealthCheck = new(metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
+		obj.KubernetesAPICall = new(metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
+		obj.EtcdAPICall = new(metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
+		obj.TLSBootstrap = new(metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
+		obj.Discovery = new(metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
 	} else {
 		obj.ControlPlaneComponentHealthCheck = nil
 		obj.KubeletHealthCheck = nil
@@ -200,7 +199,7 @@ func spokeBootstrapToken(in *BootstrapToken, c randfill.Continue) {
 	c.FillNoCustom(in)
 
 	if in.TTL != nil {
-		in.TTL = ptr.To[metav1.Duration](metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
+		in.TTL = new(metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
 	}
 	if reflect.DeepEqual(in.Expires, &metav1.Time{}) {
 		in.Expires = nil
@@ -234,25 +233,25 @@ func hubClusterConfigurationFuzzer(in *bootstrapv1.ClusterConfiguration, c randf
 
 		for i, arg := range in.APIServer.ExtraArgs {
 			if arg.Value == nil {
-				arg.Value = ptr.To("")
+				arg.Value = new("")
 			}
 			in.APIServer.ExtraArgs[i] = arg
 		}
 		for i, arg := range in.ControllerManager.ExtraArgs {
 			if arg.Value == nil {
-				arg.Value = ptr.To("")
+				arg.Value = new("")
 			}
 			in.ControllerManager.ExtraArgs[i] = arg
 		}
 		for i, arg := range in.Scheduler.ExtraArgs {
 			if arg.Value == nil {
-				arg.Value = ptr.To("")
+				arg.Value = new("")
 			}
 			in.Scheduler.ExtraArgs[i] = arg
 		}
 		for i, arg := range in.Etcd.Local.ExtraArgs {
 			if arg.Value == nil {
-				arg.Value = ptr.To("")
+				arg.Value = new("")
 			}
 			in.Etcd.Local.ExtraArgs[i] = arg
 		}
@@ -264,7 +263,7 @@ func hubInitConfigurationFuzzer(obj *bootstrapv1.InitConfiguration, c randfill.C
 
 	for i, arg := range obj.NodeRegistration.KubeletExtraArgs {
 		if arg.Value == nil {
-			arg.Value = ptr.To("")
+			arg.Value = new("")
 		}
 		obj.NodeRegistration.KubeletExtraArgs[i] = arg
 	}
@@ -277,7 +276,7 @@ func hubJoinConfigurationFuzzer(obj *bootstrapv1.JoinConfiguration, c randfill.C
 
 	for i, arg := range obj.NodeRegistration.KubeletExtraArgs {
 		if arg.Value == nil {
-			arg.Value = ptr.To("")
+			arg.Value = new("")
 		}
 		obj.NodeRegistration.KubeletExtraArgs[i] = arg
 	}
@@ -287,7 +286,7 @@ func hubHostPathMountFuzzer(obj *bootstrapv1.HostPathMount, c randfill.Continue)
 	c.FillNoCustom(obj)
 
 	if obj.ReadOnly == nil {
-		obj.ReadOnly = ptr.To(false)
+		obj.ReadOnly = new(false)
 	}
 }
 
@@ -295,7 +294,7 @@ func hubBootstrapTokenDiscoveryFuzzer(obj *bootstrapv1.BootstrapTokenDiscovery, 
 	c.FillNoCustom(obj)
 
 	if obj.UnsafeSkipCAVerification == nil {
-		obj.UnsafeSkipCAVerification = ptr.To(false)
+		obj.UnsafeSkipCAVerification = new(false)
 	}
 }
 

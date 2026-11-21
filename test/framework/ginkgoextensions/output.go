@@ -31,7 +31,7 @@ import (
 var TestOutput = ginkgo.GinkgoWriter
 
 // Byf provides formatted output to the GinkgoWriter.
-func Byf(format string, a ...interface{}) {
+func Byf(format string, a ...any) {
 	ginkgo.By(fmt.Sprintf(format, a...))
 }
 

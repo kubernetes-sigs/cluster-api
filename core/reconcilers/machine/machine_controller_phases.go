@@ -74,7 +74,7 @@ func (r *Reconciler) reconcileExternal(ctx context.Context, cluster *clusterv1.C
 			if m.Status.Deprecated.V1Beta1 == nil {
 				m.Status.Deprecated.V1Beta1 = &clusterv1.MachineV1Beta1DeprecatedStatus{}
 			}
-			m.Status.Deprecated.V1Beta1.FailureMessage = ptr.To(
+			m.Status.Deprecated.V1Beta1.FailureMessage = new(
 				fmt.Sprintf("Failure detected from referenced resource %s %s: %s",
 					objGVK.Kind, obj.GetName(), failureMessage),
 			)
@@ -103,7 +103,7 @@ func (r *Reconciler) ensureExternalOwnershipAndWatch(ctx context.Context, cluste
 		Kind:       "Machine",
 		Name:       m.Name,
 		UID:        m.UID,
-		Controller: ptr.To(true),
+		Controller: new(true),
 	}
 
 	hasOnCreateOwnerRefs, err := hasOnCreateOwnerRefs(cluster, m, objGVK, obj)
@@ -184,7 +184,7 @@ func (r *Reconciler) reconcileBootstrap(ctx context.Context, s *scope) (ctrl.Res
 
 	// If the bootstrap data is populated, set ready and return.
 	if m.Spec.Bootstrap.DataSecretName != nil {
-		m.Status.Initialization.BootstrapDataSecretCreated = ptr.To(true)
+		m.Status.Initialization.BootstrapDataSecretCreated = new(true)
 		v1beta1conditions.MarkTrue(m, clusterv1.BootstrapReadyV1Beta1Condition)
 		return ctrl.Result{}, nil
 	}
@@ -235,7 +235,7 @@ func (r *Reconciler) reconcileBootstrap(ctx context.Context, s *scope) (ctrl.Res
 		r.logRateLimiter.Forget(waitingForBootstrapDataSecretKey(m))
 		log.Info("Bootstrap provider generated data secret", s.bootstrapConfigGVK.Kind, klog.KObj(s.bootstrapConfig), "Secret", klog.KRef(m.Namespace, secretName), "duration", time.Since(m.CreationTimestamp.Time).Truncate(time.Second/10))
 	}
-	m.Status.Initialization.BootstrapDataSecretCreated = ptr.To(true)
+	m.Status.Initialization.BootstrapDataSecretCreated = new(true)
 	return ctrl.Result{}, nil
 }
 
@@ -270,7 +270,7 @@ func (r *Reconciler) reconcileInfrastructure(ctx context.Context, s *scope) (ctr
 					m.Status.Deprecated.V1Beta1 = &clusterv1.MachineV1Beta1DeprecatedStatus{}
 				}
 				m.Status.Deprecated.V1Beta1.FailureReason = ptr.To(capierrors.InvalidConfigurationMachineError)
-				m.Status.Deprecated.V1Beta1.FailureMessage = ptr.To(fmt.Sprintf("Machine infrastructure resource %s %s has been deleted after provisioning was completed",
+				m.Status.Deprecated.V1Beta1.FailureMessage = new(fmt.Sprintf("Machine infrastructure resource %s %s has been deleted after provisioning was completed",
 					m.Spec.InfrastructureRef.Kind, klog.KRef(m.Namespace, m.Spec.InfrastructureRef.Name)))
 				return ctrl.Result{}, pkgerrors.Errorf("could not find %s %s for Machine %s", m.Spec.InfrastructureRef.Kind, klog.KRef(m.Namespace, m.Spec.InfrastructureRef.Name), klog.KObj(m))
 			}
@@ -349,7 +349,7 @@ func (r *Reconciler) reconcileInfrastructure(ctx context.Context, s *scope) (ctr
 		r.logRateLimiter.Forget(waitingForInfrastructureProvisionedKey(m))
 		r.logRateLimiter.Forget(waitingForInfrastructureProviderIDKey(m))
 	}
-	m.Status.Initialization.InfrastructureProvisioned = ptr.To(true)
+	m.Status.Initialization.InfrastructureProvisioned = new(true)
 	return ctrl.Result{}, nil
 }
 

@@ -30,7 +30,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/klog/v2"
-	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	ctrlcache "sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -398,7 +397,7 @@ func (r *Reconciler) ApplyClusterResourceSet(ctx context.Context, cluster *clust
 			resourceSetBinding.SetBinding(addonsv1.ResourceBinding{
 				ResourceRef:     resource,
 				Hash:            "",
-				Applied:         ptr.To(false),
+				Applied:         new(false),
 				LastAppliedTime: metav1.Time{Time: time.Now().UTC()},
 			})
 
@@ -415,7 +414,7 @@ func (r *Reconciler) ApplyClusterResourceSet(ctx context.Context, cluster *clust
 		resourceSetBinding.SetBinding(addonsv1.ResourceBinding{
 			ResourceRef:     resource,
 			Hash:            "",
-			Applied:         ptr.To(false),
+			Applied:         new(false),
 			LastAppliedTime: metav1.Time{Time: time.Now().UTC()},
 		})
 
@@ -438,7 +437,7 @@ func (r *Reconciler) ApplyClusterResourceSet(ctx context.Context, cluster *clust
 		resourceSetBinding.SetBinding(addonsv1.ResourceBinding{
 			ResourceRef:     resource,
 			Hash:            resourceScope.hash(),
-			Applied:         ptr.To(isSuccessful),
+			Applied:         new(isSuccessful),
 			LastAppliedTime: metav1.Time{Time: time.Now().UTC()},
 		})
 	}
@@ -462,7 +461,7 @@ func (r *Reconciler) ApplyClusterResourceSet(ctx context.Context, cluster *clust
 func (r *Reconciler) getResource(ctx context.Context, resourceRef addonsv1.ResourceRef, namespace string) (*unstructured.Unstructured, error) {
 	resourceName := types.NamespacedName{Name: resourceRef.Name, Namespace: namespace}
 
-	var resourceInterface interface{}
+	var resourceInterface any
 	switch resourceRef.Kind {
 	case string(addonsv1.ConfigMapClusterResourceSetResourceKind):
 		resourceConfigMap, err := getConfigMap(ctx, r.Client, resourceName)

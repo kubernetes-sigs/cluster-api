@@ -35,7 +35,6 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -137,7 +136,7 @@ func TestGetWorkloadCluster(t *testing.T) {
 
 	// Set InfrastructureReady to true so ClusterCache creates the clusterAccessor.
 	patch := client.MergeFrom(cluster.DeepCopy())
-	cluster.Status.Initialization.InfrastructureProvisioned = ptr.To(true)
+	cluster.Status.Initialization.InfrastructureProvisioned = new(true)
 	g.Expect(env.Status().Patch(ctx, cluster, patch)).To(Succeed())
 
 	// Create kubeconfig secret
@@ -219,7 +218,7 @@ func TestGetWorkloadCluster(t *testing.T) {
 				SecretClient: secretCachingClient,
 				Cache:        setup.ClusterCacheCacheOptions(),
 				Client:       setup.ClusterCacheClientOptions("test-controller-manager", 20, 30),
-			}, controller.Options{MaxConcurrentReconciles: 10, SkipNameValidation: ptr.To(true)})
+			}, controller.Options{MaxConcurrentReconciles: 10, SkipNameValidation: new(true)})
 			g.Expect(err).ToNot(HaveOccurred())
 			defer clusterCache.(interface{ Shutdown() }).Shutdown()
 
@@ -314,10 +313,10 @@ func machineListForTestGetMachinesForCluster() *clusterv1.MachineList {
 
 type fakeClient struct {
 	client.Client
-	list interface{}
+	list any
 
 	createErr    error
-	get          map[string]interface{}
+	get          map[string]any
 	getCalled    bool
 	updateCalled bool
 	getErr       error

@@ -203,7 +203,7 @@ func setControlPlaneInitialized(ctx context.Context, controlPlane *pkg.ControlPl
 		}
 
 		if hasKubeadmConfig {
-			controlPlane.KCP.Status.Initialization.ControlPlaneInitialized = ptr.To(true)
+			controlPlane.KCP.Status.Initialization.ControlPlaneInitialized = new(true)
 		}
 	}
 	return nil
@@ -223,10 +223,10 @@ func setReplicas(_ context.Context, kcp *controlplanev1.KubeadmControlPlane, mac
 		}
 	}
 
-	kcp.Status.Replicas = ptr.To(int32(len(machines)))
-	kcp.Status.ReadyReplicas = ptr.To(readyReplicas)
-	kcp.Status.AvailableReplicas = ptr.To(availableReplicas)
-	kcp.Status.UpToDateReplicas = ptr.To(upToDateReplicas)
+	kcp.Status.Replicas = new(int32(len(machines)))
+	kcp.Status.ReadyReplicas = new(readyReplicas)
+	kcp.Status.AvailableReplicas = new(availableReplicas)
+	kcp.Status.UpToDateReplicas = new(upToDateReplicas)
 }
 
 func setInitializedCondition(_ context.Context, kcp *controlplanev1.KubeadmControlPlane) {
@@ -880,9 +880,9 @@ func shouldSurfaceWhenAvailableTrue(machine *clusterv1.Machine, conditionTypes .
 			continue
 		}
 		if t == nil {
-			t = ptr.To(c.LastTransitionTime.Time)
+			t = new(c.LastTransitionTime.Time)
 		}
-		t = ptr.To(minTime(*t, c.LastTransitionTime.Time))
+		t = new(minTime(*t, c.LastTransitionTime.Time))
 	}
 
 	if t != nil {

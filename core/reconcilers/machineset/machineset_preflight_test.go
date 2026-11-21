@@ -48,21 +48,21 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 
 	controlPlaneUpgrading := builder.ControlPlane(ns, "cp1").
 		WithVersion("v1.26.2").
-		WithStatusFields(map[string]interface{}{
+		WithStatusFields(map[string]any{
 			"status.version": "v1.25.2",
 		}).
 		Build()
 
 	controlPlaneStable := builder.ControlPlane(ns, "cp1").
 		WithVersion("v1.26.2").
-		WithStatusFields(map[string]interface{}{
+		WithStatusFields(map[string]any{
 			"status.version": "v1.26.2",
 		}).
 		Build()
 
 	controlPlaneStable128 := builder.ControlPlane(ns, "cp1").
 		WithVersion("v1.28.0").
-		WithStatusFields(map[string]interface{}{
+		WithStatusFields(map[string]any{
 			"status.version": "v1.28.0",
 		}).
 		Build()

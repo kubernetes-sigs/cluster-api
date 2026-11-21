@@ -18,6 +18,7 @@ package v1beta2
 
 import (
 	"reflect"
+	"slices"
 	"sort"
 
 	"github.com/google/go-cmp/cmp"
@@ -117,12 +118,7 @@ func (o *PatchApplyOptions) ApplyOptions(opts []PatchApplyOption) *PatchApplyOpt
 }
 
 func (o *PatchApplyOptions) isOwnedConditionType(conditionType string) bool {
-	for _, i := range o.ownedConditionTypes {
-		if i == conditionType {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(o.ownedConditionTypes, conditionType)
 }
 
 // Apply executes a three-way merge of a list of Patch.

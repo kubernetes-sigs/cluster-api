@@ -27,7 +27,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
-	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -224,7 +223,7 @@ func TestKubeadmControlPlaneReconciler_scaleUpControlPlane(t *testing.T) {
 		cluster.UID = types.UID(util.RandomString(10))
 		cluster.Spec.ControlPlaneEndpoint.Host = "nodomain.example.com"
 		cluster.Spec.ControlPlaneEndpoint.Port = 6443
-		cluster.Status.Initialization.InfrastructureProvisioned = ptr.To(true)
+		cluster.Status.Initialization.InfrastructureProvisioned = new(true)
 
 		beforeMachines := collections.New()
 		for i := range 2 {
@@ -783,7 +782,7 @@ func TestSelectMachineForInPlaceUpdateOrScaleDown(t *testing.T) {
 func failureDomain(name string, controlPlane bool) clusterv1.FailureDomain {
 	return clusterv1.FailureDomain{
 		Name:         name,
-		ControlPlane: ptr.To(controlPlane),
+		ControlPlane: new(controlPlane),
 	}
 }
 

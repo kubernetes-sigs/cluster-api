@@ -70,7 +70,7 @@ type WaitForDeploymentsAvailableInput struct {
 // WaitForDeploymentsAvailable waits until the Deployment has status.Available = True, that signals that
 // all the desired replicas are in place.
 // This can be used to check if Cluster API controllers installed in the management cluster are working.
-func WaitForDeploymentsAvailable(ctx context.Context, input WaitForDeploymentsAvailableInput, intervals ...interface{}) {
+func WaitForDeploymentsAvailable(ctx context.Context, input WaitForDeploymentsAvailableInput, intervals ...any) {
 	Byf("Waiting for deployment %s to be available", klog.KObj(input.Deployment))
 	deployment := &appsv1.Deployment{}
 	Eventually(func() bool {
@@ -226,17 +226,17 @@ func newWatchPodLogsEventHandler(ctx context.Context, input watchPodLogsInput, s
 	}
 }
 
-func (eh *watchPodLogsEventHandler) OnAdd(obj interface{}, _ bool) {
+func (eh *watchPodLogsEventHandler) OnAdd(obj any, _ bool) {
 	pod := obj.(*corev1.Pod)
 	eh.streamPodLogs(pod)
 }
 
-func (eh *watchPodLogsEventHandler) OnUpdate(_, newObj interface{}) {
+func (eh *watchPodLogsEventHandler) OnUpdate(_, newObj any) {
 	pod := newObj.(*corev1.Pod)
 	eh.streamPodLogs(pod)
 }
 
-func (eh *watchPodLogsEventHandler) OnDelete(_ interface{}) {}
+func (eh *watchPodLogsEventHandler) OnDelete(_ any) {}
 
 func (eh *watchPodLogsEventHandler) streamPodLogs(pod *corev1.Pod) {
 	if pod.GetNamespace() != eh.input.Namespace {
@@ -599,7 +599,7 @@ type WaitForDNSUpgradeInput struct {
 
 // WaitForDNSUpgrade waits until CoreDNS version matches with the CoreDNS upgrade version and all its replicas
 // are ready for use with the upgraded version. This is called during KCP upgrade.
-func WaitForDNSUpgrade(ctx context.Context, input WaitForDNSUpgradeInput, intervals ...interface{}) {
+func WaitForDNSUpgrade(ctx context.Context, input WaitForDNSUpgradeInput, intervals ...any) {
 	By("Ensuring CoreDNS has the correct image")
 
 	Eventually(func() (bool, error) {
@@ -632,7 +632,7 @@ type DeployPodAndWaitInput struct {
 
 	ModifyDeployment func(deployment *appsv1.Deployment)
 
-	WaitForDeploymentAvailableInterval []interface{}
+	WaitForDeploymentAvailableInterval []any
 }
 
 // DeployUnevictablePod will deploy a Deployment on a ControlPlane or MachineDeployment.
@@ -709,7 +709,7 @@ type DeployEvictablePodInput struct {
 
 	ModifyDeployment func(deployment *appsv1.Deployment)
 
-	WaitForDeploymentAvailableInterval []interface{}
+	WaitForDeploymentAvailableInterval []any
 }
 
 // DeployEvictablePod will deploy a Deployment on a ControlPlane or MachineDeployment.

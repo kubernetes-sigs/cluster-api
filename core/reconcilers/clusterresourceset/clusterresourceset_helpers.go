@@ -58,7 +58,7 @@ func objsFromYamlData(yamlDocs [][]byte) ([]unstructured.Unstructured, error) {
 		objs := []unstructured.Unstructured{}
 		// If it is a json list, convert each list element to an unstructured object.
 		if isJSONList {
-			var results []map[string]interface{}
+			var results []map[string]any
 			// Unmarshal the JSON to the interface.
 			if err = json.Unmarshal(data, &results); err == nil {
 				for i := range results {
@@ -186,7 +186,7 @@ func normalizeData(resource *unstructured.Unstructured) ([][]byte, error) {
 		return nil, pkgerrors.Errorf("failed to get data field from resource %s", klog.KObj(resource))
 	}
 
-	unstructuredData := data.(map[string]interface{})
+	unstructuredData := data.(map[string]any)
 	for key := range unstructuredData {
 		keys = append(keys, key)
 	}

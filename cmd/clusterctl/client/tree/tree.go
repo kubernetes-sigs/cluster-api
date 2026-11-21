@@ -521,7 +521,7 @@ func showConditions(obj client.Object, showOtherConditions string) ConditionFilt
 	if showOtherConditions == "" {
 		return ShownNoConditions
 	}
-	for _, filter := range strings.Split(showOtherConditions, ",") {
+	for filter := range strings.SplitSeq(showOtherConditions, ",") {
 		if filter == "" {
 			continue
 		}

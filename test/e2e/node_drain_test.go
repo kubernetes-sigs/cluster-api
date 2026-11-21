@@ -27,7 +27,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/utils/ptr"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/test/framework"
@@ -41,7 +40,7 @@ var _ = Describe("When testing Node drain", func() {
 			BootstrapClusterProxy:  bootstrapClusterProxy,
 			ArtifactFolder:         artifactFolder,
 			SkipCleanup:            skipCleanup,
-			Flavor:                 ptr.To("topology"),
+			Flavor:                 new("topology"),
 			VerifyNodeVolumeDetach: true,
 			CreateAdditionalResources: func(ctx context.Context, clusterProxy framework.ClusterProxy, cluster *clusterv1.Cluster) {
 				workloadClusterClient := clusterProxy.GetWorkloadCluster(ctx, cluster.Namespace, cluster.Name).GetClient()
@@ -74,7 +73,7 @@ func generateVolumeAttachment(node corev1.Node) *storagev1.VolumeAttachment {
 			Attacher: "manual",
 			NodeName: node.GetName(),
 			Source: storagev1.VolumeAttachmentSource{
-				PersistentVolumeName: ptr.To("foo"),
+				PersistentVolumeName: new("foo"),
 			},
 		},
 	}

@@ -43,13 +43,13 @@ func Test_inspectImages(t *testing.T) {
 			args: args{
 				objs: []unstructured.Unstructured{
 					{
-						Object: map[string]interface{}{
+						Object: map[string]any{
 							"apiVersion": "apps/v1",
 							"kind":       deploymentKind,
-							"spec": map[string]interface{}{
-								"template": map[string]interface{}{
-									"spec": map[string]interface{}{
-										"containers": []map[string]interface{}{
+							"spec": map[string]any{
+								"template": map[string]any{
+									"spec": map[string]any{
+										"containers": []map[string]any{
 											{
 												"name":  controllerContainerName,
 												"image": "gcr.io/k8s-staging-cluster-api/cluster-api-controller:main",
@@ -70,13 +70,13 @@ func Test_inspectImages(t *testing.T) {
 			args: args{
 				objs: []unstructured.Unstructured{
 					{
-						Object: map[string]interface{}{
+						Object: map[string]any{
 							"apiVersion": "apps/v1",
 							"kind":       deploymentKind,
-							"spec": map[string]interface{}{
-								"template": map[string]interface{}{
-									"spec": map[string]interface{}{
-										"containers": []map[string]interface{}{
+							"spec": map[string]any{
+								"template": map[string]any{
+									"spec": map[string]any{
+										"containers": []map[string]any{
 											{
 												"name":  controllerContainerName,
 												"image": "gcr.io/k8s-staging-cluster-api/cluster-api-controller:main",
@@ -97,19 +97,19 @@ func Test_inspectImages(t *testing.T) {
 			args: args{
 				objs: []unstructured.Unstructured{
 					{
-						Object: map[string]interface{}{
+						Object: map[string]any{
 							"apiVersion": "apps/v1",
 							"kind":       deploymentKind,
-							"spec": map[string]interface{}{
-								"template": map[string]interface{}{
-									"spec": map[string]interface{}{
-										"containers": []map[string]interface{}{
+							"spec": map[string]any{
+								"template": map[string]any{
+									"spec": map[string]any{
+										"containers": []map[string]any{
 											{
 												"name":  controllerContainerName,
 												"image": "gcr.io/k8s-staging-cluster-api/cluster-api-controller:main",
 											},
 										},
-										"initContainers": []map[string]interface{}{
+										"initContainers": []map[string]any{
 											{
 												"name":  controllerContainerName,
 												"image": "gcr.io/k8s-staging-cluster-api/cluster-api-controller:init",
@@ -130,19 +130,19 @@ func Test_inspectImages(t *testing.T) {
 			args: args{
 				objs: []unstructured.Unstructured{
 					{
-						Object: map[string]interface{}{
+						Object: map[string]any{
 							"apiVersion": "apps/v1",
 							"kind":       daemonSetKind,
-							"spec": map[string]interface{}{
-								"template": map[string]interface{}{
-									"spec": map[string]interface{}{
-										"containers": []map[string]interface{}{
+							"spec": map[string]any{
+								"template": map[string]any{
+									"spec": map[string]any{
+										"containers": []map[string]any{
 											{
 												"name":  controllerContainerName,
 												"image": "gcr.io/k8s-staging-cluster-api/cluster-api-controller:main",
 											},
 										},
-										"initContainers": []map[string]interface{}{
+										"initContainers": []map[string]any{
 											{
 												"name":  controllerContainerName,
 												"image": "gcr.io/k8s-staging-cluster-api/cluster-api-controller:init",
@@ -191,18 +191,18 @@ func TestFixImages(t *testing.T) {
 			args: args{
 				objs: []unstructured.Unstructured{
 					{
-						Object: map[string]interface{}{
+						Object: map[string]any{
 							"apiVersion": "apps/v1",
 							"kind":       deploymentKind,
-							"spec": map[string]interface{}{
-								"template": map[string]interface{}{
-									"spec": map[string]interface{}{
-										"containers": []map[string]interface{}{
+							"spec": map[string]any{
+								"template": map[string]any{
+									"spec": map[string]any{
+										"containers": []map[string]any{
 											{
 												"image": "container-image",
 											},
 										},
-										"initContainers": []map[string]interface{}{
+										"initContainers": []map[string]any{
 											{
 												"image": "init-container-image",
 											},
@@ -225,18 +225,18 @@ func TestFixImages(t *testing.T) {
 			args: args{
 				objs: []unstructured.Unstructured{
 					{
-						Object: map[string]interface{}{
+						Object: map[string]any{
 							"apiVersion": "apps/v1",
 							"kind":       daemonSetKind,
-							"spec": map[string]interface{}{
-								"template": map[string]interface{}{
-									"spec": map[string]interface{}{
-										"containers": []map[string]interface{}{
+							"spec": map[string]any{
+								"template": map[string]any{
+									"spec": map[string]any{
+										"containers": []map[string]any{
 											{
 												"image": "container-image",
 											},
 										},
-										"initContainers": []map[string]interface{}{
+										"initContainers": []map[string]any{
 											{
 												"image": "init-container-image",
 											},

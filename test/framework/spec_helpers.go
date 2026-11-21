@@ -32,7 +32,7 @@ import (
 	"sigs.k8s.io/cluster-api/util"
 )
 
-func byf(format string, a ...interface{}) {
+func byf(format string, a ...any) {
 	By(fmt.Sprintf(format, a...))
 }
 
@@ -97,7 +97,7 @@ func DumpAllResourcesAndLogs(ctx context.Context, clusterProxy ClusterProxy, clu
 }
 
 // DumpSpecResourcesAndCleanup dumps all the resources in the spec namespace and cleans up the spec namespace.
-func DumpSpecResourcesAndCleanup(ctx context.Context, specName string, clusterProxy ClusterProxy, clusterctlConfigPath, artifactFolder string, namespace *corev1.Namespace, cancelWatches context.CancelFunc, cluster *clusterv1.Cluster, intervalsGetter func(spec, key string) []interface{}, skipCleanup bool) {
+func DumpSpecResourcesAndCleanup(ctx context.Context, specName string, clusterProxy ClusterProxy, clusterctlConfigPath, artifactFolder string, namespace *corev1.Namespace, cancelWatches context.CancelFunc, cluster *clusterv1.Cluster, intervalsGetter func(spec, key string) []any, skipCleanup bool) {
 	// Dump all the resources in the spec namespace and the workload cluster.
 	DumpAllResourcesAndLogs(ctx, clusterProxy, clusterctlConfigPath, artifactFolder, namespace, cluster)
 

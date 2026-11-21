@@ -54,13 +54,13 @@ func Test_updateStatus(t *testing.T) {
 		Status: metav1.ConditionTrue,
 		Reason: clusterv1.MachineUpToDateReason,
 	})
-	infraPool := &unstructured.Unstructured{Object: map[string]interface{}{
-		"status": map[string]interface{}{
+	infraPool := &unstructured.Unstructured{Object: map[string]any{
+		"status": map[string]any{
 			"infrastructureMachineKind": "GenericInfrastructureMachine",
 		},
 	}}
-	malformedInfraPool := &unstructured.Unstructured{Object: map[string]interface{}{
-		"status": map[string]interface{}{
+	malformedInfraPool := &unstructured.Unstructured{Object: map[string]any{
+		"status": map[string]any{
 			"infrastructureMachineKind": int64(1),
 		},
 	}}

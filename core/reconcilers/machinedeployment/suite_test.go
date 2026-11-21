@@ -139,7 +139,7 @@ func intOrStrPtr(i int32) *intstr.IntOrString {
 	return &res
 }
 
-func fakeInfrastructureRefProvisioned(ref clusterv1.ContractVersionedObjectReference, namespace string, base map[string]interface{}, g *WithT) string {
+func fakeInfrastructureRefProvisioned(ref clusterv1.ContractVersionedObjectReference, namespace string, base map[string]any, g *WithT) string {
 	iref := (&unstructured.Unstructured{Object: base}).DeepCopy()
 	g.Eventually(func() error {
 		return env.Get(ctx, client.ObjectKey{Name: ref.Name, Namespace: namespace}, iref)

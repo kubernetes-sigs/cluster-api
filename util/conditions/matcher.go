@@ -66,8 +66,8 @@ type matchConditions struct {
 	expected []metav1.Condition
 }
 
-func (m matchConditions) Match(actual interface{}) (success bool, err error) {
-	elems := make([]interface{}, 0, len(m.expected))
+func (m matchConditions) Match(actual any) (success bool, err error) {
+	elems := make([]any, 0, len(m.expected))
 	for _, condition := range m.expected {
 		elems = append(elems, MatchCondition(condition, m.opts...))
 	}
@@ -75,11 +75,11 @@ func (m matchConditions) Match(actual interface{}) (success bool, err error) {
 	return gomega.ConsistOf(elems...).Match(actual)
 }
 
-func (m matchConditions) FailureMessage(actual interface{}) (message string) {
+func (m matchConditions) FailureMessage(actual any) (message string) {
 	return fmt.Sprintf("expected\n\t%#v\nto match\n\t%#v\n", actual, m.expected)
 }
 
-func (m matchConditions) NegatedFailureMessage(actual interface{}) (message string) {
+func (m matchConditions) NegatedFailureMessage(actual any) (message string) {
 	return fmt.Sprintf("expected\n\t%#v\nto not match\n\t%#v\n", actual, m.expected)
 }
 
@@ -96,7 +96,7 @@ type matchCondition struct {
 	expected metav1.Condition
 }
 
-func (m matchCondition) Match(actual interface{}) (success bool, err error) {
+func (m matchCondition) Match(actual any) (success bool, err error) {
 	matchOpt := &MatchOptions{
 		ignoreLastTransitionTime: false,
 	}
@@ -138,10 +138,10 @@ func (m matchCondition) Match(actual interface{}) (success bool, err error) {
 	return ok, err
 }
 
-func (m matchCondition) FailureMessage(actual interface{}) (message string) {
+func (m matchCondition) FailureMessage(actual any) (message string) {
 	return fmt.Sprintf("expected\n\t%#v\nto match\n\t%#v\n", actual, m.expected)
 }
 
-func (m matchCondition) NegatedFailureMessage(actual interface{}) (message string) {
+func (m matchCondition) NegatedFailureMessage(actual any) (message string) {
 	return fmt.Sprintf("expected\n\t%#v\nto not match\n\t%#v\n", actual, m.expected)
 }

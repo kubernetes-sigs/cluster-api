@@ -23,7 +23,6 @@ import (
 	"github.com/blang/semver/v4"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/util/validation/field"
-	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
@@ -74,7 +73,7 @@ func (webhook *Machine) Default(_ context.Context, m *clusterv1.Machine) error {
 // DefaultMachineNodeDeletionTimeoutSeconds defaults the Machine NodeDeletionTimeoutSeconds field.
 func DefaultMachineNodeDeletionTimeoutSeconds(m *clusterv1.Machine) {
 	if m.Spec.Deletion.NodeDeletionTimeoutSeconds == nil {
-		m.Spec.Deletion.NodeDeletionTimeoutSeconds = ptr.To(defaultNodeDeletionTimeoutSeconds)
+		m.Spec.Deletion.NodeDeletionTimeoutSeconds = new(defaultNodeDeletionTimeoutSeconds)
 	}
 }
 

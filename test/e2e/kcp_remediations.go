@@ -565,8 +565,8 @@ type waitForMachinesInput struct {
 	ExpectedReplicas                int
 	ExpectedOldMachines             []string
 	ExpectedDeletedMachines         []string
-	WaitForMachinesIntervals        []interface{}
-	CheckMachineListStableIntervals []interface{}
+	WaitForMachinesIntervals        []any
+	CheckMachineListStableIntervals []any
 }
 
 // waitForMachines waits for machines to reach a well known state defined by number of replicas, a list of machines to exist,

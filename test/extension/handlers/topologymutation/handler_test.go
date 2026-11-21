@@ -28,7 +28,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	"k8s.io/utils/ptr"
 	. "sigs.k8s.io/controller-runtime/pkg/envtest/komega"
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
@@ -154,28 +153,28 @@ func Test_patchKubeadmControlPlaneTemplate(t *testing.T) {
 							KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
 								ClusterConfiguration: bootstrapv1.ClusterConfiguration{
 									APIServer: bootstrapv1.APIServer{
-										ExtraArgs: []bootstrapv1.Arg{{Name: "v", Value: ptr.To("2")}},
+										ExtraArgs: []bootstrapv1.Arg{{Name: "v", Value: new("2")}},
 									},
 									ControllerManager: bootstrapv1.ControllerManager{
-										ExtraArgs: []bootstrapv1.Arg{{Name: "v", Value: ptr.To("2")}},
+										ExtraArgs: []bootstrapv1.Arg{{Name: "v", Value: new("2")}},
 									},
 									Scheduler: bootstrapv1.Scheduler{
-										ExtraArgs: []bootstrapv1.Arg{{Name: "v", Value: ptr.To("2")}},
+										ExtraArgs: []bootstrapv1.Arg{{Name: "v", Value: new("2")}},
 									},
 								},
 								InitConfiguration: bootstrapv1.InitConfiguration{
 									NodeRegistration: bootstrapv1.NodeRegistrationOptions{
 										KubeletExtraArgs: []bootstrapv1.Arg{
-											{Name: "v", Value: ptr.To("2")},
-											{Name: "node-labels", Value: ptr.To("kubernetesVersion=v1.24.0")},
+											{Name: "v", Value: new("2")},
+											{Name: "node-labels", Value: new("kubernetesVersion=v1.24.0")},
 										},
 									},
 								},
 								JoinConfiguration: bootstrapv1.JoinConfiguration{
 									NodeRegistration: bootstrapv1.NodeRegistrationOptions{
 										KubeletExtraArgs: []bootstrapv1.Arg{
-											{Name: "v", Value: ptr.To("2")},
-											{Name: "node-labels", Value: ptr.To("kubernetesVersion=v1.24.0")},
+											{Name: "v", Value: new("2")},
+											{Name: "node-labels", Value: new("kubernetesVersion=v1.24.0")},
 										},
 									},
 								},
@@ -611,8 +610,8 @@ func TestHandler_GeneratePatches(t *testing.T) {
 				g.Expect(item.PatchType).To(Equal(expectedItem.PatchType))
 				g.Expect(item.UID).To(Equal(expectedItem.UID))
 
-				var actualPatchOps []map[string]interface{}
-				var expectedPatchOps []map[string]interface{}
+				var actualPatchOps []map[string]any
+				var expectedPatchOps []map[string]any
 				g.Expect(json.Unmarshal(item.Patch, &actualPatchOps)).To(Succeed())
 				g.Expect(json.Unmarshal(expectedItem.Patch, &expectedPatchOps)).To(Succeed())
 				g.Expect(actualPatchOps).To(ConsistOf(expectedPatchOps))
@@ -631,7 +630,7 @@ func toJSONCompact(value string) []byte {
 }
 
 // toJSON marshals the object and returns a byte array. This function panics on any error.
-func toJSON(val interface{}) []byte {
+func toJSON(val any) []byte {
 	jsonStr, err := json.Marshal(val)
 	if err != nil {
 		panic(err)
@@ -640,7 +639,7 @@ func toJSON(val interface{}) []byte {
 }
 
 // requestItem returns a GeneratePatchesRequestItem with the given uid, variables and object.
-func requestItem(uid string, object interface{}, variables []runtimehooksv1.Variable) runtimehooksv1.GeneratePatchesRequestItem {
+func requestItem(uid string, object any, variables []runtimehooksv1.Variable) runtimehooksv1.GeneratePatchesRequestItem {
 	return runtimehooksv1.GeneratePatchesRequestItem{
 		UID:       types.UID(uid),
 		Variables: variables,
@@ -660,7 +659,7 @@ func responseItem(uid, patch string) runtimehooksv1.GeneratePatchesResponseItem 
 }
 
 // newVariable returns a runtimehooksv1.Variable with the passed name and value.
-func newVariable(name string, value interface{}) runtimehooksv1.Variable {
+func newVariable(name string, value any) runtimehooksv1.Variable {
 	return runtimehooksv1.Variable{
 		Name:  name,
 		Value: apiextensionsv1.JSON{Raw: toJSON(value)},

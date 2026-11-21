@@ -205,10 +205,10 @@ func TestComputeControlPlaneVersion_LifecycleHooksSequences(t *testing.T) {
 			name:            "no hook called before starting the upgrade",
 			topologyVersion: "v1.2.2",
 			controlPlaneObj: builder.ControlPlane("test1", "cp1").
-				WithSpecFields(map[string]interface{}{
+				WithSpecFields(map[string]any{
 					"spec.version": "v1.2.2",
 				}).
-				WithStatusFields(map[string]interface{}{
+				WithStatusFields(map[string]any{
 					"status.version": "v1.2.2",
 				}).
 				Build(),
@@ -218,10 +218,10 @@ func TestComputeControlPlaneVersion_LifecycleHooksSequences(t *testing.T) {
 			name:            "when an upgrade starts: call the BeforeClusterUpgrade hook, blocking answer",
 			topologyVersion: "v1.2.3", // changed from previous step
 			controlPlaneObj: builder.ControlPlane("test1", "cp1").
-				WithSpecFields(map[string]interface{}{
+				WithSpecFields(map[string]any{
 					"spec.version": "v1.2.2",
 				}).
-				WithStatusFields(map[string]interface{}{
+				WithStatusFields(map[string]any{
 					"status.version": "v1.2.2",
 				}).
 				Build(),
@@ -238,17 +238,17 @@ func TestComputeControlPlaneVersion_LifecycleHooksSequences(t *testing.T) {
 			beforeClusterUpgradeResponse: blockingBeforeClusterUpgradeResponse,
 			wantVersion:                  "v1.2.2",
 			wantIsPendingUpgrade:         true,
-			wantHookCacheEntry: ptr.To(cache.NewHookEntry(clusterForCacheEntry, runtimehooksv1.BeforeClusterUpgrade,
+			wantHookCacheEntry: new(cache.NewHookEntry(clusterForCacheEntry, runtimehooksv1.BeforeClusterUpgrade,
 				time.Now().Add(time.Duration(blockingBeforeClusterUpgradeResponse.RetryAfterSeconds)*time.Second), blockingBeforeClusterUpgradeResponse.Message)),
 		},
 		{
 			name:            "when an upgrade starts: call the BeforeControlPlaneUpgrade hook when BeforeClusterUpgrade hook unblocks, blocking answer",
 			topologyVersion: "v1.2.3",
 			controlPlaneObj: builder.ControlPlane("test1", "cp1").
-				WithSpecFields(map[string]interface{}{
+				WithSpecFields(map[string]any{
 					"spec.version": "v1.2.2",
 				}).
-				WithStatusFields(map[string]interface{}{
+				WithStatusFields(map[string]any{
 					"status.version": "v1.2.2",
 				}).
 				Build(),
@@ -273,7 +273,7 @@ func TestComputeControlPlaneVersion_LifecycleHooksSequences(t *testing.T) {
 			wantVersion:                       "v1.2.2",
 			wantIsPendingUpgrade:              true,
 			wantPendingHookAnnotation:         "AfterClusterUpgrade", // changed from previous step
-			wantHookCacheEntry: ptr.To(cache.NewHookEntry(clusterForCacheEntry, runtimehooksv1.BeforeControlPlaneUpgrade,
+			wantHookCacheEntry: new(cache.NewHookEntry(clusterForCacheEntry, runtimehooksv1.BeforeControlPlaneUpgrade,
 				time.Now().Add(time.Duration(blockingBeforeControlPlaneUpgradeResponse.RetryAfterSeconds)*time.Second), blockingBeforeControlPlaneUpgradeResponse.Message)),
 		},
 		{
@@ -281,10 +281,10 @@ func TestComputeControlPlaneVersion_LifecycleHooksSequences(t *testing.T) {
 			topologyVersion:       "v1.2.3",
 			pendingHookAnnotation: "AfterClusterUpgrade",
 			controlPlaneObj: builder.ControlPlane("test1", "cp1").
-				WithSpecFields(map[string]interface{}{
+				WithSpecFields(map[string]any{
 					"spec.version": "v1.2.2",
 				}).
-				WithStatusFields(map[string]interface{}{
+				WithStatusFields(map[string]any{
 					"status.version": "v1.2.2",
 				}).
 				Build(),
@@ -309,10 +309,10 @@ func TestComputeControlPlaneVersion_LifecycleHooksSequences(t *testing.T) {
 			topologyVersion:       "v1.2.3",
 			pendingHookAnnotation: "AfterClusterUpgrade,AfterControlPlaneUpgrade,AfterWorkersUpgrade,BeforeWorkersUpgrade", // Changed from a previous step by reconcileControlPlane
 			controlPlaneObj: builder.ControlPlane("test1", "cp1").
-				WithSpecFields(map[string]interface{}{
+				WithSpecFields(map[string]any{
 					"spec.version": "v1.2.3",
 				}).
-				WithStatusFields(map[string]interface{}{
+				WithStatusFields(map[string]any{
 					"status.version": "v1.2.2",
 				}).
 				Build(),
@@ -328,10 +328,10 @@ func TestComputeControlPlaneVersion_LifecycleHooksSequences(t *testing.T) {
 			topologyVersion:       "v1.2.3",
 			pendingHookAnnotation: "AfterClusterUpgrade",
 			controlPlaneObj: builder.ControlPlane("test1", "cp1").
-				WithSpecFields(map[string]interface{}{
+				WithSpecFields(map[string]any{
 					"spec.version": "v1.2.3",
 				}).
-				WithStatusFields(map[string]interface{}{
+				WithStatusFields(map[string]any{
 					"status.version": "v1.2.2",
 				}).
 				Build(),
@@ -347,10 +347,10 @@ func TestComputeControlPlaneVersion_LifecycleHooksSequences(t *testing.T) {
 			topologyVersion:       "v1.2.3",
 			pendingHookAnnotation: "AfterClusterUpgrade,AfterControlPlaneUpgrade,AfterWorkersUpgrade,BeforeWorkersUpgrade",
 			controlPlaneObj: builder.ControlPlane("test1", "cp1").
-				WithSpecFields(map[string]interface{}{
+				WithSpecFields(map[string]any{
 					"spec.version": "v1.2.3",
 				}).
-				WithStatusFields(map[string]interface{}{
+				WithStatusFields(map[string]any{
 					"status.version": "v1.2.3", // changed from previous step
 				}).
 				Build(),
@@ -366,7 +366,7 @@ func TestComputeControlPlaneVersion_LifecycleHooksSequences(t *testing.T) {
 			afterControlPlaneUpgradeResponse: blockingAfterControlPlaneUpgradeResponse,
 			wantVersion:                      "v1.2.3",
 			wantPendingHookAnnotation:        "AfterClusterUpgrade,AfterControlPlaneUpgrade,AfterWorkersUpgrade,BeforeWorkersUpgrade",
-			wantHookCacheEntry: ptr.To(cache.NewHookEntry(clusterForCacheEntry, runtimehooksv1.AfterControlPlaneUpgrade,
+			wantHookCacheEntry: new(cache.NewHookEntry(clusterForCacheEntry, runtimehooksv1.AfterControlPlaneUpgrade,
 				time.Now().Add(time.Duration(blockingAfterControlPlaneUpgradeResponse.RetryAfterSeconds)*time.Second), blockingAfterControlPlaneUpgradeResponse.Message)),
 		},
 		{
@@ -374,10 +374,10 @@ func TestComputeControlPlaneVersion_LifecycleHooksSequences(t *testing.T) {
 			topologyVersion:       "v1.2.3",
 			pendingHookAnnotation: "AfterClusterUpgrade,AfterControlPlaneUpgrade,AfterWorkersUpgrade,BeforeWorkersUpgrade",
 			controlPlaneObj: builder.ControlPlane("test1", "cp1").
-				WithSpecFields(map[string]interface{}{
+				WithSpecFields(map[string]any{
 					"spec.version": "v1.2.3",
 				}).
-				WithStatusFields(map[string]interface{}{
+				WithStatusFields(map[string]any{
 					"status.version": "v1.2.3",
 				}).
 				Build(),
@@ -400,7 +400,7 @@ func TestComputeControlPlaneVersion_LifecycleHooksSequences(t *testing.T) {
 			beforeWorkersUpgradeResponse: blockingBeforeWorkersUpgradeResponse,
 			wantVersion:                  "v1.2.3",
 			wantPendingHookAnnotation:    "AfterClusterUpgrade,AfterWorkersUpgrade,BeforeWorkersUpgrade", // changed from previous step
-			wantHookCacheEntry: ptr.To(cache.NewHookEntry(clusterForCacheEntry, runtimehooksv1.BeforeWorkersUpgrade,
+			wantHookCacheEntry: new(cache.NewHookEntry(clusterForCacheEntry, runtimehooksv1.BeforeWorkersUpgrade,
 				time.Now().Add(time.Duration(blockingBeforeWorkersUpgradeResponse.RetryAfterSeconds)*time.Second), blockingBeforeWorkersUpgradeResponse.Message)),
 		},
 		{
@@ -408,10 +408,10 @@ func TestComputeControlPlaneVersion_LifecycleHooksSequences(t *testing.T) {
 			topologyVersion:       "v1.2.3",
 			pendingHookAnnotation: "AfterClusterUpgrade,AfterWorkersUpgrade,BeforeWorkersUpgrade",
 			controlPlaneObj: builder.ControlPlane("test1", "cp1").
-				WithSpecFields(map[string]interface{}{
+				WithSpecFields(map[string]any{
 					"spec.version": "v1.2.3",
 				}).
-				WithStatusFields(map[string]interface{}{
+				WithStatusFields(map[string]any{
 					"status.version": "v1.2.3",
 				}).
 				Build(),
@@ -435,10 +435,10 @@ func TestComputeControlPlaneVersion_LifecycleHooksSequences(t *testing.T) {
 			topologyVersion:       "v1.2.3",
 			pendingHookAnnotation: "AfterClusterUpgrade,AfterWorkersUpgrade",
 			controlPlaneObj: builder.ControlPlane("test1", "cp1").
-				WithSpecFields(map[string]interface{}{
+				WithSpecFields(map[string]any{
 					"spec.version": "v1.2.3",
 				}).
-				WithStatusFields(map[string]interface{}{
+				WithStatusFields(map[string]any{
 					"status.version": "v1.2.3",
 				}).
 				Build(),
@@ -455,10 +455,10 @@ func TestComputeControlPlaneVersion_LifecycleHooksSequences(t *testing.T) {
 			topologyVersion:       "v1.2.3",
 			pendingHookAnnotation: "AfterClusterUpgrade,AfterWorkersUpgrade",
 			controlPlaneObj: builder.ControlPlane("test1", "cp1").
-				WithSpecFields(map[string]interface{}{
+				WithSpecFields(map[string]any{
 					"spec.version": "v1.2.3",
 				}).
-				WithStatusFields(map[string]interface{}{
+				WithStatusFields(map[string]any{
 					"status.version": "v1.2.3",
 				}).
 				Build(),
@@ -475,10 +475,10 @@ func TestComputeControlPlaneVersion_LifecycleHooksSequences(t *testing.T) {
 			topologyVersion:       "v1.2.3",
 			pendingHookAnnotation: "AfterClusterUpgrade,AfterWorkersUpgrade",
 			controlPlaneObj: builder.ControlPlane("test1", "cp1").
-				WithSpecFields(map[string]interface{}{
+				WithSpecFields(map[string]any{
 					"spec.version": "v1.2.3",
 				}).
-				WithStatusFields(map[string]interface{}{
+				WithStatusFields(map[string]any{
 					"status.version": "v1.2.3",
 				}).
 				Build(),
@@ -494,7 +494,7 @@ func TestComputeControlPlaneVersion_LifecycleHooksSequences(t *testing.T) {
 			afterWorkersUpgradeResponse: blockingAfterWorkersUpgradeResponse,
 			wantVersion:                 "v1.2.3",
 			wantPendingHookAnnotation:   "AfterClusterUpgrade,AfterWorkersUpgrade",
-			wantHookCacheEntry: ptr.To(cache.NewHookEntry(clusterForCacheEntry, runtimehooksv1.AfterWorkersUpgrade,
+			wantHookCacheEntry: new(cache.NewHookEntry(clusterForCacheEntry, runtimehooksv1.AfterWorkersUpgrade,
 				time.Now().Add(time.Duration(blockingAfterWorkersUpgradeResponse.RetryAfterSeconds)*time.Second), blockingAfterWorkersUpgradeResponse.Message)),
 		},
 		{
@@ -502,10 +502,10 @@ func TestComputeControlPlaneVersion_LifecycleHooksSequences(t *testing.T) {
 			topologyVersion:       "v1.2.3",
 			pendingHookAnnotation: "AfterClusterUpgrade,AfterWorkersUpgrade",
 			controlPlaneObj: builder.ControlPlane("test1", "cp1").
-				WithSpecFields(map[string]interface{}{
+				WithSpecFields(map[string]any{
 					"spec.version": "v1.2.3",
 				}).
-				WithStatusFields(map[string]interface{}{
+				WithStatusFields(map[string]any{
 					"status.version": "v1.2.3",
 				}).
 				Build(),
@@ -530,10 +530,10 @@ func TestComputeControlPlaneVersion_LifecycleHooksSequences(t *testing.T) {
 			name:            "no hook called before starting the upgrade",
 			topologyVersion: "v1.2.2",
 			controlPlaneObj: builder.ControlPlane("test1", "cp1").
-				WithSpecFields(map[string]interface{}{
+				WithSpecFields(map[string]any{
 					"spec.version": "v1.2.2",
 				}).
-				WithStatusFields(map[string]interface{}{
+				WithStatusFields(map[string]any{
 					"status.version": "v1.2.2",
 				}).
 				Build(),
@@ -543,10 +543,10 @@ func TestComputeControlPlaneVersion_LifecycleHooksSequences(t *testing.T) {
 			name:            "when an upgrade to the first minor starts: call the BeforeClusterUpgrade hook, blocking answer",
 			topologyVersion: "v1.4.4", // changed from previous step
 			controlPlaneObj: builder.ControlPlane("test1", "cp1").
-				WithSpecFields(map[string]interface{}{
+				WithSpecFields(map[string]any{
 					"spec.version": "v1.2.2",
 				}).
-				WithStatusFields(map[string]interface{}{
+				WithStatusFields(map[string]any{
 					"status.version": "v1.2.2",
 				}).
 				Build(),
@@ -563,17 +563,17 @@ func TestComputeControlPlaneVersion_LifecycleHooksSequences(t *testing.T) {
 			beforeClusterUpgradeResponse: blockingBeforeClusterUpgradeResponse,
 			wantVersion:                  "v1.2.2",
 			wantIsPendingUpgrade:         true,
-			wantHookCacheEntry: ptr.To(cache.NewHookEntry(clusterForCacheEntry, runtimehooksv1.BeforeClusterUpgrade,
+			wantHookCacheEntry: new(cache.NewHookEntry(clusterForCacheEntry, runtimehooksv1.BeforeClusterUpgrade,
 				time.Now().Add(time.Duration(blockingBeforeClusterUpgradeResponse.RetryAfterSeconds)*time.Second), blockingBeforeClusterUpgradeResponse.Message)),
 		},
 		{
 			name:            "when an upgrade to the first minor starts: call the BeforeControlPlaneUpgrade hook when BeforeClusterUpgrade hook unblocks, blocking answer",
 			topologyVersion: "v1.4.4",
 			controlPlaneObj: builder.ControlPlane("test1", "cp1").
-				WithSpecFields(map[string]interface{}{
+				WithSpecFields(map[string]any{
 					"spec.version": "v1.2.2",
 				}).
-				WithStatusFields(map[string]interface{}{
+				WithStatusFields(map[string]any{
 					"status.version": "v1.2.2",
 				}).
 				Build(),
@@ -598,7 +598,7 @@ func TestComputeControlPlaneVersion_LifecycleHooksSequences(t *testing.T) {
 			wantVersion:                       "v1.2.2",
 			wantIsPendingUpgrade:              true,
 			wantPendingHookAnnotation:         "AfterClusterUpgrade", // changed from previous step
-			wantHookCacheEntry: ptr.To(cache.NewHookEntry(clusterForCacheEntry, runtimehooksv1.BeforeControlPlaneUpgrade,
+			wantHookCacheEntry: new(cache.NewHookEntry(clusterForCacheEntry, runtimehooksv1.BeforeControlPlaneUpgrade,
 				time.Now().Add(time.Duration(blockingBeforeControlPlaneUpgradeResponse.RetryAfterSeconds)*time.Second), blockingBeforeControlPlaneUpgradeResponse.Message)),
 		},
 		{
@@ -606,10 +606,10 @@ func TestComputeControlPlaneVersion_LifecycleHooksSequences(t *testing.T) {
 			topologyVersion:       "v1.4.4",
 			pendingHookAnnotation: "AfterClusterUpgrade",
 			controlPlaneObj: builder.ControlPlane("test1", "cp1").
-				WithSpecFields(map[string]interface{}{
+				WithSpecFields(map[string]any{
 					"spec.version": "v1.2.2",
 				}).
-				WithStatusFields(map[string]interface{}{
+				WithStatusFields(map[string]any{
 					"status.version": "v1.2.2",
 				}).
 				Build(),
@@ -634,10 +634,10 @@ func TestComputeControlPlaneVersion_LifecycleHooksSequences(t *testing.T) {
 			topologyVersion:       "v1.4.4",
 			pendingHookAnnotation: "AfterClusterUpgrade,AfterControlPlaneUpgrade", // Changed from a previous step by reconcileControlPlane
 			controlPlaneObj: builder.ControlPlane("test1", "cp1").
-				WithSpecFields(map[string]interface{}{
+				WithSpecFields(map[string]any{
 					"spec.version": "v1.3.3",
 				}).
-				WithStatusFields(map[string]interface{}{
+				WithStatusFields(map[string]any{
 					"status.version": "v1.2.2",
 				}).
 				Build(),
@@ -654,10 +654,10 @@ func TestComputeControlPlaneVersion_LifecycleHooksSequences(t *testing.T) {
 			topologyVersion:       "v1.4.4",
 			pendingHookAnnotation: "AfterClusterUpgrade,AfterControlPlaneUpgrade",
 			controlPlaneObj: builder.ControlPlane("test1", "cp1").
-				WithSpecFields(map[string]interface{}{
+				WithSpecFields(map[string]any{
 					"spec.version": "v1.3.3",
 				}).
-				WithStatusFields(map[string]interface{}{
+				WithStatusFields(map[string]any{
 					"status.version": "v1.3.3", // changed from previous step
 				}).
 				Build(),
@@ -673,7 +673,7 @@ func TestComputeControlPlaneVersion_LifecycleHooksSequences(t *testing.T) {
 			wantVersion:                      "v1.3.3",
 			wantIsPendingUpgrade:             true,
 			wantPendingHookAnnotation:        "AfterClusterUpgrade,AfterControlPlaneUpgrade",
-			wantHookCacheEntry: ptr.To(cache.NewHookEntry(clusterForCacheEntry, runtimehooksv1.AfterControlPlaneUpgrade,
+			wantHookCacheEntry: new(cache.NewHookEntry(clusterForCacheEntry, runtimehooksv1.AfterControlPlaneUpgrade,
 				time.Now().Add(time.Duration(blockingAfterControlPlaneUpgradeResponse.RetryAfterSeconds)*time.Second), blockingAfterControlPlaneUpgradeResponse.Message)),
 		},
 		{
@@ -681,10 +681,10 @@ func TestComputeControlPlaneVersion_LifecycleHooksSequences(t *testing.T) {
 			topologyVersion:       "v1.4.4",
 			pendingHookAnnotation: "AfterClusterUpgrade,AfterControlPlaneUpgrade",
 			controlPlaneObj: builder.ControlPlane("test1", "cp1").
-				WithSpecFields(map[string]interface{}{
+				WithSpecFields(map[string]any{
 					"spec.version": "v1.3.3",
 				}).
-				WithStatusFields(map[string]interface{}{
+				WithStatusFields(map[string]any{
 					"status.version": "v1.3.3",
 				}).
 				Build(),
@@ -708,7 +708,7 @@ func TestComputeControlPlaneVersion_LifecycleHooksSequences(t *testing.T) {
 			wantVersion:                       "v1.3.3",
 			wantIsPendingUpgrade:              true,
 			wantPendingHookAnnotation:         "AfterClusterUpgrade", // changed from previous step
-			wantHookCacheEntry: ptr.To(cache.NewHookEntry(clusterForCacheEntry, runtimehooksv1.BeforeControlPlaneUpgrade,
+			wantHookCacheEntry: new(cache.NewHookEntry(clusterForCacheEntry, runtimehooksv1.BeforeControlPlaneUpgrade,
 				time.Now().Add(time.Duration(blockingBeforeControlPlaneUpgradeResponse.RetryAfterSeconds)*time.Second), blockingBeforeControlPlaneUpgradeResponse.Message)),
 		},
 		{
@@ -716,10 +716,10 @@ func TestComputeControlPlaneVersion_LifecycleHooksSequences(t *testing.T) {
 			topologyVersion:       "v1.4.4",
 			pendingHookAnnotation: "AfterClusterUpgrade",
 			controlPlaneObj: builder.ControlPlane("test1", "cp1").
-				WithSpecFields(map[string]interface{}{
+				WithSpecFields(map[string]any{
 					"spec.version": "v1.3.3",
 				}).
-				WithStatusFields(map[string]interface{}{
+				WithStatusFields(map[string]any{
 					"status.version": "v1.3.3",
 				}).
 				Build(),
@@ -744,10 +744,10 @@ func TestComputeControlPlaneVersion_LifecycleHooksSequences(t *testing.T) {
 			topologyVersion:       "v1.4.4",
 			pendingHookAnnotation: "AfterClusterUpgrade,AfterControlPlaneUpgrade,AfterWorkersUpgrade,BeforeWorkersUpgrade", // Changed from a previous step by reconcileControlPlane
 			controlPlaneObj: builder.ControlPlane("test1", "cp1").
-				WithSpecFields(map[string]interface{}{
+				WithSpecFields(map[string]any{
 					"spec.version": "v1.4.4",
 				}).
-				WithStatusFields(map[string]interface{}{
+				WithStatusFields(map[string]any{
 					"status.version": "v1.3.3",
 				}).
 				Build(),
@@ -763,10 +763,10 @@ func TestComputeControlPlaneVersion_LifecycleHooksSequences(t *testing.T) {
 			topologyVersion:       "v1.4.4",
 			pendingHookAnnotation: "AfterClusterUpgrade,AfterControlPlaneUpgrade,AfterWorkersUpgrade,BeforeWorkersUpgrade",
 			controlPlaneObj: builder.ControlPlane("test1", "cp1").
-				WithSpecFields(map[string]interface{}{
+				WithSpecFields(map[string]any{
 					"spec.version": "v1.4.4",
 				}).
-				WithStatusFields(map[string]interface{}{
+				WithStatusFields(map[string]any{
 					"status.version": "v1.4.4", // changed from previous step
 				}).
 				Build(),
@@ -782,7 +782,7 @@ func TestComputeControlPlaneVersion_LifecycleHooksSequences(t *testing.T) {
 			afterControlPlaneUpgradeResponse: blockingAfterControlPlaneUpgradeResponse,
 			wantVersion:                      "v1.4.4",
 			wantPendingHookAnnotation:        "AfterClusterUpgrade,AfterControlPlaneUpgrade,AfterWorkersUpgrade,BeforeWorkersUpgrade",
-			wantHookCacheEntry: ptr.To(cache.NewHookEntry(clusterForCacheEntry, runtimehooksv1.AfterControlPlaneUpgrade,
+			wantHookCacheEntry: new(cache.NewHookEntry(clusterForCacheEntry, runtimehooksv1.AfterControlPlaneUpgrade,
 				time.Now().Add(time.Duration(blockingAfterControlPlaneUpgradeResponse.RetryAfterSeconds)*time.Second), blockingAfterControlPlaneUpgradeResponse.Message)),
 		},
 		{
@@ -790,10 +790,10 @@ func TestComputeControlPlaneVersion_LifecycleHooksSequences(t *testing.T) {
 			topologyVersion:       "v1.4.4",
 			pendingHookAnnotation: "AfterClusterUpgrade,AfterControlPlaneUpgrade,AfterWorkersUpgrade,BeforeWorkersUpgrade",
 			controlPlaneObj: builder.ControlPlane("test1", "cp1").
-				WithSpecFields(map[string]interface{}{
+				WithSpecFields(map[string]any{
 					"spec.version": "v1.4.4",
 				}).
-				WithStatusFields(map[string]interface{}{
+				WithStatusFields(map[string]any{
 					"status.version": "v1.4.4",
 				}).
 				Build(),
@@ -816,7 +816,7 @@ func TestComputeControlPlaneVersion_LifecycleHooksSequences(t *testing.T) {
 			beforeWorkersUpgradeResponse: blockingBeforeWorkersUpgradeResponse,
 			wantVersion:                  "v1.4.4",
 			wantPendingHookAnnotation:    "AfterClusterUpgrade,AfterWorkersUpgrade,BeforeWorkersUpgrade", // changed from previous step
-			wantHookCacheEntry: ptr.To(cache.NewHookEntry(clusterForCacheEntry, runtimehooksv1.BeforeWorkersUpgrade,
+			wantHookCacheEntry: new(cache.NewHookEntry(clusterForCacheEntry, runtimehooksv1.BeforeWorkersUpgrade,
 				time.Now().Add(time.Duration(blockingBeforeWorkersUpgradeResponse.RetryAfterSeconds)*time.Second), blockingBeforeWorkersUpgradeResponse.Message)),
 		},
 		{
@@ -824,10 +824,10 @@ func TestComputeControlPlaneVersion_LifecycleHooksSequences(t *testing.T) {
 			topologyVersion:       "v1.4.4",
 			pendingHookAnnotation: "AfterClusterUpgrade,AfterWorkersUpgrade,BeforeWorkersUpgrade",
 			controlPlaneObj: builder.ControlPlane("test1", "cp1").
-				WithSpecFields(map[string]interface{}{
+				WithSpecFields(map[string]any{
 					"spec.version": "v1.4.4",
 				}).
-				WithStatusFields(map[string]interface{}{
+				WithStatusFields(map[string]any{
 					"status.version": "v1.4.4",
 				}).
 				Build(),
@@ -851,10 +851,10 @@ func TestComputeControlPlaneVersion_LifecycleHooksSequences(t *testing.T) {
 			topologyVersion:       "v1.4.4",
 			pendingHookAnnotation: "AfterClusterUpgrade,AfterWorkersUpgrade",
 			controlPlaneObj: builder.ControlPlane("test1", "cp1").
-				WithSpecFields(map[string]interface{}{
+				WithSpecFields(map[string]any{
 					"spec.version": "v1.4.4",
 				}).
-				WithStatusFields(map[string]interface{}{
+				WithStatusFields(map[string]any{
 					"status.version": "v1.4.4",
 				}).
 				Build(),
@@ -871,10 +871,10 @@ func TestComputeControlPlaneVersion_LifecycleHooksSequences(t *testing.T) {
 			topologyVersion:       "v1.4.4",
 			pendingHookAnnotation: "AfterClusterUpgrade,AfterWorkersUpgrade",
 			controlPlaneObj: builder.ControlPlane("test1", "cp1").
-				WithSpecFields(map[string]interface{}{
+				WithSpecFields(map[string]any{
 					"spec.version": "v1.4.4",
 				}).
-				WithStatusFields(map[string]interface{}{
+				WithStatusFields(map[string]any{
 					"status.version": "v1.4.4",
 				}).
 				Build(),
@@ -890,7 +890,7 @@ func TestComputeControlPlaneVersion_LifecycleHooksSequences(t *testing.T) {
 			afterWorkersUpgradeResponse: blockingAfterWorkersUpgradeResponse,
 			wantVersion:                 "v1.4.4",
 			wantPendingHookAnnotation:   "AfterClusterUpgrade,AfterWorkersUpgrade",
-			wantHookCacheEntry: ptr.To(cache.NewHookEntry(clusterForCacheEntry, runtimehooksv1.AfterWorkersUpgrade,
+			wantHookCacheEntry: new(cache.NewHookEntry(clusterForCacheEntry, runtimehooksv1.AfterWorkersUpgrade,
 				time.Now().Add(time.Duration(blockingAfterWorkersUpgradeResponse.RetryAfterSeconds)*time.Second), blockingAfterWorkersUpgradeResponse.Message)),
 		},
 		{
@@ -898,10 +898,10 @@ func TestComputeControlPlaneVersion_LifecycleHooksSequences(t *testing.T) {
 			topologyVersion:       "v1.4.4",
 			pendingHookAnnotation: "AfterClusterUpgrade,AfterWorkersUpgrade",
 			controlPlaneObj: builder.ControlPlane("test1", "cp1").
-				WithSpecFields(map[string]interface{}{
+				WithSpecFields(map[string]any{
 					"spec.version": "v1.4.4",
 				}).
-				WithStatusFields(map[string]interface{}{
+				WithStatusFields(map[string]any{
 					"status.version": "v1.4.4",
 				}).
 				Build(),
@@ -926,10 +926,10 @@ func TestComputeControlPlaneVersion_LifecycleHooksSequences(t *testing.T) {
 			name:            "no hook called before starting the upgrade",
 			topologyVersion: "v1.2.2",
 			controlPlaneObj: builder.ControlPlane("test1", "cp1").
-				WithSpecFields(map[string]interface{}{
+				WithSpecFields(map[string]any{
 					"spec.version": "v1.2.2",
 				}).
-				WithStatusFields(map[string]interface{}{
+				WithStatusFields(map[string]any{
 					"status.version": "v1.2.2",
 				}).
 				Build(),
@@ -939,10 +939,10 @@ func TestComputeControlPlaneVersion_LifecycleHooksSequences(t *testing.T) {
 			name:            "when an upgrade to the first minor starts: call the BeforeClusterUpgrade hook, blocking answer",
 			topologyVersion: "v1.4.4", // changed from previous step
 			controlPlaneObj: builder.ControlPlane("test1", "cp1").
-				WithSpecFields(map[string]interface{}{
+				WithSpecFields(map[string]any{
 					"spec.version": "v1.2.2",
 				}).
-				WithStatusFields(map[string]interface{}{
+				WithStatusFields(map[string]any{
 					"status.version": "v1.2.2",
 				}).
 				Build(),
@@ -958,17 +958,17 @@ func TestComputeControlPlaneVersion_LifecycleHooksSequences(t *testing.T) {
 			beforeClusterUpgradeResponse: blockingBeforeClusterUpgradeResponse,
 			wantVersion:                  "v1.2.2",
 			wantIsPendingUpgrade:         true,
-			wantHookCacheEntry: ptr.To(cache.NewHookEntry(clusterForCacheEntry, runtimehooksv1.BeforeClusterUpgrade,
+			wantHookCacheEntry: new(cache.NewHookEntry(clusterForCacheEntry, runtimehooksv1.BeforeClusterUpgrade,
 				time.Now().Add(time.Duration(blockingBeforeClusterUpgradeResponse.RetryAfterSeconds)*time.Second), blockingBeforeClusterUpgradeResponse.Message)),
 		},
 		{
 			name:            "when an upgrade to the first minor starts: call the BeforeControlPlaneUpgrade hook when BeforeClusterUpgrade hook unblocks, blocking answer",
 			topologyVersion: "v1.4.4",
 			controlPlaneObj: builder.ControlPlane("test1", "cp1").
-				WithSpecFields(map[string]interface{}{
+				WithSpecFields(map[string]any{
 					"spec.version": "v1.2.2",
 				}).
-				WithStatusFields(map[string]interface{}{
+				WithStatusFields(map[string]any{
 					"status.version": "v1.2.2",
 				}).
 				Build(),
@@ -992,7 +992,7 @@ func TestComputeControlPlaneVersion_LifecycleHooksSequences(t *testing.T) {
 			wantVersion:                       "v1.2.2",
 			wantIsPendingUpgrade:              true,
 			wantPendingHookAnnotation:         "AfterClusterUpgrade", // changed from previous step
-			wantHookCacheEntry: ptr.To(cache.NewHookEntry(clusterForCacheEntry, runtimehooksv1.BeforeControlPlaneUpgrade,
+			wantHookCacheEntry: new(cache.NewHookEntry(clusterForCacheEntry, runtimehooksv1.BeforeControlPlaneUpgrade,
 				time.Now().Add(time.Duration(blockingBeforeControlPlaneUpgradeResponse.RetryAfterSeconds)*time.Second), blockingBeforeControlPlaneUpgradeResponse.Message)),
 		},
 		{
@@ -1000,10 +1000,10 @@ func TestComputeControlPlaneVersion_LifecycleHooksSequences(t *testing.T) {
 			topologyVersion:       "v1.4.4",
 			pendingHookAnnotation: "AfterClusterUpgrade",
 			controlPlaneObj: builder.ControlPlane("test1", "cp1").
-				WithSpecFields(map[string]interface{}{
+				WithSpecFields(map[string]any{
 					"spec.version": "v1.2.2",
 				}).
-				WithStatusFields(map[string]interface{}{
+				WithStatusFields(map[string]any{
 					"status.version": "v1.2.2",
 				}).
 				Build(),
@@ -1027,10 +1027,10 @@ func TestComputeControlPlaneVersion_LifecycleHooksSequences(t *testing.T) {
 			topologyVersion:       "v1.4.4",
 			pendingHookAnnotation: "AfterClusterUpgrade,AfterControlPlaneUpgrade",
 			controlPlaneObj: builder.ControlPlane("test1", "cp1").
-				WithSpecFields(map[string]interface{}{
+				WithSpecFields(map[string]any{
 					"spec.version": "v1.3.3",
 				}).
-				WithStatusFields(map[string]interface{}{
+				WithStatusFields(map[string]any{
 					"status.version": "v1.2.2",
 				}).
 				Build(),
@@ -1046,10 +1046,10 @@ func TestComputeControlPlaneVersion_LifecycleHooksSequences(t *testing.T) {
 			topologyVersion:       "v1.4.4",
 			pendingHookAnnotation: "AfterClusterUpgrade,AfterControlPlaneUpgrade",
 			controlPlaneObj: builder.ControlPlane("test1", "cp1").
-				WithSpecFields(map[string]interface{}{
+				WithSpecFields(map[string]any{
 					"spec.version": "v1.3.3",
 				}).
-				WithStatusFields(map[string]interface{}{
+				WithStatusFields(map[string]any{
 					"status.version": "v1.3.3", // changed from previous step
 				}).
 				Build(),
@@ -1065,7 +1065,7 @@ func TestComputeControlPlaneVersion_LifecycleHooksSequences(t *testing.T) {
 			wantVersion:                      "v1.3.3",
 			wantIsPendingUpgrade:             true,
 			wantPendingHookAnnotation:        "AfterClusterUpgrade,AfterControlPlaneUpgrade",
-			wantHookCacheEntry: ptr.To(cache.NewHookEntry(clusterForCacheEntry, runtimehooksv1.AfterControlPlaneUpgrade,
+			wantHookCacheEntry: new(cache.NewHookEntry(clusterForCacheEntry, runtimehooksv1.AfterControlPlaneUpgrade,
 				time.Now().Add(time.Duration(blockingAfterControlPlaneUpgradeResponse.RetryAfterSeconds)*time.Second), blockingAfterControlPlaneUpgradeResponse.Message)),
 		},
 		{
@@ -1073,10 +1073,10 @@ func TestComputeControlPlaneVersion_LifecycleHooksSequences(t *testing.T) {
 			topologyVersion:       "v1.4.4",
 			pendingHookAnnotation: "AfterClusterUpgrade,AfterControlPlaneUpgrade",
 			controlPlaneObj: builder.ControlPlane("test1", "cp1").
-				WithSpecFields(map[string]interface{}{
+				WithSpecFields(map[string]any{
 					"spec.version": "v1.3.3",
 				}).
-				WithStatusFields(map[string]interface{}{
+				WithStatusFields(map[string]any{
 					"status.version": "v1.3.3",
 				}).
 				Build(),
@@ -1099,7 +1099,7 @@ func TestComputeControlPlaneVersion_LifecycleHooksSequences(t *testing.T) {
 			wantVersion:                       "v1.3.3",
 			wantIsPendingUpgrade:              true,
 			wantPendingHookAnnotation:         "AfterClusterUpgrade", // changed from previous step
-			wantHookCacheEntry: ptr.To(cache.NewHookEntry(clusterForCacheEntry, runtimehooksv1.BeforeControlPlaneUpgrade,
+			wantHookCacheEntry: new(cache.NewHookEntry(clusterForCacheEntry, runtimehooksv1.BeforeControlPlaneUpgrade,
 				time.Now().Add(time.Duration(blockingBeforeControlPlaneUpgradeResponse.RetryAfterSeconds)*time.Second), blockingBeforeControlPlaneUpgradeResponse.Message)),
 		},
 		{
@@ -1107,10 +1107,10 @@ func TestComputeControlPlaneVersion_LifecycleHooksSequences(t *testing.T) {
 			topologyVersion:       "v1.4.4",
 			pendingHookAnnotation: "AfterClusterUpgrade",
 			controlPlaneObj: builder.ControlPlane("test1", "cp1").
-				WithSpecFields(map[string]interface{}{
+				WithSpecFields(map[string]any{
 					"spec.version": "v1.3.3",
 				}).
-				WithStatusFields(map[string]interface{}{
+				WithStatusFields(map[string]any{
 					"status.version": "v1.3.3",
 				}).
 				Build(),
@@ -1134,10 +1134,10 @@ func TestComputeControlPlaneVersion_LifecycleHooksSequences(t *testing.T) {
 			topologyVersion:       "v1.4.4",
 			pendingHookAnnotation: "AfterClusterUpgrade,AfterControlPlaneUpgrade", // Changed from a previous step by reconcileControlPlane
 			controlPlaneObj: builder.ControlPlane("test1", "cp1").
-				WithSpecFields(map[string]interface{}{
+				WithSpecFields(map[string]any{
 					"spec.version": "v1.4.4",
 				}).
-				WithStatusFields(map[string]interface{}{
+				WithStatusFields(map[string]any{
 					"status.version": "v1.3.3",
 				}).
 				Build(),
@@ -1152,10 +1152,10 @@ func TestComputeControlPlaneVersion_LifecycleHooksSequences(t *testing.T) {
 			topologyVersion:       "v1.4.4",
 			pendingHookAnnotation: "AfterClusterUpgrade,AfterControlPlaneUpgrade",
 			controlPlaneObj: builder.ControlPlane("test1", "cp1").
-				WithSpecFields(map[string]interface{}{
+				WithSpecFields(map[string]any{
 					"spec.version": "v1.4.4",
 				}).
-				WithStatusFields(map[string]interface{}{
+				WithStatusFields(map[string]any{
 					"status.version": "v1.4.4", // changed from previous step
 				}).
 				Build(),
@@ -1170,7 +1170,7 @@ func TestComputeControlPlaneVersion_LifecycleHooksSequences(t *testing.T) {
 			afterControlPlaneUpgradeResponse: blockingAfterControlPlaneUpgradeResponse,
 			wantVersion:                      "v1.4.4",
 			wantPendingHookAnnotation:        "AfterClusterUpgrade,AfterControlPlaneUpgrade",
-			wantHookCacheEntry: ptr.To(cache.NewHookEntry(clusterForCacheEntry, runtimehooksv1.AfterControlPlaneUpgrade,
+			wantHookCacheEntry: new(cache.NewHookEntry(clusterForCacheEntry, runtimehooksv1.AfterControlPlaneUpgrade,
 				time.Now().Add(time.Duration(blockingAfterControlPlaneUpgradeResponse.RetryAfterSeconds)*time.Second), blockingAfterControlPlaneUpgradeResponse.Message)),
 		},
 		{
@@ -1178,10 +1178,10 @@ func TestComputeControlPlaneVersion_LifecycleHooksSequences(t *testing.T) {
 			topologyVersion:       "v1.4.4",
 			pendingHookAnnotation: "AfterClusterUpgrade,AfterControlPlaneUpgrade",
 			controlPlaneObj: builder.ControlPlane("test1", "cp1").
-				WithSpecFields(map[string]interface{}{
+				WithSpecFields(map[string]any{
 					"spec.version": "v1.4.4",
 				}).
-				WithStatusFields(map[string]interface{}{
+				WithStatusFields(map[string]any{
 					"status.version": "v1.4.4", // changed from previous step
 				}).
 				Build(),
@@ -1221,7 +1221,7 @@ func TestComputeControlPlaneVersion_LifecycleHooksSequences(t *testing.T) {
 									APIVersion: builder.InfrastructureGroupVersion.String(),
 									Manager:    "manager",
 									Operation:  "Apply",
-									Time:       ptr.To(metav1.Now()),
+									Time:       new(metav1.Now()),
 									FieldsType: "FieldsV1",
 								},
 							},

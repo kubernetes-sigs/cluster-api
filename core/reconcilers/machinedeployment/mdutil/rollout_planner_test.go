@@ -260,7 +260,7 @@ func TestSyncMachinesPlanner(t *testing.T) {
 			wantResult: SyncMachinesPlannerResult{
 				MachinesToMove:          2,
 				MoveTargetMSName:        "ms-target",
-				MoveAffectsAvailability: ptr.To(false),
+				MoveAffectsAvailability: new(false),
 			},
 		},
 		{

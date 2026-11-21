@@ -26,7 +26,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
-	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
@@ -202,6 +201,6 @@ func (f *FakeProxy) WithInterceptorFuncs(funcs interceptor.Funcs) *FakeProxy {
 }
 
 func (f *FakeProxy) WithClusterAvailable(available bool) *FakeProxy {
-	f.available = ptr.To(available)
+	f.available = new(available)
 	return f
 }

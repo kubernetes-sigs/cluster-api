@@ -28,7 +28,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog/v2"
-	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
@@ -168,7 +167,7 @@ func (f *FakeCluster) Objs() []client.Object {
 	}
 
 	if f.paused {
-		cluster.Spec.Paused = ptr.To(true)
+		cluster.Spec.Paused = new(true)
 	}
 
 	// Ensure the cluster gets a UID to be used by dependant objects for creating OwnerReferences.
@@ -574,7 +573,7 @@ func NewFakeInfrastructureTemplate(name string) *fakeinfrastructure.GenericInfra
 // - the DataSecretName contains the name of the static data secret.
 func NewStaticBootstrapConfig(name string) *clusterv1.Bootstrap {
 	return &clusterv1.Bootstrap{
-		DataSecretName: ptr.To(name + "-bootstrap-secret"),
+		DataSecretName: new(name + "-bootstrap-secret"),
 	}
 }
 

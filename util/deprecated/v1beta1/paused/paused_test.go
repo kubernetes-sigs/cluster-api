@@ -24,7 +24,6 @@ import (
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
@@ -51,7 +50,7 @@ func TestEnsurePausedCondition(t *testing.T) {
 
 	// Cluster Case 2: paused
 	pausedCluster := normalCluster.DeepCopy()
-	pausedCluster.Spec.Paused = ptr.To(true)
+	pausedCluster.Spec.Paused = new(true)
 
 	// Object case 1: unpaused
 	obj := &builder.Phase1Obj{ObjectMeta: metav1.ObjectMeta{

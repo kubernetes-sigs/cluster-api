@@ -43,7 +43,6 @@ import (
 	logsv1 "k8s.io/component-base/logs/api/v1"
 	_ "k8s.io/component-base/logs/json/register"
 	"k8s.io/klog/v2"
-	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	ctrlcache "sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/certwatcher"
@@ -373,7 +372,7 @@ func main() {
 
 	ctrlOptions := ctrl.Options{
 		Controller: config.Controller{
-			UsePriorityQueue: ptr.To[bool](features.Gates.Enabled(features.PriorityQueue)),
+			UsePriorityQueue: new(features.Gates.Enabled(features.PriorityQueue)),
 			// Give the manager more time to sync the caches during startup. This is required
 			// in high scale environments when they are more objects in the system (default is 3m).
 			CacheSyncTimeout: 5 * time.Minute,
@@ -545,7 +544,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager, watchNamespace stri
 		HTTPClient:        mgr.GetHTTPClient(),
 		SyncPeriod:        syncPeriod,
 		DefaultNamespaces: watchNamespaces,
-		DefaultTransform: func(in interface{}) (interface{}, error) {
+		DefaultTransform: func(in any) (any, error) {
 			// Use DefaultTransform to drop objects we don't expect to get into this cache.
 			obj, ok := in.(*metav1.PartialObjectMetadata)
 			if !ok {

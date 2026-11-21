@@ -38,7 +38,7 @@ type machineHealthCheckStatusMatcher struct {
 	expected *clusterv1.MachineHealthCheckStatus
 }
 
-func (m machineHealthCheckStatusMatcher) Match(actual interface{}) (success bool, err error) {
+func (m machineHealthCheckStatusMatcher) Match(actual any) (success bool, err error) {
 	actualStatus, ok := actual.(*clusterv1.MachineHealthCheckStatus)
 	if !ok {
 		return false, errors.New("actual should be of type MachineHealthCheckStatus")
@@ -72,10 +72,10 @@ func (m machineHealthCheckStatusMatcher) Match(actual interface{}) (success bool
 	return ok, err
 }
 
-func (m machineHealthCheckStatusMatcher) FailureMessage(actual interface{}) (message string) {
+func (m machineHealthCheckStatusMatcher) FailureMessage(actual any) (message string) {
 	return fmt.Sprintf("expected\n\t%#v\nto match\n\t%#v\n", actual, m.expected)
 }
 
-func (m machineHealthCheckStatusMatcher) NegatedFailureMessage(actual interface{}) (message string) {
+func (m machineHealthCheckStatusMatcher) NegatedFailureMessage(actual any) (message string) {
 	return fmt.Sprintf("expected\n\t%#v\nto not match\n\t%#v\n", actual, m.expected)
 }

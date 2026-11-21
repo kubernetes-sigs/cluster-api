@@ -87,12 +87,12 @@ func ResolveVersion(ctx context.Context, version string) (string, error) {
 }
 
 func calculateURL(version string) (string, error) {
-	if strings.HasPrefix(version, "stable-") {
-		return fmt.Sprintf(stableVersionURL, strings.TrimPrefix(version, "stable-")), nil
+	if after, ok := strings.CutPrefix(version, "stable-"); ok {
+		return fmt.Sprintf(stableVersionURL, after), nil
 	}
 
-	if strings.HasPrefix(version, "ci/latest-") {
-		return fmt.Sprintf(ciVersionURL, strings.TrimPrefix(version, "ci/latest-")), nil
+	if after, ok := strings.CutPrefix(version, "ci/latest-"); ok {
+		return fmt.Sprintf(ciVersionURL, after), nil
 	}
 
 	return "", fmt.Errorf("failed to resolve version %s", version)

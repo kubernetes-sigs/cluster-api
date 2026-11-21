@@ -77,7 +77,7 @@ func getNestedV1Beta1Ref(obj *unstructured.Unstructured, fields ...string) (*cor
 
 // setNestedV1Beta1Ref sets the value of a nested field in an Unstructured to a reference to the refObj provided.
 func setNestedV1Beta1Ref(obj *unstructured.Unstructured, ref *corev1.ObjectReference, fields ...string) error {
-	r := map[string]interface{}{
+	r := map[string]any{
 		"kind":       ref.Kind,
 		"namespace":  ref.Namespace,
 		"name":       ref.Name,

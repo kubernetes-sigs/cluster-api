@@ -60,7 +60,7 @@ func TestKubeadmControlPlaneValidateScale(t *testing.T) {
 						Name:     "infraTemplate",
 					},
 					Deletion: controlplanev1.KubeadmControlPlaneMachineTemplateDeletionSpec{
-						NodeDrainTimeoutSeconds: ptr.To(int32(1)),
+						NodeDrainTimeoutSeconds: new(int32(1)),
 					},
 				},
 			},
@@ -117,7 +117,7 @@ func TestKubeadmControlPlaneValidateScale(t *testing.T) {
 				},
 				NTP: bootstrapv1.NTP{
 					Servers: []string{"test-server-1", "test-server-2"},
-					Enabled: ptr.To(true),
+					Enabled: new(true),
 				},
 			},
 			Version: "v1.16.6",

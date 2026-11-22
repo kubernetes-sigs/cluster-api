@@ -260,9 +260,10 @@ func (r *Reconciler) reconcileUnhealthyMachines(ctx context.Context, controlPlan
 			return ctrl.Result{}, nil
 		}
 
-		// Remediation is not possible if for any reason the etcdMember list is not populated at this stage.
+		// If etcd is managed, remediation is not possible if for any reason the etcdMember list is not populated at this stage.
 		// Note: also checking NodeListError for extra safety (even if, when NodeListError also etcdMember list is empty)
-		if len(controlPlane.EtcdMembers) == 0 || controlPlane.NodeListError != nil {
+		// Note: if etcd is not managed, KCP does not populate the etcdMember list.
+		if controlPlane.IsEtcdManaged() && (len(controlPlane.EtcdMembers) == 0 || controlPlane.NodeListError != nil) {
 			log.Info("A control plane machine needs remediation, but unable to check etcd cluster health before remediation. Skipping remediation")
 			v1beta1conditions.MarkFalse(machineToBeRemediated, clusterv1.MachineOwnerRemediatedV1Beta1Condition, clusterv1.WaitingForRemediationV1Beta1Reason, clusterv1.ConditionSeverityWarning, "Failed to check etcd cluster health before remediation")
 

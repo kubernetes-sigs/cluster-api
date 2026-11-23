@@ -672,6 +672,18 @@ func TestGetPodsForEviction(t *testing.T) {
 						},
 					},
 				},
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "pod-4-skip-pod-with-drain-label-wait-completed-succeeded",
+						Namespace: metav1.NamespaceDefault,
+						Labels: map[string]string{
+							clusterv1.PodDrainLabel: "wait-completed",
+						},
+					},
+					Status: corev1.PodStatus{
+						Phase: corev1.PodSucceeded,
+					},
+				},
 			},
 			wantPodDeleteList: PodDeleteList{items: []PodDelete{
 				{
@@ -709,6 +721,18 @@ func TestGetPodsForEviction(t *testing.T) {
 						DrainBehavior: clusterv1.MachineDrainRuleDrainBehaviorWaitCompleted,
 						DrainOrder:    ptr.To[int32](0),
 						Reason:        PodDeleteStatusTypeWaitCompleted,
+					},
+				},
+				{
+					Pod: &corev1.Pod{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "pod-4-skip-pod-with-drain-label-wait-completed-succeeded",
+							Namespace: metav1.NamespaceDefault,
+						},
+					},
+					Status: PodDeleteStatus{
+						DrainBehavior: clusterv1.MachineDrainRuleDrainBehaviorSkip,
+						Reason:        PodDeleteStatusTypeSkip,
 					},
 				},
 			}},
@@ -771,6 +795,30 @@ func TestGetPodsForEviction(t *testing.T) {
 						},
 					},
 				},
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "pod-4-behavior-wait-completed-succeeded",
+						Namespace: "test-namespace", // matches the Namespace of the selector in mdrBehaviorWaitCompleted.
+						Labels: map[string]string{
+							"app": "behavior-wait-completed", // matches mdrBehaviorWaitCompleted.
+						},
+					},
+					Status: corev1.PodStatus{
+						Phase: corev1.PodSucceeded,
+					},
+				},
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "pod-5-behavior-wait-completed-failed",
+						Namespace: "test-namespace", // matches the Namespace of the selector in mdrBehaviorWaitCompleted.
+						Labels: map[string]string{
+							"app": "behavior-wait-completed", // matches mdrBehaviorWaitCompleted.
+						},
+					},
+					Status: corev1.PodStatus{
+						Phase: corev1.PodFailed,
+					},
+				},
 			},
 			machineDrainRules: []*clusterv1.MachineDrainRule{mdrBehaviorDrain, mdrBehaviorSkip, mdrBehaviorUnknown, mdrBehaviorWaitCompleted},
 			wantPodDeleteList: PodDeleteList{items: []PodDelete{
@@ -812,6 +860,30 @@ func TestGetPodsForEviction(t *testing.T) {
 						DrainBehavior: clusterv1.MachineDrainRuleDrainBehaviorWaitCompleted,
 						DrainOrder:    ptr.To[int32](0),
 						Reason:        PodDeleteStatusTypeWaitCompleted,
+					},
+				},
+				{
+					Pod: &corev1.Pod{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "pod-4-behavior-wait-completed-succeeded",
+							Namespace: "test-namespace",
+						},
+					},
+					Status: PodDeleteStatus{
+						DrainBehavior: clusterv1.MachineDrainRuleDrainBehaviorSkip,
+						Reason:        PodDeleteStatusTypeSkip,
+					},
+				},
+				{
+					Pod: &corev1.Pod{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "pod-5-behavior-wait-completed-failed",
+							Namespace: "test-namespace",
+						},
+					},
+					Status: PodDeleteStatus{
+						DrainBehavior: clusterv1.MachineDrainRuleDrainBehaviorSkip,
+						Reason:        PodDeleteStatusTypeSkip,
 					},
 				},
 			}},

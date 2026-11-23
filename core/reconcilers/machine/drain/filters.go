@@ -213,7 +213,7 @@ func (d *Helper) daemonSetFilter(ctx context.Context, pod *corev1.Pod) PodDelete
 		return MakePodDeleteStatusOkay()
 	}
 	// Any finished pod can be removed.
-	if pod.Status.Phase == corev1.PodSucceeded || pod.Status.Phase == corev1.PodFailed {
+	if isPodCompleted(pod) {
 		return MakePodDeleteStatusOkay()
 	}
 
@@ -245,7 +245,7 @@ func (d *Helper) localStorageFilter(_ context.Context, pod *corev1.Pod) PodDelet
 		return MakePodDeleteStatusOkay()
 	}
 	// Any finished pod can be removed.
-	if pod.Status.Phase == corev1.PodSucceeded || pod.Status.Phase == corev1.PodFailed {
+	if isPodCompleted(pod) {
 		return MakePodDeleteStatusOkay()
 	}
 
@@ -254,7 +254,7 @@ func (d *Helper) localStorageFilter(_ context.Context, pod *corev1.Pod) PodDelet
 
 func (d *Helper) unreplicatedFilter(_ context.Context, pod *corev1.Pod) PodDeleteStatus {
 	// any finished pod can be removed
-	if pod.Status.Phase == corev1.PodSucceeded || pod.Status.Phase == corev1.PodFailed {
+	if isPodCompleted(pod) {
 		return MakePodDeleteStatusOkay()
 	}
 
@@ -289,6 +289,10 @@ func (d *Helper) drainLabelFilter(ctx context.Context, pod *corev1.Pod) PodDelet
 			log.V(4).Info(fmt.Sprintf("Skip evicting Pod, because Pod has %s label with %s value", clusterv1.PodDrainLabel, labelValue))
 			return MakePodDeleteStatusSkip()
 		case strings.EqualFold(strings.Replace(labelValue, "-", "", 1), string(clusterv1.MachineDrainRuleDrainBehaviorWaitCompleted)):
+			if isPodCompleted(pod) {
+				log.V(4).Info(fmt.Sprintf("Skip Pod, because Pod has %s label with %s value and is already completed (phase %s)", clusterv1.PodDrainLabel, labelValue, pod.Status.Phase))
+				return MakePodDeleteStatusSkip()
+			}
 			log.V(4).Info(fmt.Sprintf("Skip evicting Pod, because Pod has %s label with %s value", clusterv1.PodDrainLabel, labelValue))
 			return MakePodDeleteStatusWaitCompleted()
 		default:
@@ -321,6 +325,10 @@ func (d *Helper) machineDrainRulesFilter(machineDrainRules []*clusterv1.MachineD
 				log.V(4).Info(fmt.Sprintf("Skip evicting Pod, because MachineDrainRule %s with behavior %s applies to the Pod", mdr.Name, clusterv1.MachineDrainRuleDrainBehaviorSkip))
 				return MakePodDeleteStatusSkip()
 			case clusterv1.MachineDrainRuleDrainBehaviorWaitCompleted:
+				if isPodCompleted(pod) {
+					log.V(4).Info(fmt.Sprintf("Skip Pod, because MachineDrainRule %s with behavior %s applies to the Pod and the Pod is already completed (phase %s)", mdr.Name, clusterv1.MachineDrainRuleDrainBehaviorWaitCompleted, pod.Status.Phase))
+					return MakePodDeleteStatusSkip()
+				}
 				log.V(4).Info(fmt.Sprintf("Skip evicting Pod, because MachineDrainRule %s with behavior %s applies to the Pod", mdr.Name, clusterv1.MachineDrainRuleDrainBehaviorWaitCompleted))
 				return MakePodDeleteStatusWaitCompleted()
 			default:
@@ -333,6 +341,12 @@ func (d *Helper) machineDrainRulesFilter(machineDrainRules []*clusterv1.MachineD
 		// If no MachineDrainRule matches, use behavior: "Drain" and order: 0
 		return MakePodDeleteStatusOkay()
 	}
+}
+
+// isPodCompleted returns true if the Pod is completed, i.e. if it is in phase Succeeded or Failed.
+// Note: This is aligned to how kubectl determines if a Pod is completed.
+func isPodCompleted(pod *corev1.Pod) bool {
+	return pod.Status.Phase == corev1.PodSucceeded || pod.Status.Phase == corev1.PodFailed
 }
 
 // machineDrainRuleAppliesToPod evaluates if a MachineDrainRule applies to a Pod.

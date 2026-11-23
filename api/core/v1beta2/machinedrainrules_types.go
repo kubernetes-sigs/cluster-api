@@ -39,7 +39,8 @@ const (
 	MachineDrainRuleDrainBehaviorSkip MachineDrainRuleDrainBehavior = "Skip"
 
 	// MachineDrainRuleDrainBehaviorWaitCompleted means the Pod should not be evicted,
-	// but overall drain should wait until the Pod completes.
+	// but overall drain should wait until the Pod completes, i.e. until the Pod is in phase
+	// Succeeded or Failed (or has been removed from the Node).
 	MachineDrainRuleDrainBehaviorWaitCompleted MachineDrainRuleDrainBehavior = "WaitCompleted"
 )
 
@@ -127,7 +128,8 @@ type MachineDrainRuleDrainConfig struct {
 	// with the next group.
 	// "Skip" means that the Pods to which this MachineDrainRule applies will be skipped during drain.
 	// "WaitCompleted" means that the pods to which this MachineDrainRule applies will never be evicted
-	// and we wait for them to be completed, it is enforced that pods marked with this behavior always have Order=0.
+	// and we wait for them to be completed (i.e. Pod phase Succeeded or Failed, or Pod removed from the Node),
+	// it is enforced that pods marked with this behavior always have Order=0.
 	// +required
 	Behavior MachineDrainRuleDrainBehavior `json:"behavior,omitempty"`
 

@@ -55,6 +55,8 @@ Node drain can be broken down into the following phases:
   * Pods that should not be evicted, but we have to wait for their completion:
     * Pods with the `cluster.x-k8s.io/drain=wait-completed` label
     * Pods that match a `MachineDrainRule` with behavior `WaitCompleted`
+    * Note: A Pod is considered completed once it is in phase `Succeeded` or `Failed` (or once it has been removed from the Node).
+      Completed Pods are not evicted and the drain does not wait for them to be deleted.
   * Pods that should be evicted:
     * Pods that match a `MachineDrainRule` with behavior `Drain`
     * All Pods not belonging to any of the other categories

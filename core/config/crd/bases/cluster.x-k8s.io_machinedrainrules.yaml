@@ -446,7 +446,8 @@ spec:
                       with the next group.
                       "Skip" means that the Pods to which this MachineDrainRule applies will be skipped during drain.
                       "WaitCompleted" means that the pods to which this MachineDrainRule applies will never be evicted
-                      and we wait for them to be completed, it is enforced that pods marked with this behavior always have Order=0.
+                      and we wait for them to be completed (i.e. Pod phase Succeeded or Failed, or Pod removed from the Node),
+                      it is enforced that pods marked with this behavior always have Order=0.
                     enum:
                     - Drain
                     - Skip

@@ -3477,7 +3477,7 @@ _Appears in:_
 | --- | --- |
 | `Drain` | MachineDrainRuleDrainBehaviorDrain means a Pod should be drained.<br /> |
 | `Skip` | MachineDrainRuleDrainBehaviorSkip means the drain for a Pod should be skipped.<br /> |
-| `WaitCompleted` | MachineDrainRuleDrainBehaviorWaitCompleted means the Pod should not be evicted,<br />but overall drain should wait until the Pod completes.<br /> |
+| `WaitCompleted` | MachineDrainRuleDrainBehaviorWaitCompleted means the Pod should not be evicted,<br />but overall drain should wait until the Pod completes, i.e. until the Pod is in phase<br />Succeeded or Failed (or has been removed from the Node).<br /> |
 
 
 #### MachineDrainRuleDrainConfig
@@ -3493,7 +3493,7 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `behavior` _[MachineDrainRuleDrainBehavior](#machinedrainruledrainbehavior)_ | behavior defines the drain behavior.<br />Can be either "Drain", "Skip", or "WaitCompleted".<br />"Drain" means that the Pods to which this MachineDrainRule applies will be drained.<br />If behavior is set to "Drain" the order in which Pods are drained can be configured<br />with the order field. When draining Pods of a Node the Pods will be grouped by order<br />and one group after another will be drained (by increasing order). Cluster API will<br />wait until all Pods of a group are terminated / removed from the Node before starting<br />with the next group.<br />"Skip" means that the Pods to which this MachineDrainRule applies will be skipped during drain.<br />"WaitCompleted" means that the pods to which this MachineDrainRule applies will never be evicted<br />and we wait for them to be completed, it is enforced that pods marked with this behavior always have Order=0. |  | Enum: [Drain Skip WaitCompleted] <br />Required: \{\} <br /> |
+| `behavior` _[MachineDrainRuleDrainBehavior](#machinedrainruledrainbehavior)_ | behavior defines the drain behavior.<br />Can be either "Drain", "Skip", or "WaitCompleted".<br />"Drain" means that the Pods to which this MachineDrainRule applies will be drained.<br />If behavior is set to "Drain" the order in which Pods are drained can be configured<br />with the order field. When draining Pods of a Node the Pods will be grouped by order<br />and one group after another will be drained (by increasing order). Cluster API will<br />wait until all Pods of a group are terminated / removed from the Node before starting<br />with the next group.<br />"Skip" means that the Pods to which this MachineDrainRule applies will be skipped during drain.<br />"WaitCompleted" means that the pods to which this MachineDrainRule applies will never be evicted<br />and we wait for them to be completed (i.e. Pod phase Succeeded or Failed, or Pod removed from the Node),<br />it is enforced that pods marked with this behavior always have Order=0. |  | Enum: [Drain Skip WaitCompleted] <br />Required: \{\} <br /> |
 | `order` _integer_ | order defines the order in which Pods are drained.<br />Pods with higher order are drained after Pods with lower order.<br />order can only be set if behavior is set to "Drain".<br />If order is not set, 0 will be used.<br />Valid values for order are from -2147483648 to 2147483647 (inclusive). |  | Optional: \{\} <br /> |
 
 

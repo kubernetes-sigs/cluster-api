@@ -44,10 +44,11 @@ for provider authors on how to adopt to the new Cluster API version.
 
 1. Add a new migration doc for provider implementers.
    <br>Prior art: [Add v1.5 -> v1.6 migration doc](part of: https://github.com/kubernetes-sigs/cluster-api/pull/8996) - see changes to [SUMMARY.md](https://github.com/kubernetes-sigs/cluster-api/pull/8996/files#diff-72d1da5cbeb1afbe684444ec598fbe1815dd2ddc6aa99078ab577cefb9e279ac) and addition of [v1.5-to-v1.6.md](https://github.com/kubernetes-sigs/cluster-api/pull/8996/files#diff-135e34a16773fd40a82b4adbb265444a4fed6c1a973f48d621082b957e7ef93f)
+2. Update redirects in book.toml, making sure that migration docs being removed from the book will remain accessible by pointing to older version of the book. 
 
 ### Update supported versions
 
-1. Update supported versions in versions.md.
+1. Update supported versions in [releases.md](../../../book/src/reference/releases/releases.md) (add a row for the new minor release, move older ones to the end of life table) and, if the policy changed, in versions.md.
    <br>Prior art: [Update supported versions for v1.6](https://github.com/kubernetes-sigs/cluster-api/pull/9119)
 
 ### Ensure the book for the new release is available

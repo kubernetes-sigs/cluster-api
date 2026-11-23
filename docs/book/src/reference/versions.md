@@ -40,16 +40,7 @@ All considered, each Cluster API minor release is supported for a period of roug
 - At the end of the four-month maintenance mode period, the minor release will be considered EOL (end of life) and 
   cherry picks to the associated branch are to be closed soon afterwards.
 
-The table below documents support matrix for Cluster API versions.
-
-| Minor Release | Status                  | Supported Until (including maintenance mode)                                                |
-|---------------|-------------------------|---------------------------------------------------------------------------------------------|
-| v1.15.x       | Standard support period | in maintenance mode when v1.17.0 will be released, EOL when v1.18.0 will be released        |
-| v1.14.x       | Standard support period | in maintenance mode when v1.16.0 will be released, EOL when v1.17.0 will be released        |
-| v1.13.x       | Maintenance mode        | Maintenance mode since 2026-12-08 - v1.15.0 release date, EOL when v1.16.0 will be released |
-| v1.12.x       | EOL                     | EOL since 2026-12-08 - v1.15.0 release date                                                 | 
-| v1.11.x       | EOL                     | EOL since 2026-08-18 - v1.14.0 release date                                                 |
-| v1.10.x       | EOL                     | EOL since 2026-04-21 - v1.13.0 release date                                                 |
+The list of releases currently supported, with their status and support end dates, is in the [Releases](./releases/releases.md) page.
 
 > [!IMPORTANT]
 > When importing Cluster API go modules as a dependency, you MUST consider any Cluster API behaviour that is not defined 
@@ -413,6 +404,3 @@ for the Management clusters.
 * Kubeadm Bootstrap provider:
   * `kubeadm` dropped the `control-plane update-status` phase which was used in ExperimentalRetryJoin ([#10983](https://github.com/kubernetes-sigs/cluster-api/pull/10983)).
   * `kubeadm` introduced the experimental `ControlPlaneKubeletLocalMode` feature gate which will be automatically enabled by CAPI for upgrades to v1.31 to not cause network disruptions ([#10947](https://github.com/kubernetes-sigs/cluster-api/pull/10947)).
-
-**1.29**:
-* In-tree cloud providers are now switched off by default. Please use DisableCloudProviders and DisableKubeletCloudCredentialProvider feature flags if you still need this functionality. (https://github.com/kubernetes/kubernetes/pull/117503)

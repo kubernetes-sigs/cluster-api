@@ -17,6 +17,10 @@ level = 0
 [output.html.redirect]
 "/developer/providers/migrations/v1.10-to-v1.11.html" = "https://release-1-11.cluster-api.sigs.k8s.io/developer/providers/migrations/v1.10-to-v1.11"
 "/developer/providers/migrations/v1.11-to-v1.12.html" = "https://release-1-12.cluster-api.sigs.k8s.io/developer/providers/migrations/v1.11-to-v1.12"
+"/developer/providers/migrations/v1.12-to-v1.13.html" = "https://release-1-13.cluster-api.sigs.k8s.io/developer/providers/migrations/v1.12-to-v1.13"
+"/developer/providers/migrations/v1.13-to-v1.14.html" = "https://release-1-14.cluster-api.sigs.k8s.io/developer/providers/migrations/v1.13-to-v1.14"
+"/developer/providers/migrations/v1.14-to-v1.15.html" = "/reference/releases/migrations/v1.14-to-v1.15.html"
+"/developer/providers/migrations/overview.html" = "/reference/releases/migrations/overview.html"
 "/agenda.html" = "/agenda/2026.html"
 "/agenda/2026.html" = "https://docs.google.com/document/d/1fKOcbdlRNlpsVViv2cyKNv3HUHxpf-C4EIZVStsfTT0"
 "/agenda/2025.html" = "https://docs.google.com/document/d/1GgFbaYs-H6J5HSQ6a7n4aKpk0nDLE2hgG2NSOM9YIRw"

@@ -1,4 +1,6 @@
-# Kubernetes Cluster API<div style="float: right; position: relative; display: inline;"><img src="images/introduction.svg" width="160px" /></div>
+# Kubernetes Cluster API
+
+<div style="float: right; position: relative; display: inline;"><img src="images/introduction.svg" width="160px" /></div>
 
 Cluster API is a Kubernetes sub-project focused on providing declarative APIs and tooling to simplify provisioning, upgrading, and operating multiple Kubernetes clusters.
 
@@ -15,12 +17,13 @@ Started by the Kubernetes Special Interest Group (SIG) [Cluster Lifecycle](https
 > [!NOTE]
 > **ClusterAPI documentation versions**
 >
-> This book documents ClusterAPI v1.14. For other Cluster API versions please see the corresponding documentation:
-> * [main.cluster-api.sigs.k8s.io](https://main.cluster-api.sigs.k8s.io)
-> * [release-1-13.cluster-api.sigs.k8s.io](https://release-1-13.cluster-api.sigs.k8s.io)
-> * [release-1-12.cluster-api.sigs.k8s.io](https://release-1-12.cluster-api.sigs.k8s.io)
-> * [release-1-11.cluster-api.sigs.k8s.io](https://release-1-11.cluster-api.sigs.k8s.io)
+> This book documents ClusterAPI v1.15. For other Cluster API versions please see the corresponding documentation:
+> * [release-1-14.cluster-api.sigs.k8s.io](https://release-1-13.cluster-api.sigs.k8s.io)
+> * [release-1-13.cluster-api.sigs.k8s.io](https://release-1-12.cluster-api.sigs.k8s.io)
 > * older version are available at similar urls by replacing minor-version numbers
+> 
+> For a preview of the documentation for the Cluster API versions currently under development:
+> * [main.cluster-api.sigs.k8s.io](https://main.cluster-api.sigs.k8s.io)
 
 ## Why build Cluster API?
 

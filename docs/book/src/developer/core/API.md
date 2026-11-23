@@ -28,7 +28,7 @@ The API defines the main contract with the Cluster API users. This makes API des
 - Godoc: field comments start with the JSON name of the field; type comments are one sentence ("X holds/defines ...").
   Keep the godoc of sibling fields (control plane vs. workers, v1beta1 vs. v1beta2) in sync.
 - After changing API types run `make generate` and `make test-conversions`; never hand-edit `zz_generated.*` or generated CRDs.
-- API changes must also be listed in the "API Changes" section of the [migration doc](../providers/migrations/overview.md)
+- API changes must also be listed in the "API Changes" section of the [migration doc](../../reference/releases/migrations/overview.md)
   for the next release.
 
 ## Kubernetes API guidelines

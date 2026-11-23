@@ -1326,6 +1326,84 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 		removeFinalizer(g, m1)
 		g.Expect(env.Cleanup(ctx, m1, m2, m3)).To(Succeed())
 	})
+	t.Run("Remediation deletes unhealthy machine - 3 CP with external etcd", func(t *testing.T) {
+		g := NewWithT(t)
+
+		m1 := createMachine(ctx, g, ns.Name, "m1-unhealthy-", withMachineHealthCheckFailed(), withWaitBeforeDeleteFinalizer())
+		m2 := createMachine(ctx, g, ns.Name, "m2-healthy-", withHealthyK8sControlPlane())
+		m3 := createMachine(ctx, g, ns.Name, "m3-healthy-", withHealthyK8sControlPlane())
+
+		controlPlane := &pkg.ControlPlane{
+			KCP: &controlplanev1.KubeadmControlPlane{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "kcp",
+					Namespace: ns.Name,
+				},
+				Spec: controlplanev1.KubeadmControlPlaneSpec{
+					Replicas:        utilptr.To[int32](3),
+					Version:         "v1.19.1",
+					MachineTemplate: machineTemplate,
+					KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
+						ClusterConfiguration: bootstrapv1.ClusterConfiguration{
+							Etcd: bootstrapv1.Etcd{
+								External: bootstrapv1.ExternalEtcd{
+									Endpoints: []string{"https://etcd.example.com:2379"},
+									CAFile:    "/etc/kubernetes/pki/etcd/ca.crt",
+									CertFile:  "/etc/kubernetes/pki/apiserver-etcd-client.crt",
+									KeyFile:   "/etc/kubernetes/pki/apiserver-etcd-client.key",
+								},
+							},
+						},
+					},
+				},
+			},
+			Cluster:  &clusterv1.Cluster{},
+			Machines: collections.FromMachines(m1, m2, m3),
+		}
+		g.Expect(env.CreateAndWait(ctx, controlPlane.KCP)).To(Succeed())
+		t.Cleanup(func() { g.Expect(env.DeleteAndWait(context.Background(), controlPlane.KCP)).To(Succeed()) })
+		controlPlane.KCP.Status = controlplanev1.KubeadmControlPlaneStatus{
+			Initialization: controlplanev1.KubeadmControlPlaneInitializationStatus{
+				ControlPlaneInitialized: new(true),
+			},
+		}
+		g.Expect(env.Status().Update(ctx, controlPlane.KCP)).To(Succeed())
+		// Note: with external etcd, KCP does not populate controlPlane.EtcdMembers.
+
+		r := &Reconciler{
+			Client:            env.GetClient(),
+			controller:        capicontrollerutil.NewFakeController(),
+			recorder:          record.NewFakeRecorder(32),
+			managementCluster: &fakeManagementCluster{Workload: &fakeWorkloadCluster{}},
+		}
+		var err error
+		r.machineClientWithDeleteResponse, err = capicontrollerutil.NewClientWithDeleteResponse(&clusterv1.Machine{}, machineGR,
+			env.GetScheme(), env.GetConfig(), env.GetHTTPClient())
+		g.Expect(err).ToNot(HaveOccurred())
+		controlPlane.InjectTestManagementCluster(r.managementCluster)
+
+		ret, err := r.reconcileUnhealthyMachines(ctx, controlPlane)
+
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(ret.IsZero()).To(BeFalse()) // Remediation completed, requeue
+
+		g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(controlPlane.KCP), controlPlane.KCP)).To(Succeed())
+		g.Expect(controlPlane.KCP.Annotations).To(HaveKey(controlplanev1.RemediationInProgressAnnotation))
+		remediationData, err := RemediationDataFromAnnotation(controlPlane.KCP.Annotations[controlplanev1.RemediationInProgressAnnotation])
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(remediationData.Machine).To(Equal(m1.Name))
+		g.Expect(remediationData.RetryCount).To(Equal(0))
+
+		assertMachineV1beta1Condition(ctx, g, m1, clusterv1.MachineOwnerRemediatedV1Beta1Condition, corev1.ConditionFalse, clusterv1.RemediationInProgressV1Beta1Reason, clusterv1.ConditionSeverityWarning, "")
+		assertMachineCondition(ctx, g, m1, clusterv1.MachineOwnerRemediatedCondition, metav1.ConditionFalse, controlplanev1.KubeadmControlPlaneMachineRemediationMachineDeletingReason, "Machine is deleting")
+
+		err = env.Get(ctx, client.ObjectKey{Namespace: m1.Namespace, Name: m1.Name}, m1)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(m1.ObjectMeta.DeletionTimestamp.IsZero()).To(BeFalse())
+
+		removeFinalizer(g, m1)
+		g.Expect(env.Cleanup(ctx, m1, m2, m3)).To(Succeed())
+	})
 	t.Run("Remediation deletes unhealthy machine failed to provision - 3 CP", func(t *testing.T) {
 		g := NewWithT(t)
 

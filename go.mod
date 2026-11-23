@@ -35,9 +35,9 @@ require (
 	github.com/spf13/viper v1.21.0
 	github.com/stretchr/testify v1.12.1
 	github.com/valyala/fastjson v1.6.10
-	go.etcd.io/etcd/api/v3 v3.7.3
-	go.etcd.io/etcd/client/pkg/v3 v3.7.3
-	go.etcd.io/etcd/client/v3 v3.7.3
+	go.etcd.io/etcd/api/v3 v3.7.4
+	go.etcd.io/etcd/client/pkg/v3 v3.7.4
+	go.etcd.io/etcd/client/v3 v3.7.4
 	go.uber.org/zap v1.28.0
 	golang.org/x/exp v0.0.0-20260410095643-746e56fc9e2f // indirect
 	golang.org/x/oauth2 v0.38.0
@@ -55,7 +55,7 @@ require (
 	k8s.io/streaming v0.37.2
 	k8s.io/utils v0.0.0-20260707023825-cf1189d6abe3
 	sigs.k8s.io/cluster-api/api v0.0.0-00010101000000-000000000000
-	sigs.k8s.io/controller-runtime v0.25.2
+	sigs.k8s.io/controller-runtime v0.25.3
 	sigs.k8s.io/randfill v1.0.0
 	sigs.k8s.io/structured-merge-diff/v6 v6.4.2
 	sigs.k8s.io/yaml v1.6.0

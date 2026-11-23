@@ -23,8 +23,8 @@ require (
 	github.com/prometheus/common v0.70.1
 	github.com/spf13/pflag v1.1.0
 	github.com/vincent-petithory/dataurl v1.0.0
-	go.etcd.io/etcd/api/v3 v3.7.3
-	go.etcd.io/etcd/client/v3 v3.7.3
+	go.etcd.io/etcd/api/v3 v3.7.4
+	go.etcd.io/etcd/client/v3 v3.7.4
 	gomodules.xyz/jsonpatch/v2 v2.5.0
 	google.golang.org/grpc v1.83.2
 	k8s.io/api v0.37.2
@@ -38,7 +38,7 @@ require (
 	sigs.k8s.io/cluster-api v0.0.0-00010101000000-000000000000
 	sigs.k8s.io/cluster-api/api v0.0.0-00010101000000-000000000000
 	sigs.k8s.io/cluster-api/utils v0.0.0-00010101000000-000000000000
-	sigs.k8s.io/controller-runtime v0.25.2
+	sigs.k8s.io/controller-runtime v0.25.3
 	sigs.k8s.io/kind v0.33.0
 	sigs.k8s.io/randfill v1.0.0
 	sigs.k8s.io/yaml v1.6.0
@@ -146,7 +146,7 @@ require (
 	github.com/subosito/gotenv v1.6.0 // indirect
 	github.com/valyala/fastjson v1.6.10 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
-	go.etcd.io/etcd/client/pkg/v3 v3.7.3 // indirect
+	go.etcd.io/etcd/client/pkg/v3 v3.7.4 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.70.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.70.0 // indirect

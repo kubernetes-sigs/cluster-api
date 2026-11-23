@@ -47,5 +47,5 @@ Rules for Cluster API contributors changing how core Cluster API interacts with 
 - A change to the contract must be discussed with the community (e.g. in an issue or a CAEP) and approved by maintainers first.
 - Changes to the contract must be reflected in the contract page of the affected resource in this section, in the
   same PR that implements them.
-- Contract changes must also be listed in the "Cluster API Contract changes" section of the [migration doc](../migrations/overview.md)
+- Contract changes must also be listed in the "Cluster API Contract changes" section of the [migration doc](../../../reference/releases/migrations/overview.md)
   for the next release.

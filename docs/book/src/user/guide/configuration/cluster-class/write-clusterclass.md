@@ -655,6 +655,7 @@ referenced in patches:
 - `builtin.controlPlane.machineTemplate.infrastructureRef.name`
     - Please note, these variables are only available when using a control plane with machines and 
       when patching control plane or control plane machine templates.
+    - If the control plane machine template is rotated, this variable already contains the name of the new template.
 - `builtin.machineDeployment.{replicas,version,class,name,topologyName,metadata.labels,metadata.annotations}`
     - Please note, these variables are only available when patching the templates of a MachineDeployment 
       and contain the values of the current `MachineDeployment` topology.

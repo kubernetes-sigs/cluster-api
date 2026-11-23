@@ -29,6 +29,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apiserver/pkg/storage/names"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -40,13 +41,16 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/core/reconcilers/topology/cluster/patches"
+	"sigs.k8s.io/cluster-api/core/reconcilers/topology/cluster/structuredmerge"
 	coreadmission "sigs.k8s.io/cluster-api/core/webhooks/admission"
 	"sigs.k8s.io/cluster-api/exp/topology/scope"
 	"sigs.k8s.io/cluster-api/internal/contract"
+	"sigs.k8s.io/cluster-api/internal/topology/check"
 	"sigs.k8s.io/cluster-api/internal/topology/clustershim"
 	topologynames "sigs.k8s.io/cluster-api/internal/topology/names"
 	"sigs.k8s.io/cluster-api/internal/topology/ownerrefs"
 	"sigs.k8s.io/cluster-api/internal/topology/selectors"
+	"sigs.k8s.io/cluster-api/internal/util/ssa"
 	"sigs.k8s.io/cluster-api/pkg/features"
 	runtimeclient "sigs.k8s.io/cluster-api/pkg/runtimesdk/client"
 	"sigs.k8s.io/cluster-api/pkg/runtimesdk/hooks"
@@ -77,6 +81,7 @@ func NewGenerator(client client.Client, clusterCache clustercache.ClusterCache, 
 		hookCache:           hookCache,
 		getUpgradePlanCache: getUpgradePlanCache,
 		patchEngine:         patches.NewEngine(client, runtimeClient),
+		ssaCache:            ssa.NewCache("topology/desiredstate"),
 	}, nil
 }
 
@@ -94,6 +99,9 @@ type generator struct {
 
 	// patchEngine is used to apply patches during computeDesiredState.
 	patchEngine patches.Engine
+
+	// ssaCache is used to determine if the InfrastructureMachineTemplate of the ControlPlane has to be rotated.
+	ssaCache ssa.Cache
 }
 
 // Generate computes the desired state of the cluster topology.
@@ -226,11 +234,83 @@ func (g *generator) Generate(ctx context.Context, s *scope.Scope) (*scope.Cluste
 	// are preserved during patching. When desired objects are computed their spec is copied from a template, in some cases
 	// further modifications to the spec are made afterwards. In those cases we have to make sure those fields are not overwritten
 	// in apply patches. Some examples are .spec.machineTemplate and .spec.version in control planes.
+	// Note: Patches can use builtin.controlPlane.machineTemplate.infrastructureRef.name, so if the patches lead to a rotation
+	// of the InfrastructureMachineTemplate of the ControlPlane, the patches are applied again with the name of the new template.
+	// Otherwise the ControlPlane would reference the new template but still contain values computed from the name
+	// of the old template, which is deleted after the rotation.
+	var unpatchedDesiredState *scope.ClusterState
+	if len(s.Blueprint.ClusterClass.Spec.Patches) > 0 && s.Blueprint.HasControlPlaneInfrastructureMachine() &&
+		s.Current.ControlPlane != nil && s.Current.ControlPlane.InfrastructureMachineTemplate != nil {
+		unpatchedDesiredState = desiredState.DeepCopy()
+	}
 	if err := g.patchEngine.Apply(ctx, s.Blueprint, desiredState); err != nil {
 		return nil, pkgerrors.Wrap(err, "failed to apply patches")
 	}
+	if unpatchedDesiredState != nil {
+		rotate, err := g.isControlPlaneInfrastructureMachineTemplateRotationRequired(ctx, s.Current.ControlPlane.InfrastructureMachineTemplate, desiredState.ControlPlane.InfrastructureMachineTemplate)
+		if err != nil {
+			return nil, err
+		}
+		if rotate {
+			newName := names.SimpleNameGenerator.GenerateName(topologynames.ControlPlaneInfrastructureMachineTemplateNamePrefix(s.Current.Cluster.Name))
+			if err := g.setControlPlaneInfrastructureMachineTemplateName(ctx, unpatchedDesiredState.ControlPlane, newName); err != nil {
+				return nil, err
+			}
+			if err := g.patchEngine.Apply(ctx, s.Blueprint, unpatchedDesiredState); err != nil {
+				return nil, pkgerrors.Wrap(err, "failed to apply patches")
+			}
+			desiredState = unpatchedDesiredState
+		}
+	}
 
 	return desiredState, nil
+}
+
+// isControlPlaneInfrastructureMachineTemplateRotationRequired returns true if the InfrastructureMachineTemplate of the
+// ControlPlane has to be rotated, i.e. if the desired template has spec changes compared to the current template.
+// Note: This uses the same checks as the template rotation in the topology controller.
+func (g *generator) isControlPlaneInfrastructureMachineTemplateRotationRequired(ctx context.Context, current, desired *unstructured.Unstructured) (bool, error) {
+	// Note: Incompatible changes are reported by the topology controller when reconciling the template.
+	if allErrs := check.ObjectsAreCompatible(current, desired); len(allErrs) > 0 {
+		return false, nil
+	}
+
+	patchHelper, err := structuredmerge.NewServerSidePatchHelper(ctx, current, desired, g.Client, g.ssaCache)
+	if err != nil {
+		return false, pkgerrors.Wrapf(err, "failed to create patch helper for %s %s", current.GetKind(), klog.KObj(current))
+	}
+	return patchHelper.HasSpecChanges(), nil
+}
+
+// setControlPlaneInfrastructureMachineTemplateName sets the name of the InfrastructureMachineTemplate of the ControlPlane
+// and updates the reference to it in the ControlPlane object.
+func (g *generator) setControlPlaneInfrastructureMachineTemplateName(ctx context.Context, controlPlane *scope.ControlPlaneState, name string) error {
+	controlPlane.InfrastructureMachineTemplate.SetName(name)
+
+	contractVersion, err := contract.GetContractVersionForVersion(ctx, g.Client, controlPlane.Object.GroupVersionKind().GroupKind(), controlPlane.Object.GroupVersionKind().Version)
+	if err != nil {
+		return pkgerrors.Wrapf(err, "failed to get contract version for the ControlPlane object")
+	}
+	if contractVersion == "v1beta1" {
+		ref, err := contract.ControlPlane().MachineTemplate().InfrastructureV1Beta1Ref().Get(controlPlane.Object)
+		if err != nil {
+			return pkgerrors.Wrapf(err, "failed to get %s from the ControlPlane object", contract.ControlPlane().MachineTemplate().InfrastructureV1Beta1Ref().Path())
+		}
+		ref.Name = name
+		if err := contract.ControlPlane().MachineTemplate().InfrastructureV1Beta1Ref().Set(controlPlane.Object, ref); err != nil {
+			return pkgerrors.Wrapf(err, "failed to set %s in the ControlPlane object", contract.ControlPlane().MachineTemplate().InfrastructureV1Beta1Ref().Path())
+		}
+		return nil
+	}
+	ref, err := contract.ControlPlane().MachineTemplate().InfrastructureRef().Get(controlPlane.Object)
+	if err != nil {
+		return pkgerrors.Wrapf(err, "failed to get %s from the ControlPlane object", contract.ControlPlane().MachineTemplate().InfrastructureRef().Path())
+	}
+	ref.Name = name
+	if err := contract.ControlPlane().MachineTemplate().InfrastructureRef().Set(controlPlane.Object, ref); err != nil {
+		return pkgerrors.Wrapf(err, "failed to set %s in the ControlPlane object", contract.ControlPlane().MachineTemplate().InfrastructureRef().Path())
+	}
+	return nil
 }
 
 // computeInfrastructureCluster computes the desired state for the InfrastructureCluster object starting from the

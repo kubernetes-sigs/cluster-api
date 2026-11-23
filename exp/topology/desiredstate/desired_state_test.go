@@ -4096,4 +4096,118 @@ func TestGenerate(t *testing.T) {
 		// Verify MP is marked as upgrading
 		g.Expect(s.UpgradeTracker.MachinePools.UpgradingNames()).To(ConsistOf(mp.Name))
 	})
+
+	t.Run("Generate desired state and compute patches with the name of the rotated ControlPlane InfrastructureMachineTemplate", func(t *testing.T) {
+		tests := []struct {
+			name                 string
+			currentFoo           string
+			wantTemplateRotation bool
+		}{
+			{
+				name:                 "Template is not rotated if patches don't change the template",
+				currentFoo:           "patched",
+				wantTemplateRotation: false,
+			},
+			{
+				name:                 "Template is rotated if patches change the template",
+				currentFoo:           "original",
+				wantTemplateRotation: true,
+			},
+		}
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				g := NewWithT(t)
+
+				controlPlaneInfrastructureMachineTemplate := builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cp-template1").
+					Build()
+				clusterClass := builder.ClusterClass(metav1.NamespaceDefault, "class1").
+					WithInfrastructureClusterTemplate(infrastructureClusterTemplate).
+					WithControlPlaneTemplate(controlPlaneTemplate).
+					WithControlPlaneInfrastructureMachineTemplate(controlPlaneInfrastructureMachineTemplate).
+					WithPatches([]clusterv1.ClusterClassPatch{{
+						Name: "patch1",
+						Definitions: []clusterv1.PatchDefinition{
+							{
+								Selector: clusterv1.PatchSelector{
+									APIVersion:     builder.InfrastructureGroupVersion.String(),
+									Kind:           builder.GenericInfrastructureMachineTemplateKind,
+									MatchResources: clusterv1.PatchSelectorMatch{ControlPlane: new(true)},
+								},
+								JSONPatches: []clusterv1.JSONPatch{{
+									Op:    "add",
+									Path:  "/spec/template/spec/foo",
+									Value: &apiextensionsv1.JSON{Raw: []byte(`"patched"`)},
+								}},
+							},
+							{
+								Selector: clusterv1.PatchSelector{
+									APIVersion:     builder.ControlPlaneGroupVersion.String(),
+									Kind:           builder.GenericControlPlaneTemplateKind,
+									MatchResources: clusterv1.PatchSelectorMatch{ControlPlane: new(true)},
+								},
+								JSONPatches: []clusterv1.JSONPatch{{
+									Op:        "add",
+									Path:      "/spec/template/spec/infrastructureMachineTemplateName",
+									ValueFrom: &clusterv1.JSONPatchValue{Template: "{{ .builtin.controlPlane.machineTemplate.infrastructureRef.name }}"},
+								}},
+							},
+						},
+					}}).
+					Build()
+
+				currentControlPlaneInfrastructureMachineTemplate := builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cluster1-cp-template1").
+					WithSpecFields(map[string]any{"spec.template.spec.foo": tt.currentFoo}).
+					Build()
+				currentControlPlane := builder.ControlPlane(metav1.NamespaceDefault, "cluster1-cp").
+					WithVersion(version).
+					WithInfrastructureMachineTemplate(currentControlPlaneInfrastructureMachineTemplate, "v1beta2").
+					Build()
+				currentCluster := cluster.DeepCopy()
+				currentCluster.Spec.ControlPlaneRef = contract.ObjToContractVersionedObjectReference(currentControlPlane)
+				currentCluster.Spec.Topology.Version = version
+
+				fakeClient := fake.NewClientBuilder().WithScheme(fakeScheme).WithObjects(crd, currentControlPlaneInfrastructureMachineTemplate).Build()
+				desiredStateGenerator, err := NewGenerator(
+					fakeClient,
+					clustercache.NewFakeClusterCache(fakeClient, client.ObjectKeyFromObject(currentCluster)),
+					fakeruntimeclient.NewRuntimeClientBuilder().Build(),
+					cache.New[cache.HookEntry](ctx, cache.HookCacheDefaultTTL),
+					cache.New[GenerateUpgradePlanCacheEntry](ctx, 10*time.Minute),
+				)
+				g.Expect(err).ToNot(HaveOccurred())
+
+				s := scope.New(currentCluster)
+				s.Blueprint = &scope.ClusterBlueprint{
+					Topology:                      currentCluster.Spec.Topology,
+					ClusterClass:                  clusterClass,
+					InfrastructureClusterTemplate: infrastructureClusterTemplate,
+					ControlPlane: &scope.ControlPlaneBlueprint{
+						Template:                      controlPlaneTemplate,
+						InfrastructureMachineTemplate: controlPlaneInfrastructureMachineTemplate,
+					},
+				}
+				s.Current.ControlPlane = &scope.ControlPlaneState{
+					Object:                        currentControlPlane,
+					InfrastructureMachineTemplate: currentControlPlaneInfrastructureMachineTemplate,
+				}
+
+				desiredState, err := desiredStateGenerator.Generate(ctx, s)
+				g.Expect(err).ToNot(HaveOccurred())
+
+				desiredTemplateName := desiredState.ControlPlane.InfrastructureMachineTemplate.GetName()
+				if tt.wantTemplateRotation {
+					g.Expect(desiredTemplateName).ToNot(Equal(currentControlPlaneInfrastructureMachineTemplate.GetName()))
+					g.Expect(desiredTemplateName).To(HavePrefix(topologynames.ControlPlaneInfrastructureMachineTemplateNamePrefix(currentCluster.Name)))
+				} else {
+					g.Expect(desiredTemplateName).To(Equal(currentControlPlaneInfrastructureMachineTemplate.GetName()))
+				}
+				infrastructureRef, err := contract.ControlPlane().MachineTemplate().InfrastructureRef().Get(desiredState.ControlPlane.Object)
+				g.Expect(err).ToNot(HaveOccurred())
+				g.Expect(infrastructureRef.Name).To(Equal(desiredTemplateName))
+				patchedName, _, err := unstructured.NestedString(desiredState.ControlPlane.Object.Object, "spec", "infrastructureMachineTemplateName")
+				g.Expect(err).ToNot(HaveOccurred())
+				g.Expect(patchedName).To(Equal(desiredTemplateName))
+			})
+		}
+	})
 }

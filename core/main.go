@@ -646,6 +646,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager, watchNamespace stri
 		DynamicCache:                     dynamicCache,
 		RuntimeClient:                    runtimeClient,
 		WatchFilterValue:                 watchFilterValue,
+		RemoteConnectionGracePeriod:      remoteConnectionGracePeriod,
 		RemoteConditionsGracePeriod:      remoteConditionsGracePeriod,
 		AdditionalSyncMachineLabels:      additionalSyncMachineLabelRegexes,
 		AdditionalSyncMachineAnnotations: additionalSyncMachineAnnotationRegexes,

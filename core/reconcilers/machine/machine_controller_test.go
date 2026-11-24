@@ -3643,6 +3643,204 @@ func TestNodeDeletion(t *testing.T) {
 	}
 }
 
+func TestReconcileDeleteWhenConnectionDown(t *testing.T) {
+	longAgo := metav1.NewTime(time.Now().Add(-2 * time.Hour))
+
+	testCluster := clusterv1.Cluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-cluster",
+			Namespace: metav1.NamespaceDefault,
+		},
+	}
+
+	testMachine := clusterv1.Machine{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:              "test",
+			Namespace:         metav1.NamespaceDefault,
+			Finalizers:        []string{clusterv1.MachineFinalizer},
+			DeletionTimestamp: &longAgo,
+		},
+		Spec: clusterv1.MachineSpec{
+			ClusterName: "test-cluster",
+			ProviderID:  "test://id-1",
+			InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+				APIGroup: clusterv1.GroupVersionInfrastructure.Group,
+				Kind:     "GenericInfrastructureMachine",
+				Name:     "infra-config1",
+			},
+			Bootstrap: clusterv1.Bootstrap{DataSecretName: new("data")},
+		},
+		Status: clusterv1.MachineStatus{
+			NodeRef: clusterv1.MachineNodeReference{
+				Name: "test",
+			},
+		},
+	}
+
+	cpMachine := &clusterv1.Machine{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "cp1",
+			Namespace: metav1.NamespaceDefault,
+			Labels: map[string]string{
+				clusterv1.ClusterNameLabel:         "test-cluster",
+				clusterv1.MachineControlPlaneLabel: "",
+			},
+		},
+		Spec: clusterv1.MachineSpec{
+			ClusterName: "test-cluster",
+			Bootstrap:   clusterv1.Bootstrap{DataSecretName: new("data")},
+		},
+	}
+
+	excludeDrainAndVolumeDetach := func(m *clusterv1.Machine) {
+		m.Annotations = map[string]string{
+			clusterv1.ExcludeNodeDrainingAnnotation:            "",
+			clusterv1.ExcludeWaitForNodeVolumeDetachAnnotation: "",
+		}
+	}
+
+	type want struct {
+		requeueAfter          time.Duration
+		finalizer             bool
+		deletingReason        string
+		deletingMessagePrefix string
+	}
+	testCases := []struct {
+		name string
+		// modifyMachine customizes testMachine for the test case.
+		modifyMachine func(m *clusterv1.Machine)
+		// infraMachineExists is required to drain the Node and to wait for volume detach.
+		infraMachineExists bool
+		want               want
+	}{
+		{
+			name:               "should wait for the connection to drain the Node, without requeue if the drain timeout is not set",
+			infraMachineExists: true,
+			want: want{
+				finalizer:             true,
+				deletingReason:        clusterv1.MachineDeletingDrainingNodeReason,
+				deletingMessagePrefix: "Waiting for connection to the workload cluster to drain Node",
+			},
+		},
+		{
+			name: "should wait for the connection to drain the Node, with requeue when the drain timeout expires",
+			modifyMachine: func(m *clusterv1.Machine) {
+				m.Spec.Deletion.NodeDrainTimeoutSeconds = new(int32(60 * 60))
+			},
+			infraMachineExists: true,
+			want: want{
+				requeueAfter:          time.Hour,
+				finalizer:             true,
+				deletingReason:        clusterv1.MachineDeletingDrainingNodeReason,
+				deletingMessagePrefix: "Waiting for connection to the workload cluster to drain Node",
+			},
+		},
+		{
+			name: "should skip the drain when the drain timeout expired and wait for the connection to check volume detach, with requeue when the volume detach timeout expires",
+			modifyMachine: func(m *clusterv1.Machine) {
+				m.Spec.Deletion.NodeDrainTimeoutSeconds = new(int32(60))
+				m.Spec.Deletion.NodeVolumeDetachTimeoutSeconds = new(int32(60 * 60))
+				m.Status.Deletion = &clusterv1.MachineDeletionStatus{NodeDrainStartTime: longAgo}
+			},
+			infraMachineExists: true,
+			want: want{
+				requeueAfter:          time.Hour,
+				finalizer:             true,
+				deletingReason:        clusterv1.MachineDeletingWaitingForVolumeDetachReason,
+				deletingMessagePrefix: "Waiting for connection to the workload cluster to check that Node volumes are detached",
+			},
+		},
+		{
+			name: "should wait for the connection to delete the Node, with requeue when the Node deletion timeout expires",
+			modifyMachine: func(m *clusterv1.Machine) {
+				excludeDrainAndVolumeDetach(m)
+				m.Spec.Deletion.NodeDeletionTimeoutSeconds = new(int32(10))
+			},
+			want: want{
+				requeueAfter:          10 * time.Second,
+				finalizer:             true,
+				deletingReason:        clusterv1.MachineDeletingDeletingNodeReason,
+				deletingMessagePrefix: "Waiting for connection to the workload cluster to delete Node",
+			},
+		},
+		{
+			name: "should wait for the connection to delete the Node, without requeue if the Node deletion timeout is not set",
+			modifyMachine: func(m *clusterv1.Machine) {
+				excludeDrainAndVolumeDetach(m)
+				m.Spec.Deletion.NodeDeletionTimeoutSeconds = new(int32(0))
+			},
+			want: want{
+				finalizer:             true,
+				deletingReason:        clusterv1.MachineDeletingDeletingNodeReason,
+				deletingMessagePrefix: "Waiting for connection to the workload cluster to delete Node",
+			},
+		},
+		{
+			name: "should complete deletion without deleting the Node when the Node deletion timeout expired",
+			modifyMachine: func(m *clusterv1.Machine) {
+				excludeDrainAndVolumeDetach(m)
+				m.Spec.Deletion.NodeDeletionTimeoutSeconds = new(int32(10))
+				m.Status.Deletion = &clusterv1.MachineDeletionStatus{NodeDeletionStartTime: longAgo}
+			},
+			want: want{
+				finalizer:             false,
+				deletingReason:        clusterv1.MachineDeletingDeletionCompletedReason,
+				deletingMessagePrefix: "Deletion completed",
+			},
+		},
+		{
+			name: "should complete deletion without retrieving the Node when status.nodeRef is not set",
+			modifyMachine: func(m *clusterv1.Machine) {
+				m.Status.NodeRef = clusterv1.MachineNodeReference{}
+			},
+			want: want{
+				finalizer:             false,
+				deletingReason:        clusterv1.MachineDeletingDeletionCompletedReason,
+				deletingMessagePrefix: "Deletion completed",
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			m := testMachine.DeepCopy()
+			if tc.modifyMachine != nil {
+				tc.modifyMachine(m)
+			}
+
+			fakeClient := fake.NewClientBuilder().
+				WithObjects(m, cpMachine.DeepCopy()).
+				WithStatusSubresource(&clusterv1.Machine{}).
+				Build()
+
+			r := &Reconciler{
+				Client:       fakeClient,
+				ClusterCache: clustercache.NewFakeEmptyClusterCache(),
+				recorder:     record.NewFakeRecorder(10),
+			}
+
+			s := &scope{
+				cluster:                   testCluster.DeepCopy(),
+				machine:                   m,
+				infraMachineIsNotFound:    !tc.infraMachineExists,
+				bootstrapConfigIsNotFound: true,
+			}
+			if tc.infraMachineExists {
+				s.infraMachine = &contractv1.InfraMachine{}
+			}
+
+			result, err := r.reconcileDelete(ctx, s)
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(result.RequeueAfter).To(BeNumerically("~", tc.want.requeueAfter, 5*time.Second))
+			g.Expect(controllerutil.ContainsFinalizer(m, clusterv1.MachineFinalizer)).To(Equal(tc.want.finalizer))
+			g.Expect(s.deletingReason).To(Equal(tc.want.deletingReason))
+			g.Expect(s.deletingMessage).To(HavePrefix(tc.want.deletingMessagePrefix))
+		})
+	}
+}
+
 func TestNodeDeletionWithoutNodeRefFallback(t *testing.T) {
 	g := NewWithT(t)
 

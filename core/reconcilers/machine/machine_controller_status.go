@@ -71,7 +71,7 @@ func (r *Reconciler) updateStatus(ctx context.Context, s *scope) ctrl.Result {
 	setReadyCondition(ctx, s.machine)
 	setMachinePhaseAndLastUpdated(ctx, s.machine)
 
-	return setAvailableCondition(ctx, s.machine)
+	return setAvailableCondition(ctx, s.cluster, s.machine, healthCheckingState, r.RemoteConnectionGracePeriod, r.RemoteConditionsGracePeriod)
 }
 
 func setBootstrapReadyCondition(_ context.Context, machine *clusterv1.Machine, bootstrapConfig contractapi.BootstrapConfig, bootstrapConfigIsNotFound bool) {
@@ -269,17 +269,20 @@ func setNodeHealthyAndReadyConditions(ctx context.Context, cluster *clusterv1.Cl
 		return
 	}
 
-	// Remote conditions grace period is counted from the later of last probe success and control plane initialized.
+	// If remote connection down and remoteConditionsGracePeriod expired, report it.
+	// Remote conditions grace period is counted from the latter of last probe success and control plane initialized.
 	if time.Since(maxTime(healthCheckingState.LastProbeSuccessTime, controlPlaneInitialized.LastTransitionTime.Time)) > remoteConditionsGracePeriod {
 		// Overwrite conditions to ConnectionDown.
 		setNodeConditions(machine, metav1.ConditionUnknown,
 			clusterv1.MachineNodeConnectionDownReason,
-			lastProbeSuccessMessage(healthCheckingState.LastProbeSuccessTime))
+			connectionDownMessage(healthCheckingState.LastProbeSuccessTime))
 		return
 	}
 
 	if nodeGetErr != nil {
 		if pkgerrors.Is(nodeGetErr, clustercache.ErrClusterNotConnected) {
+			// If remote connection down and remoteConditionsGracePeriod is not yet expired, preserve existing conditions.
+
 			// If conditions are not set, set them to ConnectionDown.
 			// Note: This will allow to keep reporting last known status in case there are temporary connection errors.
 			// However, if connection errors persist more than remoteConditionsGracePeriod, conditions will be overridden.
@@ -287,7 +290,7 @@ func setNodeHealthyAndReadyConditions(ctx context.Context, cluster *clusterv1.Cl
 				!conditions.Has(machine, clusterv1.MachineNodeHealthyCondition) {
 				setNodeConditions(machine, metav1.ConditionUnknown,
 					clusterv1.MachineNodeConnectionDownReason,
-					lastProbeSuccessMessage(healthCheckingState.LastProbeSuccessTime))
+					connectionIssueDetectedMessage(healthCheckingState.LastProbeSuccessTime))
 			}
 			return
 		}
@@ -296,6 +299,7 @@ func setNodeHealthyAndReadyConditions(ctx context.Context, cluster *clusterv1.Cl
 		setNodeConditions(machine, metav1.ConditionUnknown,
 			clusterv1.MachineNodeInternalErrorReason,
 			"Please check controller logs for errors")
+
 		// NOTE: the error is logged by reconcileNode.
 		return
 	}
@@ -404,11 +408,36 @@ func setNodeConditions(machine *clusterv1.Machine, status metav1.ConditionStatus
 	}
 }
 
+const (
+	connectionIssueDetectedPrefix = "Connection issue detected"
+	connectionDownPrefix          = "Connection down"
+)
+
+// lastProbeSuccessMessage returns the time of the last successful probe of the connection to the workload cluster, if any.
 func lastProbeSuccessMessage(lastProbeSuccessTime time.Time) string {
 	if lastProbeSuccessTime.IsZero() {
 		return ""
 	}
-	return fmt.Sprintf("Last successful probe at %s", lastProbeSuccessTime.Format(time.RFC3339))
+	return fmt.Sprintf("last successful probe at %s", lastProbeSuccessTime.Format(time.RFC3339))
+}
+
+// connectionIssueDetectedMessage is the message surfaced while the connection to the workload cluster is down, but the
+// remote conditions grace period is not expired yet: conditions keep reporting the last known state.
+func connectionIssueDetectedMessage(lastProbeSuccessTime time.Time) string {
+	return withLastProbeSuccess(connectionIssueDetectedPrefix, lastProbeSuccessTime)
+}
+
+// connectionDownMessage is the message surfaced when the connection to the workload cluster is down and
+// the remote conditions grace period is expired: the last known state is not reliable anymore.
+func connectionDownMessage(lastProbeSuccessTime time.Time) string {
+	return withLastProbeSuccess(connectionDownPrefix, lastProbeSuccessTime)
+}
+
+func withLastProbeSuccess(prefix string, lastProbeSuccessTime time.Time) string {
+	if lastProbeSuccessTime.IsZero() {
+		return prefix
+	}
+	return prefix + ", " + lastProbeSuccessMessage(lastProbeSuccessTime)
 }
 
 func maxTime(t1, t2 time.Time) time.Time {
@@ -513,7 +542,7 @@ func (c machineConditionCustomMergeStrategy) Merge(operation conditions.MergeOpe
 			return conditions.GetDefaultMergePriorityFunc(c.negativePolarityConditionTypes...)(condition)
 		}),
 		// Group readiness gates for control plane and etcd conditions when they have the same messages.
-		conditions.SummaryMessageTransformFunc(transformControlPlaneAndEtcdConditions),
+		conditions.SummaryMessageTransformFunc(transformSummaryMessage),
 		// Use custom reasons.
 		conditions.ComputeReasonFunc(conditions.GetDefaultComputeMergeReasonFunc(
 			clusterv1.MachineNotReadyReason,
@@ -523,11 +552,71 @@ func (c machineConditionCustomMergeStrategy) Merge(operation conditions.MergeOpe
 	).Merge(operation, mergeConditions, conditionTypes)
 }
 
-// transformControlPlaneAndEtcdConditions Group readiness gates for control plane conditions when they have the same messages.
-// Note: the implementation is based on KCP conditions, but ideally other control plane implementation could
-// take benefit from this optimization by naming conditions with APIServer, ControllerManager, Scheduler prefix.
-// In future we might consider to do something similar for etcd conditions.
-func transformControlPlaneAndEtcdConditions(messages []string) []string {
+// transformSummaryMessage same condition messages in the summary so the info that bubbles up to MS/MD/KCP/Cluster is shorter.
+func transformSummaryMessage(messages []string) []string {
+	// First group conditions with the same message about connection down.
+	messages = groupConnectionDownConditions(messages)
+
+	// Then group same message for control plane components.
+	// Note: the implementation is based on KCP conditions, but ideally other control plane implementation could
+	// take benefit from this optimization by naming conditions with APIServer, ControllerManager, Scheduler prefix.
+	// In future we might consider to do something similar for etcd conditions.
+	return groupControlPlaneConditions(messages)
+}
+
+// connectionDependentConditions are the conditions that can only be computed by connecting to the workload cluster;
+// when the connection is down all of them report the same message.
+var connectionDependentConditions = sets.New[string](
+	clusterv1.MachineNodeHealthyCondition,
+	"NodeKubeadmLabelsAndTaintsSet",
+	"EtcdPodHealthy",
+	"EtcdMemberHealthy",
+	"APIServerPodHealthy",
+	"ControllerManagerPodHealthy",
+	"SchedulerPodHealthy",
+)
+
+// groupConnectionDownConditions replaces the messages of the conditions reporting connection issues with a single message, because the cause is the same for all of them.
+func groupConnectionDownConditions(messages []string) []string {
+	isConnectionDown := func(m string) (string, bool) {
+		// Summary message are in the form of "* Condition: Message".
+		before, after, ok := strings.Cut(m, ":")
+		if !ok || !connectionDependentConditions.Has(strings.TrimPrefix(before, "* ")) {
+			return "", false
+		}
+		msg := strings.TrimSpace(after)
+		return msg, strings.HasPrefix(msg, connectionDownPrefix)
+	}
+
+	connectionDownMessage, count := "", 0
+	for _, m := range messages {
+		if msg, ok := isConnectionDown(m); ok {
+			if count == 0 {
+				connectionDownMessage = msg
+			}
+			count++
+		}
+	}
+	if count < 2 {
+		return messages
+	}
+
+	out := make([]string, 0, len(messages))
+	added := false
+	for _, m := range messages {
+		if _, ok := isConnectionDown(m); ok {
+			if !added {
+				out = append(out, "* "+connectionDownMessage)
+				added = true
+			}
+			continue
+		}
+		out = append(out, m)
+	}
+	return out
+}
+
+func groupControlPlaneConditions(messages []string) []string {
 	isControlPlaneCondition := func(c string) bool {
 		if strings.HasPrefix(c, "* APIServer") {
 			return true
@@ -871,10 +960,20 @@ func calculateDeletingConditionForSummary(machine *clusterv1.Machine) conditions
 	}
 }
 
-func setAvailableCondition(ctx context.Context, machine *clusterv1.Machine) ctrl.Result {
+func setAvailableCondition(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine, healthCheckingState clustercache.HealthCheckingState, remoteConnectionGracePeriod, remoteConditionsGracePeriod time.Duration) ctrl.Result {
 	log := ctrl.LoggerFrom(ctx)
-	readyCondition := conditions.Get(machine, clusterv1.MachineReadyCondition)
 
+	controlPlaneInitialized := conditions.Get(cluster, clusterv1.ClusterControlPlaneInitializedCondition)
+	if controlPlaneInitialized == nil || controlPlaneInitialized.Status != metav1.ConditionTrue {
+		conditions.Set(machine, metav1.Condition{
+			Type:   clusterv1.MachineAvailableCondition,
+			Status: metav1.ConditionFalse,
+			Reason: clusterv1.MachineNotReadyReason,
+		})
+		return ctrl.Result{}
+	}
+
+	readyCondition := conditions.Get(machine, clusterv1.MachineReadyCondition)
 	if readyCondition == nil {
 		// NOTE: this should never happen given that setReadyCondition is called before this method and
 		// it always add a ready condition.
@@ -888,11 +987,24 @@ func setAvailableCondition(ctx context.Context, machine *clusterv1.Machine) ctrl
 		return ctrl.Result{}
 	}
 
+	// If remote connection down and only remoteConnectionGracePeriod expired, surface the warning only as a message on top of the normal condition state.
+	lastProbeMessage := ""
+	if !healthCheckingState.LastProbeSuccessTime.IsZero() && time.Since(healthCheckingState.LastProbeSuccessTime) > remoteConnectionGracePeriod {
+		lastProbeMessage = connectionIssueDetectedMessage(healthCheckingState.LastProbeSuccessTime)
+	}
+
+	// If remote connection down and remoteConditionsGracePeriod expired, report it on top of NotReady (Ready condition also flips when remoteConditionsGracePeriod expired).
+	// Remote conditions grace period is counted from the latter of last probe success and control plane initialized.
+	if !healthCheckingState.LastProbeSuccessTime.IsZero() && time.Since(maxTime(healthCheckingState.LastProbeSuccessTime, controlPlaneInitialized.LastTransitionTime.Time)) > remoteConditionsGracePeriod {
+		lastProbeMessage = connectionDownMessage(healthCheckingState.LastProbeSuccessTime)
+	}
+
 	if readyCondition.Status != metav1.ConditionTrue {
 		conditions.Set(machine, metav1.Condition{
-			Type:   clusterv1.MachineAvailableCondition,
-			Status: metav1.ConditionFalse,
-			Reason: clusterv1.MachineNotReadyReason,
+			Type:    clusterv1.MachineAvailableCondition,
+			Status:  metav1.ConditionFalse,
+			Reason:  clusterv1.MachineNotReadyReason,
+			Message: lastProbeMessage,
 		})
 		return ctrl.Result{}
 	}
@@ -900,17 +1012,19 @@ func setAvailableCondition(ctx context.Context, machine *clusterv1.Machine) ctrl
 	t := time.Since(readyCondition.LastTransitionTime.Time) - time.Duration(ptr.Deref(machine.Spec.MinReadySeconds, 0))*time.Second
 	if t >= 0 {
 		conditions.Set(machine, metav1.Condition{
-			Type:   clusterv1.MachineAvailableCondition,
-			Status: metav1.ConditionTrue,
-			Reason: clusterv1.MachineAvailableReason,
+			Type:    clusterv1.MachineAvailableCondition,
+			Status:  metav1.ConditionTrue,
+			Reason:  clusterv1.MachineAvailableReason,
+			Message: lastProbeMessage,
 		})
 		return ctrl.Result{}
 	}
 
 	conditions.Set(machine, metav1.Condition{
-		Type:   clusterv1.MachineAvailableCondition,
-		Status: metav1.ConditionFalse,
-		Reason: clusterv1.MachineWaitingForMinReadySecondsReason,
+		Type:    clusterv1.MachineAvailableCondition,
+		Status:  metav1.ConditionFalse,
+		Reason:  clusterv1.MachineWaitingForMinReadySecondsReason,
+		Message: lastProbeMessage,
 	})
 	return ctrl.Result{RequeueAfter: -t}
 }

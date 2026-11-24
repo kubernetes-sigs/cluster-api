@@ -101,6 +101,7 @@ func TestMain(m *testing.M) {
 			RuntimeClient:                    fakeruntimeclient.NewRuntimeClientBuilder().WithCatalog(runtimecatalog.New()).Build(),
 			ClusterCache:                     clusterCache,
 			DynamicCache:                     dynamicCache,
+			RemoteConnectionGracePeriod:      50 * time.Second,
 			RemoteConditionsGracePeriod:      5 * time.Minute,
 			AdditionalSyncMachineLabels:      nil,
 			AdditionalSyncMachineAnnotations: nil,

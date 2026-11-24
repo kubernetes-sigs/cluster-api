@@ -24,7 +24,7 @@ import (
 	"regexp"
 	"strings"
 
-	celgo "github.com/google/cel-go/cel"
+	celgo "cel.dev/cel-go/cel"
 	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions"
 	apiextensionsvalidation "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/validation"
 	structuralschema "k8s.io/apiextensions-apiserver/pkg/apiserver/schema"

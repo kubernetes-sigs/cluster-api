@@ -58,15 +58,15 @@ spec:
                 properties:
                   apiGroup:
                     description: |-
-                      APIGroup is the group for the resource being referenced.
+                      apiGroup is the group for the resource being referenced.
                       If APIGroup is not specified, the specified Kind must be in the core API group.
                       For any other third-party types, APIGroup is required.
                     type: string
                   kind:
-                    description: Kind is the type of resource being referenced
+                    description: kind is the type of resource being referenced
                     type: string
                   name:
-                    description: Name is the name of resource being referenced
+                    description: name is the name of resource being referenced
                     type: string
                 required:
                 - kind
@@ -86,7 +86,7 @@ spec:
                   name:
                     default: ""
                     description: |-
-                      Name of the referent.
+                      name of the referent.
                       This field is effectively required, but due to backwards compatibility is
                       allowed to be empty. Instances of this type with an empty value here are
                       almost certainly wrong.
@@ -203,15 +203,15 @@ spec:
                 properties:
                   apiGroup:
                     description: |-
-                      APIGroup is the group for the resource being referenced.
+                      apiGroup is the group for the resource being referenced.
                       If APIGroup is not specified, the specified Kind must be in the core API group.
                       For any other third-party types, APIGroup is required.
                     type: string
                   kind:
-                    description: Kind is the type of resource being referenced
+                    description: kind is the type of resource being referenced
                     type: string
                   name:
-                    description: Name is the name of resource being referenced
+                    description: name is the name of resource being referenced
                     type: string
                 required:
                 - kind
@@ -231,7 +231,7 @@ spec:
                   name:
                     default: ""
                     description: |-
-                      Name of the referent.
+                      name of the referent.
                       This field is effectively required, but due to backwards compatibility is
                       allowed to be empty. Instances of this type with an empty value here are
                       almost certainly wrong.
@@ -309,6 +309,7 @@ spec:
                           format: date-time
                           type: string
                         message:
+                          default: ""
                           description: |-
                             message is a human readable message indicating details about the transition.
                             This may be an empty string.
@@ -348,7 +349,6 @@ spec:
                           type: string
                       required:
                       - lastTransitionTime
-                      - message
                       - reason
                       - status
                       - type
@@ -479,6 +479,7 @@ spec:
                       format: date-time
                       type: string
                     message:
+                      default: ""
                       description: |-
                         message is a human readable message indicating details about the transition.
                         This may be an empty string.
@@ -517,7 +518,6 @@ spec:
                       type: string
                   required:
                   - lastTransitionTime
-                  - message
                   - reason
                   - status
                   - type

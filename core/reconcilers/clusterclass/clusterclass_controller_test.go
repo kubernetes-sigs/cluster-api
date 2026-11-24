@@ -26,7 +26,7 @@ import (
 	. "github.com/onsi/gomega"
 	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
-	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	apiextensionsv1 "k8s.io/apiextensions-api/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/version"
@@ -1149,18 +1149,18 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 			wantErrMessage: "failed to discover variables for ClusterClass class1: " +
 				"patch1.variables[someIP].schema.openAPIV3Schema.x-kubernetes-validations[0].rule: Invalid value: " +
 				"{\"Rule\":\"ip(self).family() == 6\",\"Message\":\"\",\"MessageExpression\":\"\",\"Reason\":null,\"FieldPath\":\"\",\"OptionalOldSelf\":null}: compilation failed: " +
-				"ERROR: <input>:1:3: undeclared reference to 'ip' (in container '')\n" +
+				"ERROR: <input>:1:3: undeclared reference to 'ip'\n" +
 				" | ip(self).family() == 6\n" +
 				" | ..^\n" +
-				"ERROR: <input>:1:16: undeclared reference to 'family' (in container '')\n" +
+				"ERROR: <input>:1:16: undeclared reference to 'family'\n" +
 				" | ip(self).family() == 6\n" +
 				" | ...............^",
 			wantVariableDiscoveryErrorMessage: "VariableDiscovery failed: patch1.variables[someIP].schema.openAPIV3Schema.x-kubernetes-validations[0].rule: Invalid value: " +
 				"{\"Rule\":\"ip(self).family() == 6\",\"Message\":\"\",\"MessageExpression\":\"\",\"Reason\":null,\"FieldPath\":\"\",\"OptionalOldSelf\":null}: compilation failed: " +
-				"ERROR: <input>:1:3: undeclared reference to 'ip' (in container '')\n" +
+				"ERROR: <input>:1:3: undeclared reference to 'ip'\n" +
 				" | ip(self).family() == 6\n" +
 				" | ..^\n" +
-				"ERROR: <input>:1:16: undeclared reference to 'family' (in container '')\n" +
+				"ERROR: <input>:1:16: undeclared reference to 'family'\n" +
 				" | ip(self).family() == 6\n" +
 				" | ...............^",
 		},

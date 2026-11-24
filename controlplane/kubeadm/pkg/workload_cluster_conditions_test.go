@@ -1667,7 +1667,7 @@ func TestUpdateStaticPodCondition(t *testing.T) {
 			injectClient: &fakeClient{
 				get: map[string]any{
 					podkey: fakePod(podName,
-						withPhase(corev1.PodUnknown),
+						withPhase(corev1.PodUnknown), //nolint:staticcheck // Deprecated because the kubelet no longer sets it, but we still test that we handle it.
 					),
 				},
 			},

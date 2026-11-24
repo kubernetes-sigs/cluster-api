@@ -27,7 +27,7 @@ import (
 	"github.com/blang/semver/v4"
 	pkgerrors "github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
-	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	apiextensionsv1 "k8s.io/apiextensions-api/pkg/apis/apiextensions/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/sets"

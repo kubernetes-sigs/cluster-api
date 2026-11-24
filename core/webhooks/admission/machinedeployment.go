@@ -26,6 +26,7 @@ import (
 	pkgerrors "github.com/pkg/errors"
 	admissionv1 "k8s.io/api/admission/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/validate/content"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -155,7 +156,7 @@ func (webhook *MachineDeployment) ValidateDelete(_ context.Context, _ *clusterv1
 func (webhook *MachineDeployment) validate(oldMD, newMD *clusterv1.MachineDeployment) error {
 	var allErrs field.ErrorList
 	// The MachineDeployment name is used as a label value. This check ensures names which are not be valid label values are rejected.
-	if errs := validation.IsValidLabelValue(newMD.Name); len(errs) != 0 {
+	if errs := content.IsLabelValue(newMD.Name); len(errs) != 0 {
 		for _, err := range errs {
 			allErrs = append(
 				allErrs,

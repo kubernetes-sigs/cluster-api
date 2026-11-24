@@ -21,7 +21,7 @@ import (
 	"strings"
 	"testing"
 
-	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	apiextensionsv1 "k8s.io/apiextensions-api/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/apimachinery/pkg/util/version"
 	"k8s.io/utils/ptr"
@@ -159,7 +159,7 @@ func Test_ValidateClusterClassVariables(t *testing.T) {
 				},
 			},
 			wantErrs: []validationMatch{
-				invalid("compilation failed: ERROR: <input>:1:3: undeclared reference to 'ip' (in container '')",
+				invalid("compilation failed: ERROR: <input>:1:3: undeclared reference to 'ip'",
 					"spec.variables[someIP].schema.openAPIV3Schema.x-kubernetes-validations[0].rule"),
 			},
 		},
@@ -232,7 +232,7 @@ func Test_ValidateClusterClassVariables(t *testing.T) {
 				},
 			},
 			wantErrs: []validationMatch{
-				invalid("compilation failed: ERROR: <input>:1:3: undeclared reference to 'ip' (in container '')",
+				invalid("compilation failed: ERROR: <input>:1:3: undeclared reference to 'ip'",
 					"spec.variables[someIP].schema.openAPIV3Schema.x-kubernetes-validations[0].rule"),
 			},
 		},
@@ -255,7 +255,7 @@ func Test_ValidateClusterClassVariables(t *testing.T) {
 				},
 			},
 			wantErrs: []validationMatch{
-				invalid("messageExpression compilation failed: ERROR: <input>:1:26: undeclared reference to 'ip' (in container '')",
+				invalid("messageExpression compilation failed: ERROR: <input>:1:26: undeclared reference to 'ip'",
 					"spec.variables[someIP].schema.openAPIV3Schema.x-kubernetes-validations[0].messageExpression"),
 			},
 		},
@@ -332,7 +332,7 @@ func Test_ValidateClusterClassVariables(t *testing.T) {
 				},
 			},
 			wantErrs: []validationMatch{
-				invalid("messageExpression compilation failed: ERROR: <input>:1:26: undeclared reference to 'ip' (in container '')",
+				invalid("messageExpression compilation failed: ERROR: <input>:1:26: undeclared reference to 'ip'",
 					"spec.variables[someIP].schema.openAPIV3Schema.x-kubernetes-validations[0].messageExpression"),
 			},
 		},
@@ -2968,6 +2968,10 @@ func toolong(containsString string, path string) validationMatch {
 
 func toomany(containsString string, path string) validationMatch {
 	return validationMatch{containsString: containsString, Field: field.NewPath(strings.Split(path, ".")[0], strings.Split(path, ".")[1:]...), Type: field.ErrorTypeTooMany}
+}
+
+func toofew(containsString string, path string) validationMatch {
+	return validationMatch{containsString: containsString, Field: field.NewPath(strings.Split(path, ".")[0], strings.Split(path, ".")[1:]...), Type: field.ErrorTypeTooFew}
 }
 
 func required(containsString string, path string) validationMatch {

@@ -3383,7 +3383,7 @@ func schema_api_runtime_hooks_v1alpha1_Variable(ref common.ReferenceCallback) co
 					"value": {
 						SchemaProps: spec.SchemaProps{
 							Description: "value of the variable.",
-							Ref:         ref("k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1.JSON"),
+							Ref:         ref("k8s.io/apiextensions-api/pkg/apis/apiextensions/v1.JSON"),
 						},
 					},
 				},
@@ -3391,6 +3391,6 @@ func schema_api_runtime_hooks_v1alpha1_Variable(ref common.ReferenceCallback) co
 			},
 		},
 		Dependencies: []string{
-			"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1.JSON"},
+			"k8s.io/apiextensions-api/pkg/apis/apiextensions/v1.JSON"},
 	}
 }

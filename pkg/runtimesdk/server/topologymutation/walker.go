@@ -23,7 +23,7 @@ import (
 	mergepatch "github.com/evanphx/json-patch/v5"
 	pkgerrors "github.com/pkg/errors"
 	"gomodules.xyz/jsonpatch/v2"
-	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	apiextensionsv1 "k8s.io/apiextensions-api/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	ctrl "sigs.k8s.io/controller-runtime"

@@ -19,7 +19,7 @@ package variables
 import (
 	"testing"
 
-	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	apiextensionsv1 "k8s.io/apiextensions-api/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -1090,7 +1090,7 @@ func Test_ValidateClusterVariable(t *testing.T) {
 		{
 			name: "Error if array is too small",
 			wantErrs: []validationMatch{
-				invalid("Invalid value: \"[\\\"value1\\\",\\\"value2\\\"]\": should have at least 3 items",
+				toofew("Too few: \"[\\\"value1\\\",\\\"value2\\\"]\": must have at least 3 items",
 					"spec.topology.variables[testArray].value"),
 			},
 			clusterClassVariable: &clusterv1.ClusterClassVariable{

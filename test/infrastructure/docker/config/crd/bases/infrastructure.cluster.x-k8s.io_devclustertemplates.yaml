@@ -127,7 +127,7 @@ spec:
                                       name:
                                         default: ""
                                         description: |-
-                                          Name of the referent.
+                                          name of the referent.
                                           This field is effectively required, but due to backwards compatibility is
                                           allowed to be empty. Instances of this type with an empty value here are
                                           almost certainly wrong.
@@ -305,7 +305,7 @@ spec:
                                       name:
                                         default: ""
                                         description: |-
-                                          Name of the referent.
+                                          name of the referent.
                                           This field is effectively required, but due to backwards compatibility is
                                           allowed to be empty. Instances of this type with an empty value here are
                                           almost certainly wrong.

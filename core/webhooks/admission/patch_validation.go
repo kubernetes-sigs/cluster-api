@@ -25,8 +25,8 @@ import (
 
 	"github.com/Masterminds/sprig/v3"
 	pkgerrors "github.com/pkg/errors"
+	"k8s.io/apimachinery/pkg/api/validate/content"
 	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/utils/ptr"
 
@@ -300,7 +300,7 @@ func validateSelectorName(name string, path *field.Path, resourceName string, in
 				"\"*\" rune can only appear at the beginning, or ending of the selector")
 		}
 		// a valid selector without "*" should comply with Kubernetes naming standards.
-		if validation.IsQualifiedName(strings.ReplaceAll(name, "*", "a")) != nil {
+		if content.IsLabelKey(strings.ReplaceAll(name, "*", "a")) != nil {
 			return field.Invalid(
 				path.Child("matchResources", resourceName, "names").Index(index),
 				name,

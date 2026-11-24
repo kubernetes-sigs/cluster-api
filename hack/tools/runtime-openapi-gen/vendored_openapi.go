@@ -17,7 +17,7 @@ limitations under the License.
 package main
 
 import (
-	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	apiextensionsv1 "k8s.io/apiextensions-api/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/kube-openapi/pkg/common"
@@ -33,7 +33,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"k8s.io/api/core/v1.NodeSwapStatus":                             schema_k8sio_api_core_v1_NodeSwapStatus(ref),
 		"k8s.io/api/core/v1.NodeSystemInfo":                             schema_k8sio_api_core_v1_NodeSystemInfo(ref),
 		"k8s.io/api/core/v1.ObjectReference":                            schema_k8sio_api_core_v1_ObjectReference(ref),
-		"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1.JSON": schema_pkg_apis_apiextensions_v1_JSON(ref),
+		"k8s.io/apiextensions-api/pkg/apis/apiextensions/v1.JSON":       schema_pkg_apis_apiextensions_v1_JSON(ref),
 		"k8s.io/apimachinery/pkg/apis/meta/v1.Duration":                 schema_pkg_apis_meta_v1_Duration(ref),
 		"k8s.io/apimachinery/pkg/apis/meta/v1.FieldsV1":                 schema_pkg_apis_meta_v1_FieldsV1(ref),
 		"k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector":            schema_pkg_apis_meta_v1_LabelSelector(ref),

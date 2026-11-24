@@ -21,7 +21,7 @@ import (
 	"fmt"
 
 	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions"
-	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	apiextensionsserverv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/utils/ptr"
 
@@ -66,7 +66,7 @@ func convertToAPIExtensionsJSONSchemaProps(schema *clusterv1.JSONSchemaProps, fl
 				fmt.Sprintf("default is not valid JSON: %v", err)))
 		} else {
 			var v apiextensions.JSON
-			err := apiextensionsv1.Convert_v1_JSON_To_apiextensions_JSON(schema.Default, &v, nil)
+			err := apiextensionsserverv1.Convert_v1_JSON_To_apiextensions_JSON(schema.Default, &v, nil)
 			if err != nil {
 				allErrs = append(allErrs, field.Invalid(fldPath.Child("default"), string(schema.Default.Raw),
 					fmt.Sprintf("failed to convert default: %v", err)))
@@ -88,7 +88,7 @@ func convertToAPIExtensionsJSONSchemaProps(schema *clusterv1.JSONSchemaProps, fl
 					fmt.Sprintf("enum value is not valid JSON: %v", err)))
 			} else {
 				var v apiextensions.JSON
-				err := apiextensionsv1.Convert_v1_JSON_To_apiextensions_JSON(&schema.Enum[i], &v, nil)
+				err := apiextensionsserverv1.Convert_v1_JSON_To_apiextensions_JSON(&schema.Enum[i], &v, nil)
 				if err != nil {
 					allErrs = append(allErrs, field.Invalid(fldPath.Child("enum").Index(i), string(enum.Raw),
 						fmt.Sprintf("failed to convert enum value: %v", err)))
@@ -106,7 +106,7 @@ func convertToAPIExtensionsJSONSchemaProps(schema *clusterv1.JSONSchemaProps, fl
 				fmt.Sprintf("example is not valid JSON: %v", err)))
 		} else {
 			var value apiextensions.JSON
-			err := apiextensionsv1.Convert_v1_JSON_To_apiextensions_JSON(schema.Example, &value, nil)
+			err := apiextensionsserverv1.Convert_v1_JSON_To_apiextensions_JSON(schema.Example, &value, nil)
 			if err != nil {
 				allErrs = append(allErrs, field.Invalid(fldPath.Child("example"), string(schema.Example.Raw),
 					fmt.Sprintf("failed to convert example value: %v", err)))

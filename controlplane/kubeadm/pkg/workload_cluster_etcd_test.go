@@ -83,10 +83,8 @@ func TestUpdateEtcdExternalInKubeadmConfigMap(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 			fakeClient := fake.NewClientBuilder().WithObjects(&corev1.ConfigMap{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      kubeadmConfigKey,
-					Namespace: metav1.NamespaceSystem,
-				},
+				Name:      kubeadmConfigKey,
+				Namespace: metav1.NamespaceSystem,
 				Data: map[string]string{
 					clusterConfigurationKey: tt.clusterConfigurationData,
 				},
@@ -162,10 +160,8 @@ func TestUpdateEtcdLocalInKubeadmConfigMap(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 			fakeClient := fake.NewClientBuilder().WithObjects(&corev1.ConfigMap{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      kubeadmConfigKey,
-					Namespace: metav1.NamespaceSystem,
-				},
+				Name:      kubeadmConfigKey,
+				Namespace: metav1.NamespaceSystem,
 				Data: map[string]string{
 					clusterConfigurationKey: tt.clusterConfigurationData,
 				},
@@ -190,12 +186,10 @@ func TestUpdateEtcdLocalInKubeadmConfigMap(t *testing.T) {
 
 func TestRemoveEtcdMember(t *testing.T) {
 	cp1Node := &corev1.Node{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "cp1",
-			Namespace: "cp1",
-			Labels: map[string]string{
-				labelNodeRoleControlPlane: "",
-			},
+		Name:      "cp1",
+		Namespace: "cp1",
+		Labels: map[string]string{
+			labelNodeRoleControlPlane: "",
 		},
 	}
 

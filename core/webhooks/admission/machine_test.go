@@ -20,7 +20,6 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/core/webhooks/admission/testutil"
@@ -30,9 +29,7 @@ func TestMachineDefault(t *testing.T) {
 	g := NewWithT(t)
 
 	m := &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "foobar",
-		},
+		Namespace: "foobar",
 		Spec: clusterv1.MachineSpec{
 			Bootstrap: clusterv1.Bootstrap{ConfigRef: clusterv1.ContractVersionedObjectReference{
 				Name: "bootstrap1",

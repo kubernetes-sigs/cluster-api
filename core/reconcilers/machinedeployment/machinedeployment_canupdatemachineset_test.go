@@ -49,16 +49,12 @@ func Test_canUpdateMachineSetInPlace(t *testing.T) {
 	now := time.Now()
 	ns := metav1.NamespaceDefault
 	oldMS := &clusterv1.MachineSet{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "old-machineset",
-			Namespace: ns,
-		},
+		Name:      "old-machineset",
+		Namespace: ns,
 	}
 	newMS := &clusterv1.MachineSet{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "new-machineset",
-			Namespace: ns,
-		},
+		Name:      "new-machineset",
+		Namespace: ns,
 	}
 	oldMSInfrastructureMachineTemplate := builder.InfrastructureMachineTemplate(ns, "infrastructure-machine-template-1").Build()
 	newMSInfrastructureMachineTemplate := builder.InfrastructureMachineTemplate(ns, "infrastructure-machine-template-2").Build()
@@ -194,9 +190,9 @@ func Test_canUpdateMachineSetInPlace(t *testing.T) {
 			wantCanExtensionsUpdateMachineSetCalled: true,
 			wantCanUpdateMachineSetResult:           canUpdateMachineSetResult{canUpdateMachineSet: false, reasons: []string{"can not update"}, retryAfter: now.Add(5 * time.Minute)},
 			wantCacheEntry: &CanUpdateMachineSetCacheEntry{
-				OldMS:                     client.ObjectKeyFromObject(oldMS),
-				NewMS:                     client.ObjectKeyFromObject(newMS),
-				canUpdateMachineSetResult: canUpdateMachineSetResult{canUpdateMachineSet: false, reasons: []string{"can not update"}, retryAfter: now.Add(5 * time.Minute)},
+				OldMS:               client.ObjectKeyFromObject(oldMS),
+				NewMS:               client.ObjectKeyFromObject(newMS),
+				canUpdateMachineSet: false, reasons: []string{"can not update"}, retryAfter: now.Add(5 * time.Minute),
 			},
 		},
 		{
@@ -219,9 +215,9 @@ func Test_canUpdateMachineSetInPlace(t *testing.T) {
 			wantCanExtensionsUpdateMachineSetCalled: true,
 			wantCanUpdateMachineSetResult:           canUpdateMachineSetResult{canUpdateMachineSet: true, affectsAvailability: true, retryAfter: now.Add(5 * time.Minute)},
 			wantCacheEntry: &CanUpdateMachineSetCacheEntry{
-				OldMS:                     client.ObjectKeyFromObject(oldMS),
-				NewMS:                     client.ObjectKeyFromObject(newMS),
-				canUpdateMachineSetResult: canUpdateMachineSetResult{canUpdateMachineSet: true, affectsAvailability: true, retryAfter: now.Add(5 * time.Minute)},
+				OldMS:               client.ObjectKeyFromObject(oldMS),
+				NewMS:               client.ObjectKeyFromObject(newMS),
+				canUpdateMachineSet: true, affectsAvailability: true, retryAfter: now.Add(5 * time.Minute),
 			},
 		},
 		{
@@ -244,9 +240,9 @@ func Test_canUpdateMachineSetInPlace(t *testing.T) {
 			wantCanExtensionsUpdateMachineSetCalled: true,
 			wantCanUpdateMachineSetResult:           canUpdateMachineSetResult{canUpdateMachineSet: true, affectsAvailability: false, retryAfter: now.Add(5 * time.Minute)},
 			wantCacheEntry: &CanUpdateMachineSetCacheEntry{
-				OldMS:                     client.ObjectKeyFromObject(oldMS),
-				NewMS:                     client.ObjectKeyFromObject(newMS),
-				canUpdateMachineSetResult: canUpdateMachineSetResult{canUpdateMachineSet: true, affectsAvailability: false, retryAfter: now.Add(5 * time.Minute)},
+				OldMS:               client.ObjectKeyFromObject(oldMS),
+				NewMS:               client.ObjectKeyFromObject(newMS),
+				canUpdateMachineSet: true, affectsAvailability: false, retryAfter: now.Add(5 * time.Minute),
 			},
 		},
 
@@ -271,9 +267,9 @@ func Test_canUpdateMachineSetInPlace(t *testing.T) {
 			wantCanExtensionsUpdateMachineSetCalled: true,
 			wantCanUpdateMachineSetResult:           canUpdateMachineSetResult{canUpdateMachineSet: true, allowedOperations: new([]runtimehooksv1.MachineUpdateOperation{runtimehooksv1.MachineUpdateOperationUpdateInPlace}), messages: []string{"only in-place"}, retryAfter: now.Add(5 * time.Minute)},
 			wantCacheEntry: &CanUpdateMachineSetCacheEntry{
-				OldMS:                     client.ObjectKeyFromObject(oldMS),
-				NewMS:                     client.ObjectKeyFromObject(newMS),
-				canUpdateMachineSetResult: canUpdateMachineSetResult{canUpdateMachineSet: true, allowedOperations: new([]runtimehooksv1.MachineUpdateOperation{runtimehooksv1.MachineUpdateOperationUpdateInPlace}), messages: []string{"only in-place"}, retryAfter: now.Add(5 * time.Minute)},
+				OldMS:               client.ObjectKeyFromObject(oldMS),
+				NewMS:               client.ObjectKeyFromObject(newMS),
+				canUpdateMachineSet: true, allowedOperations: new([]runtimehooksv1.MachineUpdateOperation{runtimehooksv1.MachineUpdateOperationUpdateInPlace}), messages: []string{"only in-place"}, retryAfter: now.Add(5 * time.Minute),
 			},
 		},
 		{
@@ -296,9 +292,9 @@ func Test_canUpdateMachineSetInPlace(t *testing.T) {
 			wantCanExtensionsUpdateMachineSetCalled: true,
 			wantCanUpdateMachineSetResult:           canUpdateMachineSetResult{allowedOperations: new([]runtimehooksv1.MachineUpdateOperation{}), messages: []string{"preflight check failed"}, reasons: []string{"no operation is allowed"}, retryAfter: now.Add(5 * time.Minute)},
 			wantCacheEntry: &CanUpdateMachineSetCacheEntry{
-				OldMS:                     client.ObjectKeyFromObject(oldMS),
-				NewMS:                     client.ObjectKeyFromObject(newMS),
-				canUpdateMachineSetResult: canUpdateMachineSetResult{allowedOperations: new([]runtimehooksv1.MachineUpdateOperation{}), messages: []string{"preflight check failed"}, reasons: []string{"no operation is allowed"}, retryAfter: now.Add(5 * time.Minute)},
+				OldMS:             client.ObjectKeyFromObject(oldMS),
+				NewMS:             client.ObjectKeyFromObject(newMS),
+				allowedOperations: new([]runtimehooksv1.MachineUpdateOperation{}), messages: []string{"preflight check failed"}, reasons: []string{"no operation is allowed"}, retryAfter: now.Add(5 * time.Minute),
 			},
 		},
 
@@ -323,9 +319,9 @@ func Test_canUpdateMachineSetInPlace(t *testing.T) {
 			wantCanExtensionsUpdateMachineSetCalled: true,
 			wantCanUpdateMachineSetResult:           canUpdateMachineSetResult{canUpdateMachineSet: true, affectsAvailability: true, messages: []string{"message 1", "message 2"}, retryAfter: now.Add(10 * time.Second), retryAfterFromExtension: true},
 			wantCacheEntry: &CanUpdateMachineSetCacheEntry{
-				OldMS:                     client.ObjectKeyFromObject(oldMS),
-				NewMS:                     client.ObjectKeyFromObject(newMS),
-				canUpdateMachineSetResult: canUpdateMachineSetResult{canUpdateMachineSet: true, affectsAvailability: true, messages: []string{"message 1", "message 2"}, retryAfter: now.Add(10 * time.Second), retryAfterFromExtension: true},
+				OldMS:               client.ObjectKeyFromObject(oldMS),
+				NewMS:               client.ObjectKeyFromObject(newMS),
+				canUpdateMachineSet: true, affectsAvailability: true, messages: []string{"message 1", "message 2"}, retryAfter: now.Add(10 * time.Second), retryAfterFromExtension: true,
 			},
 		},
 		{
@@ -348,9 +344,9 @@ func Test_canUpdateMachineSetInPlace(t *testing.T) {
 			wantCanExtensionsUpdateMachineSetCalled: true,
 			wantCanUpdateMachineSetResult:           canUpdateMachineSetResult{retryAfter: now.Add(10 * time.Second), retryAfterFromExtension: true},
 			wantCacheEntry: &CanUpdateMachineSetCacheEntry{
-				OldMS:                     client.ObjectKeyFromObject(oldMS),
-				NewMS:                     client.ObjectKeyFromObject(newMS),
-				canUpdateMachineSetResult: canUpdateMachineSetResult{retryAfter: now.Add(10 * time.Second), retryAfterFromExtension: true},
+				OldMS:      client.ObjectKeyFromObject(oldMS),
+				NewMS:      client.ObjectKeyFromObject(newMS),
+				retryAfter: now.Add(10 * time.Second), retryAfterFromExtension: true,
 			},
 		},
 
@@ -388,16 +384,16 @@ func Test_canUpdateMachineSetInPlace(t *testing.T) {
 				canUpdateMachineSetGVH: {"test-update-extension"},
 			},
 			cacheEntry: &CanUpdateMachineSetCacheEntry{
-				OldMS:                     client.ObjectKeyFromObject(oldMS),
-				NewMS:                     client.ObjectKeyFromObject(newMS),
-				canUpdateMachineSetResult: canUpdateMachineSetResult{retryAfter: now.Add(1 * time.Hour), retryAfterFromExtension: true, messages: []string{"waiting for ..."}},
+				OldMS:      client.ObjectKeyFromObject(oldMS),
+				NewMS:      client.ObjectKeyFromObject(newMS),
+				retryAfter: now.Add(1 * time.Hour), retryAfterFromExtension: true, messages: []string{"waiting for ..."},
 			},
 			wantCanExtensionsUpdateMachineSetCalled: false,
 			wantCanUpdateMachineSetResult:           canUpdateMachineSetResult{retryAfter: now.Add(1 * time.Hour), retryAfterFromExtension: true, messages: []string{"waiting for ..."}},
 			wantCacheEntry: &CanUpdateMachineSetCacheEntry{
-				OldMS:                     client.ObjectKeyFromObject(oldMS),
-				NewMS:                     client.ObjectKeyFromObject(newMS),
-				canUpdateMachineSetResult: canUpdateMachineSetResult{retryAfter: now.Add(1 * time.Hour), retryAfterFromExtension: true, messages: []string{"waiting for ..."}},
+				OldMS:      client.ObjectKeyFromObject(oldMS),
+				NewMS:      client.ObjectKeyFromObject(newMS),
+				retryAfter: now.Add(1 * time.Hour), retryAfterFromExtension: true, messages: []string{"waiting for ..."},
 			},
 		},
 		{
@@ -412,16 +408,16 @@ func Test_canUpdateMachineSetInPlace(t *testing.T) {
 				canUpdateMachineSetGVH: {"test-update-extension"},
 			},
 			cacheEntry: &CanUpdateMachineSetCacheEntry{
-				OldMS:                     client.ObjectKeyFromObject(oldMS),
-				NewMS:                     client.ObjectKeyFromObject(newMS),
-				canUpdateMachineSetResult: canUpdateMachineSetResult{retryAfter: now.Add(10 * time.Minute), canUpdateMachineSet: false, reasons: []string{"cached reason"}, messages: []string{"cached message"}},
+				OldMS:      client.ObjectKeyFromObject(oldMS),
+				NewMS:      client.ObjectKeyFromObject(newMS),
+				retryAfter: now.Add(10 * time.Minute), canUpdateMachineSet: false, reasons: []string{"cached reason"}, messages: []string{"cached message"},
 			},
 			wantCanExtensionsUpdateMachineSetCalled: false,
 			wantCanUpdateMachineSetResult:           canUpdateMachineSetResult{retryAfter: now.Add(10 * time.Minute), canUpdateMachineSet: false, reasons: []string{"cached reason"}, messages: []string{"cached message"}},
 			wantCacheEntry: &CanUpdateMachineSetCacheEntry{
-				OldMS:                     client.ObjectKeyFromObject(oldMS),
-				NewMS:                     client.ObjectKeyFromObject(newMS),
-				canUpdateMachineSetResult: canUpdateMachineSetResult{retryAfter: now.Add(10 * time.Minute), canUpdateMachineSet: false, reasons: []string{"cached reason"}, messages: []string{"cached message"}},
+				OldMS:      client.ObjectKeyFromObject(oldMS),
+				NewMS:      client.ObjectKeyFromObject(newMS),
+				retryAfter: now.Add(10 * time.Minute), canUpdateMachineSet: false, reasons: []string{"cached reason"}, messages: []string{"cached message"},
 			},
 		},
 		{
@@ -436,16 +432,16 @@ func Test_canUpdateMachineSetInPlace(t *testing.T) {
 				canUpdateMachineSetGVH: {"test-update-extension"},
 			},
 			cacheEntry: &CanUpdateMachineSetCacheEntry{
-				OldMS:                     client.ObjectKeyFromObject(oldMS),
-				NewMS:                     client.ObjectKeyFromObject(newMS),
-				canUpdateMachineSetResult: canUpdateMachineSetResult{retryAfter: now.Add(10 * time.Minute), canUpdateMachineSet: true, affectsAvailability: true, messages: []string{"cached message"}},
+				OldMS:      client.ObjectKeyFromObject(oldMS),
+				NewMS:      client.ObjectKeyFromObject(newMS),
+				retryAfter: now.Add(10 * time.Minute), canUpdateMachineSet: true, affectsAvailability: true, messages: []string{"cached message"},
 			},
 			wantCanExtensionsUpdateMachineSetCalled: false,
 			wantCanUpdateMachineSetResult:           canUpdateMachineSetResult{retryAfter: now.Add(10 * time.Minute), canUpdateMachineSet: true, affectsAvailability: true, messages: []string{"cached message"}},
 			wantCacheEntry: &CanUpdateMachineSetCacheEntry{
-				OldMS:                     client.ObjectKeyFromObject(oldMS),
-				NewMS:                     client.ObjectKeyFromObject(newMS),
-				canUpdateMachineSetResult: canUpdateMachineSetResult{retryAfter: now.Add(10 * time.Minute), canUpdateMachineSet: true, affectsAvailability: true, messages: []string{"cached message"}},
+				OldMS:      client.ObjectKeyFromObject(oldMS),
+				NewMS:      client.ObjectKeyFromObject(newMS),
+				retryAfter: now.Add(10 * time.Minute), canUpdateMachineSet: true, affectsAvailability: true, messages: []string{"cached message"},
 			},
 		},
 		{
@@ -460,16 +456,16 @@ func Test_canUpdateMachineSetInPlace(t *testing.T) {
 				canUpdateMachineSetGVH: {"test-update-extension"},
 			},
 			cacheEntry: &CanUpdateMachineSetCacheEntry{
-				OldMS:                     client.ObjectKeyFromObject(oldMS),
-				NewMS:                     client.ObjectKeyFromObject(newMS),
-				canUpdateMachineSetResult: canUpdateMachineSetResult{retryAfter: now.Add(2 * time.Minute), allowedOperations: new([]runtimehooksv1.MachineUpdateOperation{}), messages: []string{"cached message"}},
+				OldMS:      client.ObjectKeyFromObject(oldMS),
+				NewMS:      client.ObjectKeyFromObject(newMS),
+				retryAfter: now.Add(2 * time.Minute), allowedOperations: new([]runtimehooksv1.MachineUpdateOperation{}), messages: []string{"cached message"},
 			},
 			wantCanExtensionsUpdateMachineSetCalled: false,
 			wantCanUpdateMachineSetResult:           canUpdateMachineSetResult{retryAfter: now.Add(2 * time.Minute), allowedOperations: new([]runtimehooksv1.MachineUpdateOperation{}), messages: []string{"cached message"}},
 			wantCacheEntry: &CanUpdateMachineSetCacheEntry{
-				OldMS:                     client.ObjectKeyFromObject(oldMS),
-				NewMS:                     client.ObjectKeyFromObject(newMS),
-				canUpdateMachineSetResult: canUpdateMachineSetResult{retryAfter: now.Add(2 * time.Minute), allowedOperations: new([]runtimehooksv1.MachineUpdateOperation{}), messages: []string{"cached message"}},
+				OldMS:      client.ObjectKeyFromObject(oldMS),
+				NewMS:      client.ObjectKeyFromObject(newMS),
+				retryAfter: now.Add(2 * time.Minute), allowedOperations: new([]runtimehooksv1.MachineUpdateOperation{}), messages: []string{"cached message"},
 			},
 		},
 		{
@@ -484,9 +480,9 @@ func Test_canUpdateMachineSetInPlace(t *testing.T) {
 				canUpdateMachineSetGVH: {"test-update-extension"},
 			},
 			cacheEntry: &CanUpdateMachineSetCacheEntry{
-				OldMS:                     client.ObjectKeyFromObject(oldMS),
-				NewMS:                     client.ObjectKeyFromObject(newMS),
-				canUpdateMachineSetResult: canUpdateMachineSetResult{retryAfter: now.Add(-1 * time.Second), retryAfterFromExtension: true, messages: []string{"waiting for the update plan"}},
+				OldMS:      client.ObjectKeyFromObject(oldMS),
+				NewMS:      client.ObjectKeyFromObject(newMS),
+				retryAfter: now.Add(-1 * time.Second), retryAfterFromExtension: true, messages: []string{"waiting for the update plan"},
 			},
 			canExtensionsUpdateMachineSetFunc: func(_ context.Context, _, _ *clusterv1.MachineSet, _ *templateObjects, extensionHandlers []string) (canUpdateMachineSetResult, error) {
 				if len(extensionHandlers) != 1 || extensionHandlers[0] != "test-update-extension" {
@@ -497,9 +493,9 @@ func Test_canUpdateMachineSetInPlace(t *testing.T) {
 			wantCanExtensionsUpdateMachineSetCalled: true,
 			wantCanUpdateMachineSetResult:           canUpdateMachineSetResult{canUpdateMachineSet: true, retryAfter: now.Add(5 * time.Minute)},
 			wantCacheEntry: &CanUpdateMachineSetCacheEntry{
-				OldMS:                     client.ObjectKeyFromObject(oldMS),
-				NewMS:                     client.ObjectKeyFromObject(newMS),
-				canUpdateMachineSetResult: canUpdateMachineSetResult{canUpdateMachineSet: true, retryAfter: now.Add(5 * time.Minute)},
+				OldMS:               client.ObjectKeyFromObject(oldMS),
+				NewMS:               client.ObjectKeyFromObject(newMS),
+				canUpdateMachineSet: true, retryAfter: now.Add(5 * time.Minute),
 			},
 		},
 		{
@@ -514,13 +510,11 @@ func Test_canUpdateMachineSetInPlace(t *testing.T) {
 				canUpdateMachineSetGVH: {"test-update-extension"},
 			},
 			cacheEntry: &CanUpdateMachineSetCacheEntry{
-				OldMS: client.ObjectKeyFromObject(oldMS),
-				NewMS: client.ObjectKey{Namespace: metav1.NamespaceDefault, Name: "other-new-machineset"},
-				canUpdateMachineSetResult: canUpdateMachineSetResult{
-					retryAfter:          now.Add(10 * time.Minute),
-					canUpdateMachineSet: false,
-					reasons:             []string{"cached reason"},
-				},
+				OldMS:               client.ObjectKeyFromObject(oldMS),
+				NewMS:               client.ObjectKey{Namespace: metav1.NamespaceDefault, Name: "other-new-machineset"},
+				retryAfter:          now.Add(10 * time.Minute),
+				canUpdateMachineSet: false,
+				reasons:             []string{"cached reason"},
 			},
 			canExtensionsUpdateMachineSetFunc: func(_ context.Context, _, _ *clusterv1.MachineSet, _ *templateObjects, extensionHandlers []string) (canUpdateMachineSetResult, error) {
 				if len(extensionHandlers) != 1 || extensionHandlers[0] != "test-update-extension" {
@@ -531,9 +525,9 @@ func Test_canUpdateMachineSetInPlace(t *testing.T) {
 			wantCanExtensionsUpdateMachineSetCalled: true,
 			wantCanUpdateMachineSetResult:           canUpdateMachineSetResult{canUpdateMachineSet: true, retryAfter: now.Add(5 * time.Minute)},
 			wantCacheEntry: &CanUpdateMachineSetCacheEntry{
-				OldMS:                     client.ObjectKeyFromObject(oldMS),
-				NewMS:                     client.ObjectKeyFromObject(newMS),
-				canUpdateMachineSetResult: canUpdateMachineSetResult{canUpdateMachineSet: true, retryAfter: now.Add(5 * time.Minute)},
+				OldMS:               client.ObjectKeyFromObject(oldMS),
+				NewMS:               client.ObjectKeyFromObject(newMS),
+				canUpdateMachineSet: true, retryAfter: now.Add(5 * time.Minute),
 			},
 		},
 	}
@@ -695,7 +689,7 @@ func Test_canExtensionsUpdateMachineSet(t *testing.T) {
 	_ = unstructured.SetNestedField(desiredInfraMachineTemplate.Object, "in-place updated world InfraMachineTemplate", "spec", "template", "spec", "hello")
 
 	responseWithEmptyPatches := &runtimehooksv1.CanUpdateMachineSetResponse{
-		CommonRetryResponse: runtimehooksv1.CommonRetryResponse{CommonResponse: runtimehooksv1.CommonResponse{Status: runtimehooksv1.ResponseStatusSuccess, Message: "no changes handled"}},
+		Status: runtimehooksv1.ResponseStatusSuccess, Message: "no changes handled",
 		MachineSetPatch: runtimehooksv1.Patch{
 			PatchType: runtimehooksv1.JSONPatchType,
 			Patch:     []byte("[]"),
@@ -867,7 +861,7 @@ func Test_canExtensionsUpdateMachineSet(t *testing.T) {
 			extensionHandlers: []string{"test-update-extension"},
 			callExtensionResponses: map[string]runtimehooksv1.ResponseObject{
 				"test-update-extension": &runtimehooksv1.CanUpdateMachineSetResponse{
-					CommonRetryResponse:                runtimehooksv1.CommonRetryResponse{CommonResponse: runtimehooksv1.CommonResponse{Status: runtimehooksv1.ResponseStatusSuccess}},
+					Status:                             runtimehooksv1.ResponseStatusSuccess,
 					MachineSetPatch:                    patchToUpdateMachineSet,
 					InfrastructureMachineTemplatePatch: patchToUpdateInfraMachineTemplate,
 					BootstrapConfigTemplatePatch:       patchToUpdateBootstrapConfigTemplate,
@@ -888,17 +882,17 @@ func Test_canExtensionsUpdateMachineSet(t *testing.T) {
 			extensionHandlers: []string{"test-update-extension-1", "test-update-extension-2", "test-update-extension-3"},
 			callExtensionResponses: map[string]runtimehooksv1.ResponseObject{
 				"test-update-extension-1": &runtimehooksv1.CanUpdateMachineSetResponse{
-					CommonRetryResponse: runtimehooksv1.CommonRetryResponse{CommonResponse: runtimehooksv1.CommonResponse{Status: runtimehooksv1.ResponseStatusSuccess}},
+					Status:              runtimehooksv1.ResponseStatusSuccess,
 					MachineSetPatch:     patchToUpdateMachineSet,
 					AffectsAvailability: new(false),
 				},
 				"test-update-extension-2": &runtimehooksv1.CanUpdateMachineSetResponse{
-					CommonRetryResponse:                runtimehooksv1.CommonRetryResponse{CommonResponse: runtimehooksv1.CommonResponse{Status: runtimehooksv1.ResponseStatusSuccess}},
+					Status:                             runtimehooksv1.ResponseStatusSuccess,
 					InfrastructureMachineTemplatePatch: patchToUpdateInfraMachineTemplate,
 					// AffectsAvailability not set => defaults to true.
 				},
 				"test-update-extension-3": &runtimehooksv1.CanUpdateMachineSetResponse{
-					CommonRetryResponse:          runtimehooksv1.CommonRetryResponse{CommonResponse: runtimehooksv1.CommonResponse{Status: runtimehooksv1.ResponseStatusSuccess}},
+					Status:                       runtimehooksv1.ResponseStatusSuccess,
 					BootstrapConfigTemplatePatch: patchToUpdateBootstrapConfigTemplate,
 					AffectsAvailability:          new(false),
 				},
@@ -937,7 +931,7 @@ func Test_canExtensionsUpdateMachineSet(t *testing.T) {
 			extensionHandlers: []string{"test-update-extension"},
 			callExtensionResponses: map[string]runtimehooksv1.ResponseObject{
 				"test-update-extension": &runtimehooksv1.CanUpdateMachineSetResponse{
-					CommonRetryResponse:                runtimehooksv1.CommonRetryResponse{CommonResponse: runtimehooksv1.CommonResponse{Status: runtimehooksv1.ResponseStatusSuccess, Message: "only handled the MachineSet"}},
+					Status: runtimehooksv1.ResponseStatusSuccess, Message: "only handled the MachineSet",
 					MachineSetPatch:                    patchToUpdateMachineSet,
 					InfrastructureMachineTemplatePatch: emptyPatch,
 					BootstrapConfigTemplatePatch:       emptyPatch,
@@ -957,7 +951,7 @@ func Test_canExtensionsUpdateMachineSet(t *testing.T) {
 			extensionHandlers: []string{"test-update-extension"},
 			callExtensionResponses: map[string]runtimehooksv1.ResponseObject{
 				"test-update-extension": &runtimehooksv1.CanUpdateMachineSetResponse{
-					CommonRetryResponse:                runtimehooksv1.CommonRetryResponse{CommonResponse: runtimehooksv1.CommonResponse{Status: runtimehooksv1.ResponseStatusSuccess, Message: "waiting for the update plan"}, RetryAfterSeconds: 10},
+					Status: runtimehooksv1.ResponseStatusSuccess, Message: "waiting for the update plan", RetryAfterSeconds: 10,
 					MachineSetPatch:                    patchToUpdateMachineSet,
 					InfrastructureMachineTemplatePatch: patchToUpdateInfraMachineTemplate,
 					BootstrapConfigTemplatePatch:       patchToUpdateBootstrapConfigTemplate,
@@ -979,12 +973,12 @@ func Test_canExtensionsUpdateMachineSet(t *testing.T) {
 			extensionHandlers: []string{"test-update-extension-1", "test-update-extension-2", "test-update-extension-3"},
 			callExtensionResponses: map[string]runtimehooksv1.ResponseObject{
 				"test-update-extension-1": &runtimehooksv1.CanUpdateMachineSetResponse{
-					CommonRetryResponse: runtimehooksv1.CommonRetryResponse{CommonResponse: runtimehooksv1.CommonResponse{Status: runtimehooksv1.ResponseStatusSuccess, Message: "message of extension 1"}},
+					Status: runtimehooksv1.ResponseStatusSuccess, Message: "message of extension 1",
 					MachineSetPatch:     patchToUpdateMachineSet,
 					AffectsAvailability: new(false),
 				},
 				"test-update-extension-2": &runtimehooksv1.CanUpdateMachineSetResponse{
-					CommonRetryResponse: runtimehooksv1.CommonRetryResponse{CommonResponse: runtimehooksv1.CommonResponse{Status: runtimehooksv1.ResponseStatusSuccess, Message: "message of extension 2"}, RetryAfterSeconds: 5},
+					Status: runtimehooksv1.ResponseStatusSuccess, Message: "message of extension 2", RetryAfterSeconds: 5,
 				},
 			},
 			callExtensionExpectedChanges: map[string]func(runtime.Object){
@@ -1009,7 +1003,7 @@ func Test_canExtensionsUpdateMachineSet(t *testing.T) {
 			extensionHandlers: []string{"test-update-extension"},
 			callExtensionResponses: map[string]runtimehooksv1.ResponseObject{
 				"test-update-extension": &runtimehooksv1.CanUpdateMachineSetResponse{
-					CommonRetryResponse:                runtimehooksv1.CommonRetryResponse{CommonResponse: runtimehooksv1.CommonResponse{Status: runtimehooksv1.ResponseStatusSuccess, Message: "only replace"}},
+					Status: runtimehooksv1.ResponseStatusSuccess, Message: "only replace",
 					MachineSetPatch:                    patchToUpdateMachineSet,
 					InfrastructureMachineTemplatePatch: patchToUpdateInfraMachineTemplate,
 					BootstrapConfigTemplatePatch:       patchToUpdateBootstrapConfigTemplate,
@@ -1031,7 +1025,7 @@ func Test_canExtensionsUpdateMachineSet(t *testing.T) {
 			extensionHandlers: []string{"test-update-extension"},
 			callExtensionResponses: map[string]runtimehooksv1.ResponseObject{
 				"test-update-extension": &runtimehooksv1.CanUpdateMachineSetResponse{
-					CommonRetryResponse:                runtimehooksv1.CommonRetryResponse{CommonResponse: runtimehooksv1.CommonResponse{Status: runtimehooksv1.ResponseStatusSuccess, Message: "only handled the MachineSet"}},
+					Status: runtimehooksv1.ResponseStatusSuccess, Message: "only handled the MachineSet",
 					MachineSetPatch:                    patchToUpdateMachineSet,
 					InfrastructureMachineTemplatePatch: emptyPatch,
 					BootstrapConfigTemplatePatch:       emptyPatch,
@@ -1052,7 +1046,7 @@ func Test_canExtensionsUpdateMachineSet(t *testing.T) {
 			extensionHandlers: []string{"test-update-extension"},
 			callExtensionResponses: map[string]runtimehooksv1.ResponseObject{
 				"test-update-extension": &runtimehooksv1.CanUpdateMachineSetResponse{
-					CommonRetryResponse:                runtimehooksv1.CommonRetryResponse{CommonResponse: runtimehooksv1.CommonResponse{Status: runtimehooksv1.ResponseStatusSuccess, Message: "preflight check failed"}},
+					Status: runtimehooksv1.ResponseStatusSuccess, Message: "preflight check failed",
 					MachineSetPatch:                    patchToUpdateMachineSet,
 					InfrastructureMachineTemplatePatch: patchToUpdateInfraMachineTemplate,
 					BootstrapConfigTemplatePatch:       patchToUpdateBootstrapConfigTemplate,
@@ -1075,14 +1069,14 @@ func Test_canExtensionsUpdateMachineSet(t *testing.T) {
 			extensionHandlers: []string{"test-update-extension-1", "test-update-extension-2", "test-update-extension-3"},
 			callExtensionResponses: map[string]runtimehooksv1.ResponseObject{
 				"test-update-extension-1": &runtimehooksv1.CanUpdateMachineSetResponse{
-					CommonRetryResponse: runtimehooksv1.CommonRetryResponse{CommonResponse: runtimehooksv1.CommonResponse{Status: runtimehooksv1.ResponseStatusSuccess, Message: "message of extension 1"}},
+					Status: runtimehooksv1.ResponseStatusSuccess, Message: "message of extension 1",
 					MachineSetPatch:     patchToUpdateMachineSet,
 					AffectsAvailability: new(false),
 					AllowedOperations:   new([]runtimehooksv1.MachineUpdateOperation{runtimehooksv1.MachineUpdateOperationUpdateInPlace}),
 				},
 				"test-update-extension-2": &runtimehooksv1.CanUpdateMachineSetResponse{
-					CommonRetryResponse: runtimehooksv1.CommonRetryResponse{CommonResponse: runtimehooksv1.CommonResponse{Status: runtimehooksv1.ResponseStatusSuccess, Message: "message of extension 2"}},
-					AllowedOperations:   new([]runtimehooksv1.MachineUpdateOperation{runtimehooksv1.MachineUpdateOperationReplace}),
+					Status: runtimehooksv1.ResponseStatusSuccess, Message: "message of extension 2",
+					AllowedOperations: new([]runtimehooksv1.MachineUpdateOperation{runtimehooksv1.MachineUpdateOperationReplace}),
 				},
 			},
 			callExtensionExpectedChanges: map[string]func(runtime.Object){
@@ -1107,8 +1101,8 @@ func Test_canExtensionsUpdateMachineSet(t *testing.T) {
 			extensionHandlers: []string{"test-update-extension"},
 			callExtensionResponses: map[string]runtimehooksv1.ResponseObject{
 				"test-update-extension": &runtimehooksv1.CanUpdateMachineSetResponse{
-					CommonRetryResponse: runtimehooksv1.CommonRetryResponse{CommonResponse: runtimehooksv1.CommonResponse{Status: runtimehooksv1.ResponseStatusSuccess, Message: "waiting for the update plan"}, RetryAfterSeconds: 10},
-					AllowedOperations:   new([]runtimehooksv1.MachineUpdateOperation{}),
+					Status: runtimehooksv1.ResponseStatusSuccess, Message: "waiting for the update plan", RetryAfterSeconds: 10,
+					AllowedOperations: new([]runtimehooksv1.MachineUpdateOperation{}),
 				},
 			},
 			wantCanUpdateMachineSetResult: canUpdateMachineSetResult{messages: []string{"waiting for the update plan"}, retryAfter: now.Add(10 * time.Second), retryAfterFromExtension: true},
@@ -1125,10 +1119,8 @@ func Test_canExtensionsUpdateMachineSet(t *testing.T) {
 			extensionHandlers: []string{"test-update-extension"},
 			callExtensionResponses: map[string]runtimehooksv1.ResponseObject{
 				"test-update-extension": &runtimehooksv1.CanUpdateMachineSetResponse{
-					CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
-						CommonResponse:    runtimehooksv1.CommonResponse{Status: runtimehooksv1.ResponseStatusFailure, Message: "failed"},
-						RetryAfterSeconds: 10,
-					},
+					Status: runtimehooksv1.ResponseStatusFailure, Message: "failed",
+					RetryAfterSeconds: 10,
 				},
 			},
 			wantError:        true,
@@ -1147,17 +1139,17 @@ func Test_canExtensionsUpdateMachineSet(t *testing.T) {
 			extensionHandlers: []string{"test-update-extension-1", "test-update-extension-2", "test-update-extension-3"},
 			callExtensionResponses: map[string]runtimehooksv1.ResponseObject{
 				"test-update-extension-1": &runtimehooksv1.CanUpdateMachineSetResponse{
-					CommonRetryResponse: runtimehooksv1.CommonRetryResponse{CommonResponse: runtimehooksv1.CommonResponse{Status: runtimehooksv1.ResponseStatusSuccess}},
+					Status:              runtimehooksv1.ResponseStatusSuccess,
 					MachineSetPatch:     patchToUpdateMachineSet,
 					AffectsAvailability: new(false),
 				},
 				"test-update-extension-2": &runtimehooksv1.CanUpdateMachineSetResponse{
-					CommonRetryResponse:                runtimehooksv1.CommonRetryResponse{CommonResponse: runtimehooksv1.CommonResponse{Status: runtimehooksv1.ResponseStatusSuccess}},
+					Status:                             runtimehooksv1.ResponseStatusSuccess,
 					InfrastructureMachineTemplatePatch: patchToUpdateInfraMachineTemplate,
 					AffectsAvailability:                new(false),
 				},
 				"test-update-extension-3": &runtimehooksv1.CanUpdateMachineSetResponse{
-					CommonRetryResponse:          runtimehooksv1.CommonRetryResponse{CommonResponse: runtimehooksv1.CommonResponse{Status: runtimehooksv1.ResponseStatusSuccess}},
+					Status:                       runtimehooksv1.ResponseStatusSuccess,
 					BootstrapConfigTemplatePatch: patchToUpdateBootstrapConfigTemplate,
 					AffectsAvailability:          new(false),
 				},
@@ -1196,17 +1188,17 @@ func Test_canExtensionsUpdateMachineSet(t *testing.T) {
 			extensionHandlers: []string{"test-update-extension-1", "test-update-extension-2", "test-update-extension-3"},
 			callExtensionResponses: map[string]runtimehooksv1.ResponseObject{
 				"test-update-extension-1": &runtimehooksv1.CanUpdateMachineSetResponse{
-					CommonRetryResponse: runtimehooksv1.CommonRetryResponse{CommonResponse: runtimehooksv1.CommonResponse{Status: runtimehooksv1.ResponseStatusSuccess}},
+					Status:              runtimehooksv1.ResponseStatusSuccess,
 					MachineSetPatch:     patchToUpdateMachineSet,
 					AffectsAvailability: new(false),
 				},
 				"test-update-extension-2": &runtimehooksv1.CanUpdateMachineSetResponse{
-					CommonRetryResponse:                runtimehooksv1.CommonRetryResponse{CommonResponse: runtimehooksv1.CommonResponse{Status: runtimehooksv1.ResponseStatusSuccess}},
+					Status:                             runtimehooksv1.ResponseStatusSuccess,
 					InfrastructureMachineTemplatePatch: patchToUpdateInfraMachineTemplate,
 					AffectsAvailability:                new(true),
 				},
 				"test-update-extension-3": &runtimehooksv1.CanUpdateMachineSetResponse{
-					CommonRetryResponse:          runtimehooksv1.CommonRetryResponse{CommonResponse: runtimehooksv1.CommonResponse{Status: runtimehooksv1.ResponseStatusSuccess}},
+					Status:                       runtimehooksv1.ResponseStatusSuccess,
 					BootstrapConfigTemplatePatch: patchToUpdateBootstrapConfigTemplate,
 					AffectsAvailability:          new(false),
 				},
@@ -1431,24 +1423,22 @@ func Test_createRequest(t *testing.T) {
 	// Note: In contrast to KCP, createRequest for MachineSets is a pure function: There is no SSA dry-run, no up-to-date result
 	// and no cannotUpdateMachineReason, so only the cleanup of the objects that are sent to the extension has to be covered.
 	oldMS := &clusterv1.MachineSet{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "old-machineset",
-			Namespace: metav1.NamespaceDefault,
-			Labels: map[string]string{
-				clusterv1.ClusterNameLabel: "cluster-1",
-				"label-1":                  "label-value-1",
-			},
-			Annotations: map[string]string{
-				"annotation-1": "annotation-value-1",
-			},
-			// Fields that must not be part of the request.
-			UID:             "old-machineset-uid",
-			ResourceVersion: "1",
-			Generation:      3,
-			ManagedFields:   []metav1.ManagedFieldsEntry{{Manager: "manager"}},
-			OwnerReferences: []metav1.OwnerReference{{Name: "machine-deployment"}},
-			Finalizers:      []string{"finalizer"},
+		Name:      "old-machineset",
+		Namespace: metav1.NamespaceDefault,
+		Labels: map[string]string{
+			clusterv1.ClusterNameLabel: "cluster-1",
+			"label-1":                  "label-value-1",
 		},
+		Annotations: map[string]string{
+			"annotation-1": "annotation-value-1",
+		},
+		// Fields that must not be part of the request.
+		UID:             "old-machineset-uid",
+		ResourceVersion: "1",
+		Generation:      3,
+		ManagedFields:   []metav1.ManagedFieldsEntry{{Manager: "manager"}},
+		OwnerReferences: []metav1.OwnerReference{{Name: "machine-deployment"}},
+		Finalizers:      []string{"finalizer"},
 		Spec: clusterv1.MachineSetSpec{
 			ClusterName: "cluster-1",
 			Template: clusterv1.MachineTemplateSpec{
@@ -1482,17 +1472,13 @@ func Test_createRequest(t *testing.T) {
 	newMS.Spec.Template.Spec.InfrastructureRef.Name = "infrastructure-machine-template-2"
 
 	oldMSCleanedUp := &clusterv1.MachineSet{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: clusterv1.GroupVersion.String(),
-			Kind:       "MachineSet",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:        oldMS.Name,
-			Namespace:   oldMS.Namespace,
-			Labels:      oldMS.Labels,
-			Annotations: oldMS.Annotations,
-		},
-		Spec: oldMS.Spec,
+		APIVersion:  clusterv1.GroupVersion.String(),
+		Kind:        "MachineSet",
+		Name:        oldMS.Name,
+		Namespace:   oldMS.Namespace,
+		Labels:      oldMS.Labels,
+		Annotations: oldMS.Annotations,
+		Spec:        oldMS.Spec,
 	}
 	newMSCleanedUp := oldMSCleanedUp.DeepCopy()
 	newMSCleanedUp.Name = newMS.Name
@@ -1636,14 +1622,10 @@ func Test_createRequest(t *testing.T) {
 func Test_applyPatchesToRequest(t *testing.T) {
 	currentMachineSet := &clusterv1.MachineSet{
 		// Set GVK because this is required by convertToRawExtension.
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: clusterv1.GroupVersion.String(),
-			Kind:       "MachineSet",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "machineset-to-in-place-update",
-			Namespace: metav1.NamespaceDefault,
-		},
+		APIVersion: clusterv1.GroupVersion.String(),
+		Kind:       "MachineSet",
+		Name:       "machineset-to-in-place-update",
+		Namespace:  metav1.NamespaceDefault,
 		Spec: clusterv1.MachineSetSpec{
 			Template: clusterv1.MachineTemplateSpec{
 				Spec: clusterv1.MachineSpec{
@@ -1696,7 +1678,7 @@ func Test_applyPatchesToRequest(t *testing.T) {
 	_ = unstructured.SetNestedField(patchedInfraMachineTemplate.Object, "in-place updated world InfraMachineTemplate", "spec", "template", "spec", "hello")
 
 	responseWithEmptyPatches := &runtimehooksv1.CanUpdateMachineSetResponse{
-		CommonRetryResponse: runtimehooksv1.CommonRetryResponse{CommonResponse: runtimehooksv1.CommonResponse{Status: runtimehooksv1.ResponseStatusSuccess}},
+		Status: runtimehooksv1.ResponseStatusSuccess,
 		MachineSetPatch: runtimehooksv1.Patch{
 			PatchType: runtimehooksv1.JSONPatchType,
 			Patch:     []byte("[]"),
@@ -1783,7 +1765,7 @@ func Test_applyPatchesToRequest(t *testing.T) {
 				},
 			},
 			resp: &runtimehooksv1.CanUpdateMachineSetResponse{
-				CommonRetryResponse:                runtimehooksv1.CommonRetryResponse{CommonResponse: runtimehooksv1.CommonResponse{Status: runtimehooksv1.ResponseStatusSuccess}},
+				Status:                             runtimehooksv1.ResponseStatusSuccess,
 				MachineSetPatch:                    patchToUpdateMachineSet,
 				InfrastructureMachineTemplatePatch: patchToUpdateInfraMachineTemplate,
 				BootstrapConfigTemplatePatch:       patchToUpdateBootstrapConfigTemplate,
@@ -1806,7 +1788,7 @@ func Test_applyPatchesToRequest(t *testing.T) {
 				},
 			},
 			resp: &runtimehooksv1.CanUpdateMachineSetResponse{
-				CommonRetryResponse:                runtimehooksv1.CommonRetryResponse{CommonResponse: runtimehooksv1.CommonResponse{Status: runtimehooksv1.ResponseStatusSuccess}},
+				Status:                             runtimehooksv1.ResponseStatusSuccess,
 				MachineSetPatch:                    jsonMergePatchToUpdateMachineSet,
 				InfrastructureMachineTemplatePatch: jsonMergePatchToUpdateInfraMachineTemplate,
 				BootstrapConfigTemplatePatch:       jsonMergePatchToUpdateBootstrapConfigTemplate,
@@ -1829,7 +1811,7 @@ func Test_applyPatchesToRequest(t *testing.T) {
 				},
 			},
 			resp: &runtimehooksv1.CanUpdateMachineSetResponse{
-				CommonRetryResponse:                runtimehooksv1.CommonRetryResponse{CommonResponse: runtimehooksv1.CommonResponse{Status: runtimehooksv1.ResponseStatusSuccess}},
+				Status:                             runtimehooksv1.ResponseStatusSuccess,
 				MachineSetPatch:                    patchToUpdateMachineSetStatus,
 				InfrastructureMachineTemplatePatch: patchToUpdateInfraMachineTemplateStatus,
 				BootstrapConfigTemplatePatch:       patchToUpdateBootstrapConfigTemplateStatus,
@@ -1852,7 +1834,7 @@ func Test_applyPatchesToRequest(t *testing.T) {
 				},
 			},
 			resp: &runtimehooksv1.CanUpdateMachineSetResponse{
-				CommonRetryResponse: runtimehooksv1.CommonRetryResponse{CommonResponse: runtimehooksv1.CommonResponse{Status: runtimehooksv1.ResponseStatusSuccess}},
+				Status: runtimehooksv1.ResponseStatusSuccess,
 				MachineSetPatch: runtimehooksv1.Patch{
 					// PatchType is missing
 					Patch: []byte(`[{"op":"add","path":"/status","value":{"observedGeneration": 10}}]`),
@@ -1871,7 +1853,7 @@ func Test_applyPatchesToRequest(t *testing.T) {
 				},
 			},
 			resp: &runtimehooksv1.CanUpdateMachineSetResponse{
-				CommonRetryResponse: runtimehooksv1.CommonRetryResponse{CommonResponse: runtimehooksv1.CommonResponse{Status: runtimehooksv1.ResponseStatusSuccess}},
+				Status: runtimehooksv1.ResponseStatusSuccess,
 				MachineSetPatch: runtimehooksv1.Patch{
 					PatchType: "UnknownType",
 					Patch:     []byte(`[{"op":"add","path":"/status","value":{"observedGeneration": 10}}]`),

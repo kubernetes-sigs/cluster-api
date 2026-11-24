@@ -48,10 +48,8 @@ func TestClusterClassExists(t *testing.T) {
 			name: "should return true when checking for an installed cluster class",
 			objs: []client.Object{
 				&clusterv1.ClusterClass{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "clusterclass-installed",
-						Namespace: metav1.NamespaceDefault,
-					},
+					Name:      "clusterclass-installed",
+					Namespace: metav1.NamespaceDefault,
 				},
 			},
 			clusterClass: "clusterclass-installed",
@@ -151,10 +149,8 @@ func TestAddClusterClassIfMissing(t *testing.T) {
 			name:               "should NOT add the cluster class to the template if cluster is initialized and cluster class is installed",
 			clusterInitialized: true,
 			objs: []client.Object{&clusterv1.ClusterClass{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "dev",
-					Namespace: "ns3",
-				},
+				Name:      "dev",
+				Namespace: "ns3",
 			}},
 			targetNamespace:             "ns3",
 			clusterClassTemplateContent: clusterClassYAML("ns3", "dev"),
@@ -189,15 +185,11 @@ func TestAddClusterClassIfMissing(t *testing.T) {
 
 			if tt.clusterInitialized {
 				cluster.WithObjs(&apiextensionsv1.CustomResourceDefinition{
-					TypeMeta: metav1.TypeMeta{
-						APIVersion: apiextensionsv1.SchemeGroupVersion.String(),
-						Kind:       "CustomResourceDefinition",
-					},
-					ObjectMeta: metav1.ObjectMeta{
-						Name: fmt.Sprintf("clusters.%s", clusterv1.GroupVersion.Group),
-						Labels: map[string]string{
-							clusterv1.GroupVersion.String(): clusterv1.GroupVersion.Version,
-						},
+					APIVersion: apiextensionsv1.SchemeGroupVersion.String(),
+					Kind:       "CustomResourceDefinition",
+					Name:       fmt.Sprintf("clusters.%s", clusterv1.GroupVersion.Group),
+					Labels: map[string]string{
+						clusterv1.GroupVersion.String(): clusterv1.GroupVersion.Version,
 					},
 					Spec: apiextensionsv1.CustomResourceDefinitionSpec{
 						Versions: []apiextensionsv1.CustomResourceDefinitionVersion{

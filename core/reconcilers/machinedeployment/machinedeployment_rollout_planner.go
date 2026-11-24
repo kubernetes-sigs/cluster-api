@@ -310,19 +310,17 @@ func computeDesiredMS(ctx context.Context, deployment *clusterv1.MachineDeployme
 
 	// Construct the basic MachineSet.
 	desiredMS := &clusterv1.MachineSet{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: deployment.Namespace,
-			// NOTE: Carry over creationTimestamp from current MS, because it is required by the sorting functions
-			// used in the planning phase, e.g. MachineSetsByCreationTimestamp.
-			// NOTE: For newMS, this value is set to now, but it will be overridden when actual creation happens
-			// NOTE: CreationTimestamp will be dropped from the SSA intent by the SSA helper.
-			CreationTimestamp: creationTimestamp,
-			// Note: By setting the ownerRef on creation we signal to the MachineSet controller that this is not a stand-alone MachineSet.
-			OwnerReferences: []metav1.OwnerReference{*metav1.NewControllerRef(deployment, machineDeploymentKind)},
-			UID:             uid,
-			Finalizers:      finalizers,
-		},
+		Name:      name,
+		Namespace: deployment.Namespace,
+		// NOTE: Carry over creationTimestamp from current MS, because it is required by the sorting functions
+		// used in the planning phase, e.g. MachineSetsByCreationTimestamp.
+		// NOTE: For newMS, this value is set to now, but it will be overridden when actual creation happens
+		// NOTE: CreationTimestamp will be dropped from the SSA intent by the SSA helper.
+		CreationTimestamp: creationTimestamp,
+		// Note: By setting the ownerRef on creation we signal to the MachineSet controller that this is not a stand-alone MachineSet.
+		OwnerReferences: []metav1.OwnerReference{*metav1.NewControllerRef(deployment, machineDeploymentKind)},
+		UID:             uid,
+		Finalizers:      finalizers,
 		Spec: clusterv1.MachineSetSpec{
 			Replicas:    &replicas,
 			ClusterName: deployment.Spec.ClusterName,

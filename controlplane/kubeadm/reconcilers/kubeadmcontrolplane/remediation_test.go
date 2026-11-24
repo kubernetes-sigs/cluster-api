@@ -236,14 +236,12 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 		m := createMachine(ctx, g, ns.Name, "m1-unhealthy-", withMachineHealthCheckFailed())
 		controlPlane := &pkg.ControlPlane{
 			KCP: &controlplanev1.KubeadmControlPlane{
-				ObjectMeta: metav1.ObjectMeta{
-					Annotations: map[string]string{
-						controlplanev1.RemediationInProgressAnnotation: MustMarshalRemediationData(&RemediationData{
-							Machine:    "foo",
-							Timestamp:  metav1.Time{Time: time.Now().UTC()},
-							RetryCount: 0,
-						}),
-					},
+				Annotations: map[string]string{
+					controlplanev1.RemediationInProgressAnnotation: MustMarshalRemediationData(&RemediationData{
+						Machine:    "foo",
+						Timestamp:  metav1.Time{Time: time.Now().UTC()},
+						RetryCount: 0,
+					}),
 				},
 				Spec: controlplanev1.KubeadmControlPlaneSpec{
 					Replicas: new(int32(3)),
@@ -263,16 +261,14 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 		m := createMachine(ctx, g, ns.Name, "m1-healthy-")
 		controlPlane := &pkg.ControlPlane{
 			KCP: &controlplanev1.KubeadmControlPlane{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "kcp",
-					Namespace: ns.Name,
-					Annotations: map[string]string{
-						controlplanev1.RemediationInProgressAnnotation: MustMarshalRemediationData(&RemediationData{
-							Machine:    "foo",
-							Timestamp:  metav1.Time{Time: time.Now().Add(-1 * time.Hour).UTC()},
-							RetryCount: 0,
-						}),
-					},
+				Name:      "kcp",
+				Namespace: ns.Name,
+				Annotations: map[string]string{
+					controlplanev1.RemediationInProgressAnnotation: MustMarshalRemediationData(&RemediationData{
+						Machine:    "foo",
+						Timestamp:  metav1.Time{Time: time.Now().Add(-1 * time.Hour).UTC()},
+						RetryCount: 0,
+					}),
 				},
 				Spec: controlplanev1.KubeadmControlPlaneSpec{
 					Version:         "v1.37.0",
@@ -308,16 +304,14 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 		m := createMachine(ctx, g, ns.Name, "m1-healthy-")
 		controlPlane := &pkg.ControlPlane{
 			KCP: &controlplanev1.KubeadmControlPlane{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "kcp",
-					Namespace: ns.Name,
-					Annotations: map[string]string{
-						controlplanev1.RemediationInProgressAnnotation: MustMarshalRemediationData(&RemediationData{
-							Machine:    "foo",
-							Timestamp:  metav1.Time{Time: time.Now().Add(-1 * time.Hour).UTC()},
-							RetryCount: 0,
-						}),
-					},
+				Name:      "kcp",
+				Namespace: ns.Name,
+				Annotations: map[string]string{
+					controlplanev1.RemediationInProgressAnnotation: MustMarshalRemediationData(&RemediationData{
+						Machine:    "foo",
+						Timestamp:  metav1.Time{Time: time.Now().Add(-1 * time.Hour).UTC()},
+						RetryCount: 0,
+					}),
 				},
 				Spec: kcpSpec,
 			},
@@ -350,16 +344,14 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 		m := createMachine(ctx, g, ns.Name, "m1-unhealthy-", withMachineHealthCheckFailed(), withWaitBeforeDeleteFinalizer())
 		controlPlane := &pkg.ControlPlane{
 			KCP: &controlplanev1.KubeadmControlPlane{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "kcp",
-					Namespace: ns.Name,
-					Annotations: map[string]string{
-						controlplanev1.RemediationInProgressAnnotation: MustMarshalRemediationData(&RemediationData{
-							Machine:    "foo",
-							Timestamp:  metav1.Time{Time: time.Now().Add(-1 * time.Hour).UTC()},
-							RetryCount: 0,
-						}),
-					},
+				Name:      "kcp",
+				Namespace: ns.Name,
+				Annotations: map[string]string{
+					controlplanev1.RemediationInProgressAnnotation: MustMarshalRemediationData(&RemediationData{
+						Machine:    "foo",
+						Timestamp:  metav1.Time{Time: time.Now().Add(-1 * time.Hour).UTC()},
+						RetryCount: 0,
+					}),
 				},
 				Spec: kcpSpec,
 			},
@@ -406,11 +398,9 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 		m := getDeletingMachine(ns.Name, "m1-unhealthy-deleting-", withMachineHealthCheckFailed())
 		controlPlane := &pkg.ControlPlane{
 			KCP: &controlplanev1.KubeadmControlPlane{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "kcp",
-					Namespace: ns.Name,
-				},
-				Spec: kcpSpec,
+				Name:      "kcp",
+				Namespace: ns.Name,
+				Spec:      kcpSpec,
 			},
 			Cluster:  &clusterv1.Cluster{},
 			Machines: collections.FromMachines(m),
@@ -491,10 +481,8 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 
 		controlPlane := &pkg.ControlPlane{
 			KCP: &controlplanev1.KubeadmControlPlane{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "kcp",
-					Namespace: ns.Name,
-				},
+				Name:      "kcp",
+				Namespace: ns.Name,
 				Spec: controlplanev1.KubeadmControlPlaneSpec{
 					Replicas: utilptr.To[int32](3),
 					Version:  "v1.19.1",
@@ -548,10 +536,8 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 
 		controlPlane := &pkg.ControlPlane{
 			KCP: &controlplanev1.KubeadmControlPlane{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "kcp",
-					Namespace: ns.Name,
-				},
+				Name:      "kcp",
+				Namespace: ns.Name,
 				Spec: controlplanev1.KubeadmControlPlaneSpec{
 					Replicas: utilptr.To[int32](3),
 					Version:  "v1.19.1",
@@ -617,10 +603,8 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 
 		controlPlane := &pkg.ControlPlane{
 			KCP: &controlplanev1.KubeadmControlPlane{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "kcp",
-					Namespace: ns.Name,
-				},
+				Name:      "kcp",
+				Namespace: ns.Name,
 				Spec: controlplanev1.KubeadmControlPlaneSpec{
 					Replicas: utilptr.To[int32](3),
 					Version:  "v1.19.1",
@@ -685,10 +669,8 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 
 		controlPlane := &pkg.ControlPlane{
 			KCP: &controlplanev1.KubeadmControlPlane{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "kcp",
-					Namespace: ns.Name,
-				},
+				Name:      "kcp",
+				Namespace: ns.Name,
 				Spec: controlplanev1.KubeadmControlPlaneSpec{
 					Replicas: utilptr.To[int32](3),
 					Version:  "v1.19.1",
@@ -742,10 +724,8 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 		m := createMachine(ctx, g, ns.Name, "m1-unhealthy-", withMachineHealthCheckFailed())
 		controlPlane := &pkg.ControlPlane{
 			KCP: &controlplanev1.KubeadmControlPlane{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "kcp",
-					Namespace: ns.Name,
-				},
+				Name:      "kcp",
+				Namespace: ns.Name,
 				Spec: controlplanev1.KubeadmControlPlaneSpec{
 					Replicas: utilptr.To[int32](1),
 					Version:  "v1.37.0",
@@ -794,10 +774,8 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 		m3 := getDeletingMachine(ns.Name, "m3-deleting") // NB. This machine is not created, it gets only added to control plane
 		controlPlane := &pkg.ControlPlane{
 			KCP: &controlplanev1.KubeadmControlPlane{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "kcp",
-					Namespace: ns.Name,
-				},
+				Name:      "kcp",
+				Namespace: ns.Name,
 				Spec: controlplanev1.KubeadmControlPlaneSpec{
 					Replicas:        utilptr.To[int32](3),
 					Version:         "v1.37.0",
@@ -837,10 +815,8 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 		m3 := createMachine(ctx, g, ns.Name, "m3-healthy-", withoutNodeRef()) // Provisioning
 		controlPlane := &pkg.ControlPlane{
 			KCP: &controlplanev1.KubeadmControlPlane{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "kcp",
-					Namespace: ns.Name,
-				},
+				Name:      "kcp",
+				Namespace: ns.Name,
 				Spec: controlplanev1.KubeadmControlPlaneSpec{
 					Replicas:        new(int32(3)),
 					Version:         "v1.37.0",
@@ -881,10 +857,8 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 		m4 := createMachine(ctx, g, ns.Name, "m4-healthy-", withoutNodeRef()) // Provisioning
 		controlPlane := &pkg.ControlPlane{
 			KCP: &controlplanev1.KubeadmControlPlane{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "kcp",
-					Namespace: ns.Name,
-				},
+				Name:      "kcp",
+				Namespace: ns.Name,
 				Spec: controlplanev1.KubeadmControlPlaneSpec{
 					Replicas:        new(int32(3)),
 					Version:         "v1.37.0",
@@ -925,10 +899,8 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 
 		controlPlane := &pkg.ControlPlane{
 			KCP: &controlplanev1.KubeadmControlPlane{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "kcp",
-					Namespace: ns.Name,
-				},
+				Name:      "kcp",
+				Namespace: ns.Name,
 				Spec: controlplanev1.KubeadmControlPlaneSpec{
 					Replicas:        utilptr.To[int32](3),
 					Version:         "v1.37.0",
@@ -979,10 +951,8 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 
 		controlPlane := &pkg.ControlPlane{
 			KCP: &controlplanev1.KubeadmControlPlane{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "kcp",
-					Namespace: ns.Name,
-				},
+				Name:      "kcp",
+				Namespace: ns.Name,
 				Spec: controlplanev1.KubeadmControlPlaneSpec{
 					Replicas:        utilptr.To[int32](5),
 					Version:         "v1.37.0",
@@ -1032,10 +1002,8 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 
 		controlPlane := &pkg.ControlPlane{
 			KCP: &controlplanev1.KubeadmControlPlane{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "kcp",
-					Namespace: ns.Name,
-				},
+				Name:      "kcp",
+				Namespace: ns.Name,
 				Spec: controlplanev1.KubeadmControlPlaneSpec{
 					Replicas:        utilptr.To[int32](1),
 					Version:         "v1.19.1",
@@ -1096,10 +1064,8 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 
 		controlPlane := &pkg.ControlPlane{
 			KCP: &controlplanev1.KubeadmControlPlane{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "kcp",
-					Namespace: ns.Name,
-				},
+				Name:      "kcp",
+				Namespace: ns.Name,
 				Spec: controlplanev1.KubeadmControlPlaneSpec{
 					Replicas:        utilptr.To[int32](1),
 					Version:         "v1.19.1",
@@ -1201,10 +1167,8 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 
 		controlPlane := &pkg.ControlPlane{
 			KCP: &controlplanev1.KubeadmControlPlane{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "kcp",
-					Namespace: ns.Name,
-				},
+				Name:      "kcp",
+				Namespace: ns.Name,
 				Spec: controlplanev1.KubeadmControlPlaneSpec{
 					Replicas:        utilptr.To[int32](1),
 					Version:         "v1.19.1",
@@ -1268,10 +1232,8 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 
 		controlPlane := &pkg.ControlPlane{
 			KCP: &controlplanev1.KubeadmControlPlane{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "kcp",
-					Namespace: ns.Name,
-				},
+				Name:      "kcp",
+				Namespace: ns.Name,
 				Spec: controlplanev1.KubeadmControlPlaneSpec{
 					Replicas:        utilptr.To[int32](3),
 					Version:         "v1.19.1",
@@ -1335,10 +1297,8 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 
 		controlPlane := &pkg.ControlPlane{
 			KCP: &controlplanev1.KubeadmControlPlane{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "kcp",
-					Namespace: ns.Name,
-				},
+				Name:      "kcp",
+				Namespace: ns.Name,
 				Spec: controlplanev1.KubeadmControlPlaneSpec{
 					Replicas:        utilptr.To[int32](3),
 					Version:         "v1.19.1",
@@ -1413,10 +1373,8 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 
 		controlPlane := &pkg.ControlPlane{
 			KCP: &controlplanev1.KubeadmControlPlane{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "kcp",
-					Namespace: ns.Name,
-				},
+				Name:      "kcp",
+				Namespace: ns.Name,
 				Spec: controlplanev1.KubeadmControlPlaneSpec{
 					Replicas:        new(int32(3)),
 					Version:         "v1.19.1",
@@ -1481,10 +1439,8 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 
 		controlPlane := &pkg.ControlPlane{
 			KCP: &controlplanev1.KubeadmControlPlane{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "kcp",
-					Namespace: ns.Name,
-				},
+				Name:      "kcp",
+				Namespace: ns.Name,
 				Spec: controlplanev1.KubeadmControlPlaneSpec{
 					Replicas:        utilptr.To[int32](3),
 					Version:         "v1.19.1",
@@ -1549,10 +1505,8 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 
 		controlPlane := &pkg.ControlPlane{
 			KCP: &controlplanev1.KubeadmControlPlane{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "kcp",
-					Namespace: ns.Name,
-				},
+				Name:      "kcp",
+				Namespace: ns.Name,
 				Spec: controlplanev1.KubeadmControlPlaneSpec{
 					Replicas:        new(int32(3)),
 					Version:         "v1.19.1",
@@ -1616,10 +1570,8 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 
 		controlPlane := &pkg.ControlPlane{
 			KCP: &controlplanev1.KubeadmControlPlane{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "kcp",
-					Namespace: ns.Name,
-				},
+				Name:      "kcp",
+				Namespace: ns.Name,
 				Spec: controlplanev1.KubeadmControlPlaneSpec{
 					Replicas:        utilptr.To[int32](1),
 					Version:         "v1.19.1",
@@ -1720,10 +1672,8 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 
 		controlPlane := &pkg.ControlPlane{
 			KCP: &controlplanev1.KubeadmControlPlane{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "kcp",
-					Namespace: ns.Name,
-				},
+				Name:      "kcp",
+				Namespace: ns.Name,
 				Spec: controlplanev1.KubeadmControlPlaneSpec{
 					Replicas:        utilptr.To[int32](3),
 					Version:         "v1.19.1",
@@ -1731,10 +1681,8 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 				},
 			},
 			Cluster: &clusterv1.Cluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Annotations: map[string]string{
-						clusterv1.ClusterTopologyUpgradeStepAnnotation: "v1.19.1",
-					},
+				Annotations: map[string]string{
+					clusterv1.ClusterTopologyUpgradeStepAnnotation: "v1.19.1",
 				},
 				Spec: clusterv1.ClusterSpec{
 					Topology: clusterv1.Topology{
@@ -1977,7 +1925,7 @@ func TestCheckRetryLimits(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			machine := &clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m1", Namespace: "default"}}
+			machine := &clusterv1.Machine{Name: "m1", Namespace: "default"}
 			if tt.lastRemediation != nil {
 				machine.Annotations = map[string]string{
 					controlplanev1.RemediationForAnnotation: MustMarshalRemediationData(tt.lastRemediation),
@@ -2070,10 +2018,8 @@ func TestReconcileUnhealthyMachinesSequences(t *testing.T) {
 
 		controlPlane := &pkg.ControlPlane{
 			KCP: &controlplanev1.KubeadmControlPlane{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "kcp",
-					Namespace: ns.Name,
-				},
+				Name:      "kcp",
+				Namespace: ns.Name,
 				Spec: controlplanev1.KubeadmControlPlaneSpec{
 					Replicas:        utilptr.To[int32](3),
 					Version:         "v1.19.1",
@@ -2186,10 +2132,8 @@ func TestReconcileUnhealthyMachinesSequences(t *testing.T) {
 
 		controlPlane := &pkg.ControlPlane{
 			KCP: &controlplanev1.KubeadmControlPlane{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "kcp",
-					Namespace: ns.Name,
-				},
+				Name:      "kcp",
+				Namespace: ns.Name,
 				Spec: controlplanev1.KubeadmControlPlaneSpec{
 					Replicas: utilptr.To[int32](3),
 					Version:  "v1.19.1",
@@ -2315,10 +2259,8 @@ func TestReconcileUnhealthyMachinesSequences(t *testing.T) {
 
 		controlPlane := &pkg.ControlPlane{
 			KCP: &controlplanev1.KubeadmControlPlane{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "kcp",
-					Namespace: ns.Name,
-				},
+				Name:      "kcp",
+				Namespace: ns.Name,
 				Spec: controlplanev1.KubeadmControlPlaneSpec{
 					Replicas: utilptr.To[int32](3),
 					Version:  "v1.19.1",
@@ -2492,10 +2434,8 @@ func TestCanSafelyRemediateMachine(t *testing.T) {
 
 func TestTryGetEtcdMemberName(t *testing.T) {
 	testCluster := &clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: metav1.NamespaceDefault,
-			Name:      "test-cluster",
-		},
+		Namespace: metav1.NamespaceDefault,
+		Name:      "test-cluster",
 	}
 
 	tests := []struct {
@@ -2524,9 +2464,7 @@ func TestTryGetEtcdMemberName(t *testing.T) {
 				},
 			},
 			node: &corev1.Node{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "foo-node",
-				},
+				Name: "foo-node",
 				Spec: corev1.NodeSpec{
 					ProviderID: "foo-node-provider-id",
 				},
@@ -2544,9 +2482,7 @@ func TestTryGetEtcdMemberName(t *testing.T) {
 				},
 			},
 			node: &corev1.Node{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "foo-node",
-				},
+				Name: "foo-node",
 				Spec: corev1.NodeSpec{
 					ProviderID: "foo-node-provider-id",
 				},
@@ -3424,11 +3360,9 @@ func withWaitBeforeDeleteFinalizer() machineOption {
 }
 func getMachine(namespace, name string, options ...machineOption) *clusterv1.Machine {
 	m := &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: namespace,
-			Labels: map[string]string{
-				clusterv1.MachineControlPlaneLabel: "",
-			},
+		Namespace: namespace,
+		Labels: map[string]string{
+			clusterv1.MachineControlPlaneLabel: "",
 		},
 		Spec: clusterv1.MachineSpec{
 			ClusterName: "cluster",
@@ -3471,11 +3405,9 @@ func createMachine(ctx context.Context, g *WithT, namespace, name string, option
 func getDeletingMachine(namespace, name string, options ...machineOption) *clusterv1.Machine {
 	deletionTime := metav1.Now()
 	m := &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace:         namespace,
-			Name:              name,
-			DeletionTimestamp: &deletionTime,
-		},
+		Namespace:         namespace,
+		Name:              name,
+		DeletionTimestamp: &deletionTime,
 		Spec: clusterv1.MachineSpec{
 			ClusterName: "cluster",
 			Bootstrap: clusterv1.Bootstrap{

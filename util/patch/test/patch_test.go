@@ -56,12 +56,10 @@ func TestPatchHelper(t *testing.T) {
 		cl := &countingClient{Client: env.Client}
 
 		obj := &clusterv1.Cluster{
-			ObjectMeta: metav1.ObjectMeta{
-				GenerateName: "cluster-patch-test-",
-				Namespace:    ns.Name,
-				Annotations: map[string]string{
-					"test": "1",
-				},
+			GenerateName: "cluster-patch-test-",
+			Namespace:    ns.Name,
+			Annotations: map[string]string{
+				"test": "1",
 			},
 			Spec: clusterv1.ClusterSpec{
 				InfrastructureRef: clusterv1.ContractVersionedObjectReference{
@@ -178,12 +176,10 @@ func TestPatchHelper(t *testing.T) {
 
 			conditionTime := metav1.Date(2015, 1, 1, 12, 0, 0, 0, metav1.Now().Location())
 			obj := &corev1.Node{
-				ObjectMeta: metav1.ObjectMeta{
-					GenerateName: "node-patch-test-",
-					Namespace:    ns.Name,
-					Annotations: map[string]string{
-						"test": "1",
-					},
+				GenerateName: "node-patch-test-",
+				Namespace:    ns.Name,
+				Annotations: map[string]string{
+					"test": "1",
 				},
 			}
 
@@ -232,10 +228,8 @@ func TestPatchHelper(t *testing.T) {
 
 		t.Run("on a clusterv1.Cluster object", func(t *testing.T) {
 			obj := &clusterv1.Cluster{
-				ObjectMeta: metav1.ObjectMeta{
-					GenerateName: "test-",
-					Namespace:    ns.Name,
-				},
+				GenerateName: "test-",
+				Namespace:    ns.Name,
 				Spec: clusterv1.ClusterSpec{
 					ControlPlaneRef: clusterv1.ContractVersionedObjectReference{
 						APIGroup: builder.ControlPlaneGroupVersion.Group,
@@ -605,10 +599,8 @@ func TestPatchHelper(t *testing.T) {
 
 	t.Run("Should patch a clusterv1.Cluster", func(t *testing.T) {
 		obj := &clusterv1.Cluster{
-			ObjectMeta: metav1.ObjectMeta{
-				GenerateName: "test-",
-				Namespace:    ns.Name,
-			},
+			GenerateName: "test-",
+			Namespace:    ns.Name,
 			Spec: clusterv1.ClusterSpec{
 				ControlPlaneRef: clusterv1.ContractVersionedObjectReference{
 					APIGroup: builder.ControlPlaneGroupVersion.Group,
@@ -853,12 +845,10 @@ func TestPatchHelper(t *testing.T) {
 		cl := &countingClient{Client: env.Client}
 
 		obj := &corev1.ConfigMap{
-			ObjectMeta: metav1.ObjectMeta{
-				GenerateName: "node-patch-test-",
-				Namespace:    ns.Name,
-				Annotations: map[string]string{
-					"test": "1",
-				},
+			GenerateName: "node-patch-test-",
+			Namespace:    ns.Name,
+			Annotations: map[string]string{
+				"test": "1",
 			},
 			Data: map[string]string{
 				"1": "value",
@@ -903,10 +893,8 @@ func TestPatchHelper(t *testing.T) {
 
 	t.Run("Should update Status.ObservedGeneration when using WithStatusObservedGeneration option", func(t *testing.T) {
 		obj := &clusterv1.MachineSet{
-			ObjectMeta: metav1.ObjectMeta{
-				GenerateName: "test-ms",
-				Namespace:    ns.Name,
-			},
+			GenerateName: "test-ms",
+			Namespace:    ns.Name,
 			Spec: clusterv1.MachineSetSpec{
 				ClusterName: "test1",
 				Template: clusterv1.MachineTemplateSpec{
@@ -1068,10 +1056,8 @@ func TestPatchHelper(t *testing.T) {
 		g := NewWithT(t)
 
 		cluster := &clusterv1.Cluster{
-			ObjectMeta: metav1.ObjectMeta{
-				GenerateName: "test-",
-				Namespace:    ns.Name,
-			},
+			GenerateName: "test-",
+			Namespace:    ns.Name,
 			Spec: clusterv1.ClusterSpec{
 				ControlPlaneRef: clusterv1.ContractVersionedObjectReference{
 					APIGroup: builder.ControlPlaneGroupVersion.Group,
@@ -1082,10 +1068,8 @@ func TestPatchHelper(t *testing.T) {
 		}
 
 		machineSet := &clusterv1.MachineSet{
-			ObjectMeta: metav1.ObjectMeta{
-				GenerateName: "test-ms",
-				Namespace:    ns.Name,
-			},
+			GenerateName: "test-ms",
+			Namespace:    ns.Name,
 			Spec: clusterv1.MachineSetSpec{
 				ClusterName: "test1",
 				Template: clusterv1.MachineTemplateSpec{
@@ -1122,11 +1106,9 @@ func TestPatchHelper(t *testing.T) {
 	t.Run("Should not error if there are no finalizers and deletion timestamp is not nil", func(t *testing.T) {
 		g := NewWithT(t)
 		cluster := &clusterv1.Cluster{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:       "test-cluster",
-				Namespace:  ns.Name,
-				Finalizers: []string{"block-deletion"},
-			},
+			Name:       "test-cluster",
+			Namespace:  ns.Name,
+			Finalizers: []string{"block-deletion"},
 			Spec: clusterv1.ClusterSpec{
 				ControlPlaneRef: clusterv1.ContractVersionedObjectReference{
 					APIGroup: builder.ControlPlaneGroupVersion.Group,
@@ -1170,10 +1152,8 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 
 	t.Run("Should patch conditions on a v1beta1 object with conditions (phase 0)", func(t *testing.T) {
 		obj := &builder.Phase0Obj{
-			ObjectMeta: metav1.ObjectMeta{
-				GenerateName: "test-",
-				Namespace:    metav1.NamespaceDefault,
-			},
+			GenerateName: "test-",
+			Namespace:    metav1.NamespaceDefault,
 		}
 
 		t.Run("should mark it ready", func(t *testing.T) {
@@ -1575,10 +1555,8 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 
 	t.Run("Should patch conditions on a v1beta1 object with both clusterv1.conditions and metav1.conditions (phase 1)", func(t *testing.T) {
 		obj := &builder.Phase1Obj{
-			ObjectMeta: metav1.ObjectMeta{
-				GenerateName: "test-",
-				Namespace:    metav1.NamespaceDefault,
-			},
+			GenerateName: "test-",
+			Namespace:    metav1.NamespaceDefault,
 		}
 
 		t.Run("should mark it ready and sort conditions", func(t *testing.T) {
@@ -2148,10 +2126,8 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 
 	t.Run("Should patch conditions on a v1beta2 object with both conditions and backward compatible conditions (phase 2)", func(t *testing.T) {
 		obj := &builder.Phase2Obj{
-			ObjectMeta: metav1.ObjectMeta{
-				GenerateName: "test-",
-				Namespace:    metav1.NamespaceDefault,
-			},
+			GenerateName: "test-",
+			Namespace:    metav1.NamespaceDefault,
 		}
 
 		t.Run("should mark it ready and sort conditions", func(t *testing.T) {
@@ -2730,10 +2706,8 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 
 	t.Run("Should patch conditions on a v1beta2 object with conditions (phase 3)", func(t *testing.T) {
 		obj := &builder.Phase3Obj{
-			ObjectMeta: metav1.ObjectMeta{
-				GenerateName: "test-",
-				Namespace:    metav1.NamespaceDefault,
-			},
+			GenerateName: "test-",
+			Namespace:    metav1.NamespaceDefault,
 		}
 
 		t.Run("should mark it ready and sort conditions", func(t *testing.T) {

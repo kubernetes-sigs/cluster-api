@@ -561,7 +561,7 @@ func ScaleSpec(ctx context.Context, inputGetter func() ScaleSpecInput) {
 		if !input.SkipCleanup {
 			if input.ExtensionServiceNamespace != "" && input.ExtensionServiceName != "" {
 				Eventually(func() error {
-					return input.BootstrapClusterProxy.GetClient().Delete(ctx, &runtimev1.ExtensionConfig{ObjectMeta: metav1.ObjectMeta{Name: input.ExtensionConfigName}})
+					return input.BootstrapClusterProxy.GetClient().Delete(ctx, &runtimev1.ExtensionConfig{Name: input.ExtensionConfigName})
 				}, 10*time.Second, 1*time.Second).Should(Succeed(), "Deleting ExtensionConfig failed")
 			}
 			Byf("Deleting namespace used for hosting the %q test spec", specName)
@@ -572,9 +572,7 @@ func ScaleSpec(ctx context.Context, inputGetter func() ScaleSpecInput) {
 			if deployClusterInSeparateNamespaces {
 				for _, clusterName := range clusterNames {
 					ns := &corev1.Namespace{
-						ObjectMeta: metav1.ObjectMeta{
-							Name: clusterName,
-						},
+						Name: clusterName,
 					}
 					log.Logf("Deleting namespace %s", ns.Name)
 					Eventually(func() error {
@@ -868,10 +866,8 @@ func deleteClusterAndWaitWorker(ctx context.Context, inputChan <-chan string, re
 				}
 
 				cluster := &clusterv1.Cluster{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      clusterName,
-						Namespace: namespaceName,
-					},
+					Name:      clusterName,
+					Namespace: namespaceName,
 				}
 				framework.DeleteCluster(ctx, framework.DeleteClusterInput{
 					Deleter: clusterProxy.GetClient(),

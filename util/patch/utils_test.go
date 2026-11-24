@@ -20,7 +20,6 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -35,10 +34,8 @@ func TestToUnstructured(t *testing.T) {
 		g := NewWithT(t)
 		// Test with a typed object.
 		obj := &clusterv1.Cluster{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "cluster-1",
-				Namespace: "namespace-1",
-			},
+			Name:      "cluster-1",
+			Namespace: "namespace-1",
 			Spec: clusterv1.ClusterSpec{
 				Paused: new(true),
 			},

@@ -45,10 +45,8 @@ func Test_ComputeDesiredMachine(t *testing.T) {
 	clusterName := "testCluster"
 
 	cluster := &clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      clusterName,
-			Namespace: metav1.NamespaceDefault,
-		},
+		Name:      clusterName,
+		Namespace: metav1.NamespaceDefault,
 	}
 	duration5s := new(int32(5))
 	duration10s := new(int32(10))
@@ -83,10 +81,8 @@ func Test_ComputeDesiredMachine(t *testing.T) {
 		{
 			name: "should return the correct Machine object when creating a new Machine",
 			kcp: &controlplanev1.KubeadmControlPlane{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      kcpName,
-					Namespace: cluster.Namespace,
-				},
+				Name:      kcpName,
+				Namespace: cluster.Namespace,
 				Spec: controlplanev1.KubeadmControlPlaneSpec{
 					Version: "v1.16.6",
 					MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
@@ -124,10 +120,8 @@ func Test_ComputeDesiredMachine(t *testing.T) {
 		{
 			name: "should return error when creating a new Machine when '.random' is not added in template",
 			kcp: &controlplanev1.KubeadmControlPlane{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      kcpName,
-					Namespace: cluster.Namespace,
-				},
+				Name:      kcpName,
+				Namespace: cluster.Namespace,
 				Spec: controlplanev1.KubeadmControlPlaneSpec{
 					Version: "v1.16.6",
 					MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
@@ -156,10 +150,8 @@ func Test_ComputeDesiredMachine(t *testing.T) {
 		{
 			name: "should not return error when creating a new Machine when the generated name exceeds 63",
 			kcp: &controlplanev1.KubeadmControlPlane{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      kcpName,
-					Namespace: cluster.Namespace,
-				},
+				Name:      kcpName,
+				Namespace: cluster.Namespace,
 				Spec: controlplanev1.KubeadmControlPlaneSpec{
 					Version: "v1.16.6",
 					MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
@@ -192,10 +184,8 @@ func Test_ComputeDesiredMachine(t *testing.T) {
 		{
 			name: "should return error when creating a new Machine with invalid template",
 			kcp: &controlplanev1.KubeadmControlPlane{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      kcpName,
-					Namespace: cluster.Namespace,
-				},
+				Name:      kcpName,
+				Namespace: cluster.Namespace,
 				Spec: controlplanev1.KubeadmControlPlaneSpec{
 					Version: "v1.16.6",
 					MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
@@ -224,10 +214,8 @@ func Test_ComputeDesiredMachine(t *testing.T) {
 		{
 			name: "should return the correct Machine object when creating a new Machine with default templated name",
 			kcp: &controlplanev1.KubeadmControlPlane{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      kcpName,
-					Namespace: cluster.Namespace,
-				},
+				Name:      kcpName,
+				Namespace: cluster.Namespace,
 				Spec: controlplanev1.KubeadmControlPlaneSpec{
 					Version: "v1.16.6",
 					MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
@@ -257,10 +245,8 @@ func Test_ComputeDesiredMachine(t *testing.T) {
 		{
 			name: "should return the correct Machine object when creating a new Machine with additional kcp readinessGates",
 			kcp: &controlplanev1.KubeadmControlPlane{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      kcpName,
-					Namespace: cluster.Namespace,
-				},
+				Name:      kcpName,
+				Namespace: cluster.Namespace,
 				Spec: controlplanev1.KubeadmControlPlaneSpec{
 					Version: "v1.16.6",
 					MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
@@ -291,10 +277,8 @@ func Test_ComputeDesiredMachine(t *testing.T) {
 		{
 			name: "should return the correct Machine object when creating a new Machine with taints",
 			kcp: &controlplanev1.KubeadmControlPlane{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      kcpName,
-					Namespace: cluster.Namespace,
-				},
+				Name:      kcpName,
+				Namespace: cluster.Namespace,
 				Spec: controlplanev1.KubeadmControlPlaneSpec{
 					Version: "v1.16.6",
 					MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
@@ -332,10 +316,8 @@ func Test_ComputeDesiredMachine(t *testing.T) {
 		{
 			name: "should return the correct Machine object when updating an existing Machine (empty ClusterConfiguration annotation)",
 			kcp: &controlplanev1.KubeadmControlPlane{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      kcpName,
-					Namespace: cluster.Namespace,
-				},
+				Name:      kcpName,
+				Namespace: cluster.Namespace,
 				Spec: controlplanev1.KubeadmControlPlaneSpec{
 					Version: "v1.16.6",
 					MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
@@ -369,10 +351,8 @@ func Test_ComputeDesiredMachine(t *testing.T) {
 		{
 			name: "should return the correct Machine object when updating an existing Machine (outdated ClusterConfiguration annotation)",
 			kcp: &controlplanev1.KubeadmControlPlane{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      kcpName,
-					Namespace: cluster.Namespace,
-				},
+				Name:      kcpName,
+				Namespace: cluster.Namespace,
 				Spec: controlplanev1.KubeadmControlPlaneSpec{
 					Version: "v1.16.6",
 					MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
@@ -406,10 +386,8 @@ func Test_ComputeDesiredMachine(t *testing.T) {
 		{
 			name: "should return the correct Machine object when updating an existing Machine (up to date ClusterConfiguration annotation)",
 			kcp: &controlplanev1.KubeadmControlPlane{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      kcpName,
-					Namespace: cluster.Namespace,
-				},
+				Name:      kcpName,
+				Namespace: cluster.Namespace,
 				Spec: controlplanev1.KubeadmControlPlaneSpec{
 					Version: "v1.16.6",
 					MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
@@ -459,12 +437,10 @@ func Test_ComputeDesiredMachine(t *testing.T) {
 				remediationData := "remediation-data"
 				machineVersion := "v1.25.3"
 				existingMachine := &clusterv1.Machine{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: machineName,
-						UID:  machineUID,
-						Annotations: map[string]string{
-							controlplanev1.RemediationForAnnotation: remediationData,
-						},
+					Name: machineName,
+					UID:  machineUID,
+					Annotations: map[string]string{
+						controlplanev1.RemediationForAnnotation: remediationData,
 					},
 					Spec: clusterv1.MachineSpec{
 						Version:       machineVersion,
@@ -577,17 +553,13 @@ func Test_ComputeDesiredKubeadmConfig(t *testing.T) {
 	g := NewWithT(t)
 
 	cluster := &clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "foo",
-			Namespace: metav1.NamespaceDefault,
-		},
+		Name:      "foo",
+		Namespace: metav1.NamespaceDefault,
 	}
 	kcp := &controlplanev1.KubeadmControlPlane{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "kcp-foo",
-			Namespace: cluster.Namespace,
-			UID:       "abc-123-kcp-control-plane",
-		},
+		Name:      "kcp-foo",
+		Namespace: cluster.Namespace,
+		UID:       "abc-123-kcp-control-plane",
 		Spec: controlplanev1.KubeadmControlPlaneSpec{
 			KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
 				InitConfiguration: bootstrapv1.InitConfiguration{
@@ -615,16 +587,14 @@ func Test_ComputeDesiredKubeadmConfig(t *testing.T) {
 		},
 	}
 	expectedKubeadmConfigWithoutOwner := &bootstrapv1.KubeadmConfig{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "machine-1",
-			Namespace: cluster.Namespace,
-			Labels: map[string]string{
-				clusterv1.ClusterNameLabel:             cluster.Name,
-				clusterv1.MachineControlPlaneLabel:     "",
-				clusterv1.MachineControlPlaneNameLabel: kcp.Name,
-			},
-			Annotations: map[string]string{},
+		Name:      "machine-1",
+		Namespace: cluster.Namespace,
+		Labels: map[string]string{
+			clusterv1.ClusterNameLabel:             cluster.Name,
+			clusterv1.MachineControlPlaneLabel:     "",
+			clusterv1.MachineControlPlaneNameLabel: kcp.Name,
 		},
+		Annotations: map[string]string{},
 		Spec: bootstrapv1.KubeadmConfigSpec{
 			ClusterConfiguration: bootstrapv1.ClusterConfiguration{
 				FeatureGates: map[string]bool{
@@ -635,21 +605,19 @@ func Test_ComputeDesiredKubeadmConfig(t *testing.T) {
 		},
 	}
 	preExistingKubeadmConfigOwnedByMachine := &bootstrapv1.KubeadmConfig{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "machine-1",
-			Namespace: cluster.Namespace,
-			Labels: map[string]string{
-				clusterv1.ClusterNameLabel:             cluster.Name,
-				clusterv1.MachineControlPlaneLabel:     "",
-				clusterv1.MachineControlPlaneNameLabel: kcp.Name,
-			},
-			Annotations: map[string]string{},
-			OwnerReferences: []metav1.OwnerReference{{
-				APIVersion: clusterv1.GroupVersion.String(),
-				Kind:       "Machine",
-				Name:       "machine-1",
-			}},
+		Name:      "machine-1",
+		Namespace: cluster.Namespace,
+		Labels: map[string]string{
+			clusterv1.ClusterNameLabel:             cluster.Name,
+			clusterv1.MachineControlPlaneLabel:     "",
+			clusterv1.MachineControlPlaneNameLabel: kcp.Name,
 		},
+		Annotations: map[string]string{},
+		OwnerReferences: []metav1.OwnerReference{{
+			APIVersion: clusterv1.GroupVersion.String(),
+			Kind:       "Machine",
+			Name:       "machine-1",
+		}},
 	}
 
 	for _, isJoin := range []bool{true, false} {
@@ -687,10 +655,8 @@ func Test_ComputeDesiredInfraMachine(t *testing.T) {
 	g := NewWithT(t)
 
 	cluster := &clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "foo",
-			Namespace: metav1.NamespaceDefault,
-		},
+		Name:      "foo",
+		Namespace: metav1.NamespaceDefault,
 	}
 	infrastructureMachineTemplate := &unstructured.Unstructured{
 		Object: map[string]any{
@@ -710,11 +676,9 @@ func Test_ComputeDesiredInfraMachine(t *testing.T) {
 		},
 	}
 	kcp := &controlplanev1.KubeadmControlPlane{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "kcp-foo",
-			Namespace: cluster.Namespace,
-			UID:       "abc-123-kcp-control-plane",
-		},
+		Name:      "kcp-foo",
+		Namespace: cluster.Namespace,
+		UID:       "abc-123-kcp-control-plane",
 		Spec: controlplanev1.KubeadmControlPlaneSpec{
 			MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
 				Spec: controlplanev1.KubeadmControlPlaneMachineTemplateSpec{

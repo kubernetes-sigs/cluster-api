@@ -20,7 +20,6 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	runtimev1 "sigs.k8s.io/cluster-api/api/runtime/v1beta2"
@@ -40,10 +39,8 @@ func TestExtensionConfigByInjectCAFromSecretName(t *testing.T) {
 		{
 			name: "when cluster has a valid Topology",
 			object: &runtimev1.ExtensionConfig{
-				ObjectMeta: metav1.ObjectMeta{
-					Annotations: map[string]string{
-						runtimev1.InjectCAFromSecretAnnotation: "foo/bar",
-					},
+				Annotations: map[string]string{
+					runtimev1.InjectCAFromSecretAnnotation: "foo/bar",
 				},
 			},
 			expected: []string{"foo/bar"},

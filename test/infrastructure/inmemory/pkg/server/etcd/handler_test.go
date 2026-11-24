@@ -65,17 +65,15 @@ func Test_etcd_scalingflow(t *testing.T) {
 	for i := 1; i <= 3; i++ {
 		etcdMember := fmt.Sprintf("etcd-%d", i)
 		etcdPod := &corev1.Pod{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: metav1.NamespaceSystem,
-				Name:      etcdMember,
-				Labels: map[string]string{
-					"component": "etcd",
-					"tier":      "control-plane",
-				},
-				Annotations: map[string]string{
-					cloudv1.EtcdMemberIDAnnotationName:  fmt.Sprintf("%d", i),
-					cloudv1.EtcdClusterIDAnnotationName: "15",
-				},
+			Namespace: metav1.NamespaceSystem,
+			Name:      etcdMember,
+			Labels: map[string]string{
+				"component": "etcd",
+				"tier":      "control-plane",
+			},
+			Annotations: map[string]string{
+				cloudv1.EtcdMemberIDAnnotationName:  fmt.Sprintf("%d", i),
+				cloudv1.EtcdClusterIDAnnotationName: "15",
 			},
 			Spec: corev1.PodSpec{
 				NodeName: fmt.Sprintf("etcd-%d", i),

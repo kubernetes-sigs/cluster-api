@@ -85,10 +85,8 @@ func TestMachineSetReconciler(t *testing.T) {
 
 		t.Log("Creating the Cluster")
 		cluster := &clusterv1.Cluster{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: ns.Name,
-				Name:      testClusterName,
-			},
+			Namespace: ns.Name,
+			Name:      testClusterName,
 			Spec: clusterv1.ClusterSpec{
 				ControlPlaneRef: clusterv1.ContractVersionedObjectReference{
 					APIGroup: builder.ControlPlaneGroupVersion.Group,
@@ -140,15 +138,13 @@ func TestMachineSetReconciler(t *testing.T) {
 		replicas := int32(2)
 		version := "v1.14.2"
 		machineTemplateSpec := clusterv1.MachineTemplateSpec{
-			ObjectMeta: clusterv1.ObjectMeta{
-				Labels: map[string]string{
-					"label-1":    "true",
-					"precedence": "MachineSet",
-				},
-				Annotations: map[string]string{
-					"annotation-1": "true",
-					"precedence":   "MachineSet",
-				},
+			Labels: map[string]string{
+				"label-1":    "true",
+				"precedence": "MachineSet",
+			},
+			Annotations: map[string]string{
+				"annotation-1": "true",
+				"precedence":   "MachineSet",
 			},
 			Spec: clusterv1.MachineSpec{
 				ClusterName: testCluster.Name,
@@ -176,12 +172,10 @@ func TestMachineSetReconciler(t *testing.T) {
 		}
 
 		machineDeployment := &clusterv1.MachineDeployment{
-			ObjectMeta: metav1.ObjectMeta{
-				GenerateName: "md-",
-				Namespace:    namespace.Name,
-				Annotations: map[string]string{
-					clusterv1.RevisionAnnotation: "10",
-				},
+			GenerateName: "md-",
+			Namespace:    namespace.Name,
+			Annotations: map[string]string{
+				clusterv1.RevisionAnnotation: "10",
 			},
 			Spec: clusterv1.MachineDeploymentSpec{
 				ClusterName: testCluster.Name,
@@ -640,16 +634,14 @@ func TestMachineSetReconciler(t *testing.T) {
 
 func TestMachineSetOwnerReference(t *testing.T) {
 	testCluster := &clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Name: testClusterName},
+		Namespace: metav1.NamespaceDefault, Name: testClusterName,
 	}
 
 	validMD := &clusterv1.MachineDeployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "valid-machinedeployment",
-			Namespace: metav1.NamespaceDefault,
-			Labels: map[string]string{
-				clusterv1.ClusterNameLabel: testCluster.Name,
-			},
+		Name:      "valid-machinedeployment",
+		Namespace: metav1.NamespaceDefault,
+		Labels: map[string]string{
+			clusterv1.ClusterNameLabel: testCluster.Name,
 		},
 		Spec: clusterv1.MachineDeploymentSpec{
 			ClusterName: testCluster.Name,
@@ -745,7 +737,7 @@ func TestMachineSetOwnerReference(t *testing.T) {
 
 func TestMachineSetReconcile(t *testing.T) {
 	testCluster := &clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Name: testClusterName},
+		Namespace: metav1.NamespaceDefault, Name: testClusterName,
 	}
 
 	t.Run("ignore machine sets marked for deletion", func(t *testing.T) {
@@ -753,12 +745,10 @@ func TestMachineSetReconcile(t *testing.T) {
 
 		dt := metav1.Now()
 		ms := &clusterv1.MachineSet{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:              "machineset1",
-				Namespace:         metav1.NamespaceDefault,
-				DeletionTimestamp: &dt,
-				Finalizers:        []string{"block-deletion"},
-			},
+			Name:              "machineset1",
+			Namespace:         metav1.NamespaceDefault,
+			DeletionTimestamp: &dt,
+			Finalizers:        []string{"block-deletion"},
 			Spec: clusterv1.MachineSetSpec{
 				ClusterName: testClusterName,
 				Replicas:    ptr.To[int32](0),
@@ -814,10 +804,8 @@ func TestMachineSetReconcile(t *testing.T) {
 func TestMachineSetToMachines(t *testing.T) {
 	machineSetList := []client.Object{
 		&clusterv1.MachineSet{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "withMatchingLabels",
-				Namespace: metav1.NamespaceDefault,
-			},
+			Name:      "withMatchingLabels",
+			Namespace: metav1.NamespaceDefault,
 			Spec: clusterv1.MachineSetSpec{
 				Selector: metav1.LabelSelector{
 					MatchLabels: map[string]string{
@@ -830,38 +818,32 @@ func TestMachineSetToMachines(t *testing.T) {
 	}
 	controller := true
 	m := clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "withOwnerRef",
-			Namespace: metav1.NamespaceDefault,
-			Labels: map[string]string{
-				clusterv1.ClusterNameLabel: testClusterName,
-			},
-			OwnerReferences: []metav1.OwnerReference{
-				{
-					Name:       "Owner",
-					Kind:       machineSetKind.Kind,
-					Controller: &controller,
-				},
+		Name:      "withOwnerRef",
+		Namespace: metav1.NamespaceDefault,
+		Labels: map[string]string{
+			clusterv1.ClusterNameLabel: testClusterName,
+		},
+		OwnerReferences: []metav1.OwnerReference{
+			{
+				Name:       "Owner",
+				Kind:       machineSetKind.Kind,
+				Controller: &controller,
 			},
 		},
 	}
 	m2 := clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "noOwnerRefNoLabels",
-			Namespace: metav1.NamespaceDefault,
-			Labels: map[string]string{
-				clusterv1.ClusterNameLabel: testClusterName,
-			},
+		Name:      "noOwnerRefNoLabels",
+		Namespace: metav1.NamespaceDefault,
+		Labels: map[string]string{
+			clusterv1.ClusterNameLabel: testClusterName,
 		},
 	}
 	m3 := clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "withMatchingLabels",
-			Namespace: metav1.NamespaceDefault,
-			Labels: map[string]string{
-				"foo":                      "bar",
-				clusterv1.ClusterNameLabel: testClusterName,
-			},
+		Name:      "withMatchingLabels",
+		Namespace: metav1.NamespaceDefault,
+		Labels: map[string]string{
+			"foo":                      "bar",
+			clusterv1.ClusterNameLabel: testClusterName,
 		},
 	}
 	testsCases := []struct {
@@ -883,7 +865,7 @@ func TestMachineSetToMachines(t *testing.T) {
 			name:      "should return request if machine set's labels matches machine's labels",
 			mapObject: &m3,
 			expected: []reconcile.Request{
-				{NamespacedName: client.ObjectKey{Namespace: metav1.NamespaceDefault, Name: "withMatchingLabels"}},
+				{Namespace: metav1.NamespaceDefault, Name: "withMatchingLabels"},
 			},
 		},
 	}
@@ -1001,14 +983,10 @@ func TestAdoptOrphan(t *testing.T) {
 	g := NewWithT(t)
 
 	m := clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "orphanMachine",
-		},
+		Name: "orphanMachine",
 	}
 	ms := clusterv1.MachineSet{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "adoptOrphanMachine",
-		},
+		Name: "adoptOrphanMachine",
 	}
 	controller := true
 	blockOwnerDeletion := true
@@ -1053,15 +1031,13 @@ type newMachineSetOption func(m *clusterv1.MachineSet)
 
 func newMachineSet(name, cluster string, replicas int32, opts ...newMachineSetOption) *clusterv1.MachineSet {
 	ms := &clusterv1.MachineSet{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: metav1.NamespaceDefault,
-			Finalizers: []string{
-				clusterv1.MachineSetFinalizer,
-			},
-			Labels: map[string]string{
-				clusterv1.ClusterNameLabel: cluster,
-			},
+		Name:      name,
+		Namespace: metav1.NamespaceDefault,
+		Finalizers: []string{
+			clusterv1.MachineSetFinalizer,
+		},
+		Labels: map[string]string{
+			clusterv1.ClusterNameLabel: cluster,
 		},
 		Spec: clusterv1.MachineSetSpec{
 			ClusterName: testClusterName,
@@ -1115,22 +1091,18 @@ func TestMachineSetReconcile_MachinesCreatedConditionFalseOnBadInfraRef(t *testi
 	replicas := int32(1)
 	version := "v1.21.0"
 	cluster := &clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "foo",
-			Namespace: metav1.NamespaceDefault,
-		},
+		Name:      "foo",
+		Namespace: metav1.NamespaceDefault,
 	}
 
 	ms := &clusterv1.MachineSet{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "ms-foo",
-			Namespace: metav1.NamespaceDefault,
-			Labels: map[string]string{
-				clusterv1.ClusterNameLabel: cluster.Name,
-			},
-			Finalizers: []string{
-				clusterv1.MachineSetFinalizer,
-			},
+		Name:      "ms-foo",
+		Namespace: metav1.NamespaceDefault,
+		Labels: map[string]string{
+			clusterv1.ClusterNameLabel: cluster.Name,
+		},
+		Finalizers: []string{
+			clusterv1.MachineSetFinalizer,
 		},
 		Spec: clusterv1.MachineSetSpec{
 			ClusterName: cluster.Name,
@@ -1193,10 +1165,8 @@ func TestMachineSetReconcile_MachinesCreatedConditionFalseOnBadInfraRef(t *testi
 
 func TestMachineSetReconciler_updateStatusResizedCondition(t *testing.T) {
 	cluster := &clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "foo",
-			Namespace: metav1.NamespaceDefault,
-		},
+		Name:      "foo",
+		Namespace: metav1.NamespaceDefault,
 	}
 
 	testCases := []struct {
@@ -1218,12 +1188,10 @@ func TestMachineSetReconciler_updateStatusResizedCondition(t *testing.T) {
 			machineSet: newMachineSet("ms-scale-down", cluster.Name, int32(0)),
 			machines: []*clusterv1.Machine{
 				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "machine-a",
-						Namespace: metav1.NamespaceDefault,
-						Labels: map[string]string{
-							clusterv1.ClusterNameLabel: cluster.Name,
-						},
+					Name:      "machine-a",
+					Namespace: metav1.NamespaceDefault,
+					Labels: map[string]string{
+						clusterv1.ClusterNameLabel: cluster.Name,
 					},
 				},
 			},
@@ -1279,10 +1247,8 @@ func TestMachineSetReconciler_syncMachines(t *testing.T) {
 
 	t.Log("Creating the Cluster")
 	testCluster := &clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: namespace.Name,
-			Name:      testClusterName,
-		},
+		Namespace: namespace.Name,
+		Name:      testClusterName,
 		Spec: clusterv1.ClusterSpec{
 			ControlPlaneRef: clusterv1.ContractVersionedObjectReference{
 				APIGroup: builder.ControlPlaneGroupVersion.Group,
@@ -1301,19 +1267,17 @@ func TestMachineSetReconciler_syncMachines(t *testing.T) {
 	version := "v1.25.3"
 	duration10s := new(int32(10))
 	ms := &clusterv1.MachineSet{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "ms-1",
-			Namespace: namespace.Name,
-			Annotations: map[string]string{
-				// Pause the MachineSet controller that is running in the background as part of the controller
-				// suite as we want to control which part of the MachineSet controller is run in this test
-				// by calling the syncMachines func explicitly.
-				clusterv1.PausedAnnotation: "",
-			},
-			Labels: map[string]string{
-				"label-1": "true",
-				// Note: not adding the clusterv1.MachineDeploymentNameLabel to keep the test simple.
-			},
+		Name:      "ms-1",
+		Namespace: namespace.Name,
+		Annotations: map[string]string{
+			// Pause the MachineSet controller that is running in the background as part of the controller
+			// suite as we want to control which part of the MachineSet controller is run in this test
+			// by calling the syncMachines func explicitly.
+			clusterv1.PausedAnnotation: "",
+		},
+		Labels: map[string]string{
+			"label-1": "true",
+			// Note: not adding the clusterv1.MachineDeploymentNameLabel to keep the test simple.
 		},
 		Spec: clusterv1.MachineSetSpec{
 			ClusterName: testCluster.Name,
@@ -1407,23 +1371,21 @@ func TestMachineSetReconciler_syncMachines(t *testing.T) {
 	}
 
 	inPlaceMutatingMachine := &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "in-place-mutating-machine",
-			Namespace: namespace.Name,
-			Labels: map[string]string{
-				"preserved-label": "preserved-value",
-				"dropped-label":   "dropped-value",
-				"modified-label":  "modified-value",
-			},
-			Annotations: map[string]string{
-				"preserved-annotation": "preserved-value",
-				"dropped-annotation":   "dropped-value",
-				"modified-annotation":  "modified-value",
-			},
-			// Setting finalizer like the MachineSet controller would do, this avoids race conditions with
-			// the Machine controller that influence field ownership.
-			Finalizers: []string{clusterv1.MachineFinalizer},
+		Name:      "in-place-mutating-machine",
+		Namespace: namespace.Name,
+		Labels: map[string]string{
+			"preserved-label": "preserved-value",
+			"dropped-label":   "dropped-value",
+			"modified-label":  "modified-value",
 		},
+		Annotations: map[string]string{
+			"preserved-annotation": "preserved-value",
+			"dropped-annotation":   "dropped-value",
+			"modified-annotation":  "modified-value",
+		},
+		// Setting finalizer like the MachineSet controller would do, this avoids race conditions with
+		// the Machine controller that influence field ownership.
+		Finalizers: []string{clusterv1.MachineFinalizer},
 		Spec: clusterv1.MachineSpec{
 			ClusterName: testCluster.Name,
 			InfrastructureRef: clusterv1.ContractVersionedObjectReference{
@@ -1442,13 +1404,11 @@ func TestMachineSetReconciler_syncMachines(t *testing.T) {
 	}
 
 	deletingMachine := &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:        "deleting-machine",
-			Namespace:   namespace.Name,
-			Labels:      map[string]string{},
-			Annotations: map[string]string{},
-			Finalizers:  []string{"testing-finalizer"},
-		},
+		Name:        "deleting-machine",
+		Namespace:   namespace.Name,
+		Labels:      map[string]string{},
+		Annotations: map[string]string{},
+		Finalizers:  []string{"testing-finalizer"},
 		Spec: clusterv1.MachineSpec{
 			ClusterName: testCluster.Name,
 			InfrastructureRef: clusterv1.ContractVersionedObjectReference{
@@ -1771,10 +1731,8 @@ func TestMachineSetReconciler_reconcileUnhealthyMachines(t *testing.T) {
 			}).
 			Build()
 		cluster := &clusterv1.Cluster{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "test-cluster",
-				Namespace: "default",
-			},
+			Name:      "test-cluster",
+			Namespace: "default",
 			Spec: clusterv1.ClusterSpec{
 				ControlPlaneRef: contract.ObjToContractVersionedObjectReference(controlPlaneStable),
 			},
@@ -1782,12 +1740,10 @@ func TestMachineSetReconciler_reconcileUnhealthyMachines(t *testing.T) {
 		machineSet := &clusterv1.MachineSet{}
 
 		unhealthyMachine := &clusterv1.Machine{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "unhealthy-machine",
-				Namespace: "default",
-				// Blocking deletion so we can confirm conditions were updated as expected.
-				Finalizers: []string{"block-deletion"},
-			},
+			Name:      "unhealthy-machine",
+			Namespace: "default",
+			// Blocking deletion so we can confirm conditions were updated as expected.
+			Finalizers: []string{"block-deletion"},
 			Status: clusterv1.MachineStatus{
 				Conditions: []metav1.Condition{
 					{
@@ -1806,10 +1762,8 @@ func TestMachineSetReconciler_reconcileUnhealthyMachines(t *testing.T) {
 			},
 		}
 		healthyMachine := &clusterv1.Machine{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "healthy-machine",
-				Namespace: "default",
-			},
+			Name:      "healthy-machine",
+			Namespace: "default",
 			Status: clusterv1.MachineStatus{
 				Conditions: []metav1.Condition{
 					{
@@ -1877,31 +1831,25 @@ func TestMachineSetReconciler_reconcileUnhealthyMachines(t *testing.T) {
 			}).
 			Build()
 		cluster := &clusterv1.Cluster{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "test-cluster",
-				Namespace: "default",
-			},
+			Name:      "test-cluster",
+			Namespace: "default",
 			Spec: clusterv1.ClusterSpec{
 				ControlPlaneRef: contract.ObjToContractVersionedObjectReference(controlPlaneStable),
 			},
 		}
 
 		machineSet := &clusterv1.MachineSet{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "test-machineset",
-				Namespace: "default",
-				Labels: map[string]string{
-					clusterv1.MachineDeploymentNameLabel: "deleted-machinedeployment",
-				},
+			Name:      "test-machineset",
+			Namespace: "default",
+			Labels: map[string]string{
+				clusterv1.MachineDeploymentNameLabel: "deleted-machinedeployment",
 			},
 		}
 
 		unhealthyMachine := &clusterv1.Machine{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:       "unhealthy-machine",
-				Namespace:  "default",
-				Finalizers: []string{"block-deletion"},
-			},
+			Name:       "unhealthy-machine",
+			Namespace:  "default",
+			Finalizers: []string{"block-deletion"},
 			Status: clusterv1.MachineStatus{
 				Conditions: []metav1.Condition{
 					{
@@ -1962,10 +1910,8 @@ func TestMachineSetReconciler_reconcileUnhealthyMachines(t *testing.T) {
 			}).
 			Build()
 		cluster := &clusterv1.Cluster{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "test-cluster",
-				Namespace: "default",
-			},
+			Name:      "test-cluster",
+			Namespace: "default",
 			Spec: clusterv1.ClusterSpec{
 				ControlPlaneRef: contract.ObjToContractVersionedObjectReference(controlPlaneUpgrading),
 			},
@@ -1973,10 +1919,8 @@ func TestMachineSetReconciler_reconcileUnhealthyMachines(t *testing.T) {
 		machineSet := &clusterv1.MachineSet{}
 
 		unhealthyMachine := &clusterv1.Machine{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "unhealthy-machine",
-				Namespace: "default",
-			},
+			Name:      "unhealthy-machine",
+			Namespace: "default",
 			Status: clusterv1.MachineStatus{
 				Conditions: []metav1.Condition{
 					{
@@ -1995,10 +1939,8 @@ func TestMachineSetReconciler_reconcileUnhealthyMachines(t *testing.T) {
 			},
 		}
 		healthyMachine := &clusterv1.Machine{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "healthy-machine",
-				Namespace: "default",
-			},
+			Name:      "healthy-machine",
+			Namespace: "default",
 			Status: clusterv1.MachineStatus{
 				Conditions: []metav1.Condition{
 					{
@@ -2066,20 +2008,16 @@ func TestMachineSetReconciler_reconcileUnhealthyMachines(t *testing.T) {
 		g := NewWithT(t)
 
 		cluster := &clusterv1.Cluster{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "test-cluster",
-				Namespace: "default",
-			},
-			Spec: clusterv1.ClusterSpec{},
+			Name:      "test-cluster",
+			Namespace: "default",
+			Spec:      clusterv1.ClusterSpec{},
 		}
 
 		machineDeployment := &clusterv1.MachineDeployment{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "test-machinedeployment",
-				Namespace: "default",
-				Annotations: map[string]string{
-					clusterv1.RevisionAnnotation: "10",
-				},
+			Name:      "test-machinedeployment",
+			Namespace: "default",
+			Annotations: map[string]string{
+				clusterv1.RevisionAnnotation: "10",
 			},
 			Spec: clusterv1.MachineDeploymentSpec{
 				ClusterName: "test-cluster",
@@ -2087,21 +2025,19 @@ func TestMachineSetReconciler_reconcileUnhealthyMachines(t *testing.T) {
 		}
 
 		machineSetOld := &clusterv1.MachineSet{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "test-machinedeployment-old",
-				Namespace: "default",
-				Labels: map[string]string{
-					clusterv1.MachineDeploymentNameLabel: "test-machinedeployment",
-				},
-				Annotations: map[string]string{
-					clusterv1.RevisionAnnotation: "7",
-				},
-				OwnerReferences: []metav1.OwnerReference{
-					{
-						APIVersion: clusterv1.GroupVersion.String(),
-						Kind:       "MachineDeployment",
-						Name:       "test-machinedeployment",
-					},
+			Name:      "test-machinedeployment-old",
+			Namespace: "default",
+			Labels: map[string]string{
+				clusterv1.MachineDeploymentNameLabel: "test-machinedeployment",
+			},
+			Annotations: map[string]string{
+				clusterv1.RevisionAnnotation: "7",
+			},
+			OwnerReferences: []metav1.OwnerReference{
+				{
+					APIVersion: clusterv1.GroupVersion.String(),
+					Kind:       "MachineDeployment",
+					Name:       "test-machinedeployment",
 				},
 			},
 			Spec: clusterv1.MachineSetSpec{
@@ -2114,12 +2050,10 @@ func TestMachineSetReconciler_reconcileUnhealthyMachines(t *testing.T) {
 		machineSetCurrent.Annotations[clusterv1.RevisionAnnotation] = "10"
 
 		unhealthyMachine := &clusterv1.Machine{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "unhealthy-machine",
-				Namespace: "default",
-				// Blocking deletion so we can confirm conditions were updated as expected.
-				Finalizers: []string{"block-deletion"},
-			},
+			Name:      "unhealthy-machine",
+			Namespace: "default",
+			// Blocking deletion so we can confirm conditions were updated as expected.
+			Finalizers: []string{"block-deletion"},
 			Status: clusterv1.MachineStatus{
 				Conditions: []metav1.Condition{
 					{
@@ -2138,10 +2072,8 @@ func TestMachineSetReconciler_reconcileUnhealthyMachines(t *testing.T) {
 			},
 		}
 		healthyMachine := &clusterv1.Machine{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "healthy-machine",
-				Namespace: "default",
-			},
+			Name:      "healthy-machine",
+			Namespace: "default",
 			Status: clusterv1.MachineStatus{
 				Conditions: []metav1.Condition{
 					{
@@ -2245,21 +2177,17 @@ func TestMachineSetReconciler_reconcileUnhealthyMachines(t *testing.T) {
 		g := NewWithT(t)
 
 		cluster := &clusterv1.Cluster{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "test-cluster",
-				Namespace: "default",
-			},
-			Spec: clusterv1.ClusterSpec{},
+			Name:      "test-cluster",
+			Namespace: "default",
+			Spec:      clusterv1.ClusterSpec{},
 		}
 
 		maxInFlight := 3
 		machineDeployment := &clusterv1.MachineDeployment{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "test-machinedeployment",
-				Namespace: "default",
-				Annotations: map[string]string{
-					clusterv1.RevisionAnnotation: "10",
-				},
+			Name:      "test-machinedeployment",
+			Namespace: "default",
+			Annotations: map[string]string{
+				clusterv1.RevisionAnnotation: "10",
 			},
 			Spec: clusterv1.MachineDeploymentSpec{
 				ClusterName: "test-cluster",
@@ -2270,21 +2198,19 @@ func TestMachineSetReconciler_reconcileUnhealthyMachines(t *testing.T) {
 		}
 
 		machineSet := &clusterv1.MachineSet{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "test-machinedeployment-old",
-				Namespace: "default",
-				Labels: map[string]string{
-					clusterv1.MachineDeploymentNameLabel: "test-machinedeployment",
-				},
-				Annotations: map[string]string{
-					clusterv1.RevisionAnnotation: "10",
-				},
-				OwnerReferences: []metav1.OwnerReference{
-					{
-						APIVersion: clusterv1.GroupVersion.String(),
-						Kind:       "MachineDeployment",
-						Name:       "test-machinedeployment",
-					},
+			Name:      "test-machinedeployment-old",
+			Namespace: "default",
+			Labels: map[string]string{
+				clusterv1.MachineDeploymentNameLabel: "test-machinedeployment",
+			},
+			Annotations: map[string]string{
+				clusterv1.RevisionAnnotation: "10",
+			},
+			OwnerReferences: []metav1.OwnerReference{
+				{
+					APIVersion: clusterv1.GroupVersion.String(),
+					Kind:       "MachineDeployment",
+					Name:       "test-machinedeployment",
 				},
 			},
 			Spec: clusterv1.MachineSetSpec{
@@ -2296,11 +2222,9 @@ func TestMachineSetReconciler_reconcileUnhealthyMachines(t *testing.T) {
 		total := 8
 		for i := range total {
 			unhealthyMachines = append(unhealthyMachines, &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:              fmt.Sprintf("unhealthy-machine-%d", i),
-					Namespace:         "default",
-					CreationTimestamp: metav1.Time{Time: metav1.Now().Add(time.Duration(i) * time.Second)},
-				},
+				Name:              fmt.Sprintf("unhealthy-machine-%d", i),
+				Namespace:         "default",
+				CreationTimestamp: metav1.Time{Time: metav1.Now().Add(time.Duration(i) * time.Second)},
 				Status: clusterv1.MachineStatus{
 					Conditions: []metav1.Condition{
 						{
@@ -2321,10 +2245,8 @@ func TestMachineSetReconciler_reconcileUnhealthyMachines(t *testing.T) {
 		}
 
 		healthyMachine := &clusterv1.Machine{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "healthy-machine",
-				Namespace: "default",
-			},
+			Name:      "healthy-machine",
+			Namespace: "default",
 			Status: clusterv1.MachineStatus{
 				Conditions: []metav1.Condition{
 					{
@@ -2683,10 +2605,8 @@ func TestMachineSetReconciler_syncReplicas(t *testing.T) {
 
 func TestMachineSetReconciler_cleanupOrphanedBootstrapConfigsInfraMachines(t *testing.T) {
 	machineSet := &clusterv1.MachineSet{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "machineset1",
-			Namespace: metav1.NamespaceDefault,
-		},
+		Name:      "machineset1",
+		Namespace: metav1.NamespaceDefault,
 		Spec: clusterv1.MachineSetSpec{
 			Replicas:    ptr.To[int32](2),
 			ClusterName: "test-cluster",
@@ -2923,19 +2843,15 @@ func TestMachineSetReconciler_createMachines_preflightChecks(t *testing.T) {
 		}).
 		Build()
 	cluster := &clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test-cluster",
-			Namespace: "default",
-		},
+		Name:      "test-cluster",
+		Namespace: "default",
 		Spec: clusterv1.ClusterSpec{
 			ControlPlaneRef: contract.ObjToContractVersionedObjectReference(controlPlaneUpgrading),
 		},
 	}
 	machineSet := &clusterv1.MachineSet{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test-machineset",
-			Namespace: "default",
-		},
+		Name:      "test-machineset",
+		Namespace: "default",
 		Spec: clusterv1.MachineSetSpec{
 			Replicas: ptr.To[int32](1),
 		},
@@ -2974,10 +2890,8 @@ func TestMachineSetReconciler_createMachines_preflightChecks(t *testing.T) {
 
 func TestMachineSetReconciler_createMachines(t *testing.T) {
 	machineSet := &clusterv1.MachineSet{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "machineset1",
-			Namespace: metav1.NamespaceDefault,
-		},
+		Name:      "machineset1",
+		Namespace: metav1.NamespaceDefault,
 		Spec: clusterv1.MachineSetSpec{
 			Replicas:    ptr.To[int32](1),
 			ClusterName: "test-cluster",
@@ -4110,10 +4024,8 @@ func TestComputeDesiredMachine(t *testing.T) {
 	mdName := "testmd"
 	msName := "ms1"
 	testCluster := &clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "foo",
-			Namespace: metav1.NamespaceDefault,
-		},
+		Name:      "foo",
+		Namespace: metav1.NamespaceDefault,
 	}
 
 	infraRef := clusterv1.ContractVersionedObjectReference{
@@ -4128,10 +4040,8 @@ func TestComputeDesiredMachine(t *testing.T) {
 	}
 
 	machineTemplateSpec := clusterv1.MachineTemplateSpec{
-		ObjectMeta: clusterv1.ObjectMeta{
-			Labels:      map[string]string{"machine-label1": "machine-value1"},
-			Annotations: map[string]string{"machine-annotation1": "machine-value1"},
-		},
+		Labels:      map[string]string{"machine-label1": "machine-value1"},
+		Annotations: map[string]string{"machine-annotation1": "machine-value1"},
 		Spec: clusterv1.MachineSpec{
 			ClusterName:       testClusterName,
 			Version:           "v1.25.3",
@@ -4152,16 +4062,14 @@ func TestComputeDesiredMachine(t *testing.T) {
 	}
 
 	skeletonMachine := &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: metav1.NamespaceDefault,
-			Labels: map[string]string{
-				"machine-label1":                     "machine-value1",
-				clusterv1.MachineSetNameLabel:        msName,
-				clusterv1.MachineDeploymentNameLabel: mdName,
-			},
-			Annotations: map[string]string{"machine-annotation1": "machine-value1"},
-			Finalizers:  []string{clusterv1.MachineFinalizer},
+		Namespace: metav1.NamespaceDefault,
+		Labels: map[string]string{
+			"machine-label1":                     "machine-value1",
+			clusterv1.MachineSetNameLabel:        msName,
+			clusterv1.MachineDeploymentNameLabel: mdName,
 		},
+		Annotations: map[string]string{"machine-annotation1": "machine-value1"},
+		Finalizers:  []string{clusterv1.MachineFinalizer},
 		Spec: clusterv1.MachineSpec{
 			ClusterName: testClusterName,
 			Version:     "v1.25.3",
@@ -4220,12 +4128,10 @@ func TestComputeDesiredMachine(t *testing.T) {
 		{
 			name: "should return the correct Machine object when creating a new Machine",
 			ms: &clusterv1.MachineSet{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: metav1.NamespaceDefault,
-					Name:      msName,
-					Labels: map[string]string{
-						clusterv1.MachineDeploymentNameLabel: mdName,
-					},
+				Namespace: metav1.NamespaceDefault,
+				Name:      msName,
+				Labels: map[string]string{
+					clusterv1.MachineDeploymentNameLabel: mdName,
 				},
 				Spec: clusterv1.MachineSetSpec{
 					ClusterName: testClusterName,
@@ -4249,12 +4155,10 @@ func TestComputeDesiredMachine(t *testing.T) {
 		{
 			name: "should return error when creating a new Machine when '.random' is not added in template",
 			ms: &clusterv1.MachineSet{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: metav1.NamespaceDefault,
-					Name:      msName,
-					Labels: map[string]string{
-						clusterv1.MachineDeploymentNameLabel: mdName,
-					},
+				Namespace: metav1.NamespaceDefault,
+				Name:      msName,
+				Labels: map[string]string{
+					clusterv1.MachineDeploymentNameLabel: mdName,
 				},
 				Spec: clusterv1.MachineSetSpec{
 					ClusterName: testClusterName,
@@ -4274,12 +4178,10 @@ func TestComputeDesiredMachine(t *testing.T) {
 		{
 			name: "should not return error when creating a new Machine when the generated name exceeds 63",
 			ms: &clusterv1.MachineSet{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: metav1.NamespaceDefault,
-					Name:      msName,
-					Labels: map[string]string{
-						clusterv1.MachineDeploymentNameLabel: mdName,
-					},
+				Namespace: metav1.NamespaceDefault,
+				Name:      msName,
+				Labels: map[string]string{
+					clusterv1.MachineDeploymentNameLabel: mdName,
 				},
 				Spec: clusterv1.MachineSetSpec{
 					ClusterName: testClusterName,
@@ -4303,12 +4205,10 @@ func TestComputeDesiredMachine(t *testing.T) {
 		{
 			name: "should return error when creating a new Machine with invalid template",
 			ms: &clusterv1.MachineSet{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: metav1.NamespaceDefault,
-					Name:      msName,
-					Labels: map[string]string{
-						clusterv1.MachineDeploymentNameLabel: mdName,
-					},
+				Namespace: metav1.NamespaceDefault,
+				Name:      msName,
+				Labels: map[string]string{
+					clusterv1.MachineDeploymentNameLabel: mdName,
 				},
 				Spec: clusterv1.MachineSetSpec{
 					ClusterName: testClusterName,
@@ -4328,12 +4228,10 @@ func TestComputeDesiredMachine(t *testing.T) {
 		{
 			name: "should return the correct Machine object when creating a new Machine with default templated name",
 			ms: &clusterv1.MachineSet{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: metav1.NamespaceDefault,
-					Name:      msName,
-					Labels: map[string]string{
-						clusterv1.MachineDeploymentNameLabel: mdName,
-					},
+				Namespace: metav1.NamespaceDefault,
+				Name:      msName,
+				Labels: map[string]string{
+					clusterv1.MachineDeploymentNameLabel: mdName,
 				},
 				Spec: clusterv1.MachineSetSpec{
 					ClusterName: testClusterName,
@@ -4353,12 +4251,10 @@ func TestComputeDesiredMachine(t *testing.T) {
 		{
 			name: "updating an existing Machine",
 			ms: &clusterv1.MachineSet{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: metav1.NamespaceDefault,
-					Name:      msName,
-					Labels: map[string]string{
-						clusterv1.MachineDeploymentNameLabel: mdName,
-					},
+				Namespace: metav1.NamespaceDefault,
+				Name:      msName,
+				Labels: map[string]string{
+					clusterv1.MachineDeploymentNameLabel: mdName,
 				},
 				Spec: clusterv1.MachineSetSpec{
 					ClusterName: testClusterName,
@@ -4587,13 +4483,11 @@ func TestSortMachinesToRemediate(t *testing.T) {
 	unhealthyMachinesWithAnnotations := []*clusterv1.Machine{}
 	for i := range 4 {
 		unhealthyMachinesWithAnnotations = append(unhealthyMachinesWithAnnotations, &clusterv1.Machine{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:              fmt.Sprintf("unhealthy-annotated-machine-%d", i),
-				Namespace:         "default",
-				CreationTimestamp: metav1.Time{Time: metav1.Now().Add(time.Duration(i) * time.Second)},
-				Annotations: map[string]string{
-					clusterv1.RemediateMachineAnnotation: "",
-				},
+			Name:              fmt.Sprintf("unhealthy-annotated-machine-%d", i),
+			Namespace:         "default",
+			CreationTimestamp: metav1.Time{Time: metav1.Now().Add(time.Duration(i) * time.Second)},
+			Annotations: map[string]string{
+				clusterv1.RemediateMachineAnnotation: "",
 			},
 			Status: clusterv1.MachineStatus{
 				Conditions: []metav1.Condition{
@@ -4617,11 +4511,9 @@ func TestSortMachinesToRemediate(t *testing.T) {
 	unhealthyMachines := []*clusterv1.Machine{}
 	for i := range 4 {
 		unhealthyMachines = append(unhealthyMachines, &clusterv1.Machine{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:              fmt.Sprintf("unhealthy-machine-%d", i),
-				Namespace:         "default",
-				CreationTimestamp: metav1.Time{Time: metav1.Now().Add(time.Duration(i) * time.Second)},
-			},
+			Name:              fmt.Sprintf("unhealthy-machine-%d", i),
+			Namespace:         "default",
+			CreationTimestamp: metav1.Time{Time: metav1.Now().Add(time.Duration(i) * time.Second)},
 			Status: clusterv1.MachineStatus{
 				Conditions: []metav1.Condition{
 					{
@@ -4716,7 +4608,7 @@ func managedFieldsMatching(managedFields []metav1.ManagedFieldsEntry, manager st
 
 func TestReconciler_completeMoveMachine(t *testing.T) {
 	testCluster := &clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Name: testClusterName},
+		Namespace: metav1.NamespaceDefault, Name: testClusterName,
 	}
 
 	g := NewWithT(t)
@@ -4762,10 +4654,8 @@ func TestReconciler_completeMoveMachine(t *testing.T) {
 
 	// Create a MachineSet with a specific version and failure domain
 	machineSet := &clusterv1.MachineSet{
-		ObjectMeta: metav1.ObjectMeta{
-			GenerateName: "ms-",
-			Namespace:    metav1.NamespaceDefault,
-		},
+		GenerateName: "ms-",
+		Namespace:    metav1.NamespaceDefault,
 		Spec: clusterv1.MachineSetSpec{
 			ClusterName: testClusterName,
 			Template: clusterv1.MachineTemplateSpec{
@@ -4810,10 +4700,8 @@ func TestReconciler_completeMoveMachine(t *testing.T) {
 
 	// Create a Machine with a different version and failure domain
 	machine := &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "current-machine",
-			Namespace: metav1.NamespaceDefault,
-		},
+		Name:      "current-machine",
+		Namespace: metav1.NamespaceDefault,
 		Spec: clusterv1.MachineSpec{
 			InfrastructureRef: clusterv1.ContractVersionedObjectReference{
 				Kind:     "GenericInfrastructureMachine",

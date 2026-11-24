@@ -25,7 +25,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
@@ -248,7 +247,7 @@ func (p *providerComponents) DeleteWebhookNamespace(ctx context.Context) error {
 		return err
 	}
 
-	coreProviderWebhookNs := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: webhookNamespaceName}}
+	coreProviderWebhookNs := &corev1.Namespace{Name: webhookNamespaceName}
 	if err := c.Delete(ctx, coreProviderWebhookNs); err != nil {
 		if apierrors.IsNotFound(err) {
 			return nil

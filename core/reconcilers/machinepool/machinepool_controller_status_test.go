@@ -335,7 +335,7 @@ func Test_setMachinesUpToDateCondition(t *testing.T) {
 		{
 			name: "recently created Machine without condition is ignored",
 			machines: []*clusterv1.Machine{{
-				ObjectMeta: metav1.ObjectMeta{Name: "machine-new", CreationTimestamp: metav1.NewTime(time.Now())},
+				Name: "machine-new", CreationTimestamp: metav1.NewTime(time.Now()),
 			}},
 			hasMachinePoolMachines: true,
 			getMachinesSucceeded:   true,
@@ -384,16 +384,12 @@ func Test_setMachinesUpToDateCondition(t *testing.T) {
 			name: "older Machine without condition is reported while a new Machine is ignored",
 			machines: []*clusterv1.Machine{
 				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:              "machine-old",
-						CreationTimestamp: metav1.NewTime(time.Now().Add(-20 * time.Second)),
-					},
+					Name:              "machine-old",
+					CreationTimestamp: metav1.NewTime(time.Now().Add(-20 * time.Second)),
 				},
 				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:              "machine-new",
-						CreationTimestamp: metav1.NewTime(time.Now()),
-					},
+					Name:              "machine-new",
+					CreationTimestamp: metav1.NewTime(time.Now()),
 				},
 			},
 			hasMachinePoolMachines: true,
@@ -450,7 +446,7 @@ func Test_setMachinesUpToDateCondition(t *testing.T) {
 }
 
 func machinePoolTestMachine(name string, machineConditions ...metav1.Condition) *clusterv1.Machine {
-	machine := &clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: name}}
+	machine := &clusterv1.Machine{Name: name}
 	for _, condition := range machineConditions {
 		conditions.Set(machine, condition)
 	}

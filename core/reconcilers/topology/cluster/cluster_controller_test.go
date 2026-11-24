@@ -497,28 +497,16 @@ func TestClusterReconciler_reconcileDelete(t *testing.T) {
 	}
 
 	blockingResponse := &runtimehooksv1.BeforeClusterDeleteResponse{
-		CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
-			RetryAfterSeconds: int32(10),
-			CommonResponse: runtimehooksv1.CommonResponse{
-				Status:  runtimehooksv1.ResponseStatusSuccess,
-				Message: "hook is blocking",
-			},
-		},
+		RetryAfterSeconds: int32(10),
+		Status:            runtimehooksv1.ResponseStatusSuccess,
+		Message:           "hook is blocking",
 	}
 	nonBlockingResponse := &runtimehooksv1.BeforeClusterDeleteResponse{
-		CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
-			RetryAfterSeconds: int32(0),
-			CommonResponse: runtimehooksv1.CommonResponse{
-				Status: runtimehooksv1.ResponseStatusSuccess,
-			},
-		},
+		RetryAfterSeconds: int32(0),
+		Status:            runtimehooksv1.ResponseStatusSuccess,
 	}
 	failureResponse := &runtimehooksv1.BeforeClusterDeleteResponse{
-		CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
-			CommonResponse: runtimehooksv1.CommonResponse{
-				Status: runtimehooksv1.ResponseStatusFailure,
-			},
-		},
+		Status: runtimehooksv1.ResponseStatusFailure,
 	}
 
 	tests := []struct {
@@ -534,10 +522,8 @@ func TestClusterReconciler_reconcileDelete(t *testing.T) {
 		{
 			name: "should apply the ok-to-delete annotation if the BeforeClusterDelete hook returns a non-blocking response",
 			cluster: &clusterv1.Cluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-cluster",
-					Namespace: "test-ns",
-				},
+				Name:      "test-cluster",
+				Namespace: "test-ns",
 				Spec: clusterv1.ClusterSpec{
 					Topology: clusterv1.Topology{},
 				},
@@ -551,10 +537,8 @@ func TestClusterReconciler_reconcileDelete(t *testing.T) {
 		{
 			name: "should requeue if the BeforeClusterDelete hook returns a blocking response",
 			cluster: &clusterv1.Cluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-cluster",
-					Namespace: "test-ns",
-				},
+				Name:      "test-cluster",
+				Namespace: "test-ns",
 				Spec: clusterv1.ClusterSpec{
 					Topology: clusterv1.Topology{},
 				},
@@ -565,20 +549,16 @@ func TestClusterReconciler_reconcileDelete(t *testing.T) {
 			wantOkToDelete:     false,
 			wantErr:            false,
 			wantHookCacheEntry: new(cache.NewHookEntry(&clusterv1.Cluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "test-ns",
-					Name:      "test-cluster",
-				},
+				Namespace: "test-ns",
+				Name:      "test-cluster",
 			}, runtimehooksv1.BeforeClusterDelete,
 				time.Now().Add(time.Duration(blockingResponse.RetryAfterSeconds)*time.Second), blockingResponse.Message)),
 		},
 		{
 			name: "should fail if the BeforeClusterDelete hook returns a failure response",
 			cluster: &clusterv1.Cluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-cluster",
-					Namespace: "test-ns",
-				},
+				Name:      "test-cluster",
+				Namespace: "test-ns",
 				Spec: clusterv1.ClusterSpec{
 					Topology: clusterv1.Topology{},
 				},
@@ -592,13 +572,11 @@ func TestClusterReconciler_reconcileDelete(t *testing.T) {
 		{
 			name: "should succeed if the ok-to-delete annotation is already present",
 			cluster: &clusterv1.Cluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-cluster",
-					Namespace: "test-ns",
-					Annotations: map[string]string{
-						// If the hook is already marked the hook should not be called during cluster delete.
-						runtimev1.OkToDeleteAnnotation: "",
-					},
+				Name:      "test-cluster",
+				Namespace: "test-ns",
+				Annotations: map[string]string{
+					// If the hook is already marked the hook should not be called during cluster delete.
+					runtimev1.OkToDeleteAnnotation: "",
 				},
 				Spec: clusterv1.ClusterSpec{
 					Topology: clusterv1.Topology{},
@@ -763,28 +741,16 @@ func TestReconciler_callBeforeClusterCreateHook(t *testing.T) {
 	}
 
 	blockingResponse := &runtimehooksv1.BeforeClusterCreateResponse{
-		CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
-			CommonResponse: runtimehooksv1.CommonResponse{
-				Status:  runtimehooksv1.ResponseStatusSuccess,
-				Message: "processing",
-			},
-			RetryAfterSeconds: int32(10),
-		},
+		Status:            runtimehooksv1.ResponseStatusSuccess,
+		Message:           "processing",
+		RetryAfterSeconds: int32(10),
 	}
 	nonBlockingResponse := &runtimehooksv1.BeforeClusterCreateResponse{
-		CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
-			CommonResponse: runtimehooksv1.CommonResponse{
-				Status: runtimehooksv1.ResponseStatusSuccess,
-			},
-			RetryAfterSeconds: int32(0),
-		},
+		Status:            runtimehooksv1.ResponseStatusSuccess,
+		RetryAfterSeconds: int32(0),
 	}
 	failingResponse := &runtimehooksv1.BeforeClusterCreateResponse{
-		CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
-			CommonResponse: runtimehooksv1.CommonResponse{
-				Status: runtimehooksv1.ResponseStatusFailure,
-			},
-		},
+		Status: runtimehooksv1.ResponseStatusFailure,
 	}
 
 	tests := []struct {
@@ -800,10 +766,8 @@ func TestReconciler_callBeforeClusterCreateHook(t *testing.T) {
 			wantResult:   ctrl.Result{RequeueAfter: time.Duration(10) * time.Second},
 			wantErr:      false,
 			wantHookCacheEntry: new(cache.NewHookEntry(&clusterv1.Cluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: metav1.NamespaceDefault,
-					Name:      "cluster-1",
-				},
+				Namespace: metav1.NamespaceDefault,
+				Name:      "cluster-1",
 			}, runtimehooksv1.BeforeClusterCreate,
 				time.Now().Add(time.Duration(blockingResponse.RetryAfterSeconds)*time.Second), blockingResponse.Message)),
 		},
@@ -827,24 +791,22 @@ func TestReconciler_callBeforeClusterCreateHook(t *testing.T) {
 			s := &scope.Scope{
 				Current: &scope.ClusterState{
 					Cluster: &clusterv1.Cluster{
-						ObjectMeta: metav1.ObjectMeta{
-							Namespace: metav1.NamespaceDefault,
-							Name:      "cluster-1",
-							// Add managedFields and annotations that should be cleaned up before the Cluster is sent to the RuntimeExtension.
-							ManagedFields: []metav1.ManagedFieldsEntry{
-								{
-									APIVersion: builder.InfrastructureGroupVersion.String(),
-									Manager:    "manager",
-									Operation:  "Apply",
-									Time:       new(metav1.Now()),
-									FieldsType: "FieldsV1",
-								},
+						Namespace: metav1.NamespaceDefault,
+						Name:      "cluster-1",
+						// Add managedFields and annotations that should be cleaned up before the Cluster is sent to the RuntimeExtension.
+						ManagedFields: []metav1.ManagedFieldsEntry{
+							{
+								APIVersion: builder.InfrastructureGroupVersion.String(),
+								Manager:    "manager",
+								Operation:  "Apply",
+								Time:       new(metav1.Now()),
+								FieldsType: "FieldsV1",
 							},
-							Annotations: map[string]string{
-								"fizz":                             "buzz",
-								corev1.LastAppliedConfigAnnotation: "should be cleaned up",
-								conversionutil.DataAnnotation:      "should be cleaned up",
-							},
+						},
+						Annotations: map[string]string{
+							"fizz":                             "buzz",
+							corev1.LastAppliedConfigAnnotation: "should be cleaned up",
+							conversionutil.DataAnnotation:      "should be cleaned up",
 						},
 					},
 				},
@@ -1635,7 +1597,7 @@ func TestReconciler_DefaultCluster(t *testing.T) {
 				APIReader: fakeClient,
 			}
 			// Ignore the error here as we expect the ClusterClass to fail in reconciliation as its references do not exist.
-			_, _ = r.Reconcile(ctx, ctrl.Request{NamespacedName: client.ObjectKey{Name: tt.initialCluster.Name, Namespace: tt.initialCluster.Namespace}})
+			_, _ = r.Reconcile(ctx, ctrl.Request{Name: tt.initialCluster.Name, Namespace: tt.initialCluster.Namespace})
 			got := &clusterv1.Cluster{}
 			g.Expect(fakeClient.Get(ctx, client.ObjectKey{Name: tt.initialCluster.Name, Namespace: tt.initialCluster.Namespace}, got)).To(Succeed())
 			// Compare the spec of the two clusters to ensure that variables are defaulted correctly.
@@ -1772,7 +1734,7 @@ func TestReconciler_ValidateCluster(t *testing.T) {
 				Client:    fakeClient,
 				APIReader: fakeClient,
 			}
-			_, err := r.Reconcile(ctx, ctrl.Request{NamespacedName: client.ObjectKey{Name: tt.cluster.Name, Namespace: tt.cluster.Namespace}})
+			_, err := r.Reconcile(ctx, ctrl.Request{Name: tt.cluster.Name, Namespace: tt.cluster.Namespace})
 			// Reconcile will always return an error here as the topology is incomplete. This test checks specifically for
 			// validation errors.
 			validationErrMessage := fmt.Sprintf("Cluster.cluster.x-k8s.io %q is invalid:", tt.cluster.Name)

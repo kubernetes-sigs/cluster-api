@@ -38,9 +38,7 @@ import (
 func TestMachineSetDefault(t *testing.T) {
 	g := NewWithT(t)
 	ms := &clusterv1.MachineSet{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "test-ms",
-		},
+		Name: "test-ms",
 		Spec: clusterv1.MachineSetSpec{
 			Template: clusterv1.MachineTemplateSpec{
 				Spec: clusterv1.MachineSpec{
@@ -153,10 +151,8 @@ func TestCalculateMachineSetReplicas(t *testing.T) {
 		{
 			name: "if new MS only has min size annotation, fallback to 1",
 			newMS: &clusterv1.MachineSet{
-				ObjectMeta: metav1.ObjectMeta{
-					Annotations: map[string]string{
-						clusterv1.AutoscalerMinSizeAnnotation: "3",
-					},
+				Annotations: map[string]string{
+					clusterv1.AutoscalerMinSizeAnnotation: "3",
 				},
 			},
 			expectedReplicas: 1,
@@ -164,10 +160,8 @@ func TestCalculateMachineSetReplicas(t *testing.T) {
 		{
 			name: "if new MS only has max size annotation, fallback to 1",
 			newMS: &clusterv1.MachineSet{
-				ObjectMeta: metav1.ObjectMeta{
-					Annotations: map[string]string{
-						clusterv1.AutoscalerMaxSizeAnnotation: "7",
-					},
+				Annotations: map[string]string{
+					clusterv1.AutoscalerMaxSizeAnnotation: "7",
 				},
 			},
 			expectedReplicas: 1,
@@ -175,11 +169,9 @@ func TestCalculateMachineSetReplicas(t *testing.T) {
 		{
 			name: "if new MS has min and max size annotation and min size is invalid, fail",
 			newMS: &clusterv1.MachineSet{
-				ObjectMeta: metav1.ObjectMeta{
-					Annotations: map[string]string{
-						clusterv1.AutoscalerMinSizeAnnotation: "abc",
-						clusterv1.AutoscalerMaxSizeAnnotation: "7",
-					},
+				Annotations: map[string]string{
+					clusterv1.AutoscalerMinSizeAnnotation: "abc",
+					clusterv1.AutoscalerMaxSizeAnnotation: "7",
 				},
 			},
 			expectErr: true,
@@ -187,11 +179,9 @@ func TestCalculateMachineSetReplicas(t *testing.T) {
 		{
 			name: "if new MS has min and max size annotation and max size is invalid, fail",
 			newMS: &clusterv1.MachineSet{
-				ObjectMeta: metav1.ObjectMeta{
-					Annotations: map[string]string{
-						clusterv1.AutoscalerMinSizeAnnotation: "3",
-						clusterv1.AutoscalerMaxSizeAnnotation: "abc",
-					},
+				Annotations: map[string]string{
+					clusterv1.AutoscalerMinSizeAnnotation: "3",
+					clusterv1.AutoscalerMaxSizeAnnotation: "abc",
 				},
 			},
 			expectErr: true,
@@ -199,11 +189,9 @@ func TestCalculateMachineSetReplicas(t *testing.T) {
 		{
 			name: "if new MS has min and max size annotation and new MS is a new MS, use min size",
 			newMS: &clusterv1.MachineSet{
-				ObjectMeta: metav1.ObjectMeta{
-					Annotations: map[string]string{
-						clusterv1.AutoscalerMinSizeAnnotation: "3",
-						clusterv1.AutoscalerMaxSizeAnnotation: "7",
-					},
+				Annotations: map[string]string{
+					clusterv1.AutoscalerMinSizeAnnotation: "3",
+					clusterv1.AutoscalerMaxSizeAnnotation: "7",
 				},
 			},
 			expectedReplicas: 3,
@@ -211,11 +199,9 @@ func TestCalculateMachineSetReplicas(t *testing.T) {
 		{
 			name: "if new MS has min and max size annotation and old MS doesn't have replicas set, use min size",
 			newMS: &clusterv1.MachineSet{
-				ObjectMeta: metav1.ObjectMeta{
-					Annotations: map[string]string{
-						clusterv1.AutoscalerMinSizeAnnotation: "3",
-						clusterv1.AutoscalerMaxSizeAnnotation: "7",
-					},
+				Annotations: map[string]string{
+					clusterv1.AutoscalerMinSizeAnnotation: "3",
+					clusterv1.AutoscalerMaxSizeAnnotation: "7",
 				},
 			},
 			oldMS:            &clusterv1.MachineSet{},
@@ -224,11 +210,9 @@ func TestCalculateMachineSetReplicas(t *testing.T) {
 		{
 			name: "if new MS has min and max size annotation and old MS replicas is below min size, use min size",
 			newMS: &clusterv1.MachineSet{
-				ObjectMeta: metav1.ObjectMeta{
-					Annotations: map[string]string{
-						clusterv1.AutoscalerMinSizeAnnotation: "3",
-						clusterv1.AutoscalerMaxSizeAnnotation: "7",
-					},
+				Annotations: map[string]string{
+					clusterv1.AutoscalerMinSizeAnnotation: "3",
+					clusterv1.AutoscalerMaxSizeAnnotation: "7",
 				},
 			},
 			oldMS: &clusterv1.MachineSet{
@@ -241,11 +225,9 @@ func TestCalculateMachineSetReplicas(t *testing.T) {
 		{
 			name: "if new MS has min and max size annotation and old MS replicas is above max size, use max size",
 			newMS: &clusterv1.MachineSet{
-				ObjectMeta: metav1.ObjectMeta{
-					Annotations: map[string]string{
-						clusterv1.AutoscalerMinSizeAnnotation: "3",
-						clusterv1.AutoscalerMaxSizeAnnotation: "7",
-					},
+				Annotations: map[string]string{
+					clusterv1.AutoscalerMinSizeAnnotation: "3",
+					clusterv1.AutoscalerMaxSizeAnnotation: "7",
 				},
 			},
 			oldMS: &clusterv1.MachineSet{
@@ -258,11 +240,9 @@ func TestCalculateMachineSetReplicas(t *testing.T) {
 		{
 			name: "if new MS has min and max size annotation and old MS replicas is between min and max size, use old MS replicas",
 			newMS: &clusterv1.MachineSet{
-				ObjectMeta: metav1.ObjectMeta{
-					Annotations: map[string]string{
-						clusterv1.AutoscalerMinSizeAnnotation: "3",
-						clusterv1.AutoscalerMaxSizeAnnotation: "7",
-					},
+				Annotations: map[string]string{
+					clusterv1.AutoscalerMinSizeAnnotation: "3",
+					clusterv1.AutoscalerMaxSizeAnnotation: "7",
 				},
 			},
 			oldMS: &clusterv1.MachineSet{
@@ -569,10 +549,8 @@ func TestValidateSkippedMachineSetPreflightChecks(t *testing.T) {
 		{
 			name: "should pass if not preflight checks are skipped",
 			ms: &clusterv1.MachineSet{
-				ObjectMeta: metav1.ObjectMeta{
-					Annotations: map[string]string{
-						clusterv1.MachineSetSkipPreflightChecksAnnotation: "",
-					},
+				Annotations: map[string]string{
+					clusterv1.MachineSetSkipPreflightChecksAnnotation: "",
 				},
 			},
 			expectErr: false,
@@ -580,10 +558,8 @@ func TestValidateSkippedMachineSetPreflightChecks(t *testing.T) {
 		{
 			name: "should pass if only valid preflight checks are skipped (single)",
 			ms: &clusterv1.MachineSet{
-				ObjectMeta: metav1.ObjectMeta{
-					Annotations: map[string]string{
-						clusterv1.MachineSetSkipPreflightChecksAnnotation: string(clusterv1.MachineSetPreflightCheckKubeadmVersionSkew),
-					},
+				Annotations: map[string]string{
+					clusterv1.MachineSetSkipPreflightChecksAnnotation: string(clusterv1.MachineSetPreflightCheckKubeadmVersionSkew),
 				},
 			},
 			expectErr: false,
@@ -591,10 +567,8 @@ func TestValidateSkippedMachineSetPreflightChecks(t *testing.T) {
 		{
 			name: "should pass if only valid preflight checks are skipped (multiple)",
 			ms: &clusterv1.MachineSet{
-				ObjectMeta: metav1.ObjectMeta{
-					Annotations: map[string]string{
-						clusterv1.MachineSetSkipPreflightChecksAnnotation: string(clusterv1.MachineSetPreflightCheckKubeadmVersionSkew) + "," + string(clusterv1.MachineSetPreflightCheckControlPlaneIsStable),
-					},
+				Annotations: map[string]string{
+					clusterv1.MachineSetSkipPreflightChecksAnnotation: string(clusterv1.MachineSetPreflightCheckKubeadmVersionSkew) + "," + string(clusterv1.MachineSetPreflightCheckControlPlaneIsStable),
 				},
 			},
 			expectErr: false,
@@ -602,10 +576,8 @@ func TestValidateSkippedMachineSetPreflightChecks(t *testing.T) {
 		{
 			name: "should fail if invalid preflight checks are skipped",
 			ms: &clusterv1.MachineSet{
-				ObjectMeta: metav1.ObjectMeta{
-					Annotations: map[string]string{
-						clusterv1.MachineSetSkipPreflightChecksAnnotation: string(clusterv1.MachineSetPreflightCheckKubeadmVersionSkew) + ",invalid-preflight-check-name",
-					},
+				Annotations: map[string]string{
+					clusterv1.MachineSetSkipPreflightChecksAnnotation: string(clusterv1.MachineSetPreflightCheckKubeadmVersionSkew) + ",invalid-preflight-check-name",
 				},
 			},
 			expectErr: true,

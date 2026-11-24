@@ -26,7 +26,6 @@ import (
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/test/framework"
@@ -63,11 +62,9 @@ var _ = Describe("When testing Node drain", func() {
 
 func generateVolumeAttachment(node corev1.Node) *storagev1.VolumeAttachment {
 	return &storagev1.VolumeAttachment{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: fmt.Sprintf("va-%s", node.GetName()),
-			Finalizers: []string{
-				"test.cluster.x-k8s.io/block",
-			},
+		Name: fmt.Sprintf("va-%s", node.GetName()),
+		Finalizers: []string{
+			"test.cluster.x-k8s.io/block",
 		},
 		Spec: storagev1.VolumeAttachmentSpec{
 			Attacher: "manual",

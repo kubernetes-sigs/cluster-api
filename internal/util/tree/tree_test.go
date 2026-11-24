@@ -545,14 +545,10 @@ type objectOption func(object ctrlclient.Object)
 
 func fakeObject(name string, options ...objectOption) ctrlclient.Object {
 	c := &clusterv1.Cluster{ // suing type cluster for simplicity, but this could be any object
-		TypeMeta: metav1.TypeMeta{
-			Kind: "Object",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "ns",
-			Name:      name,
-			UID:       types.UID(name),
-		},
+		Kind:      "Object",
+		Namespace: "ns",
+		Name:      name,
+		UID:       types.UID(name),
 	}
 	for _, opt := range options {
 		opt(c)

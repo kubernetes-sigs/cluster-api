@@ -61,34 +61,22 @@ func Test_providerComponents_Delete(t *testing.T) {
 	initObjs := []client.Object{
 		// Namespace (should be deleted only if includeNamespace)
 		&corev1.Namespace{
-			TypeMeta: metav1.TypeMeta{
-				Kind: "Namespace",
-			},
-			ObjectMeta: metav1.ObjectMeta{
-				Name:   "ns1",
-				Labels: labels,
-			},
+			Kind:   "Namespace",
+			Name:   "ns1",
+			Labels: labels,
 		},
 		// A namespaced provider component (should always be deleted)
 		&corev1.Pod{
-			TypeMeta: metav1.TypeMeta{
-				Kind: "Pod",
-			},
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: "ns1",
-				Name:      "pod1",
-				Labels:    labels,
-			},
+			Kind:      "Pod",
+			Namespace: "ns1",
+			Name:      "pod1",
+			Labels:    labels,
 		},
 		// Another object in the namespace but not belonging to the provider (should go away only when deleting the namespace)
 		&corev1.Pod{
-			TypeMeta: metav1.TypeMeta{
-				Kind: "Pod",
-			},
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: "ns1",
-				Name:      "pod2",
-			},
+			Kind:      "Pod",
+			Namespace: "ns1",
+			Name:      "pod2",
 		},
 		// CRDs (should be deleted only if includeCRD)
 		&crd,
@@ -97,33 +85,21 @@ func Test_providerComponents_Delete(t *testing.T) {
 		&mutatingWebhook,
 		// A cluster-wide provider component (should always be deleted)
 		&rbacv1.ClusterRole{
-			TypeMeta: metav1.TypeMeta{
-				Kind: "ClusterRole",
-			},
-			ObjectMeta: metav1.ObjectMeta{
-				Name:   "ns1-cluster-role", // global objects belonging to the provider have a namespace prefix.
-				Labels: labels,
-			},
+			Kind:   "ClusterRole",
+			Name:   "ns1-cluster-role", // global objects belonging to the provider have a namespace prefix.
+			Labels: labels,
 		},
 		// Another cluster-wide object (should never be deleted)
 		&rbacv1.ClusterRole{
-			TypeMeta: metav1.TypeMeta{
-				Kind: "ClusterRole",
-			},
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "some-cluster-role",
-			},
+			Kind: "ClusterRole",
+			Name: "some-cluster-role",
 		},
 		// Another object out of the provider namespace (should never be deleted)
 		&corev1.Pod{
-			TypeMeta: metav1.TypeMeta{
-				Kind: "Pod",
-			},
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: "ns2",
-				Name:      "pod3",
-				Labels:    labels,
-			},
+			Kind:      "Pod",
+			Namespace: "ns2",
+			Name:      "pod3",
+			Labels:    labels,
 		},
 	}
 
@@ -312,13 +288,9 @@ func Test_providerComponents_DeleteCoreProviderWebhookNamespace(t *testing.T) {
 		}
 		initObjs := []client.Object{
 			&corev1.Namespace{
-				TypeMeta: metav1.TypeMeta{
-					Kind: "Namespace",
-				},
-				ObjectMeta: metav1.ObjectMeta{
-					Name:   "capi-webhook-system",
-					Labels: labels,
-				},
+				Kind:   "Namespace",
+				Name:   "capi-webhook-system",
+				Labels: labels,
 			},
 		}
 
@@ -347,38 +319,26 @@ func Test_providerComponents_Create(t *testing.T) {
 	commonObjects := []client.Object{
 		// Namespace for the provider
 		&corev1.Namespace{
-			TypeMeta: metav1.TypeMeta{
-				Kind:       "Namespace",
-				APIVersion: "v1",
-			},
-			ObjectMeta: metav1.ObjectMeta{
-				Name:   "ns1",
-				Labels: labelsOne,
-			},
+			Kind:       "Namespace",
+			APIVersion: "v1",
+			Name:       "ns1",
+			Labels:     labelsOne,
 		},
 		// A cluster-wide provider component.
 		&rbacv1.ClusterRole{
-			TypeMeta: metav1.TypeMeta{
-				Kind:       "ClusterRole",
-				APIVersion: rbacv1.SchemeGroupVersion.WithKind("ClusterRole").GroupVersion().String(),
-			},
-			ObjectMeta: metav1.ObjectMeta{
-				Name:   "ns1-cluster-role", // global objects belonging to the provider have a namespace prefix.
-				Labels: labelsOne,
-			},
+			Kind:       "ClusterRole",
+			APIVersion: rbacv1.SchemeGroupVersion.WithKind("ClusterRole").GroupVersion().String(),
+			Name:       "ns1-cluster-role", // global objects belonging to the provider have a namespace prefix.
+			Labels:     labelsOne,
 		},
 	}
 	// A namespaced provider component as a pod.
 	podOne := &corev1.Pod{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "Pod",
-			APIVersion: "v1",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "ns1",
-			Name:      "pod1",
-			Labels:    labelsOne,
-		},
+		Kind:       "Pod",
+		APIVersion: "v1",
+		Namespace:  "ns1",
+		Name:       "pod1",
+		Labels:     labelsOne,
 		Spec: corev1.PodSpec{
 			Containers: []corev1.Container{
 				{
@@ -389,15 +349,11 @@ func Test_providerComponents_Create(t *testing.T) {
 	}
 	// podTwo is the same as podTwo but has an image titled pod1-v2.
 	podTwo := &corev1.Pod{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "Pod",
-			APIVersion: "v1",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "ns1",
-			Name:      "pod1",
-			Labels:    labelsOne,
-		},
+		Kind:       "Pod",
+		APIVersion: "v1",
+		Namespace:  "ns1",
+		Name:       "pod1",
+		Labels:     labelsOne,
 		Spec: corev1.PodSpec{
 			Containers: []corev1.Container{
 				{
@@ -503,14 +459,10 @@ func Test_providerComponents_ValidateNoObjectsExist(t *testing.T) {
 	}
 
 	crd := &apiextensionsv1.CustomResourceDefinition{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "CustomResourceDefinition",
-			APIVersion: apiextensionsv1.SchemeGroupVersion.Identifier(),
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:   "crd1",
-			Labels: labels,
-		},
+		Kind:       "CustomResourceDefinition",
+		APIVersion: apiextensionsv1.SchemeGroupVersion.Identifier(),
+		Name:       "crd1",
+		Labels:     labels,
 		Spec: apiextensionsv1.CustomResourceDefinitionSpec{
 			Group: "some.group",
 			Names: apiextensionsv1.CustomResourceDefinitionNames{

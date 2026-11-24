@@ -22,7 +22,6 @@ import (
 	"sync"
 	"time"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -64,10 +63,8 @@ type TaskState struct {
 func (s *TaskState) toEvent() event.GenericEvent {
 	return event.GenericEvent{
 		Object: &infrav1.DevMachine{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      s.DockerMachineKey.Name,
-				Namespace: s.DockerMachineKey.Namespace,
-			},
+			Name:      s.DockerMachineKey.Name,
+			Namespace: s.DockerMachineKey.Namespace,
 		},
 	}
 }

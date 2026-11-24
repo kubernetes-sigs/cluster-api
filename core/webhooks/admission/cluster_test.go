@@ -1299,12 +1299,10 @@ func TestClusterDefaultAndValidateVariables(t *testing.T) {
 					g.Expect(err).ToNot(HaveOccurred())
 
 					webhookCtx = admission.NewContextWithRequest(ctx, admission.Request{
-						AdmissionRequest: admissionv1.AdmissionRequest{
-							Operation: admissionv1.Update,
-							OldObject: runtime.RawExtension{
-								Raw:    jsonObj,
-								Object: oldCluster,
-							},
+						Operation: admissionv1.Update,
+						OldObject: runtime.RawExtension{
+							Raw:    jsonObj,
+							Object: oldCluster,
 						},
 					})
 				}
@@ -4497,8 +4495,8 @@ func Test_validateTopologyWorkerVersionsUpdate(t *testing.T) {
 				if tt.machinePoolNode != "" {
 					mp = mp.WithStatus(clusterv1.MachinePoolStatus{NodeRefs: []corev1.ObjectReference{{Name: "mp-node-1"}}})
 					workloadObjs = append(workloadObjs, &corev1.Node{
-						ObjectMeta: metav1.ObjectMeta{Name: "mp-node-1"},
-						Status:     corev1.NodeStatus{NodeInfo: corev1.NodeSystemInfo{KubeletVersion: tt.machinePoolNode}},
+						Name:   "mp-node-1",
+						Status: corev1.NodeStatus{NodeInfo: corev1.NodeSystemInfo{KubeletVersion: tt.machinePoolNode}},
 					})
 				}
 				objs = append(objs, mp.Build())
@@ -4818,8 +4816,8 @@ func Test_validateTopologyMachinePoolVersions(t *testing.T) {
 			},
 			workloadObjects: []client.Object{
 				&corev1.Node{
-					ObjectMeta: metav1.ObjectMeta{Name: "mp-node-1"},
-					Status:     corev1.NodeStatus{NodeInfo: corev1.NodeSystemInfo{KubeletVersion: "v1.18.1"}},
+					Name:   "mp-node-1",
+					Status: corev1.NodeStatus{NodeInfo: corev1.NodeSystemInfo{KubeletVersion: "v1.18.1"}},
 				},
 			},
 		},
@@ -4917,8 +4915,8 @@ func Test_validateTopologyMachinePoolVersions(t *testing.T) {
 			},
 			workloadObjects: []client.Object{
 				&corev1.Node{
-					ObjectMeta: metav1.ObjectMeta{Name: "mp-node-1"},
-					Status:     corev1.NodeStatus{NodeInfo: corev1.NodeSystemInfo{KubeletVersion: "v1.17.1"}},
+					Name:   "mp-node-1",
+					Status: corev1.NodeStatus{NodeInfo: corev1.NodeSystemInfo{KubeletVersion: "v1.17.1"}},
 				},
 			},
 		},

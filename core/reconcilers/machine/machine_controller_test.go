@@ -101,10 +101,8 @@ func TestWatches(t *testing.T) {
 	}
 
 	testCluster := &clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{
-			GenerateName: "machine-reconcile-",
-			Namespace:    ns.Name,
-		},
+		GenerateName: "machine-reconcile-",
+		Namespace:    ns.Name,
 		Spec: clusterv1.ClusterSpec{
 			ControlPlaneRef: clusterv1.ContractVersionedObjectReference{
 				APIGroup: builder.ControlPlaneGroupVersion.Group,
@@ -115,10 +113,8 @@ func TestWatches(t *testing.T) {
 	}
 
 	node := &corev1.Node{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "node-1",
-			Namespace: ns.Name,
-		},
+		Name:      "node-1",
+		Namespace: ns.Name,
 		Spec: corev1.NodeSpec{
 			ProviderID: "test://id-1",
 		},
@@ -153,12 +149,10 @@ func TestWatches(t *testing.T) {
 	g.Expect(patchHelper.Patch(ctx, defaultBootstrap, patch.WithStatusObservedGeneration{})).To(Succeed())
 
 	machine := &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{
-			GenerateName: "machine-created-",
-			Namespace:    ns.Name,
-			Labels: map[string]string{
-				clusterv1.MachineControlPlaneLabel: "",
-			},
+		GenerateName: "machine-created-",
+		Namespace:    ns.Name,
+		Labels: map[string]string{
+			clusterv1.MachineControlPlaneLabel: "",
 		},
 		Spec: clusterv1.MachineSpec{
 			ClusterName: testCluster.Name,
@@ -256,10 +250,8 @@ func TestWatchesDelete(t *testing.T) {
 	controllerutil.AddFinalizer(defaultBootstrap, bootstrapFinalizer)
 
 	testCluster := &clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{
-			GenerateName: "machine-reconcile-",
-			Namespace:    ns.Name,
-		},
+		GenerateName: "machine-reconcile-",
+		Namespace:    ns.Name,
 		Spec: clusterv1.ClusterSpec{
 			// we create the cluster in paused state so we don't reconcile
 			// the machine immediately after creation.
@@ -297,12 +289,10 @@ func TestWatchesDelete(t *testing.T) {
 	g.Expect(patchHelper.Patch(ctx, defaultBootstrap, patch.WithStatusObservedGeneration{})).To(Succeed())
 
 	machine := &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{
-			GenerateName: "machine-created-",
-			Namespace:    ns.Name,
-			Labels: map[string]string{
-				clusterv1.MachineControlPlaneLabel: "",
-			},
+		GenerateName: "machine-created-",
+		Namespace:    ns.Name,
+		Labels: map[string]string{
+			clusterv1.MachineControlPlaneLabel: "",
 		},
 		Spec: clusterv1.MachineSpec{
 			ClusterName: testCluster.Name,
@@ -428,10 +418,8 @@ func TestMachine_Reconcile(t *testing.T) {
 	}
 
 	testCluster := &clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{
-			GenerateName: "machine-reconcile-",
-			Namespace:    ns.Name,
-		},
+		GenerateName: "machine-reconcile-",
+		Namespace:    ns.Name,
 		Spec: clusterv1.ClusterSpec{
 			ControlPlaneRef: clusterv1.ContractVersionedObjectReference{
 				APIGroup: builder.ControlPlaneGroupVersion.Group,
@@ -456,11 +444,9 @@ func TestMachine_Reconcile(t *testing.T) {
 	}(ns, testCluster, defaultBootstrap)
 
 	machine := &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{
-			GenerateName: "machine-created-",
-			Namespace:    ns.Name,
-			Finalizers:   []string{clusterv1.MachineFinalizer},
-		},
+		GenerateName: "machine-created-",
+		Namespace:    ns.Name,
+		Finalizers:   []string{clusterv1.MachineFinalizer},
 		Spec: clusterv1.MachineSpec{
 			ClusterName: testCluster.Name,
 			InfrastructureRef: clusterv1.ContractVersionedObjectReference{
@@ -553,17 +539,13 @@ func TestMachine_Reconcile(t *testing.T) {
 func TestMachineFinalizer(t *testing.T) {
 	bootstrapData := "some valid data"
 	clusterCorrectMeta := &clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "valid-cluster",
-			Namespace: metav1.NamespaceDefault,
-		},
+		Name:      "valid-cluster",
+		Namespace: metav1.NamespaceDefault,
 	}
 
 	machineValidCluster := &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "machine1",
-			Namespace: metav1.NamespaceDefault,
-		},
+		Name:      "machine1",
+		Namespace: metav1.NamespaceDefault,
 		Spec: clusterv1.MachineSpec{
 			Bootstrap: clusterv1.Bootstrap{
 				DataSecretName: &bootstrapData,
@@ -573,11 +555,9 @@ func TestMachineFinalizer(t *testing.T) {
 	}
 
 	machineWithFinalizer := &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:       "machine2",
-			Namespace:  metav1.NamespaceDefault,
-			Finalizers: []string{"some-other-finalizer"},
-		},
+		Name:       "machine2",
+		Namespace:  metav1.NamespaceDefault,
+		Finalizers: []string{"some-other-finalizer"},
 		Spec: clusterv1.MachineSpec{
 			Bootstrap: clusterv1.Bootstrap{
 				DataSecretName: &bootstrapData,
@@ -641,24 +621,20 @@ func TestMachineFinalizer(t *testing.T) {
 func TestMachineOwnerReference(t *testing.T) {
 	bootstrapData := "some valid data"
 	testCluster := &clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Name: "test-cluster"},
+		Namespace: metav1.NamespaceDefault, Name: "test-cluster",
 	}
 
 	machineInvalidCluster := &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "machine1",
-			Namespace: metav1.NamespaceDefault,
-		},
+		Name:      "machine1",
+		Namespace: metav1.NamespaceDefault,
 		Spec: clusterv1.MachineSpec{
 			ClusterName: "invalid",
 		},
 	}
 
 	machineValidCluster := &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "machine2",
-			Namespace: metav1.NamespaceDefault,
-		},
+		Name:      "machine2",
+		Namespace: metav1.NamespaceDefault,
 		Spec: clusterv1.MachineSpec{
 			Bootstrap: clusterv1.Bootstrap{
 				DataSecretName: &bootstrapData,
@@ -675,19 +651,17 @@ func TestMachineOwnerReference(t *testing.T) {
 	}
 
 	machineValidMachine := &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "machine3",
-			Namespace: metav1.NamespaceDefault,
-			Labels: map[string]string{
-				clusterv1.ClusterNameLabel: "valid-cluster",
-			},
-			OwnerReferences: []metav1.OwnerReference{
-				{
-					APIVersion: clusterv1.GroupVersion.String(),
-					Kind:       "MachineSet",
-					Name:       "valid-machineset",
-					Controller: new(true),
-				},
+		Name:      "machine3",
+		Namespace: metav1.NamespaceDefault,
+		Labels: map[string]string{
+			clusterv1.ClusterNameLabel: "valid-cluster",
+		},
+		OwnerReferences: []metav1.OwnerReference{
+			{
+				APIVersion: clusterv1.GroupVersion.String(),
+				Kind:       "MachineSet",
+				Name:       "valid-machineset",
+				Controller: new(true),
 			},
 		},
 		Spec: clusterv1.MachineSpec{
@@ -706,20 +680,18 @@ func TestMachineOwnerReference(t *testing.T) {
 	}
 
 	machineValidControlled := &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "machine4",
-			Namespace: metav1.NamespaceDefault,
-			Labels: map[string]string{
-				clusterv1.ClusterNameLabel:         "valid-cluster",
-				clusterv1.MachineControlPlaneLabel: "",
-			},
-			OwnerReferences: []metav1.OwnerReference{
-				{
-					APIVersion: "test.group",
-					Kind:       "KubeadmControlPlane",
-					Name:       "valid-controlplane",
-					Controller: new(true),
-				},
+		Name:      "machine4",
+		Namespace: metav1.NamespaceDefault,
+		Labels: map[string]string{
+			clusterv1.ClusterNameLabel:         "valid-cluster",
+			clusterv1.MachineControlPlaneLabel: "",
+		},
+		OwnerReferences: []metav1.OwnerReference{
+			{
+				APIVersion: "test.group",
+				Kind:       "KubeadmControlPlane",
+				Name:       "valid-controlplane",
+				Controller: new(true),
 			},
 		},
 		Spec: clusterv1.MachineSpec{
@@ -848,16 +820,12 @@ func TestReconcileRequest(t *testing.T) {
 	}
 
 	testCluster := clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test-cluster",
-			Namespace: metav1.NamespaceDefault,
-		},
+		Name:      "test-cluster",
+		Namespace: metav1.NamespaceDefault,
 	}
 
 	node := &corev1.Node{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "test",
-		},
+		Name: "test",
 		Spec: corev1.NodeSpec{ProviderID: "test://id-1"},
 	}
 
@@ -1041,10 +1009,8 @@ func TestMachineV1Beta1Conditions(t *testing.T) {
 	}
 
 	testCluster := clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test-cluster",
-			Namespace: metav1.NamespaceDefault,
-		},
+		Name:      "test-cluster",
+		Namespace: metav1.NamespaceDefault,
 		Status: clusterv1.ClusterStatus{
 			Initialization: clusterv1.ClusterInitializationStatus{
 				InfrastructureProvisioned: new(true),
@@ -1059,14 +1025,12 @@ func TestMachineV1Beta1Conditions(t *testing.T) {
 	}
 
 	machine := clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "blah",
-			Namespace: metav1.NamespaceDefault,
-			Labels: map[string]string{
-				clusterv1.MachineControlPlaneLabel: "",
-			},
-			Finalizers: []string{clusterv1.MachineFinalizer},
+		Name:      "blah",
+		Namespace: metav1.NamespaceDefault,
+		Labels: map[string]string{
+			clusterv1.MachineControlPlaneLabel: "",
 		},
+		Finalizers: []string{clusterv1.MachineFinalizer},
 		Spec: clusterv1.MachineSpec{
 			ProviderID:  "test://id-1",
 			ClusterName: "test-cluster",
@@ -1097,9 +1061,7 @@ func TestMachineV1Beta1Conditions(t *testing.T) {
 	}
 
 	node := &corev1.Node{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "test",
-		},
+		Name: "test",
 		Spec: corev1.NodeSpec{ProviderID: "test://id-1"},
 		Status: corev1.NodeStatus{
 			Conditions: []corev1.NodeCondition{
@@ -1260,9 +1222,7 @@ func TestMachineV1Beta1Conditions(t *testing.T) {
 			additionalObjects: []client.Object{&corev1.Node{
 				// This is a duplicate node with the same providerID
 				// This should lead to an error when trying to get the Node for a Machine.
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "test-duplicate",
-				},
+				Name: "test-duplicate",
 				Spec: corev1.NodeSpec{ProviderID: "test://id-1"},
 			}},
 			wantErr: true,
@@ -1383,16 +1343,14 @@ func TestRemoveMachineFinalizerAfterDeleteReconcile(t *testing.T) {
 	dt := metav1.Now()
 
 	testCluster := &clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Name: "test-cluster"},
+		Namespace: metav1.NamespaceDefault, Name: "test-cluster",
 	}
 
 	m := &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:              "delete123",
-			Namespace:         metav1.NamespaceDefault,
-			Finalizers:        []string{clusterv1.MachineFinalizer, "test"},
-			DeletionTimestamp: &dt,
-		},
+		Name:              "delete123",
+		Namespace:         metav1.NamespaceDefault,
+		Finalizers:        []string{clusterv1.MachineFinalizer, "test"},
+		DeletionTimestamp: &dt,
 		Spec: clusterv1.MachineSpec{
 			ClusterName: "test-cluster",
 			InfrastructureRef: clusterv1.ContractVersionedObjectReference{
@@ -1431,7 +1389,7 @@ func TestRemoveMachineFinalizerAfterDeleteReconcile(t *testing.T) {
 
 func TestIsNodeDrainedAllowed(t *testing.T) {
 	testCluster := &clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Name: "test-cluster"},
+		Namespace: metav1.NamespaceDefault, Name: "test-cluster",
 	}
 
 	tests := []struct {
@@ -1443,12 +1401,10 @@ func TestIsNodeDrainedAllowed(t *testing.T) {
 		{
 			name: "Exclude node draining annotation exists",
 			machine: &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:        "test-machine",
-					Namespace:   metav1.NamespaceDefault,
-					Finalizers:  []string{clusterv1.MachineFinalizer},
-					Annotations: map[string]string{clusterv1.ExcludeNodeDrainingAnnotation: "existed!!"},
-				},
+				Name:        "test-machine",
+				Namespace:   metav1.NamespaceDefault,
+				Finalizers:  []string{clusterv1.MachineFinalizer},
+				Annotations: map[string]string{clusterv1.ExcludeNodeDrainingAnnotation: "existed!!"},
 				Spec: clusterv1.MachineSpec{
 					ClusterName: "test-cluster",
 					// InfrastructureRef is not defined
@@ -1462,11 +1418,9 @@ func TestIsNodeDrainedAllowed(t *testing.T) {
 		{
 			name: "Machine without exclude draining annotaion should drain",
 			machine: &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:       "test-machine",
-					Namespace:  metav1.NamespaceDefault,
-					Finalizers: []string{clusterv1.MachineFinalizer},
-				},
+				Name:       "test-machine",
+				Namespace:  metav1.NamespaceDefault,
+				Finalizers: []string{clusterv1.MachineFinalizer},
 				Spec: clusterv1.MachineSpec{
 					ClusterName:       "test-cluster",
 					InfrastructureRef: clusterv1.ContractVersionedObjectReference{},
@@ -1480,11 +1434,9 @@ func TestIsNodeDrainedAllowed(t *testing.T) {
 		{
 			name: "Machine without infra machine should not drain",
 			machine: &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:       "test-machine",
-					Namespace:  metav1.NamespaceDefault,
-					Finalizers: []string{clusterv1.MachineFinalizer},
-				},
+				Name:       "test-machine",
+				Namespace:  metav1.NamespaceDefault,
+				Finalizers: []string{clusterv1.MachineFinalizer},
 				Spec: clusterv1.MachineSpec{
 					ClusterName:       "test-cluster",
 					InfrastructureRef: clusterv1.ContractVersionedObjectReference{},
@@ -1497,11 +1449,9 @@ func TestIsNodeDrainedAllowed(t *testing.T) {
 		{
 			name: "Machine with infra machine in deletion should not drain",
 			machine: &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:       "test-machine",
-					Namespace:  metav1.NamespaceDefault,
-					Finalizers: []string{clusterv1.MachineFinalizer},
-				},
+				Name:       "test-machine",
+				Namespace:  metav1.NamespaceDefault,
+				Finalizers: []string{clusterv1.MachineFinalizer},
 				Spec: clusterv1.MachineSpec{
 					ClusterName:       "test-cluster",
 					InfrastructureRef: clusterv1.ContractVersionedObjectReference{},
@@ -1510,20 +1460,16 @@ func TestIsNodeDrainedAllowed(t *testing.T) {
 				Status: clusterv1.MachineStatus{},
 			},
 			infraMachine: &contractv1.InfraMachine{
-				ObjectMeta: metav1.ObjectMeta{
-					DeletionTimestamp: &metav1.Time{Time: time.Now()},
-				},
+				DeletionTimestamp: &metav1.Time{Time: time.Now()},
 			},
 			expected: false,
 		},
 		{
 			name: "Machine in the pre-terminate hook phase should not drain",
 			machine: &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:       "test-machine",
-					Namespace:  metav1.NamespaceDefault,
-					Finalizers: []string{clusterv1.MachineFinalizer},
-				},
+				Name:       "test-machine",
+				Namespace:  metav1.NamespaceDefault,
+				Finalizers: []string{clusterv1.MachineFinalizer},
 				Spec: clusterv1.MachineSpec{
 					ClusterName:       "test-cluster",
 					InfrastructureRef: clusterv1.ContractVersionedObjectReference{},
@@ -1541,11 +1487,9 @@ func TestIsNodeDrainedAllowed(t *testing.T) {
 		{
 			name: "Node draining timeout is over",
 			machine: &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:       "test-machine",
-					Namespace:  metav1.NamespaceDefault,
-					Finalizers: []string{clusterv1.MachineFinalizer},
-				},
+				Name:       "test-machine",
+				Namespace:  metav1.NamespaceDefault,
+				Finalizers: []string{clusterv1.MachineFinalizer},
 				Spec: clusterv1.MachineSpec{
 					ClusterName: "test-cluster",
 					// InfrastructureRef is not defined
@@ -1567,11 +1511,9 @@ func TestIsNodeDrainedAllowed(t *testing.T) {
 		{
 			name: "Node draining timeout is not yet over",
 			machine: &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:       "test-machine",
-					Namespace:  metav1.NamespaceDefault,
-					Finalizers: []string{clusterv1.MachineFinalizer},
-				},
+				Name:       "test-machine",
+				Namespace:  metav1.NamespaceDefault,
+				Finalizers: []string{clusterv1.MachineFinalizer},
 				Spec: clusterv1.MachineSpec{
 					ClusterName: "test-cluster",
 					// InfrastructureRef is not defined
@@ -1592,11 +1534,9 @@ func TestIsNodeDrainedAllowed(t *testing.T) {
 		{
 			name: "NodeDrainTimeoutSeconds option is set to its default value 0",
 			machine: &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:       "test-machine",
-					Namespace:  metav1.NamespaceDefault,
-					Finalizers: []string{clusterv1.MachineFinalizer},
-				},
+				Name:       "test-machine",
+				Namespace:  metav1.NamespaceDefault,
+				Finalizers: []string{clusterv1.MachineFinalizer},
 				Spec: clusterv1.MachineSpec{
 					ClusterName: "test-cluster",
 					// InfrastructureRef is not defined
@@ -1634,16 +1574,12 @@ func TestDrainNode(t *testing.T) {
 	g := NewWithT(t)
 
 	testCluster := &clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: metav1.NamespaceDefault,
-			Name:      "test-cluster",
-		},
+		Namespace: metav1.NamespaceDefault,
+		Name:      "test-cluster",
 	}
 	testMachine := &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: metav1.NamespaceDefault,
-			Name:      "test-machine",
-		},
+		Namespace: metav1.NamespaceDefault,
+		Name:      "test-machine",
 	}
 	nodeDrainStartTime, err := time.Parse(time.RFC3339, "2024-10-09T16:13:59Z")
 	g.Expect(err).ToNot(HaveOccurred())
@@ -1669,18 +1605,14 @@ func TestDrainNode(t *testing.T) {
 			name:     "Node does exist, should be cordoned",
 			nodeName: "node-1",
 			node: &corev1.Node{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "node-1",
-				},
+				Name: "node-1",
 			},
 		},
 		{
 			name:     "Node does exist, should stay cordoned",
 			nodeName: "node-1",
 			node: &corev1.Node{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "node-1",
-				},
+				Name: "node-1",
 				Spec: corev1.NodeSpec{
 					Unschedulable: true,
 				},
@@ -1690,33 +1622,27 @@ func TestDrainNode(t *testing.T) {
 			name:     "Node does exist, only Pods that don't have to be drained",
 			nodeName: "node-1",
 			node: &corev1.Node{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "node-1",
-				},
+				Name: "node-1",
 				Spec: corev1.NodeSpec{
 					Unschedulable: true,
 				},
 			},
 			pods: []*corev1.Pod{
 				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "pod-1-skip-mirror-pod",
-						Namespace: "test-namespace",
-						Annotations: map[string]string{
-							corev1.MirrorPodAnnotationKey: "some-value",
-						},
+					Name:      "pod-1-skip-mirror-pod",
+					Namespace: "test-namespace",
+					Annotations: map[string]string{
+						corev1.MirrorPodAnnotationKey: "some-value",
 					},
 				},
 				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "pod-4-skip-daemonset-pod",
-						Namespace: "test-namespace",
-						OwnerReferences: []metav1.OwnerReference{
-							{
-								Kind:       "DaemonSet",
-								Name:       "daemonset-does-exist",
-								Controller: new(true),
-							},
+					Name:      "pod-4-skip-daemonset-pod",
+					Namespace: "test-namespace",
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							Kind:       "DaemonSet",
+							Name:       "daemonset-does-exist",
+							Controller: new(true),
 						},
 					},
 					Status: corev1.PodStatus{
@@ -1729,32 +1655,26 @@ func TestDrainNode(t *testing.T) {
 			name:     "Node does exist, some Pods have to be drained",
 			nodeName: "node-1",
 			node: &corev1.Node{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "node-1",
-				},
+				Name: "node-1",
 				Spec: corev1.NodeSpec{
 					Unschedulable: true,
 				},
 			},
 			pods: []*corev1.Pod{
 				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "pod-1-skip-mirror-pod",
-						Namespace: "test-namespace",
-						Annotations: map[string]string{
-							corev1.MirrorPodAnnotationKey: "some-value",
-						},
+					Name:      "pod-1-skip-mirror-pod",
+					Namespace: "test-namespace",
+					Annotations: map[string]string{
+						corev1.MirrorPodAnnotationKey: "some-value",
 					},
 				},
 				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "pod-2-delete-running-deployment-pod",
-						Namespace: "test-namespace",
-						OwnerReferences: []metav1.OwnerReference{
-							{
-								Kind:       "Deployment",
-								Controller: new(true),
-							},
+					Name:      "pod-2-delete-running-deployment-pod",
+					Namespace: "test-namespace",
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							Kind:       "Deployment",
+							Controller: new(true),
 						},
 					},
 					Status: corev1.PodStatus{
@@ -1781,9 +1701,7 @@ func TestDrainNode(t *testing.T) {
 			name:     "Node does exist but is unreachable, no Pods have to be drained because they all have old deletionTimestamps",
 			nodeName: "node-1",
 			node: &corev1.Node{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "node-1",
-				},
+				Name: "node-1",
 				Spec: corev1.NodeSpec{
 					Unschedulable: true,
 				},
@@ -1798,12 +1716,10 @@ func TestDrainNode(t *testing.T) {
 			},
 			pods: []*corev1.Pod{
 				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:              "pod-1-skip-pod-old-deletionTimestamp",
-						Namespace:         "test-namespace",
-						DeletionTimestamp: &metav1.Time{Time: time.Now().Add(time.Duration(1) * time.Hour * -1)},
-						Finalizers:        []string{"block-deletion"},
-					},
+					Name:              "pod-1-skip-pod-old-deletionTimestamp",
+					Namespace:         "test-namespace",
+					DeletionTimestamp: &metav1.Time{Time: time.Now().Add(time.Duration(1) * time.Hour * -1)},
+					Finalizers:        []string{"block-deletion"},
 				},
 			},
 		},
@@ -1834,16 +1750,12 @@ func TestDrainNode(t *testing.T) {
 				remoteObjs = append(remoteObjs, p)
 			}
 			remoteObjs = append(remoteObjs, &appsv1.DaemonSet{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "daemonset-does-exist",
-					Namespace: "test-namespace",
-				},
+				Name:      "daemonset-does-exist",
+				Namespace: "test-namespace",
 			}, &corev1.Namespace{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "test-namespace",
-					Labels: map[string]string{
-						"kubernetes.io/metadata.name": "test-namespace",
-					},
+				Name: "test-namespace",
+				Labels: map[string]string{
+					"kubernetes.io/metadata.name": "test-namespace",
 				},
 			})
 			remoteClient := fake.NewClientBuilder().
@@ -1920,18 +1832,14 @@ func TestDrainNode_withCaching(t *testing.T) {
 	g := NewWithT(t)
 
 	testCluster := &clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: metav1.NamespaceDefault,
-			Name:      "test-cluster",
-		},
+		Namespace: metav1.NamespaceDefault,
+		Name:      "test-cluster",
 	}
 	nodeDrainStartTime, err := time.Parse(time.RFC3339, "2024-10-09T16:13:59Z")
 	g.Expect(err).ToNot(HaveOccurred())
 	testMachine := &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: metav1.NamespaceDefault,
-			Name:      "test-machine",
-		},
+		Namespace: metav1.NamespaceDefault,
+		Name:      "test-machine",
 		Status: clusterv1.MachineStatus{
 			NodeRef: clusterv1.MachineNodeReference{
 				Name: "node-1",
@@ -1942,9 +1850,7 @@ func TestDrainNode_withCaching(t *testing.T) {
 		},
 	}
 	node := &corev1.Node{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "node-1",
-		},
+		Name: "node-1",
 		Spec: corev1.NodeSpec{
 			Unschedulable: true,
 		},
@@ -1952,18 +1858,16 @@ func TestDrainNode_withCaching(t *testing.T) {
 
 	pods := []*corev1.Pod{
 		{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "pod-delete-running-deployment-pod",
-				Namespace: "test-namespace",
-				Finalizers: []string{
-					// Add a finalizer so the Pod doesn't go away after eviction.
-					"cluster.x-k8s.io/block",
-				},
-				OwnerReferences: []metav1.OwnerReference{
-					{
-						Kind:       "Deployment",
-						Controller: new(true),
-					},
+			Name:      "pod-delete-running-deployment-pod",
+			Namespace: "test-namespace",
+			Finalizers: []string{
+				// Add a finalizer so the Pod doesn't go away after eviction.
+				"cluster.x-k8s.io/block",
+			},
+			OwnerReferences: []metav1.OwnerReference{
+				{
+					Kind:       "Deployment",
+					Controller: new(true),
 				},
 			},
 			Spec: corev1.PodSpec{
@@ -1975,11 +1879,9 @@ func TestDrainNode_withCaching(t *testing.T) {
 		},
 	}
 	ns := &corev1.Namespace{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "test-namespace",
-			Labels: map[string]string{
-				"kubernetes.io/metadata.name": "test-namespace",
-			},
+		Name: "test-namespace",
+		Labels: map[string]string{
+			"kubernetes.io/metadata.name": "test-namespace",
 		},
 	}
 
@@ -2046,7 +1948,7 @@ func TestDrainNode_withCaching(t *testing.T) {
 
 func TestIsNodeVolumeDetachingAllowed(t *testing.T) {
 	testCluster := &clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Name: "test-cluster"},
+		Namespace: metav1.NamespaceDefault, Name: "test-cluster",
 	}
 
 	tests := []struct {
@@ -2058,12 +1960,10 @@ func TestIsNodeVolumeDetachingAllowed(t *testing.T) {
 		{
 			name: "Exclude wait node volume detaching annotation exists",
 			machine: &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:        "test-machine",
-					Namespace:   metav1.NamespaceDefault,
-					Finalizers:  []string{clusterv1.MachineFinalizer},
-					Annotations: map[string]string{clusterv1.ExcludeWaitForNodeVolumeDetachAnnotation: "existed!!"},
-				},
+				Name:        "test-machine",
+				Namespace:   metav1.NamespaceDefault,
+				Finalizers:  []string{clusterv1.MachineFinalizer},
+				Annotations: map[string]string{clusterv1.ExcludeWaitForNodeVolumeDetachAnnotation: "existed!!"},
 				Spec: clusterv1.MachineSpec{
 					ClusterName: "test-cluster",
 					// InfrastructureRef is not defined
@@ -2077,11 +1977,9 @@ func TestIsNodeVolumeDetachingAllowed(t *testing.T) {
 		{
 			name: "Machine without volume detaching annotaion should detach",
 			machine: &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:       "test-machine",
-					Namespace:  metav1.NamespaceDefault,
-					Finalizers: []string{clusterv1.MachineFinalizer},
-				},
+				Name:       "test-machine",
+				Namespace:  metav1.NamespaceDefault,
+				Finalizers: []string{clusterv1.MachineFinalizer},
 				Spec: clusterv1.MachineSpec{
 					ClusterName:       "test-cluster",
 					InfrastructureRef: clusterv1.ContractVersionedObjectReference{},
@@ -2095,11 +1993,9 @@ func TestIsNodeVolumeDetachingAllowed(t *testing.T) {
 		{
 			name: "Machine in the pre-terminate hook phase should not detach",
 			machine: &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:       "test-machine",
-					Namespace:  metav1.NamespaceDefault,
-					Finalizers: []string{clusterv1.MachineFinalizer},
-				},
+				Name:       "test-machine",
+				Namespace:  metav1.NamespaceDefault,
+				Finalizers: []string{clusterv1.MachineFinalizer},
 				Spec: clusterv1.MachineSpec{
 					ClusterName:       "test-cluster",
 					InfrastructureRef: clusterv1.ContractVersionedObjectReference{},
@@ -2117,11 +2013,9 @@ func TestIsNodeVolumeDetachingAllowed(t *testing.T) {
 		{
 			name: "Machine without infra machine should not detach",
 			machine: &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:       "test-machine",
-					Namespace:  metav1.NamespaceDefault,
-					Finalizers: []string{clusterv1.MachineFinalizer},
-				},
+				Name:       "test-machine",
+				Namespace:  metav1.NamespaceDefault,
+				Finalizers: []string{clusterv1.MachineFinalizer},
 				Spec: clusterv1.MachineSpec{
 					ClusterName:       "test-cluster",
 					InfrastructureRef: clusterv1.ContractVersionedObjectReference{},
@@ -2134,11 +2028,9 @@ func TestIsNodeVolumeDetachingAllowed(t *testing.T) {
 		{
 			name: "Machine with infra machine in deletion should not detach",
 			machine: &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:       "test-machine",
-					Namespace:  metav1.NamespaceDefault,
-					Finalizers: []string{clusterv1.MachineFinalizer},
-				},
+				Name:       "test-machine",
+				Namespace:  metav1.NamespaceDefault,
+				Finalizers: []string{clusterv1.MachineFinalizer},
 				Spec: clusterv1.MachineSpec{
 					ClusterName:       "test-cluster",
 					InfrastructureRef: clusterv1.ContractVersionedObjectReference{},
@@ -2147,20 +2039,16 @@ func TestIsNodeVolumeDetachingAllowed(t *testing.T) {
 				Status: clusterv1.MachineStatus{},
 			},
 			infraMachine: &contractv1.InfraMachine{
-				ObjectMeta: metav1.ObjectMeta{
-					DeletionTimestamp: &metav1.Time{Time: time.Now()},
-				},
+				DeletionTimestamp: &metav1.Time{Time: time.Now()},
 			},
 			expected: false,
 		},
 		{
 			name: "Volume detach timeout is over",
 			machine: &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:       "test-machine",
-					Namespace:  metav1.NamespaceDefault,
-					Finalizers: []string{clusterv1.MachineFinalizer},
-				},
+				Name:       "test-machine",
+				Namespace:  metav1.NamespaceDefault,
+				Finalizers: []string{clusterv1.MachineFinalizer},
 				Spec: clusterv1.MachineSpec{
 					ClusterName: "test-cluster",
 					// InfrastructureRef is not defined
@@ -2182,11 +2070,9 @@ func TestIsNodeVolumeDetachingAllowed(t *testing.T) {
 		{
 			name: "Volume detach timeout is not yet over",
 			machine: &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:       "test-machine",
-					Namespace:  metav1.NamespaceDefault,
-					Finalizers: []string{clusterv1.MachineFinalizer},
-				},
+				Name:       "test-machine",
+				Namespace:  metav1.NamespaceDefault,
+				Finalizers: []string{clusterv1.MachineFinalizer},
 				Spec: clusterv1.MachineSpec{
 					ClusterName: "test-cluster",
 					// InfrastructureRef is not defined
@@ -2207,11 +2093,9 @@ func TestIsNodeVolumeDetachingAllowed(t *testing.T) {
 		{
 			name: "Volume detach timeout option is set to it's default value 0",
 			machine: &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:       "test-machine",
-					Namespace:  metav1.NamespaceDefault,
-					Finalizers: []string{clusterv1.MachineFinalizer},
-				},
+				Name:       "test-machine",
+				Namespace:  metav1.NamespaceDefault,
+				Finalizers: []string{clusterv1.MachineFinalizer},
 				Spec: clusterv1.MachineSpec{
 					ClusterName: "test-cluster",
 					// InfrastructureRef is not defined
@@ -2252,15 +2136,13 @@ func TestShouldWaitForNodeVolumes(t *testing.T) {
 	g.Expect(err).ToNot(HaveOccurred())
 
 	testCluster := &clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Name: "test-cluster"},
+		Namespace: metav1.NamespaceDefault, Name: "test-cluster",
 	}
 
 	nodeName := "test-node"
 
 	persistentVolume := &corev1.PersistentVolume{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "test-pv",
-		},
+		Name: "test-pv",
 		Spec: corev1.PersistentVolumeSpec{
 			ClaimRef: &corev1.ObjectReference{
 				Kind:      "PersistentVolumeClaim",
@@ -2280,9 +2162,7 @@ func TestShouldWaitForNodeVolumes(t *testing.T) {
 	persistentVolumeWithoutClaim.Spec.ClaimRef.Kind = "NotAPVC"
 
 	volumeAttachment := &storagev1.VolumeAttachment{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "test-va",
-		},
+		Name: "test-va",
 		Spec: storagev1.VolumeAttachmentSpec{
 			NodeName: nodeName,
 			Source: storagev1.VolumeAttachmentSource{
@@ -2294,10 +2174,8 @@ func TestShouldWaitForNodeVolumes(t *testing.T) {
 		},
 	}
 	testMachine := &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test",
-			Namespace: metav1.NamespaceDefault,
-		},
+		Name:      "test",
+		Namespace: metav1.NamespaceDefault,
 		Status: clusterv1.MachineStatus{
 			Deletion: &clusterv1.MachineDeletionStatus{
 				WaitForNodeVolumeDetachStartTime: metav1.Time{Time: waitForNodeVolumeDetachStartTime},
@@ -2324,9 +2202,7 @@ func TestShouldWaitForNodeVolumes(t *testing.T) {
 		{
 			name: "Node has volumes attached according to node status",
 			node: &corev1.Node{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: nodeName,
-				},
+				Name: nodeName,
 				Status: corev1.NodeStatus{
 					Conditions: []corev1.NodeCondition{
 						{
@@ -2349,9 +2225,7 @@ func TestShouldWaitForNodeVolumes(t *testing.T) {
 		{
 			name: "Node has volumes attached according to node status but the pv does not reference a PersistentVolumeClaim",
 			node: &corev1.Node{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: nodeName,
-				},
+				Name: nodeName,
 				Status: corev1.NodeStatus{
 					Conditions: []corev1.NodeCondition{
 						{
@@ -2374,9 +2248,7 @@ func TestShouldWaitForNodeVolumes(t *testing.T) {
 		{
 			name: "Node has volumes attached according to node status but without a pv",
 			node: &corev1.Node{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: nodeName,
-				},
+				Name: nodeName,
 				Status: corev1.NodeStatus{
 					Conditions: []corev1.NodeCondition{
 						{
@@ -2397,9 +2269,7 @@ func TestShouldWaitForNodeVolumes(t *testing.T) {
 		{
 			name: "Node has volumes attached according to node status but its from a daemonset pod which gets ignored",
 			node: &corev1.Node{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: nodeName,
-				},
+				Name: nodeName,
 				Status: corev1.NodeStatus{
 					Conditions: []corev1.NodeCondition{
 						{
@@ -2412,15 +2282,13 @@ func TestShouldWaitForNodeVolumes(t *testing.T) {
 			},
 			remoteObjects: []client.Object{
 				&corev1.Pod{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "test-pod",
-						Namespace: "default",
-						OwnerReferences: []metav1.OwnerReference{
-							{
-								Kind:       appsv1.SchemeGroupVersion.WithKind("DaemonSet").Kind,
-								Name:       "test-ds",
-								Controller: new(true),
-							},
+					Name:      "test-pod",
+					Namespace: "default",
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							Kind:       appsv1.SchemeGroupVersion.WithKind("DaemonSet").Kind,
+							Name:       "test-ds",
+							Controller: new(true),
 						},
 					},
 					Spec: corev1.PodSpec{
@@ -2428,20 +2296,16 @@ func TestShouldWaitForNodeVolumes(t *testing.T) {
 						Volumes: []corev1.Volume{
 							{
 								Name: "test-pvc",
-								VolumeSource: corev1.VolumeSource{
-									PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
-										ClaimName: "test-pvc",
-									},
+								PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+									ClaimName: "test-pvc",
 								},
 							},
 						},
 					},
 				},
 				&appsv1.DaemonSet{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "test-ds",
-						Namespace: "default",
-					},
+					Name:      "test-ds",
+					Namespace: "default",
 				},
 				persistentVolume,
 			},
@@ -2450,9 +2314,7 @@ func TestShouldWaitForNodeVolumes(t *testing.T) {
 		{
 			name: "Node has volumes attached according to volumeattachments",
 			node: &corev1.Node{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: nodeName,
-				},
+				Name: nodeName,
 				Status: corev1.NodeStatus{
 					Conditions: []corev1.NodeCondition{
 						{
@@ -2475,9 +2337,7 @@ func TestShouldWaitForNodeVolumes(t *testing.T) {
 		{
 			name: "Node has volumes attached according to volumeattachments but without a pv",
 			node: &corev1.Node{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: nodeName,
-				},
+				Name: nodeName,
 				Status: corev1.NodeStatus{
 					Conditions: []corev1.NodeCondition{
 						{
@@ -2499,9 +2359,7 @@ func TestShouldWaitForNodeVolumes(t *testing.T) {
 		{
 			name: "Node has volumes attached according to volumeattachments but its from a daemonset pod which gets ignored",
 			node: &corev1.Node{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: nodeName,
-				},
+				Name: nodeName,
 				Status: corev1.NodeStatus{
 					Conditions: []corev1.NodeCondition{
 						{
@@ -2514,15 +2372,13 @@ func TestShouldWaitForNodeVolumes(t *testing.T) {
 			remoteObjects: []client.Object{
 				volumeAttachment,
 				&corev1.Pod{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "test-pod",
-						Namespace: "default",
-						OwnerReferences: []metav1.OwnerReference{
-							{
-								Kind:       appsv1.SchemeGroupVersion.WithKind("DaemonSet").Kind,
-								Name:       "test-ds",
-								Controller: new(true),
-							},
+					Name:      "test-pod",
+					Namespace: "default",
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							Kind:       appsv1.SchemeGroupVersion.WithKind("DaemonSet").Kind,
+							Name:       "test-ds",
+							Controller: new(true),
 						},
 					},
 					Spec: corev1.PodSpec{
@@ -2530,20 +2386,16 @@ func TestShouldWaitForNodeVolumes(t *testing.T) {
 						Volumes: []corev1.Volume{
 							{
 								Name: "test-pvc",
-								VolumeSource: corev1.VolumeSource{
-									PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
-										ClaimName: "test-pvc",
-									},
+								PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+									ClaimName: "test-pvc",
 								},
 							},
 						},
 					},
 				},
 				&appsv1.DaemonSet{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "test-ds",
-						Namespace: "default",
-					},
+					Name:      "test-ds",
+					Namespace: "default",
 				},
 				persistentVolume,
 			},
@@ -2552,9 +2404,7 @@ func TestShouldWaitForNodeVolumes(t *testing.T) {
 		{
 			name: "Node has volumes attached from a Pod which is in deletion",
 			node: &corev1.Node{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: nodeName,
-				},
+				Name: nodeName,
 				Status: corev1.NodeStatus{
 					Conditions: []corev1.NodeCondition{
 						{
@@ -2568,23 +2418,19 @@ func TestShouldWaitForNodeVolumes(t *testing.T) {
 			remoteObjects: []client.Object{
 				volumeAttachment,
 				&corev1.Pod{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:              "test-pod",
-						Namespace:         "default",
-						DeletionTimestamp: new(metav1.NewTime(time.Now().Add(time.Hour * 24 * -1))),
-						Finalizers: []string{
-							"prevent-removal",
-						},
+					Name:              "test-pod",
+					Namespace:         "default",
+					DeletionTimestamp: new(metav1.NewTime(time.Now().Add(time.Hour * 24 * -1))),
+					Finalizers: []string{
+						"prevent-removal",
 					},
 					Spec: corev1.PodSpec{
 						NodeName: nodeName,
 						Volumes: []corev1.Volume{
 							{
 								Name: "test-pvc",
-								VolumeSource: corev1.VolumeSource{
-									PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
-										ClaimName: "test-pvc",
-									},
+								PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+									ClaimName: "test-pvc",
 								},
 							},
 						},
@@ -2601,9 +2447,7 @@ func TestShouldWaitForNodeVolumes(t *testing.T) {
 		{
 			name: "Node has no volumes attached",
 			node: &corev1.Node{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: nodeName,
-				},
+				Name: nodeName,
 				Status: corev1.NodeStatus{
 					Conditions: []corev1.NodeCondition{
 						{
@@ -2618,9 +2462,7 @@ func TestShouldWaitForNodeVolumes(t *testing.T) {
 		{
 			name: "Node is unreachable and has volumes attached",
 			node: &corev1.Node{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "unreachable-node",
-				},
+				Name: "unreachable-node",
 				Status: corev1.NodeStatus{
 					Conditions: []corev1.NodeCondition{
 						{
@@ -2636,9 +2478,7 @@ func TestShouldWaitForNodeVolumes(t *testing.T) {
 		{
 			name: "Node is unreachable and has no volumes attached",
 			node: &corev1.Node{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "unreachable-node",
-				},
+				Name: "unreachable-node",
 				Status: corev1.NodeStatus{
 					Conditions: []corev1.NodeCondition{
 						{
@@ -2661,11 +2501,9 @@ func TestShouldWaitForNodeVolumes(t *testing.T) {
 			remoteObjects = append(remoteObjects, tt.node)
 			remoteObjects = append(remoteObjects, tt.remoteObjects...)
 			remoteObjects = append(remoteObjects, &corev1.Namespace{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "default",
-					Labels: map[string]string{
-						"kubernetes.io/metadata.name": "default",
-					},
+				Name: "default",
+				Labels: map[string]string{
+					"kubernetes.io/metadata.name": "default",
 				},
 			})
 			remoteFakeClient := fake.NewClientBuilder().WithIndex(&corev1.Pod{}, "spec.nodeName", nodeNameIndex).
@@ -2723,20 +2561,16 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 		{
 			name: "machine without nodeRef",
 			cluster: &clusterv1.Cluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-cluster",
-					Namespace: "test-cluster",
-				},
+				Name:      "test-cluster",
+				Namespace: "test-cluster",
 			},
 			machine: &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "created",
-					Namespace: "test-cluster",
-					Labels: map[string]string{
-						clusterv1.ClusterNameLabel: "test-cluster",
-					},
-					Finalizers: []string{clusterv1.MachineFinalizer},
+				Name:      "created",
+				Namespace: "test-cluster",
+				Labels: map[string]string{
+					clusterv1.ClusterNameLabel: "test-cluster",
 				},
+				Finalizers: []string{clusterv1.MachineFinalizer},
 				Spec: clusterv1.MachineSpec{
 					ClusterName: "test-cluster",
 					// InfrastructureRef is not defined
@@ -2750,20 +2584,16 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 		{
 			name: "no control plane members",
 			cluster: &clusterv1.Cluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-cluster",
-					Namespace: "test-cluster",
-				},
+				Name:      "test-cluster",
+				Namespace: "test-cluster",
 			},
 			machine: &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "created",
-					Namespace: "test-cluster",
-					Labels: map[string]string{
-						clusterv1.ClusterNameLabel: "test-cluster",
-					},
-					Finalizers: []string{clusterv1.MachineFinalizer},
+				Name:      "created",
+				Namespace: "test-cluster",
+				Labels: map[string]string{
+					clusterv1.ClusterNameLabel: "test-cluster",
 				},
+				Finalizers: []string{clusterv1.MachineFinalizer},
 				Spec: clusterv1.MachineSpec{
 					ClusterName: "test-cluster",
 					// InfrastructureRef is not defined
@@ -2781,22 +2611,18 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 		{
 			name: "is last control plane member",
 			cluster: &clusterv1.Cluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-cluster",
-					Namespace: "test-cluster",
-				},
+				Name:      "test-cluster",
+				Namespace: "test-cluster",
 			},
 			machine: &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "created",
-					Namespace: "test-cluster",
-					Labels: map[string]string{
-						clusterv1.ClusterNameLabel:         "test-cluster",
-						clusterv1.MachineControlPlaneLabel: "",
-					},
-					Finalizers:        []string{clusterv1.MachineFinalizer},
-					DeletionTimestamp: &metav1.Time{Time: time.Now().UTC()},
+				Name:      "created",
+				Namespace: "test-cluster",
+				Labels: map[string]string{
+					clusterv1.ClusterNameLabel:         "test-cluster",
+					clusterv1.MachineControlPlaneLabel: "",
 				},
+				Finalizers:        []string{clusterv1.MachineFinalizer},
+				DeletionTimestamp: &metav1.Time{Time: time.Now().UTC()},
 				Spec: clusterv1.MachineSpec{
 					ClusterName: "test-cluster",
 					// InfrastructureRef is not defined
@@ -2814,20 +2640,16 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 		{
 			name: "has nodeRef and control plane is healthy",
 			cluster: &clusterv1.Cluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-cluster",
-					Namespace: "test-cluster",
-				},
+				Name:      "test-cluster",
+				Namespace: "test-cluster",
 			},
 			machine: &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "created",
-					Namespace: "test-cluster",
-					Labels: map[string]string{
-						clusterv1.ClusterNameLabel: "test-cluster",
-					},
-					Finalizers: []string{clusterv1.MachineFinalizer},
+				Name:      "created",
+				Namespace: "test-cluster",
+				Labels: map[string]string{
+					clusterv1.ClusterNameLabel: "test-cluster",
 				},
+				Finalizers: []string{clusterv1.MachineFinalizer},
 				Spec: clusterv1.MachineSpec{
 					ClusterName: "test-cluster",
 					// InfrastructureRef is not defined
@@ -2845,12 +2667,10 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 		{
 			name: "has nodeRef and cluster is being deleted",
 			cluster: &clusterv1.Cluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:              "test-cluster",
-					Namespace:         "test-cluster",
-					DeletionTimestamp: &deletionts,
-					Finalizers:        []string{clusterv1.ClusterFinalizer},
-				},
+				Name:              "test-cluster",
+				Namespace:         "test-cluster",
+				DeletionTimestamp: &deletionts,
+				Finalizers:        []string{clusterv1.ClusterFinalizer},
 			},
 			machine:       &clusterv1.Machine{},
 			infraMachine:  nil,
@@ -2859,10 +2679,8 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 		{
 			name: "has nodeRef and control plane is healthy and externally managed",
 			cluster: &clusterv1.Cluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-cluster",
-					Namespace: "test-cluster",
-				},
+				Name:      "test-cluster",
+				Namespace: "test-cluster",
 				Spec: clusterv1.ClusterSpec{
 					ControlPlaneRef: clusterv1.ContractVersionedObjectReference{
 						APIGroup: clusterv1.GroupVersionControlPlane.Group,
@@ -2872,14 +2690,12 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 				},
 			},
 			machine: &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "created",
-					Namespace: "test-cluster",
-					Labels: map[string]string{
-						clusterv1.ClusterNameLabel: "test-cluster",
-					},
-					Finalizers: []string{clusterv1.MachineFinalizer},
+				Name:      "created",
+				Namespace: "test-cluster",
+				Labels: map[string]string{
+					clusterv1.ClusterNameLabel: "test-cluster",
 				},
+				Finalizers: []string{clusterv1.MachineFinalizer},
 				Spec: clusterv1.MachineSpec{
 					ClusterName: "test-cluster",
 					// InfrastructureRef is not defined
@@ -2897,10 +2713,8 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 		{
 			name: "has nodeRef, control plane is being deleted and not externally managed",
 			cluster: &clusterv1.Cluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-cluster",
-					Namespace: "test-cluster",
-				},
+				Name:      "test-cluster",
+				Namespace: "test-cluster",
 				Spec: clusterv1.ClusterSpec{
 					ControlPlaneRef: clusterv1.ContractVersionedObjectReference{
 						APIGroup: builder.ControlPlaneGroupVersion.Group,
@@ -2910,14 +2724,12 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 				},
 			},
 			machine: &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "created",
-					Namespace: "test-cluster",
-					Labels: map[string]string{
-						clusterv1.ClusterNameLabel: "test-cluster",
-					},
-					Finalizers: []string{clusterv1.MachineFinalizer},
+				Name:      "created",
+				Namespace: "test-cluster",
+				Labels: map[string]string{
+					clusterv1.ClusterNameLabel: "test-cluster",
 				},
+				Finalizers: []string{clusterv1.MachineFinalizer},
 				Spec: clusterv1.MachineSpec{
 					ClusterName: "test-cluster",
 					// InfrastructureRef is not defined
@@ -2935,10 +2747,8 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 		{
 			name: "has nodeRef, control plane is being deleted and is externally managed",
 			cluster: &clusterv1.Cluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-cluster",
-					Namespace: "test-cluster",
-				},
+				Name:      "test-cluster",
+				Namespace: "test-cluster",
 				Spec: clusterv1.ClusterSpec{
 					ControlPlaneRef: clusterv1.ContractVersionedObjectReference{
 						APIGroup: clusterv1.GroupVersionControlPlane.Group,
@@ -2948,14 +2758,12 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 				},
 			},
 			machine: &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "created",
-					Namespace: "test-cluster",
-					Labels: map[string]string{
-						clusterv1.ClusterNameLabel: "test-cluster",
-					},
-					Finalizers: []string{clusterv1.MachineFinalizer},
+				Name:      "created",
+				Namespace: "test-cluster",
+				Labels: map[string]string{
+					clusterv1.ClusterNameLabel: "test-cluster",
 				},
+				Finalizers: []string{clusterv1.MachineFinalizer},
 				Spec: clusterv1.MachineSpec{
 					ClusterName: "test-cluster",
 					// InfrastructureRef is not defined
@@ -2973,20 +2781,16 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 		{
 			name: "no nodeRef, infrastructure machine has providerID",
 			cluster: &clusterv1.Cluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-cluster",
-					Namespace: "test-cluster",
-				},
+				Name:      "test-cluster",
+				Namespace: "test-cluster",
 			},
 			machine: &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "created",
-					Namespace: "test-cluster",
-					Labels: map[string]string{
-						clusterv1.ClusterNameLabel: "test-cluster",
-					},
-					Finalizers: []string{clusterv1.MachineFinalizer},
+				Name:      "created",
+				Namespace: "test-cluster",
+				Labels: map[string]string{
+					clusterv1.ClusterNameLabel: "test-cluster",
 				},
+				Finalizers: []string{clusterv1.MachineFinalizer},
 				Spec: clusterv1.MachineSpec{
 					ClusterName: "test-cluster",
 					// InfrastructureRef is not defined
@@ -3040,9 +2844,7 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 	empBeingDeleted.SetFinalizers([]string{"block-deletion"})
 
 	testNodeA := &corev1.Node{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "node-1",
-		},
+		Name: "node-1",
 		Spec: corev1.NodeSpec{
 			ProviderID: "test-node-1",
 		},
@@ -3054,14 +2856,12 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 			g := NewWithT(t)
 
 			m1 := &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "cp1",
-					Namespace: "test-cluster",
-					Labels: map[string]string{
-						clusterv1.ClusterNameLabel: "test-cluster",
-					},
-					Finalizers: []string{clusterv1.MachineFinalizer},
+				Name:      "cp1",
+				Namespace: "test-cluster",
+				Labels: map[string]string{
+					clusterv1.ClusterNameLabel: "test-cluster",
 				},
+				Finalizers: []string{clusterv1.MachineFinalizer},
 				Spec: clusterv1.MachineSpec{
 					ClusterName: "test-cluster",
 					// InfrastructureRef is not defined
@@ -3074,14 +2874,12 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 				},
 			}
 			m2 := &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "cp2",
-					Namespace: "test-cluster",
-					Labels: map[string]string{
-						clusterv1.ClusterNameLabel: "test-cluster",
-					},
-					Finalizers: []string{clusterv1.MachineFinalizer},
+				Name:      "cp2",
+				Namespace: "test-cluster",
+				Labels: map[string]string{
+					clusterv1.ClusterNameLabel: "test-cluster",
 				},
+				Finalizers: []string{clusterv1.MachineFinalizer},
 				Spec: clusterv1.MachineSpec{
 					ClusterName: "test-cluster",
 					// InfrastructureRef is not defined
@@ -3191,10 +2989,8 @@ func TestNodeToMachine(t *testing.T) {
 	}
 
 	testCluster := &clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{
-			GenerateName: "machine-reconcile-",
-			Namespace:    ns.Name,
-		},
+		GenerateName: "machine-reconcile-",
+		Namespace:    ns.Name,
 		Spec: clusterv1.ClusterSpec{
 			ControlPlaneRef: clusterv1.ContractVersionedObjectReference{
 				APIGroup: builder.ControlPlaneGroupVersion.Group,
@@ -3205,18 +3001,14 @@ func TestNodeToMachine(t *testing.T) {
 	}
 
 	targetNode := &corev1.Node{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "test-node-to-machine-1",
-		},
+		Name: "test-node-to-machine-1",
 		Spec: corev1.NodeSpec{
 			ProviderID: "test://id-1",
 		},
 	}
 
 	randomNode := &corev1.Node{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "test-node-to-machine-node-2",
-		},
+		Name: "test-node-to-machine-node-2",
 		Spec: corev1.NodeSpec{
 			ProviderID: "test://id-2",
 		},
@@ -3259,12 +3051,10 @@ func TestNodeToMachine(t *testing.T) {
 	g.Expect(patchHelper.Patch(ctx, defaultBootstrap, patch.WithStatusObservedGeneration{})).To(Succeed())
 
 	expectedMachine := &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{
-			GenerateName: "machine-created-",
-			Namespace:    ns.Name,
-			Labels: map[string]string{
-				clusterv1.MachineControlPlaneLabel: "",
-			},
+		GenerateName: "machine-created-",
+		Namespace:    ns.Name,
+		Labels: map[string]string{
+			clusterv1.MachineControlPlaneLabel: "",
 		},
 		Spec: clusterv1.MachineSpec{
 			ClusterName: testCluster.Name,
@@ -3299,12 +3089,10 @@ func TestNodeToMachine(t *testing.T) {
 	}, timeout).Should(BeTrue())
 
 	randomMachine := &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{
-			GenerateName: "machine-created-",
-			Namespace:    ns.Name,
-			Labels: map[string]string{
-				clusterv1.MachineControlPlaneLabel: "",
-			},
+		GenerateName: "machine-created-",
+		Namespace:    ns.Name,
+		Labels: map[string]string{
+			clusterv1.MachineControlPlaneLabel: "",
 		},
 		Spec: clusterv1.MachineSpec{
 			ClusterName: testCluster.Name,
@@ -3342,20 +3130,16 @@ func TestNodeToMachine(t *testing.T) {
 	fakeNodes := []*corev1.Node{
 		// None annotations.
 		{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: targetNode.GetName(),
-			},
+			Name: targetNode.GetName(),
 			Spec: corev1.NodeSpec{
 				ProviderID: targetNode.Spec.ProviderID,
 			},
 		},
 		// ClusterNameAnnotation annotation.
 		{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: targetNode.GetName(),
-				Annotations: map[string]string{
-					clusterv1.ClusterNameAnnotation: testCluster.GetName(),
-				},
+			Name: targetNode.GetName(),
+			Annotations: map[string]string{
+				clusterv1.ClusterNameAnnotation: testCluster.GetName(),
 			},
 			Spec: corev1.NodeSpec{
 				ProviderID: targetNode.Spec.ProviderID,
@@ -3363,11 +3147,9 @@ func TestNodeToMachine(t *testing.T) {
 		},
 		// ClusterNamespaceAnnotation annotation.
 		{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: targetNode.GetName(),
-				Annotations: map[string]string{
-					clusterv1.ClusterNamespaceAnnotation: ns.GetName(),
-				},
+			Name: targetNode.GetName(),
+			Annotations: map[string]string{
+				clusterv1.ClusterNamespaceAnnotation: ns.GetName(),
 			},
 			Spec: corev1.NodeSpec{
 				ProviderID: targetNode.Spec.ProviderID,
@@ -3375,12 +3157,10 @@ func TestNodeToMachine(t *testing.T) {
 		},
 		// Both annotations.
 		{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: targetNode.GetName(),
-				Annotations: map[string]string{
-					clusterv1.ClusterNameAnnotation:      testCluster.GetName(),
-					clusterv1.ClusterNamespaceAnnotation: ns.GetName(),
-				},
+			Name: targetNode.GetName(),
+			Annotations: map[string]string{
+				clusterv1.ClusterNameAnnotation:      testCluster.GetName(),
+				clusterv1.ClusterNamespaceAnnotation: ns.GetName(),
 			},
 			Spec: corev1.NodeSpec{
 				ProviderID: targetNode.Spec.ProviderID,
@@ -3417,32 +3197,26 @@ func TestNodeDeletion(t *testing.T) {
 	deletionTime := metav1.Now().Add(-1 * time.Second)
 
 	testCluster := clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test-cluster",
-			Namespace: metav1.NamespaceDefault,
-		},
+		Name:      "test-cluster",
+		Namespace: metav1.NamespaceDefault,
 	}
 
 	node := &corev1.Node{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "test",
-		},
+		Name: "test",
 		Spec: corev1.NodeSpec{ProviderID: "test://id-1"},
 	}
 
 	testMachine := clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test",
-			Namespace: metav1.NamespaceDefault,
-			Labels: map[string]string{
-				clusterv1.MachineControlPlaneLabel: "",
-			},
-			Annotations: map[string]string{
-				"machine.cluster.x-k8s.io/exclude-node-draining": "",
-			},
-			Finalizers:        []string{clusterv1.MachineFinalizer},
-			DeletionTimestamp: &metav1.Time{Time: deletionTime},
+		Name:      "test",
+		Namespace: metav1.NamespaceDefault,
+		Labels: map[string]string{
+			clusterv1.MachineControlPlaneLabel: "",
 		},
+		Annotations: map[string]string{
+			"machine.cluster.x-k8s.io/exclude-node-draining": "",
+		},
+		Finalizers:        []string{clusterv1.MachineFinalizer},
+		DeletionTimestamp: &metav1.Time{Time: deletionTime},
 		Spec: clusterv1.MachineSpec{
 			ClusterName: "test-cluster",
 			InfrastructureRef: clusterv1.ContractVersionedObjectReference{
@@ -3460,15 +3234,13 @@ func TestNodeDeletion(t *testing.T) {
 	}
 
 	cpmachine1 := &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "cp1",
-			Namespace: metav1.NamespaceDefault,
-			Labels: map[string]string{
-				clusterv1.ClusterNameLabel:         "test-cluster",
-				clusterv1.MachineControlPlaneLabel: "",
-			},
-			Finalizers: []string{clusterv1.MachineFinalizer},
+		Name:      "cp1",
+		Namespace: metav1.NamespaceDefault,
+		Labels: map[string]string{
+			clusterv1.ClusterNameLabel:         "test-cluster",
+			clusterv1.MachineControlPlaneLabel: "",
 		},
+		Finalizers: []string{clusterv1.MachineFinalizer},
 		Spec: clusterv1.MachineSpec{
 			ClusterName: "test-cluster",
 			// InfrastructureRef is not defined
@@ -3646,33 +3418,27 @@ func TestNodeDeletionWithoutNodeRefFallback(t *testing.T) {
 	deletionTime := metav1.Now().Add(-1 * time.Second)
 
 	testCluster := clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test-cluster",
-			Namespace: metav1.NamespaceDefault,
-		},
+		Name:      "test-cluster",
+		Namespace: metav1.NamespaceDefault,
 	}
 
 	node := &corev1.Node{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "test",
-		},
+		Name: "test",
 		Spec: corev1.NodeSpec{ProviderID: "test://id-1"},
 	}
 
 	testMachine := clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test",
-			Namespace: metav1.NamespaceDefault,
-			Labels: map[string]string{
-				clusterv1.MachineControlPlaneLabel: "",
-				clusterv1.ClusterNameLabel:         "test-cluster",
-			},
-			Annotations: map[string]string{
-				"machine.cluster.x-k8s.io/exclude-node-draining": "",
-			},
-			Finalizers:        []string{clusterv1.MachineFinalizer},
-			DeletionTimestamp: &metav1.Time{Time: deletionTime},
+		Name:      "test",
+		Namespace: metav1.NamespaceDefault,
+		Labels: map[string]string{
+			clusterv1.MachineControlPlaneLabel: "",
+			clusterv1.ClusterNameLabel:         "test-cluster",
 		},
+		Annotations: map[string]string{
+			"machine.cluster.x-k8s.io/exclude-node-draining": "",
+		},
+		Finalizers:        []string{clusterv1.MachineFinalizer},
+		DeletionTimestamp: &metav1.Time{Time: deletionTime},
 		Spec: clusterv1.MachineSpec{
 			ClusterName: "test-cluster",
 			InfrastructureRef: clusterv1.ContractVersionedObjectReference{
@@ -3686,15 +3452,13 @@ func TestNodeDeletionWithoutNodeRefFallback(t *testing.T) {
 	}
 
 	cpmachine1 := &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "cp1",
-			Namespace: metav1.NamespaceDefault,
-			Labels: map[string]string{
-				clusterv1.ClusterNameLabel:         "test-cluster",
-				clusterv1.MachineControlPlaneLabel: "",
-			},
-			Finalizers: []string{clusterv1.MachineFinalizer},
+		Name:      "cp1",
+		Namespace: metav1.NamespaceDefault,
+		Labels: map[string]string{
+			clusterv1.ClusterNameLabel:         "test-cluster",
+			clusterv1.MachineControlPlaneLabel: "",
 		},
+		Finalizers: []string{clusterv1.MachineFinalizer},
 		Spec: clusterv1.MachineSpec{
 			ClusterName: "test-cluster",
 			// InfrastructureRef is not defined

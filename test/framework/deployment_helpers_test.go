@@ -21,7 +21,6 @@ import (
 
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func Test_containerHasTerminated(t *testing.T) {
@@ -307,7 +306,7 @@ informer_store_resource_version{group="bootstrap.cluster.x-k8s.io", name="cluste
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			err := verifyMetrics(tt.data, &corev1.Pod{ObjectMeta: metav1.ObjectMeta{Namespace: "default", Name: "pod1"}})
+			err := verifyMetrics(tt.data, &corev1.Pod{Namespace: "default", Name: "pod1"})
 			if tt.wantErr == "" {
 				g.Expect(err).ToNot(HaveOccurred())
 			} else {

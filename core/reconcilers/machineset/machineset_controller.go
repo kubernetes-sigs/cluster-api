@@ -1378,16 +1378,14 @@ func (r *Reconciler) computeDesiredMachine(machineSet *clusterv1.MachineSet, exi
 	}
 
 	desiredMachine := &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      generatedMachineName,
-			Namespace: machineSet.Namespace,
-			// Note: By setting the ownerRef on creation we signal to the Machine controller that this is not a stand-alone Machine.
-			OwnerReferences: []metav1.OwnerReference{*metav1.NewControllerRef(machineSet, machineSetKind)},
-			Labels:          map[string]string{},
-			Annotations:     map[string]string{},
-			Finalizers:      []string{clusterv1.MachineFinalizer},
-		},
-		Spec: *machineSet.Spec.Template.Spec.DeepCopy(),
+		Name:      generatedMachineName,
+		Namespace: machineSet.Namespace,
+		// Note: By setting the ownerRef on creation we signal to the Machine controller that this is not a stand-alone Machine.
+		OwnerReferences: []metav1.OwnerReference{*metav1.NewControllerRef(machineSet, machineSetKind)},
+		Labels:          map[string]string{},
+		Annotations:     map[string]string{},
+		Finalizers:      []string{clusterv1.MachineFinalizer},
+		Spec:            *machineSet.Spec.Template.Spec.DeepCopy(),
 	}
 	// Set ClusterName.
 	desiredMachine.Spec.ClusterName = machineSet.Spec.ClusterName

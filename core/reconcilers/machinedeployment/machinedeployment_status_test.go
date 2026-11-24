@@ -222,9 +222,7 @@ func Test_setAvailableCondition(t *testing.T) {
 		{
 			name: "When deleting, don't show required replicas",
 			machineDeployment: &clusterv1.MachineDeployment{
-				ObjectMeta: metav1.ObjectMeta{
-					DeletionTimestamp: new(metav1.Now()),
-				},
+				DeletionTimestamp: new(metav1.Now()),
 				Spec: clusterv1.MachineDeploymentSpec{
 					Replicas: new(int32(5)),
 					Rollout: clusterv1.MachineDeploymentRolloutSpec{
@@ -1386,7 +1384,7 @@ func Test_setDeletingCondition(t *testing.T) {
 		},
 		{
 			name:              "Deleting with still some machine",
-			machineDeployment: &clusterv1.MachineDeployment{ObjectMeta: metav1.ObjectMeta{DeletionTimestamp: &metav1.Time{Time: time.Now()}}},
+			machineDeployment: &clusterv1.MachineDeployment{DeletionTimestamp: &metav1.Time{Time: time.Now()}},
 			machineSets: []*clusterv1.MachineSet{
 				fakeMachineSet("ms1", withStatusReplicas(1)),
 			},
@@ -1403,7 +1401,7 @@ func Test_setDeletingCondition(t *testing.T) {
 		},
 		{
 			name:              "Deleting with still some stale machine",
-			machineDeployment: &clusterv1.MachineDeployment{ObjectMeta: metav1.ObjectMeta{DeletionTimestamp: &metav1.Time{Time: time.Now()}}},
+			machineDeployment: &clusterv1.MachineDeployment{DeletionTimestamp: &metav1.Time{Time: time.Now()}},
 			machineSets: []*clusterv1.MachineSet{
 				fakeMachineSet("ms1", withStatusReplicas(1)),
 			},
@@ -1421,7 +1419,7 @@ func Test_setDeletingCondition(t *testing.T) {
 		},
 		{
 			name:              "Deleting with no machines and a machine set still around",
-			machineDeployment: &clusterv1.MachineDeployment{ObjectMeta: metav1.ObjectMeta{DeletionTimestamp: &metav1.Time{Time: time.Now()}}},
+			machineDeployment: &clusterv1.MachineDeployment{DeletionTimestamp: &metav1.Time{Time: time.Now()}},
 			machineSets: []*clusterv1.MachineSet{
 				fakeMachineSet("ms1", withStatusReplicas(1)),
 			},
@@ -1456,9 +1454,7 @@ type fakeMachineSetOption func(ms *clusterv1.MachineSet)
 
 func fakeMachineSet(name string, options ...fakeMachineSetOption) *clusterv1.MachineSet {
 	p := &clusterv1.MachineSet{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: name,
-		},
+		Name: name,
 	}
 	for _, opt := range options {
 		opt(p)
@@ -1500,9 +1496,7 @@ type fakeMachinesOption func(m *clusterv1.Machine)
 
 func fakeMachine(name string, options ...fakeMachinesOption) *clusterv1.Machine {
 	p := &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: name,
-		},
+		Name: name,
 	}
 	for _, opt := range options {
 		opt(p)

@@ -40,22 +40,20 @@ func OpenAPI(c *runtimecatalog.Catalog, openAPIDefinitions []OpenAPIDefinitionsG
 	openAPI := &spec3.OpenAPI{
 		Version: "3.0.0",
 		Info: &spec.Info{
-			InfoProps: spec.InfoProps{
-				Description: "This document defines the Open API specification of the services that Cluster API runtime is going " +
-					"to call while managing the Cluster's lifecycle.\n" +
-					"\n" +
-					"Services described in this specification are also referred to as Runtime Hooks, given that they allow " +
-					"external components to hook-in the cluster's lifecycle. The corresponding components implementing handlers " +
-					"for Runtime Hooks calls are referred to as Runtime Extensions.\n" +
-					"\n" +
-					"More information is available in the [Cluster API book](https://cluster-api.sigs.k8s.io/).",
-				Title: "Cluster API - Runtime SDK",
-				License: &spec.License{
-					Name: "Apache 2.0",
-					URL:  "http://www.apache.org/licenses/LICENSE-2.0.html",
-				},
-				Version: version,
+			Description: "This document defines the Open API specification of the services that Cluster API runtime is going " +
+				"to call while managing the Cluster's lifecycle.\n" +
+				"\n" +
+				"Services described in this specification are also referred to as Runtime Hooks, given that they allow " +
+				"external components to hook-in the cluster's lifecycle. The corresponding components implementing handlers " +
+				"for Runtime Hooks calls are referred to as Runtime Extensions.\n" +
+				"\n" +
+				"More information is available in the [Cluster API book](https://cluster-api.sigs.k8s.io/).",
+			Title: "Cluster API - Runtime SDK",
+			License: &spec.License{
+				Name: "Apache 2.0",
+				URL:  "http://www.apache.org/licenses/LICENSE-2.0.html",
 			},
+			Version: version,
 		},
 		Paths: &spec3.Paths{
 			Paths: map[string]*spec3.Path{},
@@ -78,18 +76,14 @@ func OpenAPI(c *runtimecatalog.Catalog, openAPIDefinitions []OpenAPIDefinitionsG
 func addHookAndTypesToOpenAPI(openAPI *spec3.OpenAPI, openAPIDefinitions []OpenAPIDefinitionsGetter, c *runtimecatalog.Catalog, gvh runtimecatalog.GroupVersionHook, hookDescriptor runtimecatalog.HookDescriptor) error {
 	// Create the operation.
 	operation := &spec3.Operation{
-		OperationProps: spec3.OperationProps{
-			Tags:        hookDescriptor.Metadata.Tags,
-			Summary:     hookDescriptor.Metadata.Summary,
-			Description: hookDescriptor.Metadata.Description,
-			OperationId: operationID(gvh),
-			Responses: &spec3.Responses{
-				ResponsesProps: spec3.ResponsesProps{
-					StatusCodeResponses: make(map[int]*spec3.Response),
-				},
-			},
-			Deprecated: hookDescriptor.Metadata.Deprecated,
+		Tags:        hookDescriptor.Metadata.Tags,
+		Summary:     hookDescriptor.Metadata.Summary,
+		Description: hookDescriptor.Metadata.Description,
+		OperationId: operationID(gvh),
+		Responses: &spec3.Responses{
+			StatusCodeResponses: make(map[int]*spec3.Response),
 		},
+		Deprecated: hookDescriptor.Metadata.Deprecated,
 	}
 	path := runtimecatalog.GVHToPath(gvh, "")
 
@@ -98,16 +92,12 @@ func addHookAndTypesToOpenAPI(openAPI *spec3.OpenAPI, openAPIDefinitions []OpenA
 	if !hookDescriptor.Metadata.Singleton {
 		path = runtimecatalog.GVHToPath(gvh, "{name}")
 		operation.Parameters = append(operation.Parameters, &spec3.Parameter{
-			ParameterProps: spec3.ParameterProps{
-				Name:        "name",
-				In:          "path",
-				Description: "The handler name. Handlers within a single external component implementing Runtime Extensions must have different names",
-				Required:    true,
-				Schema: &spec.Schema{
-					SchemaProps: spec.SchemaProps{
-						Type: []string{"string"},
-					},
-				},
+			Name:        "name",
+			In:          "path",
+			Description: "The handler name. Handlers within a single external component implementing Runtime Extensions must have different names",
+			Required:    true,
+			Schema: &spec.Schema{
+				Type: []string{"string"},
 			},
 		})
 	}
@@ -123,9 +113,7 @@ func addHookAndTypesToOpenAPI(openAPI *spec3.OpenAPI, openAPIDefinitions []OpenA
 	}
 	requestTypeName := typeName(requestType, requestGVK)
 	operation.RequestBody = &spec3.RequestBody{
-		RequestBodyProps: spec3.RequestBodyProps{
-			Content: createContent(requestTypeName),
-		},
+		Content: createContent(requestTypeName),
 	}
 	if err := addTypeToOpenAPI(openAPI, openAPIDefinitions, requestTypeName); err != nil {
 		return err
@@ -142,10 +130,8 @@ func addHookAndTypesToOpenAPI(openAPI *spec3.OpenAPI, openAPIDefinitions []OpenA
 	}
 	responseTypeName := typeName(responseType, responseGVK)
 	operation.Responses.StatusCodeResponses[http.StatusOK] = &spec3.Response{
-		ResponseProps: spec3.ResponseProps{
-			Description: "Status code 200 indicates that the request has been processed successfully. Runtime Extension authors must use fields in the response like e.g. status and message to return processing outcomes.",
-			Content:     createContent(responseTypeName),
-		},
+		Description: "Status code 200 indicates that the request has been processed successfully. Runtime Extension authors must use fields in the response like e.g. status and message to return processing outcomes.",
+		Content:     createContent(responseTypeName),
 	}
 	if err := addTypeToOpenAPI(openAPI, openAPIDefinitions, responseTypeName); err != nil {
 		return err
@@ -153,9 +139,7 @@ func addHookAndTypesToOpenAPI(openAPI *spec3.OpenAPI, openAPIDefinitions []OpenA
 
 	// Add operation to OpenAPI.
 	openAPI.Paths.Paths[path] = &spec3.Path{
-		PathProps: spec3.PathProps{
-			Post: operation,
-		},
+		Post: operation,
 	}
 	return nil
 }
@@ -165,9 +149,7 @@ func createContent(typeName string) map[string]*spec3.MediaType {
 		"application/json": {
 			MediaTypeProps: spec3.MediaTypeProps{
 				Schema: &spec.Schema{
-					SchemaProps: spec.SchemaProps{
-						Ref: componentRef(typeName),
-					},
+					Ref: componentRef(typeName),
 				},
 			},
 		},

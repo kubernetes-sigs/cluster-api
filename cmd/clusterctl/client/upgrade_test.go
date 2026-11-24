@@ -365,14 +365,12 @@ func fakeClientForUpgrade() *fakeClient {
 
 func fakeProvider(name string, providerType clusterctlv1.ProviderType, version, targetNamespace string) clusterctlv1.Provider {
 	return clusterctlv1.Provider{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: targetNamespace,
-			Name:      clusterctlv1.ManifestLabel(name, providerType),
-			Labels: map[string]string{
-				clusterctlv1.ClusterctlLabel:     "",
-				clusterv1.ProviderNameLabel:      clusterctlv1.ManifestLabel(name, providerType),
-				clusterctlv1.ClusterctlCoreLabel: clusterctlv1.ClusterctlCoreLabelInventoryValue,
-			},
+		Namespace: targetNamespace,
+		Name:      clusterctlv1.ManifestLabel(name, providerType),
+		Labels: map[string]string{
+			clusterctlv1.ClusterctlLabel:     "",
+			clusterv1.ProviderNameLabel:      clusterctlv1.ManifestLabel(name, providerType),
+			clusterctlv1.ClusterctlCoreLabel: clusterctlv1.ClusterctlCoreLabelInventoryValue,
 		},
 		ProviderName:     name,
 		Type:             string(providerType),
@@ -404,15 +402,11 @@ func Test_parseUpgradeItem(t *testing.T) {
 				provider: "namespace/provider",
 			},
 			want: &cluster.UpgradeItem{
-				Provider: clusterctlv1.Provider{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: "namespace",
-						Name:      clusterctlv1.ManifestLabel("provider", clusterctlv1.CoreProviderType),
-					},
-					ProviderName: "provider",
-					Type:         string(clusterctlv1.CoreProviderType),
-				},
-				NextVersion: "",
+				Namespace:    "namespace",
+				Name:         clusterctlv1.ManifestLabel("provider", clusterctlv1.CoreProviderType),
+				ProviderName: "provider",
+				Type:         string(clusterctlv1.CoreProviderType),
+				NextVersion:  "",
 			},
 			wantErr: false,
 		},
@@ -422,15 +416,11 @@ func Test_parseUpgradeItem(t *testing.T) {
 				provider: "namespace/provider:version",
 			},
 			want: &cluster.UpgradeItem{
-				Provider: clusterctlv1.Provider{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: "namespace",
-						Name:      clusterctlv1.ManifestLabel("provider", clusterctlv1.CoreProviderType),
-					},
-					ProviderName: "provider",
-					Type:         string(clusterctlv1.CoreProviderType),
-				},
-				NextVersion: "version",
+				Namespace:    "namespace",
+				Name:         clusterctlv1.ManifestLabel("provider", clusterctlv1.CoreProviderType),
+				ProviderName: "provider",
+				Type:         string(clusterctlv1.CoreProviderType),
+				NextVersion:  "version",
 			},
 			wantErr: false,
 		},
@@ -440,15 +430,11 @@ func Test_parseUpgradeItem(t *testing.T) {
 				provider: "best-provider:v1.0.0",
 			},
 			want: &cluster.UpgradeItem{
-				Provider: clusterctlv1.Provider{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: "best-provider-system",
-						Name:      clusterctlv1.ManifestLabel("best-provider", clusterctlv1.CoreProviderType),
-					},
-					ProviderName: "best-provider",
-					Type:         string(clusterctlv1.CoreProviderType),
-				},
-				NextVersion: "v1.0.0",
+				Namespace:    "best-provider-system",
+				Name:         clusterctlv1.ManifestLabel("best-provider", clusterctlv1.CoreProviderType),
+				ProviderName: "best-provider",
+				Type:         string(clusterctlv1.CoreProviderType),
+				NextVersion:  "v1.0.0",
 			},
 			wantErr: false,
 		},

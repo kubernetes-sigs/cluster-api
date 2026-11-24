@@ -53,24 +53,18 @@ var (
 	scheme = runtime.NewScheme()
 
 	cluster = &clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "foo",
-		},
+		Name: "foo",
 	}
 
 	cpMachine = &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "bar",
-			Labels: map[string]string{
-				clusterv1.MachineControlPlaneLabel: "",
-			},
+		Name: "bar",
+		Labels: map[string]string{
+			clusterv1.MachineControlPlaneLabel: "",
 		},
 	}
 
 	workerMachine = &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "baz",
-		},
+		Name: "baz",
 	}
 )
 
@@ -84,9 +78,7 @@ func init() {
 
 func TestReconcileNormalCloudMachine(t *testing.T) {
 	inMemoryMachine := &infrav1.DevMachine{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "bar",
-		},
+		Name: "bar",
 		Spec: infrav1.DevMachineSpec{
 			Backend: infrav1.DevMachineBackendSpec{
 				InMemory: &infrav1.InMemoryMachineBackendSpec{
@@ -115,9 +107,7 @@ func TestReconcileNormalCloudMachine(t *testing.T) {
 		g.Expect(conditions.IsFalse(inMemoryMachine, infrav1.DevMachineInMemoryVMProvisionedCondition)).To(BeTrue())
 
 		got := &cloudv1.CloudMachine{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: inMemoryMachine.Name,
-			},
+			Name: inMemoryMachine.Name,
 		}
 		err = c.Get(ctx, client.ObjectKeyFromObject(got), got)
 		g.Expect(err).ToNot(HaveOccurred())
@@ -150,9 +140,7 @@ func TestReconcileNormalCloudMachine(t *testing.T) {
 
 func TestReconcileNormalNode(t *testing.T) {
 	inMemoryMachineWithVMNotYetProvisioned := &infrav1.DevMachine{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "bar",
-		},
+		Name: "bar",
 		Spec: infrav1.DevMachineSpec{
 			Backend: infrav1.DevMachineBackendSpec{
 				InMemory: &infrav1.InMemoryMachineBackendSpec{
@@ -167,9 +155,7 @@ func TestReconcileNormalNode(t *testing.T) {
 	}
 
 	inMemoryMachineWithVMProvisioned := &infrav1.DevMachine{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "bar",
-		},
+		Name: "bar",
 		Spec: infrav1.DevMachineSpec{
 			Backend: infrav1.DevMachineBackendSpec{
 				InMemory: &infrav1.InMemoryMachineBackendSpec{
@@ -206,9 +192,7 @@ func TestReconcileNormalNode(t *testing.T) {
 		g.Expect(res.IsZero()).To(BeTrue())
 
 		got := &corev1.Node{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: inMemoryMachineWithVMNotYetProvisioned.Name,
-			},
+			Name: inMemoryMachineWithVMNotYetProvisioned.Name,
 		}
 		err = c.Get(ctx, client.ObjectKeyFromObject(got), got)
 		g.Expect(apierrors.IsNotFound(err)).To(BeTrue())
@@ -229,9 +213,7 @@ func TestReconcileNormalNode(t *testing.T) {
 		g.Expect(conditions.IsFalse(inMemoryMachineWithVMProvisioned, infrav1.DevMachineInMemoryNodeProvisionedCondition)).To(BeTrue())
 
 		got := &corev1.Node{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: inMemoryMachineWithVMProvisioned.Name,
-			},
+			Name: inMemoryMachineWithVMProvisioned.Name,
 		}
 		err = c.Get(ctx, client.ObjectKeyFromObject(got), got)
 		g.Expect(apierrors.IsNotFound(err)).To(BeTrue())
@@ -267,9 +249,7 @@ func TestReconcileNormalNode(t *testing.T) {
 
 func TestReconcileNormalEtcd(t *testing.T) {
 	inMemoryMachineWithNodeNotYetProvisioned := &infrav1.DevMachine{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "bar0",
-		},
+		Name: "bar0",
 		Status: infrav1.DevMachineStatus{
 			Conditions: []metav1.Condition{
 				{
@@ -282,9 +262,7 @@ func TestReconcileNormalEtcd(t *testing.T) {
 	}
 
 	inMemoryMachineWithNodeProvisioned1 := &infrav1.DevMachine{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "bar1",
-		},
+		Name: "bar1",
 		Spec: infrav1.DevMachineSpec{
 			Backend: infrav1.DevMachineBackendSpec{
 				InMemory: &infrav1.InMemoryMachineBackendSpec{
@@ -330,10 +308,8 @@ func TestReconcileNormalEtcd(t *testing.T) {
 		g.Expect(res.IsZero()).To(BeTrue())
 
 		got := &corev1.Pod{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: metav1.NamespaceSystem,
-				Name:      fmt.Sprintf("etcd-%s", inMemoryMachineWithNodeNotYetProvisioned.Name),
-			},
+			Namespace: metav1.NamespaceSystem,
+			Name:      fmt.Sprintf("etcd-%s", inMemoryMachineWithNodeNotYetProvisioned.Name),
 		}
 		err = c.Get(ctx, client.ObjectKeyFromObject(got), got)
 		g.Expect(apierrors.IsNotFound(err)).To(BeTrue())
@@ -372,10 +348,8 @@ func TestReconcileNormalEtcd(t *testing.T) {
 		g.Expect(conditions.IsFalse(inMemoryMachineWithNodeProvisioned1, infrav1.DevMachineInMemoryEtcdProvisionedCondition)).To(BeTrue())
 
 		got := &corev1.Pod{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: metav1.NamespaceSystem,
-				Name:      fmt.Sprintf("etcd-%s", inMemoryMachineWithNodeProvisioned1.Name),
-			},
+			Namespace: metav1.NamespaceSystem,
+			Name:      fmt.Sprintf("etcd-%s", inMemoryMachineWithNodeProvisioned1.Name),
 		}
 		err = c.Get(ctx, client.ObjectKeyFromObject(got), got)
 		g.Expect(apierrors.IsNotFound(err)).To(BeTrue())
@@ -457,10 +431,8 @@ func TestReconcileNormalEtcd(t *testing.T) {
 		g.Expect(conditions.IsTrue(inMemoryMachineWithNodeProvisioned1, infrav1.DevMachineInMemoryEtcdProvisionedCondition)).To(BeTrue())
 
 		got1 := &corev1.Pod{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: metav1.NamespaceSystem,
-				Name:      fmt.Sprintf("etcd-%s", inMemoryMachineWithNodeProvisioned1.Name),
-			},
+			Namespace: metav1.NamespaceSystem,
+			Name:      fmt.Sprintf("etcd-%s", inMemoryMachineWithNodeProvisioned1.Name),
 		}
 
 		err = c.Get(ctx, client.ObjectKeyFromObject(got1), got1)
@@ -478,10 +450,8 @@ func TestReconcileNormalEtcd(t *testing.T) {
 		g.Expect(conditions.IsTrue(inMemoryMachineWithNodeProvisioned2, infrav1.DevMachineInMemoryEtcdProvisionedCondition)).To(BeTrue())
 
 		got2 := &corev1.Pod{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: metav1.NamespaceSystem,
-				Name:      fmt.Sprintf("etcd-%s", inMemoryMachineWithNodeProvisioned2.Name),
-			},
+			Namespace: metav1.NamespaceSystem,
+			Name:      fmt.Sprintf("etcd-%s", inMemoryMachineWithNodeProvisioned2.Name),
 		}
 
 		err = c.Get(ctx, client.ObjectKeyFromObject(got2), got2)
@@ -497,9 +467,7 @@ func TestReconcileNormalEtcd(t *testing.T) {
 
 func TestReconcileNormalApiServer(t *testing.T) {
 	inMemoryMachineWithNodeNotYetProvisioned := &infrav1.DevMachine{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "bar",
-		},
+		Name: "bar",
 		Status: infrav1.DevMachineStatus{
 			Conditions: []metav1.Condition{
 				{
@@ -512,9 +480,7 @@ func TestReconcileNormalApiServer(t *testing.T) {
 	}
 
 	inMemoryMachineWithNodeProvisioned := &infrav1.DevMachine{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "bar",
-		},
+		Name: "bar",
 		Spec: infrav1.DevMachineSpec{
 			Backend: infrav1.DevMachineBackendSpec{
 				InMemory: &infrav1.InMemoryMachineBackendSpec{
@@ -560,10 +526,8 @@ func TestReconcileNormalApiServer(t *testing.T) {
 		g.Expect(res.IsZero()).To(BeTrue())
 
 		got := &corev1.Pod{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: metav1.NamespaceSystem,
-				Name:      fmt.Sprintf("kube-apiserver-%s", inMemoryMachineWithNodeNotYetProvisioned.Name),
-			},
+			Namespace: metav1.NamespaceSystem,
+			Name:      fmt.Sprintf("kube-apiserver-%s", inMemoryMachineWithNodeNotYetProvisioned.Name),
 		}
 		err = c.Get(ctx, client.ObjectKeyFromObject(got), got)
 		g.Expect(apierrors.IsNotFound(err)).To(BeTrue())
@@ -602,10 +566,8 @@ func TestReconcileNormalApiServer(t *testing.T) {
 		g.Expect(conditions.IsFalse(inMemoryMachineWithNodeProvisioned, infrav1.DevMachineInMemoryAPIServerProvisionedCondition)).To(BeTrue())
 
 		got := &corev1.Pod{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: metav1.NamespaceSystem,
-				Name:      fmt.Sprintf("kube-apiserver-%s", inMemoryMachineWithNodeNotYetProvisioned.Name),
-			},
+			Namespace: metav1.NamespaceSystem,
+			Name:      fmt.Sprintf("kube-apiserver-%s", inMemoryMachineWithNodeNotYetProvisioned.Name),
 		}
 		err = c.Get(ctx, client.ObjectKeyFromObject(got), got)
 		g.Expect(apierrors.IsNotFound(err)).To(BeTrue())
@@ -657,15 +619,11 @@ func TestReconcileNormalControllerManager(t *testing.T) {
 func testReconcileNormalComponent(t *testing.T, component string, reconcileFunc func(MachineBackendReconciler) func(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine, inMemoryMachine *infrav1.DevMachine) (ctrl.Result, error)) {
 	t.Helper()
 	inMemoryMachineWithAPIServerNotYetProvisioned := &infrav1.DevMachine{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "bar",
-		},
+		Name: "bar",
 	}
 
 	inMemoryMachineWithAPIServerProvisioned := &infrav1.DevMachine{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "bar",
-		},
+		Name: "bar",
 		Status: infrav1.DevMachineStatus{
 			Conditions: []metav1.Condition{
 				{
@@ -691,10 +649,8 @@ func testReconcileNormalComponent(t *testing.T, component string, reconcileFunc 
 		g.Expect(res.IsZero()).To(BeTrue())
 
 		got := &corev1.Pod{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: metav1.NamespaceSystem,
-				Name:      fmt.Sprintf("%s-%s", component, inMemoryMachineWithAPIServerProvisioned.Name),
-			},
+			Namespace: metav1.NamespaceSystem,
+			Name:      fmt.Sprintf("%s-%s", component, inMemoryMachineWithAPIServerProvisioned.Name),
 		}
 		err = c.Get(ctx, client.ObjectKeyFromObject(got), got)
 		g.Expect(apierrors.IsNotFound(err)).To(BeTrue())
@@ -714,10 +670,8 @@ func testReconcileNormalComponent(t *testing.T, component string, reconcileFunc 
 		g.Expect(res.IsZero()).To(BeTrue())
 
 		got := &corev1.Pod{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: metav1.NamespaceSystem,
-				Name:      fmt.Sprintf("%s-%s", component, inMemoryMachineWithAPIServerProvisioned.Name),
-			},
+			Namespace: metav1.NamespaceSystem,
+			Name:      fmt.Sprintf("%s-%s", component, inMemoryMachineWithAPIServerProvisioned.Name),
 		}
 		err = c.Get(ctx, client.ObjectKeyFromObject(got), got)
 		g.Expect(apierrors.IsNotFound(err)).To(BeTrue())
@@ -737,10 +691,8 @@ func testReconcileNormalComponent(t *testing.T, component string, reconcileFunc 
 		g.Expect(res.IsZero()).To(BeTrue())
 
 		got := &corev1.Pod{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: metav1.NamespaceSystem,
-				Name:      fmt.Sprintf("%s-%s", component, inMemoryMachineWithAPIServerProvisioned.Name),
-			},
+			Namespace: metav1.NamespaceSystem,
+			Name:      fmt.Sprintf("%s-%s", component, inMemoryMachineWithAPIServerProvisioned.Name),
 		}
 		err = c.Get(ctx, client.ObjectKeyFromObject(got), got)
 		g.Expect(err).ToNot(HaveOccurred())
@@ -764,12 +716,10 @@ func createCASecret(t *testing.T, cluster *clusterv1.Cluster, purpose secretutil
 	g.Expect(err).ToNot(HaveOccurred())
 
 	return &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: cluster.Namespace,
-			Name:      secretutil.Name(cluster.Name, purpose),
-			Labels: map[string]string{
-				clusterv1.ClusterNameLabel: cluster.Name,
-			},
+		Namespace: cluster.Namespace,
+		Name:      secretutil.Name(cluster.Name, purpose),
+		Labels: map[string]string{
+			clusterv1.ClusterNameLabel: cluster.Name,
 		},
 		Data: map[string][]byte{
 			secretutil.TLSKeyDataName: certs.EncodePrivateKeyPEM(key),

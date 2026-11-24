@@ -98,10 +98,10 @@ func TestSummaryMessages(t *testing.T) {
 
 		conditions := []ConditionWithOwnerInfo{
 			// NOTE: objects are intentionally not in order so we can validate they are sorted by name
-			{OwnerResource: ConditionOwnerInfo{Kind: "MachineDeployment", Name: "obj01"}, Condition: metav1.Condition{Type: "A", Reason: "Reason-A", Message: "Message-A", Status: metav1.ConditionFalse}},
-			{OwnerResource: ConditionOwnerInfo{Kind: "MachineDeployment", Name: "obj01"}, Condition: metav1.Condition{Type: "B", Reason: "Reason-B", Message: "Message-B", Status: metav1.ConditionFalse}},
-			{OwnerResource: ConditionOwnerInfo{Kind: "MachineDeployment", Name: "obj01"}, Condition: metav1.Condition{Type: "C", Reason: "Reason-C", Message: "Message-C", Status: metav1.ConditionTrue}},
-			{OwnerResource: ConditionOwnerInfo{Kind: "MachineDeployment", Name: "obj01"}, Condition: metav1.Condition{Type: "D", Reason: "Reason-D", Status: metav1.ConditionFalse}},
+			{OwnerResource: ConditionOwnerInfo{Kind: "MachineDeployment", Name: "obj01"}, Type: "A", Reason: "Reason-A", Message: "Message-A", Status: metav1.ConditionFalse},
+			{OwnerResource: ConditionOwnerInfo{Kind: "MachineDeployment", Name: "obj01"}, Type: "B", Reason: "Reason-B", Message: "Message-B", Status: metav1.ConditionFalse},
+			{OwnerResource: ConditionOwnerInfo{Kind: "MachineDeployment", Name: "obj01"}, Type: "C", Reason: "Reason-C", Message: "Message-C", Status: metav1.ConditionTrue},
+			{OwnerResource: ConditionOwnerInfo{Kind: "MachineDeployment", Name: "obj01"}, Type: "D", Reason: "Reason-D", Status: metav1.ConditionFalse},
 		}
 
 		message := summaryMessage(conditions, d, metav1.ConditionFalse)
@@ -116,9 +116,9 @@ func TestSummaryMessages(t *testing.T) {
 
 		conditions := []ConditionWithOwnerInfo{
 			// NOTE: objects are intentionally not in order so we can validate they are sorted by name
-			{OwnerResource: ConditionOwnerInfo{Kind: "MachineDeployment", Name: "obj01"}, Condition: metav1.Condition{Type: "A", Reason: "Reason-A", Message: "Message-A", Status: metav1.ConditionTrue}},
-			{OwnerResource: ConditionOwnerInfo{Kind: "MachineDeployment", Name: "obj01"}, Condition: metav1.Condition{Type: "B", Reason: "Reason-B", Message: "Message-B", Status: metav1.ConditionTrue}},
-			{OwnerResource: ConditionOwnerInfo{Kind: "MachineDeployment", Name: "obj01"}, Condition: metav1.Condition{Type: "C", Reason: "Reason-C", Status: metav1.ConditionTrue}},
+			{OwnerResource: ConditionOwnerInfo{Kind: "MachineDeployment", Name: "obj01"}, Type: "A", Reason: "Reason-A", Message: "Message-A", Status: metav1.ConditionTrue},
+			{OwnerResource: ConditionOwnerInfo{Kind: "MachineDeployment", Name: "obj01"}, Type: "B", Reason: "Reason-B", Message: "Message-B", Status: metav1.ConditionTrue},
+			{OwnerResource: ConditionOwnerInfo{Kind: "MachineDeployment", Name: "obj01"}, Type: "C", Reason: "Reason-C", Status: metav1.ConditionTrue},
 		}
 
 		message := summaryMessage(conditions, d, metav1.ConditionTrue)
@@ -130,11 +130,11 @@ func TestSummaryMessages(t *testing.T) {
 		g := NewWithT(t)
 
 		conditions := []ConditionWithOwnerInfo{
-			{OwnerResource: ConditionOwnerInfo{Kind: "MachineDeployment", Name: "obj01"}, Condition: metav1.Condition{Type: "A", Reason: "Reason-A", Message: "Message-A", Status: metav1.ConditionTrue}},
-			{OwnerResource: ConditionOwnerInfo{Kind: "MachineDeployment", Name: "obj01"}, Condition: metav1.Condition{Type: "B", Reason: "Reason-B", Message: "* Message-B", Status: metav1.ConditionTrue}},
-			{OwnerResource: ConditionOwnerInfo{Kind: "MachineDeployment", Name: "obj01"}, Condition: metav1.Condition{Type: "C", Reason: "Reason-C", Message: "* Message-C1\n* Message-C2", Status: metav1.ConditionTrue}},
-			{OwnerResource: ConditionOwnerInfo{Kind: "MachineDeployment", Name: "obj01"}, Condition: metav1.Condition{Type: "D", Reason: "Reason-D", Message: "Message-D\n* More Message-D", Status: metav1.ConditionTrue}},
-			{OwnerResource: ConditionOwnerInfo{Kind: "MachineDeployment", Name: "obj01"}, Condition: metav1.Condition{Type: "E", Reason: "Reason-E", Message: "* Message-E1\n  * More Message-E1\n* Message-E2", Status: metav1.ConditionTrue}},
+			{OwnerResource: ConditionOwnerInfo{Kind: "MachineDeployment", Name: "obj01"}, Type: "A", Reason: "Reason-A", Message: "Message-A", Status: metav1.ConditionTrue},
+			{OwnerResource: ConditionOwnerInfo{Kind: "MachineDeployment", Name: "obj01"}, Type: "B", Reason: "Reason-B", Message: "* Message-B", Status: metav1.ConditionTrue},
+			{OwnerResource: ConditionOwnerInfo{Kind: "MachineDeployment", Name: "obj01"}, Type: "C", Reason: "Reason-C", Message: "* Message-C1\n* Message-C2", Status: metav1.ConditionTrue},
+			{OwnerResource: ConditionOwnerInfo{Kind: "MachineDeployment", Name: "obj01"}, Type: "D", Reason: "Reason-D", Message: "Message-D\n* More Message-D", Status: metav1.ConditionTrue},
+			{OwnerResource: ConditionOwnerInfo{Kind: "MachineDeployment", Name: "obj01"}, Type: "E", Reason: "Reason-E", Message: "* Message-E1\n  * More Message-E1\n* Message-E2", Status: metav1.ConditionTrue},
 		}
 
 		message := summaryMessage(conditions, d, metav1.ConditionTrue)
@@ -168,18 +168,18 @@ func TestAggregateMessages(t *testing.T) {
 
 		conditions := []ConditionWithOwnerInfo{
 			// NOTE: objects are intentionally not in order so we can validate they are sorted by name
-			{OwnerResource: ConditionOwnerInfo{Kind: "MachineDeployment", Name: "obj02"}, Condition: metav1.Condition{Type: "A", Message: "Message-1", Status: metav1.ConditionFalse}},
-			{OwnerResource: ConditionOwnerInfo{Kind: "MachineDeployment", Name: "obj01"}, Condition: metav1.Condition{Type: "A", Message: "Message-1", Status: metav1.ConditionFalse}},
-			{OwnerResource: ConditionOwnerInfo{Kind: "MachineDeployment", Name: "obj04"}, Condition: metav1.Condition{Type: "A", Message: "* Message-2", Status: metav1.ConditionFalse}},
-			{OwnerResource: ConditionOwnerInfo{Kind: "MachineDeployment", Name: "obj03"}, Condition: metav1.Condition{Type: "A", Message: "* Message-2", Status: metav1.ConditionFalse}},
-			{OwnerResource: ConditionOwnerInfo{Kind: "MachineDeployment", Name: "obj06"}, Condition: metav1.Condition{Type: "A", Message: "* Message-3A\n* Message-3B", Status: metav1.ConditionFalse}},
-			{OwnerResource: ConditionOwnerInfo{Kind: "MachineDeployment", Name: "obj05"}, Condition: metav1.Condition{Type: "A", Message: "Message-1", Status: metav1.ConditionFalse}},
-			{OwnerResource: ConditionOwnerInfo{Kind: "MachineDeployment", Name: "obj08"}, Condition: metav1.Condition{Type: "A", Message: "Message-1", Status: metav1.ConditionFalse}},
-			{OwnerResource: ConditionOwnerInfo{Kind: "MachineDeployment", Name: "obj07"}, Condition: metav1.Condition{Type: "A", Message: "Message-4", Status: metav1.ConditionFalse}},
-			{OwnerResource: ConditionOwnerInfo{Kind: "MachineDeployment", Name: "obj09"}, Condition: metav1.Condition{Type: "A", Message: "Message-1", Status: metav1.ConditionFalse}},
-			{OwnerResource: ConditionOwnerInfo{Kind: "MachineDeployment", Name: "obj10"}, Condition: metav1.Condition{Type: "A", Message: "Message-5", Status: metav1.ConditionFalse}},
-			{OwnerResource: ConditionOwnerInfo{Kind: "MachineSet", Name: "obj11"}, Condition: metav1.Condition{Type: "A", Message: "Message-1", Status: metav1.ConditionFalse}},
-			{OwnerResource: ConditionOwnerInfo{Kind: "MachineSet", Name: "obj12"}, Condition: metav1.Condition{Type: "A", Message: "Message-1", Status: metav1.ConditionFalse}},
+			{OwnerResource: ConditionOwnerInfo{Kind: "MachineDeployment", Name: "obj02"}, Type: "A", Message: "Message-1", Status: metav1.ConditionFalse},
+			{OwnerResource: ConditionOwnerInfo{Kind: "MachineDeployment", Name: "obj01"}, Type: "A", Message: "Message-1", Status: metav1.ConditionFalse},
+			{OwnerResource: ConditionOwnerInfo{Kind: "MachineDeployment", Name: "obj04"}, Type: "A", Message: "* Message-2", Status: metav1.ConditionFalse},
+			{OwnerResource: ConditionOwnerInfo{Kind: "MachineDeployment", Name: "obj03"}, Type: "A", Message: "* Message-2", Status: metav1.ConditionFalse},
+			{OwnerResource: ConditionOwnerInfo{Kind: "MachineDeployment", Name: "obj06"}, Type: "A", Message: "* Message-3A\n* Message-3B", Status: metav1.ConditionFalse},
+			{OwnerResource: ConditionOwnerInfo{Kind: "MachineDeployment", Name: "obj05"}, Type: "A", Message: "Message-1", Status: metav1.ConditionFalse},
+			{OwnerResource: ConditionOwnerInfo{Kind: "MachineDeployment", Name: "obj08"}, Type: "A", Message: "Message-1", Status: metav1.ConditionFalse},
+			{OwnerResource: ConditionOwnerInfo{Kind: "MachineDeployment", Name: "obj07"}, Type: "A", Message: "Message-4", Status: metav1.ConditionFalse},
+			{OwnerResource: ConditionOwnerInfo{Kind: "MachineDeployment", Name: "obj09"}, Type: "A", Message: "Message-1", Status: metav1.ConditionFalse},
+			{OwnerResource: ConditionOwnerInfo{Kind: "MachineDeployment", Name: "obj10"}, Type: "A", Message: "Message-5", Status: metav1.ConditionFalse},
+			{OwnerResource: ConditionOwnerInfo{Kind: "MachineSet", Name: "obj11"}, Type: "A", Message: "Message-1", Status: metav1.ConditionFalse},
+			{OwnerResource: ConditionOwnerInfo{Kind: "MachineSet", Name: "obj12"}, Type: "A", Message: "Message-1", Status: metav1.ConditionFalse},
 		}
 
 		n := 3
@@ -202,16 +202,16 @@ func TestAggregateMessages(t *testing.T) {
 
 		conditions := []ConditionWithOwnerInfo{
 			// NOTE: objects are intentionally not in order so we can validate they are sorted by name
-			{OwnerResource: ConditionOwnerInfo{Kind: "MachineDeployment", Name: "obj02"}, Condition: metav1.Condition{Type: "A", Message: "Message-1", Status: metav1.ConditionUnknown}},
-			{OwnerResource: ConditionOwnerInfo{Kind: "MachineDeployment", Name: "obj01"}, Condition: metav1.Condition{Type: "A", Message: "Message-1", Status: metav1.ConditionUnknown}},
-			{OwnerResource: ConditionOwnerInfo{Kind: "MachineDeployment", Name: "obj04"}, Condition: metav1.Condition{Type: "A", Message: "* Message-2", Status: metav1.ConditionFalse}},
-			{OwnerResource: ConditionOwnerInfo{Kind: "MachineDeployment", Name: "obj03"}, Condition: metav1.Condition{Type: "A", Message: "* Message-2", Status: metav1.ConditionFalse}},
-			{OwnerResource: ConditionOwnerInfo{Kind: "MachineDeployment", Name: "obj06"}, Condition: metav1.Condition{Type: "A", Message: "* Message-3A\n* Message-3B", Status: metav1.ConditionFalse}},
-			{OwnerResource: ConditionOwnerInfo{Kind: "MachineDeployment", Name: "obj05"}, Condition: metav1.Condition{Type: "A", Message: "Message-1", Status: metav1.ConditionUnknown}},
-			{OwnerResource: ConditionOwnerInfo{Kind: "MachineDeployment", Name: "obj08"}, Condition: metav1.Condition{Type: "A", Message: "Message-1", Status: metav1.ConditionUnknown}},
-			{OwnerResource: ConditionOwnerInfo{Kind: "MachineDeployment", Name: "obj07"}, Condition: metav1.Condition{Type: "A", Message: "Message-4\n* More Message-4", Status: metav1.ConditionFalse}},
-			{OwnerResource: ConditionOwnerInfo{Kind: "MachineDeployment", Name: "obj09"}, Condition: metav1.Condition{Type: "A", Message: "Message-1", Status: metav1.ConditionUnknown}},
-			{OwnerResource: ConditionOwnerInfo{Kind: "MachineDeployment", Name: "obj10"}, Condition: metav1.Condition{Type: "A", Message: "Message-5", Status: metav1.ConditionFalse}},
+			{OwnerResource: ConditionOwnerInfo{Kind: "MachineDeployment", Name: "obj02"}, Type: "A", Message: "Message-1", Status: metav1.ConditionUnknown},
+			{OwnerResource: ConditionOwnerInfo{Kind: "MachineDeployment", Name: "obj01"}, Type: "A", Message: "Message-1", Status: metav1.ConditionUnknown},
+			{OwnerResource: ConditionOwnerInfo{Kind: "MachineDeployment", Name: "obj04"}, Type: "A", Message: "* Message-2", Status: metav1.ConditionFalse},
+			{OwnerResource: ConditionOwnerInfo{Kind: "MachineDeployment", Name: "obj03"}, Type: "A", Message: "* Message-2", Status: metav1.ConditionFalse},
+			{OwnerResource: ConditionOwnerInfo{Kind: "MachineDeployment", Name: "obj06"}, Type: "A", Message: "* Message-3A\n* Message-3B", Status: metav1.ConditionFalse},
+			{OwnerResource: ConditionOwnerInfo{Kind: "MachineDeployment", Name: "obj05"}, Type: "A", Message: "Message-1", Status: metav1.ConditionUnknown},
+			{OwnerResource: ConditionOwnerInfo{Kind: "MachineDeployment", Name: "obj08"}, Type: "A", Message: "Message-1", Status: metav1.ConditionUnknown},
+			{OwnerResource: ConditionOwnerInfo{Kind: "MachineDeployment", Name: "obj07"}, Type: "A", Message: "Message-4\n* More Message-4", Status: metav1.ConditionFalse},
+			{OwnerResource: ConditionOwnerInfo{Kind: "MachineDeployment", Name: "obj09"}, Type: "A", Message: "Message-1", Status: metav1.ConditionUnknown},
+			{OwnerResource: ConditionOwnerInfo{Kind: "MachineDeployment", Name: "obj10"}, Type: "A", Message: "Message-5", Status: metav1.ConditionFalse},
 		}
 
 		n := 3
@@ -236,12 +236,12 @@ func TestAggregateMessages(t *testing.T) {
 
 		conditions := []ConditionWithOwnerInfo{
 			// NOTE: objects are intentionally not in order so we can validate they are sorted by name
-			{OwnerResource: ConditionOwnerInfo{Kind: "Machine", Name: "obj02", IsControlPlaneMachine: true}, Condition: metav1.Condition{Type: "A", Message: "* Message-1", Status: metav1.ConditionUnknown}},
-			{OwnerResource: ConditionOwnerInfo{Kind: "Machine", Name: "obj01"}, Condition: metav1.Condition{Type: "A", Message: "* Message-1", Status: metav1.ConditionUnknown}},
-			{OwnerResource: ConditionOwnerInfo{Kind: "Machine", Name: "obj04"}, Condition: metav1.Condition{Type: "A", Message: "* Message-2", Status: metav1.ConditionFalse}},
-			{OwnerResource: ConditionOwnerInfo{Kind: "Machine", Name: "obj03"}, Condition: metav1.Condition{Type: "A", Message: "* Message-2", Status: metav1.ConditionFalse}},
-			{OwnerResource: ConditionOwnerInfo{Kind: "Machine", Name: "obj06"}, Condition: metav1.Condition{Type: "A", Message: "* Message-3A\n* Message-3B", Status: metav1.ConditionFalse}},
-			{OwnerResource: ConditionOwnerInfo{Kind: "Machine", Name: "obj05"}, Condition: metav1.Condition{Type: "A", Message: "* Message-2", Status: metav1.ConditionFalse}},
+			{OwnerResource: ConditionOwnerInfo{Kind: "Machine", Name: "obj02", IsControlPlaneMachine: true}, Type: "A", Message: "* Message-1", Status: metav1.ConditionUnknown},
+			{OwnerResource: ConditionOwnerInfo{Kind: "Machine", Name: "obj01"}, Type: "A", Message: "* Message-1", Status: metav1.ConditionUnknown},
+			{OwnerResource: ConditionOwnerInfo{Kind: "Machine", Name: "obj04"}, Type: "A", Message: "* Message-2", Status: metav1.ConditionFalse},
+			{OwnerResource: ConditionOwnerInfo{Kind: "Machine", Name: "obj03"}, Type: "A", Message: "* Message-2", Status: metav1.ConditionFalse},
+			{OwnerResource: ConditionOwnerInfo{Kind: "Machine", Name: "obj06"}, Type: "A", Message: "* Message-3A\n* Message-3B", Status: metav1.ConditionFalse},
+			{OwnerResource: ConditionOwnerInfo{Kind: "Machine", Name: "obj05"}, Type: "A", Message: "* Message-2", Status: metav1.ConditionFalse},
 		}
 
 		n := 3
@@ -268,15 +268,15 @@ func TestSortConditions(t *testing.T) {
 	t2 := metav1.Time{Time: t0.Add(20 * time.Minute)}
 
 	conditions := []ConditionWithOwnerInfo{
-		{OwnerResource: ConditionOwnerInfo{Name: "baz"}, Condition: metav1.Condition{Type: "B", Status: metav1.ConditionFalse, LastTransitionTime: t0}},
-		{OwnerResource: ConditionOwnerInfo{Name: "baz"}, Condition: metav1.Condition{Type: "A", Status: metav1.ConditionFalse, LastTransitionTime: t1}},
-		{OwnerResource: ConditionOwnerInfo{Name: "foo"}, Condition: metav1.Condition{Type: "!C", Status: metav1.ConditionTrue, LastTransitionTime: t2}},
-		{OwnerResource: ConditionOwnerInfo{Name: "bar"}, Condition: metav1.Condition{Type: "A", Status: metav1.ConditionUnknown, LastTransitionTime: t0}},
-		{OwnerResource: ConditionOwnerInfo{Name: "foo"}, Condition: metav1.Condition{Type: "A", Status: metav1.ConditionTrue, LastTransitionTime: t2}},
-		{OwnerResource: ConditionOwnerInfo{Name: "bar"}, Condition: metav1.Condition{Type: "!C", Status: metav1.ConditionUnknown, LastTransitionTime: t0}},
-		{OwnerResource: ConditionOwnerInfo{Name: "bar"}, Condition: metav1.Condition{Type: "B", Status: metav1.ConditionUnknown, LastTransitionTime: t2}},
-		{OwnerResource: ConditionOwnerInfo{Name: "foo"}, Condition: metav1.Condition{Type: "B", Status: metav1.ConditionTrue, LastTransitionTime: t1}},
-		{OwnerResource: ConditionOwnerInfo{Name: "baz"}, Condition: metav1.Condition{Type: "!C", Status: metav1.ConditionFalse, LastTransitionTime: t1}},
+		{OwnerResource: ConditionOwnerInfo{Name: "baz"}, Type: "B", Status: metav1.ConditionFalse, LastTransitionTime: t0},
+		{OwnerResource: ConditionOwnerInfo{Name: "baz"}, Type: "A", Status: metav1.ConditionFalse, LastTransitionTime: t1},
+		{OwnerResource: ConditionOwnerInfo{Name: "foo"}, Type: "!C", Status: metav1.ConditionTrue, LastTransitionTime: t2},
+		{OwnerResource: ConditionOwnerInfo{Name: "bar"}, Type: "A", Status: metav1.ConditionUnknown, LastTransitionTime: t0},
+		{OwnerResource: ConditionOwnerInfo{Name: "foo"}, Type: "A", Status: metav1.ConditionTrue, LastTransitionTime: t2},
+		{OwnerResource: ConditionOwnerInfo{Name: "bar"}, Type: "!C", Status: metav1.ConditionUnknown, LastTransitionTime: t0},
+		{OwnerResource: ConditionOwnerInfo{Name: "bar"}, Type: "B", Status: metav1.ConditionUnknown, LastTransitionTime: t2},
+		{OwnerResource: ConditionOwnerInfo{Name: "foo"}, Type: "B", Status: metav1.ConditionTrue, LastTransitionTime: t1},
+		{OwnerResource: ConditionOwnerInfo{Name: "baz"}, Type: "!C", Status: metav1.ConditionFalse, LastTransitionTime: t1},
 	}
 
 	orderedConditionTypes := []string{"A", "B", "!C"}
@@ -285,15 +285,15 @@ func TestSortConditions(t *testing.T) {
 	// Check conditions are sorted by orderedConditionTypes and by LastTransitionTime
 
 	g.Expect(conditions).To(Equal([]ConditionWithOwnerInfo{
-		{OwnerResource: ConditionOwnerInfo{Name: "bar"}, Condition: metav1.Condition{Type: "A", Status: metav1.ConditionUnknown, LastTransitionTime: t0}},
-		{OwnerResource: ConditionOwnerInfo{Name: "baz"}, Condition: metav1.Condition{Type: "A", Status: metav1.ConditionFalse, LastTransitionTime: t1}},
-		{OwnerResource: ConditionOwnerInfo{Name: "foo"}, Condition: metav1.Condition{Type: "A", Status: metav1.ConditionTrue, LastTransitionTime: t2}},
-		{OwnerResource: ConditionOwnerInfo{Name: "baz"}, Condition: metav1.Condition{Type: "B", Status: metav1.ConditionFalse, LastTransitionTime: t0}},
-		{OwnerResource: ConditionOwnerInfo{Name: "foo"}, Condition: metav1.Condition{Type: "B", Status: metav1.ConditionTrue, LastTransitionTime: t1}},
-		{OwnerResource: ConditionOwnerInfo{Name: "bar"}, Condition: metav1.Condition{Type: "B", Status: metav1.ConditionUnknown, LastTransitionTime: t2}},
-		{OwnerResource: ConditionOwnerInfo{Name: "bar"}, Condition: metav1.Condition{Type: "!C", Status: metav1.ConditionUnknown, LastTransitionTime: t0}},
-		{OwnerResource: ConditionOwnerInfo{Name: "baz"}, Condition: metav1.Condition{Type: "!C", Status: metav1.ConditionFalse, LastTransitionTime: t1}},
-		{OwnerResource: ConditionOwnerInfo{Name: "foo"}, Condition: metav1.Condition{Type: "!C", Status: metav1.ConditionTrue, LastTransitionTime: t2}},
+		{OwnerResource: ConditionOwnerInfo{Name: "bar"}, Type: "A", Status: metav1.ConditionUnknown, LastTransitionTime: t0},
+		{OwnerResource: ConditionOwnerInfo{Name: "baz"}, Type: "A", Status: metav1.ConditionFalse, LastTransitionTime: t1},
+		{OwnerResource: ConditionOwnerInfo{Name: "foo"}, Type: "A", Status: metav1.ConditionTrue, LastTransitionTime: t2},
+		{OwnerResource: ConditionOwnerInfo{Name: "baz"}, Type: "B", Status: metav1.ConditionFalse, LastTransitionTime: t0},
+		{OwnerResource: ConditionOwnerInfo{Name: "foo"}, Type: "B", Status: metav1.ConditionTrue, LastTransitionTime: t1},
+		{OwnerResource: ConditionOwnerInfo{Name: "bar"}, Type: "B", Status: metav1.ConditionUnknown, LastTransitionTime: t2},
+		{OwnerResource: ConditionOwnerInfo{Name: "bar"}, Type: "!C", Status: metav1.ConditionUnknown, LastTransitionTime: t0},
+		{OwnerResource: ConditionOwnerInfo{Name: "baz"}, Type: "!C", Status: metav1.ConditionFalse, LastTransitionTime: t1},
+		{OwnerResource: ConditionOwnerInfo{Name: "foo"}, Type: "!C", Status: metav1.ConditionTrue, LastTransitionTime: t2},
 	}))
 }
 
@@ -301,15 +301,15 @@ func TestSplitConditionsByPriority(t *testing.T) {
 	g := NewWithT(t)
 
 	conditions := []ConditionWithOwnerInfo{
-		{OwnerResource: ConditionOwnerInfo{Name: "baz"}, Condition: metav1.Condition{Type: "B", Status: metav1.ConditionFalse}},    // issue
-		{OwnerResource: ConditionOwnerInfo{Name: "foo"}, Condition: metav1.Condition{Type: "A", Status: metav1.ConditionTrue}},     // info
-		{OwnerResource: ConditionOwnerInfo{Name: "baz"}, Condition: metav1.Condition{Type: "A", Status: metav1.ConditionFalse}},    // issue
-		{OwnerResource: ConditionOwnerInfo{Name: "foo"}, Condition: metav1.Condition{Type: "!C", Status: metav1.ConditionTrue}},    // issue
-		{OwnerResource: ConditionOwnerInfo{Name: "bar"}, Condition: metav1.Condition{Type: "A", Status: metav1.ConditionUnknown}},  // unknown
-		{OwnerResource: ConditionOwnerInfo{Name: "bar"}, Condition: metav1.Condition{Type: "!C", Status: metav1.ConditionUnknown}}, // unknown
-		{OwnerResource: ConditionOwnerInfo{Name: "bar"}, Condition: metav1.Condition{Type: "B", Status: metav1.ConditionUnknown}},  // unknown
-		{OwnerResource: ConditionOwnerInfo{Name: "foo"}, Condition: metav1.Condition{Type: "B", Status: metav1.ConditionTrue}},     // info
-		{OwnerResource: ConditionOwnerInfo{Name: "baz"}, Condition: metav1.Condition{Type: "!C", Status: metav1.ConditionFalse}},   // info
+		{OwnerResource: ConditionOwnerInfo{Name: "baz"}, Type: "B", Status: metav1.ConditionFalse},    // issue
+		{OwnerResource: ConditionOwnerInfo{Name: "foo"}, Type: "A", Status: metav1.ConditionTrue},     // info
+		{OwnerResource: ConditionOwnerInfo{Name: "baz"}, Type: "A", Status: metav1.ConditionFalse},    // issue
+		{OwnerResource: ConditionOwnerInfo{Name: "foo"}, Type: "!C", Status: metav1.ConditionTrue},    // issue
+		{OwnerResource: ConditionOwnerInfo{Name: "bar"}, Type: "A", Status: metav1.ConditionUnknown},  // unknown
+		{OwnerResource: ConditionOwnerInfo{Name: "bar"}, Type: "!C", Status: metav1.ConditionUnknown}, // unknown
+		{OwnerResource: ConditionOwnerInfo{Name: "bar"}, Type: "B", Status: metav1.ConditionUnknown},  // unknown
+		{OwnerResource: ConditionOwnerInfo{Name: "foo"}, Type: "B", Status: metav1.ConditionTrue},     // info
+		{OwnerResource: ConditionOwnerInfo{Name: "baz"}, Type: "!C", Status: metav1.ConditionFalse},   // info
 	}
 
 	issueConditions, unknownConditions, infoConditions := splitConditionsByPriority(conditions, GetDefaultMergePriorityFunc("!C"))
@@ -317,21 +317,21 @@ func TestSplitConditionsByPriority(t *testing.T) {
 	// Check condition are grouped as expected and order is preserved.
 
 	g.Expect(issueConditions).To(Equal([]ConditionWithOwnerInfo{
-		{OwnerResource: ConditionOwnerInfo{Name: "baz"}, Condition: metav1.Condition{Type: "B", Status: metav1.ConditionFalse}},
-		{OwnerResource: ConditionOwnerInfo{Name: "baz"}, Condition: metav1.Condition{Type: "A", Status: metav1.ConditionFalse}},
-		{OwnerResource: ConditionOwnerInfo{Name: "foo"}, Condition: metav1.Condition{Type: "!C", Status: metav1.ConditionTrue}},
+		{OwnerResource: ConditionOwnerInfo{Name: "baz"}, Type: "B", Status: metav1.ConditionFalse},
+		{OwnerResource: ConditionOwnerInfo{Name: "baz"}, Type: "A", Status: metav1.ConditionFalse},
+		{OwnerResource: ConditionOwnerInfo{Name: "foo"}, Type: "!C", Status: metav1.ConditionTrue},
 	}))
 
 	g.Expect(unknownConditions).To(Equal([]ConditionWithOwnerInfo{
-		{OwnerResource: ConditionOwnerInfo{Name: "bar"}, Condition: metav1.Condition{Type: "A", Status: metav1.ConditionUnknown}},
-		{OwnerResource: ConditionOwnerInfo{Name: "bar"}, Condition: metav1.Condition{Type: "!C", Status: metav1.ConditionUnknown}},
-		{OwnerResource: ConditionOwnerInfo{Name: "bar"}, Condition: metav1.Condition{Type: "B", Status: metav1.ConditionUnknown}},
+		{OwnerResource: ConditionOwnerInfo{Name: "bar"}, Type: "A", Status: metav1.ConditionUnknown},
+		{OwnerResource: ConditionOwnerInfo{Name: "bar"}, Type: "!C", Status: metav1.ConditionUnknown},
+		{OwnerResource: ConditionOwnerInfo{Name: "bar"}, Type: "B", Status: metav1.ConditionUnknown},
 	}))
 
 	g.Expect(infoConditions).To(Equal([]ConditionWithOwnerInfo{
-		{OwnerResource: ConditionOwnerInfo{Name: "foo"}, Condition: metav1.Condition{Type: "A", Status: metav1.ConditionTrue}},
-		{OwnerResource: ConditionOwnerInfo{Name: "foo"}, Condition: metav1.Condition{Type: "B", Status: metav1.ConditionTrue}},
-		{OwnerResource: ConditionOwnerInfo{Name: "baz"}, Condition: metav1.Condition{Type: "!C", Status: metav1.ConditionFalse}},
+		{OwnerResource: ConditionOwnerInfo{Name: "foo"}, Type: "A", Status: metav1.ConditionTrue},
+		{OwnerResource: ConditionOwnerInfo{Name: "foo"}, Type: "B", Status: metav1.ConditionTrue},
+		{OwnerResource: ConditionOwnerInfo{Name: "baz"}, Type: "!C", Status: metav1.ConditionFalse},
 	}))
 }
 

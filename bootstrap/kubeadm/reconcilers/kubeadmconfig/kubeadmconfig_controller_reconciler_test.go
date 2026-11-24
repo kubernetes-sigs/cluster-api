@@ -56,10 +56,8 @@ func TestKubeadmConfigReconciler(t *testing.T) {
 			}
 			t.Log("Calling reconcile should requeue")
 			result, err := reconciler.Reconcile(ctx, ctrl.Request{
-				NamespacedName: client.ObjectKey{
-					Namespace: ns.Name,
-					Name:      "my-machine-config",
-				},
+				Namespace: ns.Name,
+				Name:      "my-machine-config",
 			})
 			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(result.RequeueAfter).To(Equal(time.Duration(0)))

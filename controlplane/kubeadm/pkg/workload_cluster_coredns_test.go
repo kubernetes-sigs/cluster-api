@@ -54,20 +54,16 @@ func TestUpdateCoreDNS(t *testing.T) {
 	// following pre-checks that need to happen before we retrieve the
 	// CoreDNSInfo.
 	badCM := &corev1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      coreDNSKey,
-			Namespace: metav1.NamespaceSystem,
-		},
+		Name:      coreDNSKey,
+		Namespace: metav1.NamespaceSystem,
 		Data: map[string]string{
 			"BadCoreFileKey": "",
 		},
 	}
 
 	depl := &appsv1.Deployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      coreDNSKey,
-			Namespace: metav1.NamespaceSystem,
-		},
+		Name:      coreDNSKey,
+		Namespace: metav1.NamespaceSystem,
 		Spec: appsv1.DeploymentSpec{
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
@@ -95,29 +91,23 @@ func TestUpdateCoreDNS(t *testing.T) {
 
 	expectedCorefile := "coredns-core-file"
 	cm := &corev1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      coreDNSKey,
-			Namespace: metav1.NamespaceSystem,
-		},
+		Name:      coreDNSKey,
+		Namespace: metav1.NamespaceSystem,
 		Data: map[string]string{
 			"Corefile": expectedCorefile,
 		},
 	}
 	updatedCM := &corev1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      coreDNSKey,
-			Namespace: metav1.NamespaceSystem,
-		},
+		Name:      coreDNSKey,
+		Namespace: metav1.NamespaceSystem,
 		Data: map[string]string{
 			"Corefile":        "updated-core-file",
 			"Corefile-backup": expectedCorefile,
 		},
 	}
 	kubeadmCM := &corev1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      kubeadmConfigKey,
-			Namespace: metav1.NamespaceSystem,
-		},
+		Name:      kubeadmConfigKey,
+		Namespace: metav1.NamespaceSystem,
 		Data: map[string]string{
 			"ClusterConfiguration": utilyaml.Raw(`
 				apiServer:
@@ -130,10 +120,8 @@ func TestUpdateCoreDNS(t *testing.T) {
 		},
 	}
 	kubeadmCM181 := &corev1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      kubeadmConfigKey,
-			Namespace: metav1.NamespaceSystem,
-		},
+		Name:      kubeadmConfigKey,
+		Namespace: metav1.NamespaceSystem,
 		Data: map[string]string{
 			"ClusterConfiguration": utilyaml.Raw(`
 				apiServer:
@@ -160,10 +148,8 @@ func TestUpdateCoreDNS(t *testing.T) {
 		{
 			name: "returns early without error if skip core dns annotation is present",
 			kcp: &controlplanev1.KubeadmControlPlane{
-				ObjectMeta: metav1.ObjectMeta{
-					Annotations: map[string]string{
-						controlplanev1.SkipCoreDNSAnnotation: "",
-					},
+				Annotations: map[string]string{
+					controlplanev1.SkipCoreDNSAnnotation: "",
 				},
 				Spec: controlplanev1.KubeadmControlPlaneSpec{
 					KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
@@ -581,10 +567,8 @@ func TestUpdateCoreDNSCorefile(t *testing.T) {
 	currentImageTag := "1.6.2"
 	originalCorefile := "some-coredns-core-file"
 	depl := &appsv1.Deployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      coreDNSKey,
-			Namespace: metav1.NamespaceSystem,
-		},
+		Name:      coreDNSKey,
+		Namespace: metav1.NamespaceSystem,
 		Spec: appsv1.DeploymentSpec{
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
@@ -597,16 +581,12 @@ func TestUpdateCoreDNSCorefile(t *testing.T) {
 					}},
 					Volumes: []corev1.Volume{{
 						Name: "config-volume",
-						VolumeSource: corev1.VolumeSource{
-							ConfigMap: &corev1.ConfigMapVolumeSource{
-								LocalObjectReference: corev1.LocalObjectReference{
-									Name: coreDNSKey,
-								},
-								Items: []corev1.KeyToPath{{
-									Key:  "Corefile",
-									Path: "Corefile",
-								}},
-							},
+						ConfigMap: &corev1.ConfigMapVolumeSource{
+							Name: coreDNSKey,
+							Items: []corev1.KeyToPath{{
+								Key:  "Corefile",
+								Path: "Corefile",
+							}},
 						},
 					}},
 				},
@@ -614,10 +594,8 @@ func TestUpdateCoreDNSCorefile(t *testing.T) {
 		},
 	}
 	cm := &corev1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      coreDNSKey,
-			Namespace: metav1.NamespaceSystem,
-		},
+		Name:      coreDNSKey,
+		Namespace: metav1.NamespaceSystem,
 		Data: map[string]string{
 			"Corefile": originalCorefile,
 		},
@@ -712,16 +690,12 @@ func TestUpdateCoreDNSCorefile(t *testing.T) {
 
 		expectedVolume := corev1.Volume{
 			Name: coreDNSVolumeKey,
-			VolumeSource: corev1.VolumeSource{
-				ConfigMap: &corev1.ConfigMapVolumeSource{
-					LocalObjectReference: corev1.LocalObjectReference{
-						Name: coreDNSKey,
-					},
-					Items: []corev1.KeyToPath{{
-						Key:  "Corefile-backup",
-						Path: "Corefile",
-					}},
-				},
+			ConfigMap: &corev1.ConfigMapVolumeSource{
+				Name: coreDNSKey,
+				Items: []corev1.KeyToPath{{
+					Key:  "Corefile-backup",
+					Path: "Corefile",
+				}},
 			},
 		}
 
@@ -741,10 +715,8 @@ func TestGetCoreDNSInfo(t *testing.T) {
 	t.Run("get coredns info", func(t *testing.T) {
 		expectedCorefile := "some-coredns-core-file"
 		cm := &corev1.ConfigMap{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      coreDNSKey,
-				Namespace: metav1.NamespaceSystem,
-			},
+			Name:      coreDNSKey,
+			Namespace: metav1.NamespaceSystem,
 			Data: map[string]string{
 				"Corefile": expectedCorefile,
 			},
@@ -973,10 +945,8 @@ func TestUpdateCoreDNSImageInfoInKubeadmConfigMap(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 			fakeClient := fake.NewClientBuilder().WithObjects(&corev1.ConfigMap{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      kubeadmConfigKey,
-					Namespace: metav1.NamespaceSystem,
-				},
+				Name:      kubeadmConfigKey,
+				Namespace: metav1.NamespaceSystem,
 				Data: map[string]string{
 					clusterConfigurationKey: tt.clusterConfigurationData,
 				},
@@ -1001,10 +971,8 @@ func TestUpdateCoreDNSImageInfoInKubeadmConfigMap(t *testing.T) {
 
 func TestUpdateCoreDNSDeployment(t *testing.T) {
 	depl := &appsv1.Deployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      coreDNSKey,
-			Namespace: metav1.NamespaceSystem,
-		},
+		Name:      coreDNSKey,
+		Namespace: metav1.NamespaceSystem,
 		Spec: appsv1.DeploymentSpec{
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
@@ -1018,16 +986,12 @@ func TestUpdateCoreDNSDeployment(t *testing.T) {
 					}},
 					Volumes: []corev1.Volume{{
 						Name: "config-volume",
-						VolumeSource: corev1.VolumeSource{
-							ConfigMap: &corev1.ConfigMapVolumeSource{
-								LocalObjectReference: corev1.LocalObjectReference{
-									Name: coreDNSKey,
-								},
-								Items: []corev1.KeyToPath{{
-									Key:  corefileBackupKey,
-									Path: corefileKey,
-								}},
-							},
+						ConfigMap: &corev1.ConfigMapVolumeSource{
+							Name: coreDNSKey,
+							Items: []corev1.KeyToPath{{
+								Key:  corefileBackupKey,
+								Path: corefileKey,
+							}},
 						},
 					}},
 				},
@@ -1098,16 +1062,12 @@ func TestUpdateCoreDNSDeployment(t *testing.T) {
 
 			expectedVolume := corev1.Volume{
 				Name: "config-volume",
-				VolumeSource: corev1.VolumeSource{
-					ConfigMap: &corev1.ConfigMapVolumeSource{
-						LocalObjectReference: corev1.LocalObjectReference{
-							Name: coreDNSKey,
-						},
-						Items: []corev1.KeyToPath{{
-							Key:  corefileKey,
-							Path: corefileKey,
-						}},
-					},
+				ConfigMap: &corev1.ConfigMapVolumeSource{
+					Name: coreDNSKey,
+					Items: []corev1.KeyToPath{{
+						Key:  corefileKey,
+						Path: corefileKey,
+					}},
 				},
 			}
 
@@ -1136,10 +1096,8 @@ func (m *fakeMigrator) Migrate(_, _, _ string, _ bool) (string, error) {
 
 func newCoreDNSInfoDeploymentWithimage(image string) *appsv1.Deployment {
 	return &appsv1.Deployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      coreDNSKey,
-			Namespace: metav1.NamespaceSystem,
-		},
+		Name:      coreDNSKey,
+		Namespace: metav1.NamespaceSystem,
 		Spec: appsv1.DeploymentSpec{
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{

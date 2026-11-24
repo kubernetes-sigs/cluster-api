@@ -22,7 +22,6 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
@@ -34,9 +33,7 @@ func TestMachinePoolDefault(t *testing.T) {
 	g := NewWithT(t)
 
 	mp := &clusterv1.MachinePool{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "foobar",
-		},
+		Namespace: "foobar",
 		Spec: clusterv1.MachinePoolSpec{
 			Template: clusterv1.MachineTemplateSpec{
 				Spec: clusterv1.MachineSpec{
@@ -84,10 +81,8 @@ func TestCalculateMachinePoolReplicas(t *testing.T) {
 		{
 			name: "if new MP only has min size annotation, fallback to 1",
 			newMP: &clusterv1.MachinePool{
-				ObjectMeta: metav1.ObjectMeta{
-					Annotations: map[string]string{
-						clusterv1.AutoscalerMinSizeAnnotation: "3",
-					},
+				Annotations: map[string]string{
+					clusterv1.AutoscalerMinSizeAnnotation: "3",
 				},
 			},
 			expectedReplicas: 1,
@@ -95,10 +90,8 @@ func TestCalculateMachinePoolReplicas(t *testing.T) {
 		{
 			name: "if new MP only has max size annotation, fallback to 1",
 			newMP: &clusterv1.MachinePool{
-				ObjectMeta: metav1.ObjectMeta{
-					Annotations: map[string]string{
-						clusterv1.AutoscalerMaxSizeAnnotation: "7",
-					},
+				Annotations: map[string]string{
+					clusterv1.AutoscalerMaxSizeAnnotation: "7",
 				},
 			},
 			expectedReplicas: 1,
@@ -106,11 +99,9 @@ func TestCalculateMachinePoolReplicas(t *testing.T) {
 		{
 			name: "if new MP has min and max size annotation and min size is invalid, fail",
 			newMP: &clusterv1.MachinePool{
-				ObjectMeta: metav1.ObjectMeta{
-					Annotations: map[string]string{
-						clusterv1.AutoscalerMinSizeAnnotation: "abc",
-						clusterv1.AutoscalerMaxSizeAnnotation: "7",
-					},
+				Annotations: map[string]string{
+					clusterv1.AutoscalerMinSizeAnnotation: "abc",
+					clusterv1.AutoscalerMaxSizeAnnotation: "7",
 				},
 			},
 			expectErr: true,
@@ -118,11 +109,9 @@ func TestCalculateMachinePoolReplicas(t *testing.T) {
 		{
 			name: "if new MP has min and max size annotation and max size is invalid, fail",
 			newMP: &clusterv1.MachinePool{
-				ObjectMeta: metav1.ObjectMeta{
-					Annotations: map[string]string{
-						clusterv1.AutoscalerMinSizeAnnotation: "3",
-						clusterv1.AutoscalerMaxSizeAnnotation: "abc",
-					},
+				Annotations: map[string]string{
+					clusterv1.AutoscalerMinSizeAnnotation: "3",
+					clusterv1.AutoscalerMaxSizeAnnotation: "abc",
 				},
 			},
 			expectErr: true,
@@ -130,11 +119,9 @@ func TestCalculateMachinePoolReplicas(t *testing.T) {
 		{
 			name: "if new MP has min and max size annotation and new MP is a new MP, use min size",
 			newMP: &clusterv1.MachinePool{
-				ObjectMeta: metav1.ObjectMeta{
-					Annotations: map[string]string{
-						clusterv1.AutoscalerMinSizeAnnotation: "3",
-						clusterv1.AutoscalerMaxSizeAnnotation: "7",
-					},
+				Annotations: map[string]string{
+					clusterv1.AutoscalerMinSizeAnnotation: "3",
+					clusterv1.AutoscalerMaxSizeAnnotation: "7",
 				},
 			},
 			expectedReplicas: 3,
@@ -142,11 +129,9 @@ func TestCalculateMachinePoolReplicas(t *testing.T) {
 		{
 			name: "if new MP has min and max size annotation and old MP doesn't have replicas set, use min size",
 			newMP: &clusterv1.MachinePool{
-				ObjectMeta: metav1.ObjectMeta{
-					Annotations: map[string]string{
-						clusterv1.AutoscalerMinSizeAnnotation: "3",
-						clusterv1.AutoscalerMaxSizeAnnotation: "7",
-					},
+				Annotations: map[string]string{
+					clusterv1.AutoscalerMinSizeAnnotation: "3",
+					clusterv1.AutoscalerMaxSizeAnnotation: "7",
 				},
 			},
 			oldMP:            &clusterv1.MachinePool{},
@@ -155,11 +140,9 @@ func TestCalculateMachinePoolReplicas(t *testing.T) {
 		{
 			name: "if new MP has min and max size annotation and old MP replicas is below min size, use min size",
 			newMP: &clusterv1.MachinePool{
-				ObjectMeta: metav1.ObjectMeta{
-					Annotations: map[string]string{
-						clusterv1.AutoscalerMinSizeAnnotation: "3",
-						clusterv1.AutoscalerMaxSizeAnnotation: "7",
-					},
+				Annotations: map[string]string{
+					clusterv1.AutoscalerMinSizeAnnotation: "3",
+					clusterv1.AutoscalerMaxSizeAnnotation: "7",
 				},
 			},
 			oldMP: &clusterv1.MachinePool{
@@ -172,11 +155,9 @@ func TestCalculateMachinePoolReplicas(t *testing.T) {
 		{
 			name: "if new MP has min and max size annotation and old MP replicas is above max size, use max size",
 			newMP: &clusterv1.MachinePool{
-				ObjectMeta: metav1.ObjectMeta{
-					Annotations: map[string]string{
-						clusterv1.AutoscalerMinSizeAnnotation: "3",
-						clusterv1.AutoscalerMaxSizeAnnotation: "7",
-					},
+				Annotations: map[string]string{
+					clusterv1.AutoscalerMinSizeAnnotation: "3",
+					clusterv1.AutoscalerMaxSizeAnnotation: "7",
 				},
 			},
 			oldMP: &clusterv1.MachinePool{
@@ -189,11 +170,9 @@ func TestCalculateMachinePoolReplicas(t *testing.T) {
 		{
 			name: "if new MP has min and max size annotation and old MP replicas is between min and max size, use old MP replicas",
 			newMP: &clusterv1.MachinePool{
-				ObjectMeta: metav1.ObjectMeta{
-					Annotations: map[string]string{
-						clusterv1.AutoscalerMinSizeAnnotation: "3",
-						clusterv1.AutoscalerMaxSizeAnnotation: "7",
-					},
+				Annotations: map[string]string{
+					clusterv1.AutoscalerMinSizeAnnotation: "3",
+					clusterv1.AutoscalerMaxSizeAnnotation: "7",
 				},
 			},
 			oldMP: &clusterv1.MachinePool{

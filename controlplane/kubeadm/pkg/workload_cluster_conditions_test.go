@@ -1010,10 +1010,8 @@ func TestUpdateStaticPodConditions(t *testing.T) {
 				list: &corev1.NodeList{},
 				get: map[string]any{
 					"/n1": &corev1.Node{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:   "n1",
-							Labels: map[string]string{},
-						},
+						Name:   "n1",
+						Labels: map[string]string{},
 					},
 					n1APIServerPodKey: fakePod(n1APIServerPodName,
 						withPhase(corev1.PodRunning),
@@ -1072,10 +1070,8 @@ func TestUpdateStaticPodConditions(t *testing.T) {
 				list: &corev1.NodeList{},
 				get: map[string]any{
 					"/n1": &corev1.Node{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:   "n1",
-							Labels: map[string]string{},
-						},
+						Name:   "n1",
+						Labels: map[string]string{},
 					},
 					n1APIServerPodKey: fakePod(n1APIServerPodName,
 						withPhase(corev1.PodRunning),
@@ -1705,11 +1701,9 @@ func fakeNode(name string, options ...fakeNodeOption) *Node {
 
 func fakeCoreV1Node(name string, options ...fakeNodeOption) *corev1.Node {
 	p := &corev1.Node{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: name,
-			Labels: map[string]string{
-				labelNodeRoleControlPlane: "",
-			},
+		Name: name,
+		Labels: map[string]string{
+			labelNodeRoleControlPlane: "",
 		},
 	}
 	for _, opt := range options {
@@ -1749,9 +1743,7 @@ type fakeMachineOption func(*clusterv1.Machine)
 
 func fakeMachine(name string, options ...fakeMachineOption) *clusterv1.Machine {
 	p := &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: name,
-		},
+		Name: name,
 		Spec: clusterv1.MachineSpec{
 			InfrastructureRef: clusterv1.ContractVersionedObjectReference{
 				Kind: "GenericInfraMachine",
@@ -1810,10 +1802,8 @@ type fakePodOption func(*corev1.Pod)
 
 func fakePod(name string, options ...fakePodOption) *corev1.Pod {
 	p := &corev1.Pod{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: metav1.NamespaceSystem,
-		},
+		Name:      name,
+		Namespace: metav1.NamespaceSystem,
 	}
 	for _, opt := range options {
 		opt(p)
@@ -2165,7 +2155,7 @@ func TestCompareMachinesAndMembers(t *testing.T) {
 					// m3 is missing
 				},
 				Nodes: []*Node{
-					{ObjectMeta: ObjectMeta{Name: "m3", CreationTimestamp: metav1.Time{Time: time.Now().Add(-110 * time.Second)}}}, // m3 is just provisioned
+					{Name: "m3", CreationTimestamp: metav1.Time{Time: time.Now().Add(-110 * time.Second)}}, // m3 is just provisioned
 				},
 			},
 			expectMembersAndMachinesAreMatching: true,
@@ -2186,7 +2176,7 @@ func TestCompareMachinesAndMembers(t *testing.T) {
 					// m3 is missing
 				},
 				Nodes: []*Node{
-					{ObjectMeta: ObjectMeta{Name: "m3", CreationTimestamp: metav1.Time{Time: time.Now().Add(-10 * time.Minute)}}}, // m3 is old
+					{Name: "m3", CreationTimestamp: metav1.Time{Time: time.Now().Add(-10 * time.Minute)}}, // m3 is old
 				},
 			},
 			expectMembersAndMachinesAreMatching: false,

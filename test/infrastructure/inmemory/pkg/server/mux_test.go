@@ -246,7 +246,7 @@ func TestAPI_corev1_CRUD(t *testing.T) {
 	// create
 
 	n := &corev1.Node{
-		ObjectMeta: metav1.ObjectMeta{Name: "foo"},
+		Name: "foo",
 	}
 	err = c.Create(ctx, n)
 	g.Expect(err).ToNot(HaveOccurred())
@@ -261,11 +261,11 @@ func TestAPI_corev1_CRUD(t *testing.T) {
 
 	// list with nodeName selector on pod
 	g.Expect(c.Create(ctx, &corev1.Pod{
-		ObjectMeta: metav1.ObjectMeta{Name: "bar", Namespace: metav1.NamespaceDefault},
-		Spec:       corev1.PodSpec{NodeName: n.Name},
+		Name: "bar", Namespace: metav1.NamespaceDefault,
+		Spec: corev1.PodSpec{NodeName: n.Name},
 	})).To(Succeed())
 	g.Expect(c.Create(ctx, &corev1.Pod{
-		ObjectMeta: metav1.ObjectMeta{Name: "labelSelectedPod", Namespace: metav1.NamespaceDefault, Labels: map[string]string{"name": "labelSelectedPod"}},
+		Name: "labelSelectedPod", Namespace: metav1.NamespaceDefault, Labels: map[string]string{"name": "labelSelectedPod"},
 	})).To(Succeed())
 
 	pl := &corev1.PodList{}
@@ -326,7 +326,7 @@ func TestAPI_rbacv1_CRUD(t *testing.T) {
 	// create
 
 	cr := &rbacv1.ClusterRole{
-		ObjectMeta: metav1.ObjectMeta{Name: "foo"},
+		Name: "foo",
 	}
 
 	err = c.Create(ctx, cr)
@@ -399,18 +399,16 @@ func TestAPI_PortForward(t *testing.T) {
 	g.Expect(err).ToNot(HaveOccurred())
 
 	etcdPod := &corev1.Pod{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: metav1.NamespaceSystem,
-			Name:      "etcd-1",
-			Labels: map[string]string{
-				"component": "etcd",
-				"tier":      "control-plane",
-			},
-			Annotations: map[string]string{
-				cloudv1.EtcdClusterIDAnnotationName:  "1",
-				cloudv1.EtcdMemberIDAnnotationName:   "2",
-				cloudv1.EtcdLeaderFromAnnotationName: time.Now().Format(time.RFC3339),
-			},
+		Namespace: metav1.NamespaceSystem,
+		Name:      "etcd-1",
+		Labels: map[string]string{
+			"component": "etcd",
+			"tier":      "control-plane",
+		},
+		Annotations: map[string]string{
+			cloudv1.EtcdClusterIDAnnotationName:  "1",
+			cloudv1.EtcdMemberIDAnnotationName:   "2",
+			cloudv1.EtcdLeaderFromAnnotationName: time.Now().Format(time.RFC3339),
 		},
 	}
 	err = manager.GetResourceGroup(resourceGroup).GetClient().Create(ctx, etcdPod)
@@ -705,7 +703,7 @@ func TestAPI_unstructured_CRUD(t *testing.T) {
 	// create
 
 	n := &corev1.Node{
-		ObjectMeta: metav1.ObjectMeta{Name: "foo"},
+		Name: "foo",
 	}
 
 	m, err := convertor.ToUnstructured(n)

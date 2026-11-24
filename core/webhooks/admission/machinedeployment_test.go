@@ -40,9 +40,7 @@ import (
 func TestMachineDeploymentDefault(t *testing.T) {
 	g := NewWithT(t)
 	md := &clusterv1.MachineDeployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "test-md",
-		},
+		Name: "test-md",
 		Spec: clusterv1.MachineDeploymentSpec{
 			ClusterName: "test-cluster",
 			Template: clusterv1.MachineTemplateSpec{
@@ -64,9 +62,7 @@ func TestMachineDeploymentDefault(t *testing.T) {
 	}
 
 	reqCtx := admission.NewContextWithRequest(ctx, admission.Request{
-		AdmissionRequest: admissionv1.AdmissionRequest{
-			Operation: admissionv1.Create,
-		},
+		Operation: admissionv1.Create,
 	})
 	t.Run("for MachineDeployment", testutil.CustomDefaultValidateTest[*clusterv1.MachineDeployment](reqCtx, md, webhook))
 
@@ -150,9 +146,7 @@ func TestMachineDeploymentBootstrapValidation(t *testing.T) {
 func TestMachineDeploymentReferenceDefault(t *testing.T) {
 	g := NewWithT(t)
 	md := &clusterv1.MachineDeployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "test-md",
-		},
+		Name: "test-md",
 		Spec: clusterv1.MachineDeploymentSpec{
 			ClusterName: "test-cluster",
 			Template: clusterv1.MachineTemplateSpec{
@@ -176,9 +170,7 @@ func TestMachineDeploymentReferenceDefault(t *testing.T) {
 	}
 
 	reqCtx := admission.NewContextWithRequest(ctx, admission.Request{
-		AdmissionRequest: admissionv1.AdmissionRequest{
-			Operation: admissionv1.Create,
-		},
+		Operation: admissionv1.Create,
 	})
 
 	t.Run("for MachineDeployment", testutil.CustomDefaultValidateTest[*clusterv1.MachineDeployment](reqCtx, md, webhook))
@@ -211,10 +203,8 @@ func TestCalculateMachineDeploymentReplicas(t *testing.T) {
 		{
 			name: "if new MD only has min size annotation, fallback to 1",
 			newMD: &clusterv1.MachineDeployment{
-				ObjectMeta: metav1.ObjectMeta{
-					Annotations: map[string]string{
-						clusterv1.AutoscalerMinSizeAnnotation: "3",
-					},
+				Annotations: map[string]string{
+					clusterv1.AutoscalerMinSizeAnnotation: "3",
 				},
 			},
 			expectedReplicas: 1,
@@ -222,10 +212,8 @@ func TestCalculateMachineDeploymentReplicas(t *testing.T) {
 		{
 			name: "if new MD only has max size annotation, fallback to 1",
 			newMD: &clusterv1.MachineDeployment{
-				ObjectMeta: metav1.ObjectMeta{
-					Annotations: map[string]string{
-						clusterv1.AutoscalerMaxSizeAnnotation: "7",
-					},
+				Annotations: map[string]string{
+					clusterv1.AutoscalerMaxSizeAnnotation: "7",
 				},
 			},
 			expectedReplicas: 1,
@@ -233,11 +221,9 @@ func TestCalculateMachineDeploymentReplicas(t *testing.T) {
 		{
 			name: "if new MD has min and max size annotation and min size is invalid, fail",
 			newMD: &clusterv1.MachineDeployment{
-				ObjectMeta: metav1.ObjectMeta{
-					Annotations: map[string]string{
-						clusterv1.AutoscalerMinSizeAnnotation: "abc",
-						clusterv1.AutoscalerMaxSizeAnnotation: "7",
-					},
+				Annotations: map[string]string{
+					clusterv1.AutoscalerMinSizeAnnotation: "abc",
+					clusterv1.AutoscalerMaxSizeAnnotation: "7",
 				},
 			},
 			expectErr: true,
@@ -245,11 +231,9 @@ func TestCalculateMachineDeploymentReplicas(t *testing.T) {
 		{
 			name: "if new MD has min and max size annotation and max size is invalid, fail",
 			newMD: &clusterv1.MachineDeployment{
-				ObjectMeta: metav1.ObjectMeta{
-					Annotations: map[string]string{
-						clusterv1.AutoscalerMinSizeAnnotation: "3",
-						clusterv1.AutoscalerMaxSizeAnnotation: "abc",
-					},
+				Annotations: map[string]string{
+					clusterv1.AutoscalerMinSizeAnnotation: "3",
+					clusterv1.AutoscalerMaxSizeAnnotation: "abc",
 				},
 			},
 			expectErr: true,
@@ -257,11 +241,9 @@ func TestCalculateMachineDeploymentReplicas(t *testing.T) {
 		{
 			name: "if new MD has min and max size annotation and new MD is a new MD, use min size",
 			newMD: &clusterv1.MachineDeployment{
-				ObjectMeta: metav1.ObjectMeta{
-					Annotations: map[string]string{
-						clusterv1.AutoscalerMinSizeAnnotation: "3",
-						clusterv1.AutoscalerMaxSizeAnnotation: "7",
-					},
+				Annotations: map[string]string{
+					clusterv1.AutoscalerMinSizeAnnotation: "3",
+					clusterv1.AutoscalerMaxSizeAnnotation: "7",
 				},
 			},
 			expectedReplicas: 3,
@@ -269,11 +251,9 @@ func TestCalculateMachineDeploymentReplicas(t *testing.T) {
 		{
 			name: "if new MD has min and max size annotation and old MD doesn't have replicas set, use min size",
 			newMD: &clusterv1.MachineDeployment{
-				ObjectMeta: metav1.ObjectMeta{
-					Annotations: map[string]string{
-						clusterv1.AutoscalerMinSizeAnnotation: "3",
-						clusterv1.AutoscalerMaxSizeAnnotation: "7",
-					},
+				Annotations: map[string]string{
+					clusterv1.AutoscalerMinSizeAnnotation: "3",
+					clusterv1.AutoscalerMaxSizeAnnotation: "7",
 				},
 			},
 			oldMD:            &clusterv1.MachineDeployment{},
@@ -282,11 +262,9 @@ func TestCalculateMachineDeploymentReplicas(t *testing.T) {
 		{
 			name: "if new MD has min and max size annotation and old MD replicas is below min size, use min size",
 			newMD: &clusterv1.MachineDeployment{
-				ObjectMeta: metav1.ObjectMeta{
-					Annotations: map[string]string{
-						clusterv1.AutoscalerMinSizeAnnotation: "3",
-						clusterv1.AutoscalerMaxSizeAnnotation: "7",
-					},
+				Annotations: map[string]string{
+					clusterv1.AutoscalerMinSizeAnnotation: "3",
+					clusterv1.AutoscalerMaxSizeAnnotation: "7",
 				},
 			},
 			oldMD: &clusterv1.MachineDeployment{
@@ -299,11 +277,9 @@ func TestCalculateMachineDeploymentReplicas(t *testing.T) {
 		{
 			name: "if new MD has min and max size annotation and old MD replicas is above max size, use max size",
 			newMD: &clusterv1.MachineDeployment{
-				ObjectMeta: metav1.ObjectMeta{
-					Annotations: map[string]string{
-						clusterv1.AutoscalerMinSizeAnnotation: "3",
-						clusterv1.AutoscalerMaxSizeAnnotation: "7",
-					},
+				Annotations: map[string]string{
+					clusterv1.AutoscalerMinSizeAnnotation: "3",
+					clusterv1.AutoscalerMaxSizeAnnotation: "7",
 				},
 			},
 			oldMD: &clusterv1.MachineDeployment{
@@ -316,11 +292,9 @@ func TestCalculateMachineDeploymentReplicas(t *testing.T) {
 		{
 			name: "if new MD has min and max size annotation and old MD replicas is between min and max size, use old MD replicas",
 			newMD: &clusterv1.MachineDeployment{
-				ObjectMeta: metav1.ObjectMeta{
-					Annotations: map[string]string{
-						clusterv1.AutoscalerMinSizeAnnotation: "3",
-						clusterv1.AutoscalerMaxSizeAnnotation: "7",
-					},
+				Annotations: map[string]string{
+					clusterv1.AutoscalerMinSizeAnnotation: "3",
+					clusterv1.AutoscalerMaxSizeAnnotation: "7",
 				},
 			},
 			oldMD: &clusterv1.MachineDeployment{
@@ -538,9 +512,7 @@ func TestMachineDeploymentValidation(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 			md := &clusterv1.MachineDeployment{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: tt.mdName,
-				},
+				Name: tt.mdName,
 				Spec: clusterv1.MachineDeploymentSpec{
 					Rollout: clusterv1.MachineDeploymentRolloutSpec{
 						Strategy: tt.strategy,

@@ -44,9 +44,7 @@ func TestKubeadmControlPlaneDefault(t *testing.T) {
 	g := NewWithT(t)
 
 	kcp := &controlplanev1.KubeadmControlPlane{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "foo",
-		},
+		Namespace: "foo",
 		Spec: controlplanev1.KubeadmControlPlaneSpec{
 			Version: "v1.18.3",
 			MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
@@ -78,10 +76,8 @@ func TestKubeadmControlPlaneDefault(t *testing.T) {
 
 func TestKubeadmControlPlaneValidateCreate(t *testing.T) {
 	valid := &controlplanev1.KubeadmControlPlane{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test",
-			Namespace: "foo",
-		},
+		Name:      "test",
+		Namespace: "foo",
 		Spec: controlplanev1.KubeadmControlPlaneSpec{
 			MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
 				Spec: controlplanev1.KubeadmControlPlaneMachineTemplateSpec{
@@ -327,10 +323,8 @@ func TestKubeadmControlPlaneValidateCreate(t *testing.T) {
 
 func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 	before := &controlplanev1.KubeadmControlPlane{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test",
-			Namespace: "foo",
-		},
+		Name:      "test",
+		Namespace: "foo",
 		Spec: controlplanev1.KubeadmControlPlaneSpec{
 			MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
 				Spec: controlplanev1.KubeadmControlPlaneMachineTemplateSpec{
@@ -1282,10 +1276,8 @@ func TestKubeadmControlPlaneValidateUpdateAfterDefaulting(t *testing.T) {
 	g := NewWithT(t)
 
 	before := &controlplanev1.KubeadmControlPlane{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test",
-			Namespace: "foo",
-		},
+		Name:      "test",
+		Namespace: "foo",
 		Spec: controlplanev1.KubeadmControlPlaneSpec{
 			Version: "v1.19.0",
 			MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{

@@ -44,10 +44,8 @@ func TestAddAnnotations(t *testing.T) {
 		{
 			name: "should return false if no changes are made",
 			obj: &corev1.Node{
-				ObjectMeta: metav1.ObjectMeta{
-					Annotations: map[string]string{
-						"foo": "bar",
-					},
+				Annotations: map[string]string{
+					"foo": "bar",
 				},
 				Spec:   corev1.NodeSpec{},
 				Status: corev1.NodeStatus{},
@@ -63,10 +61,8 @@ func TestAddAnnotations(t *testing.T) {
 		{
 			name: "should do nothing if no annotations are provided",
 			obj: &corev1.Node{
-				ObjectMeta: metav1.ObjectMeta{
-					Annotations: map[string]string{
-						"foo": "bar",
-					},
+				Annotations: map[string]string{
+					"foo": "bar",
 				},
 				Spec:   corev1.NodeSpec{},
 				Status: corev1.NodeStatus{},
@@ -80,11 +76,9 @@ func TestAddAnnotations(t *testing.T) {
 		{
 			name: "should do nothing if no annotations are provided and have been nil before",
 			obj: &corev1.Node{
-				ObjectMeta: metav1.ObjectMeta{
-					Annotations: nil,
-				},
-				Spec:   corev1.NodeSpec{},
-				Status: corev1.NodeStatus{},
+				Annotations: nil,
+				Spec:        corev1.NodeSpec{},
+				Status:      corev1.NodeStatus{},
 			},
 			input:    map[string]string{},
 			expected: nil,
@@ -93,10 +87,8 @@ func TestAddAnnotations(t *testing.T) {
 		{
 			name: "should return true if annotations are added",
 			obj: &corev1.Node{
-				ObjectMeta: metav1.ObjectMeta{
-					Annotations: map[string]string{
-						"foo": "bar",
-					},
+				Annotations: map[string]string{
+					"foo": "bar",
 				},
 				Spec:   corev1.NodeSpec{},
 				Status: corev1.NodeStatus{},
@@ -115,10 +107,8 @@ func TestAddAnnotations(t *testing.T) {
 		{
 			name: "should return true if annotations are changed",
 			obj: &corev1.Node{
-				ObjectMeta: metav1.ObjectMeta{
-					Annotations: map[string]string{
-						"foo": "bar",
-					},
+				Annotations: map[string]string{
+					"foo": "bar",
 				},
 				Spec:   corev1.NodeSpec{},
 				Status: corev1.NodeStatus{},
@@ -134,11 +124,9 @@ func TestAddAnnotations(t *testing.T) {
 		{
 			name: "should return true if annotations are changed and have been nil before",
 			obj: &corev1.Node{
-				ObjectMeta: metav1.ObjectMeta{
-					Annotations: nil,
-				},
-				Spec:   corev1.NodeSpec{},
-				Status: corev1.NodeStatus{},
+				Annotations: nil,
+				Spec:        corev1.NodeSpec{},
+				Status:      corev1.NodeStatus{},
 			},
 			input: map[string]string{
 				"foo": "buzz",
@@ -202,10 +190,8 @@ func TestHasTruthyAnnotationValue(t *testing.T) {
 		{
 			name: "annotation does not exist",
 			obj: &corev1.Node{
-				ObjectMeta: metav1.ObjectMeta{
-					Annotations: map[string]string{
-						"cluster.x-k8s.io/some-other-annotation": "",
-					},
+				Annotations: map[string]string{
+					"cluster.x-k8s.io/some-other-annotation": "",
 				},
 				Spec:   corev1.NodeSpec{},
 				Status: corev1.NodeStatus{},
@@ -216,10 +202,8 @@ func TestHasTruthyAnnotationValue(t *testing.T) {
 		{
 			name: "no val",
 			obj: &corev1.Node{
-				ObjectMeta: metav1.ObjectMeta{
-					Annotations: map[string]string{
-						"cluster.x-k8s.io/replicas-managed-by": "",
-					},
+				Annotations: map[string]string{
+					"cluster.x-k8s.io/replicas-managed-by": "",
 				},
 				Spec:   corev1.NodeSpec{},
 				Status: corev1.NodeStatus{},
@@ -230,10 +214,8 @@ func TestHasTruthyAnnotationValue(t *testing.T) {
 		{
 			name: "annotation exists, true value",
 			obj: &corev1.Node{
-				ObjectMeta: metav1.ObjectMeta{
-					Annotations: map[string]string{
-						"cluster.x-k8s.io/replicas-managed-by": "true",
-					},
+				Annotations: map[string]string{
+					"cluster.x-k8s.io/replicas-managed-by": "true",
 				},
 				Spec:   corev1.NodeSpec{},
 				Status: corev1.NodeStatus{},
@@ -244,10 +226,8 @@ func TestHasTruthyAnnotationValue(t *testing.T) {
 		{
 			name: "annotation exists, random string value",
 			obj: &corev1.Node{
-				ObjectMeta: metav1.ObjectMeta{
-					Annotations: map[string]string{
-						"cluster.x-k8s.io/replicas-managed-by": "foo",
-					},
+				Annotations: map[string]string{
+					"cluster.x-k8s.io/replicas-managed-by": "foo",
 				},
 				Spec:   corev1.NodeSpec{},
 				Status: corev1.NodeStatus{},
@@ -258,10 +238,8 @@ func TestHasTruthyAnnotationValue(t *testing.T) {
 		{
 			name: "annotation exists, false value",
 			obj: &corev1.Node{
-				ObjectMeta: metav1.ObjectMeta{
-					Annotations: map[string]string{
-						"cluster.x-k8s.io/replicas-managed-by": "false",
-					},
+				Annotations: map[string]string{
+					"cluster.x-k8s.io/replicas-managed-by": "false",
 				},
 				Spec:   corev1.NodeSpec{},
 				Status: corev1.NodeStatus{},
@@ -397,10 +375,8 @@ func newFakeMachineSpec(clusterName string) clusterv1.MachineSpec {
 
 func newFakeMachine(namespace, clusterName string) *clusterv1.Machine {
 	return &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "ma-annotationtest",
-			Namespace: namespace,
-		},
-		Spec: newFakeMachineSpec(clusterName),
+		Name:      "ma-annotationtest",
+		Namespace: namespace,
+		Spec:      newFakeMachineSpec(clusterName),
 	}
 }

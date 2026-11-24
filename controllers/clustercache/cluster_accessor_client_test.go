@@ -49,11 +49,9 @@ func TestRunningOnWorkloadCluster(t *testing.T) {
 			},
 			clusterObjects: []client.Object{
 				&corev1.Pod{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "controller-pod",
-						Namespace: "controller-pod-namespace",
-						UID:       types.UID("controller-pod-uid"),
-					},
+					Name:      "controller-pod",
+					Namespace: "controller-pod-namespace",
+					UID:       types.UID("controller-pod-uid"),
 				},
 			},
 			expected: true,
@@ -67,11 +65,9 @@ func TestRunningOnWorkloadCluster(t *testing.T) {
 			},
 			clusterObjects: []client.Object{
 				&corev1.Pod{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "controller-pod-mismatch",
-						Namespace: "controller-pod-namespace",
-						UID:       types.UID("controller-pod-uid"),
-					},
+					Name:      "controller-pod-mismatch",
+					Namespace: "controller-pod-namespace",
+					UID:       types.UID("controller-pod-uid"),
 				},
 			},
 			expected: false,
@@ -85,11 +81,9 @@ func TestRunningOnWorkloadCluster(t *testing.T) {
 			},
 			clusterObjects: []client.Object{
 				&corev1.Pod{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "controller-pod",
-						Namespace: "controller-pod-namespace-mismatch",
-						UID:       types.UID("controller-pod-uid"),
-					},
+					Name:      "controller-pod",
+					Namespace: "controller-pod-namespace-mismatch",
+					UID:       types.UID("controller-pod-uid"),
 				},
 			},
 			expected: false,
@@ -103,11 +97,9 @@ func TestRunningOnWorkloadCluster(t *testing.T) {
 			},
 			clusterObjects: []client.Object{
 				&corev1.Pod{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "controller-pod",
-						Namespace: "controller-pod-namespace",
-						UID:       types.UID("controller-pod-uid-mismatch"),
-					},
+					Name:      "controller-pod",
+					Namespace: "controller-pod-namespace",
+					UID:       types.UID("controller-pod-uid-mismatch"),
 				},
 			},
 			expected: false,
@@ -127,11 +119,9 @@ func TestRunningOnWorkloadCluster(t *testing.T) {
 			currentControllerMetadata: nil,
 			clusterObjects: []client.Object{
 				&corev1.Pod{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "controller-pod",
-						Namespace: "controller-pod-namespace",
-						UID:       types.UID("controller-pod-uid"),
-					},
+					Name:      "controller-pod",
+					Namespace: "controller-pod-namespace",
+					UID:       types.UID("controller-pod-uid"),
 				},
 			},
 			expected: false,
@@ -247,10 +237,8 @@ users:
 			g := NewWithT(t)
 
 			kubeconfigSecret := &corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      secret.Name(clusterName, secret.Kubeconfig),
-					Namespace: namespace,
-				},
+				Name:      secret.Name(clusterName, secret.Kubeconfig),
+				Namespace: namespace,
 				Data: map[string][]byte{
 					secret.KubeconfigDataName: []byte(tt.kubeconfig),
 				},

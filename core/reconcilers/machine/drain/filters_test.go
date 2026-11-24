@@ -56,10 +56,8 @@ func TestSkipDeletedFilter(t *testing.T) {
 			SkipWaitForDeleteTimeoutSeconds: tc.skipWaitForDeleteTimeoutSeconds,
 		}
 		pod := corev1.Pod{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "pod",
-				Namespace: "default",
-			},
+			Name:      "pod",
+			Namespace: "default",
 		}
 
 		if tc.timeStampAgeSeconds > 0 {
@@ -121,17 +119,13 @@ func Test_machineDrainRuleAppliesToPod(t *testing.T) {
 				},
 			},
 			pod: &corev1.Pod{
-				ObjectMeta: metav1.ObjectMeta{
-					Labels: map[string]string{
-						"app": "prometheus",
-					},
+				Labels: map[string]string{
+					"app": "prometheus",
 				},
 			},
 			namespace: &corev1.Namespace{
-				ObjectMeta: metav1.ObjectMeta{
-					Labels: map[string]string{
-						"kubernetes.io/metadata.name": "monitoring",
-					},
+				Labels: map[string]string{
+					"kubernetes.io/metadata.name": "monitoring",
 				},
 			},
 			matches: true,
@@ -153,17 +147,13 @@ func Test_machineDrainRuleAppliesToPod(t *testing.T) {
 				},
 			},
 			pod: &corev1.Pod{
-				ObjectMeta: metav1.ObjectMeta{
-					Labels: map[string]string{
-						"app": "prometheus",
-					},
+				Labels: map[string]string{
+					"app": "prometheus",
 				},
 			},
 			namespace: &corev1.Namespace{
-				ObjectMeta: metav1.ObjectMeta{
-					Labels: map[string]string{
-						"kubernetes.io/metadata.name": "monitoring",
-					},
+				Labels: map[string]string{
+					"kubernetes.io/metadata.name": "monitoring",
 				},
 			},
 			matches: false,
@@ -185,17 +175,13 @@ func Test_machineDrainRuleAppliesToPod(t *testing.T) {
 				},
 			},
 			pod: &corev1.Pod{
-				ObjectMeta: metav1.ObjectMeta{
-					Labels: map[string]string{
-						"app": "prometheus",
-					},
+				Labels: map[string]string{
+					"app": "prometheus",
 				},
 			},
 			namespace: &corev1.Namespace{
-				ObjectMeta: metav1.ObjectMeta{
-					Labels: map[string]string{
-						"kubernetes.io/metadata.name": "monitoring",
-					},
+				Labels: map[string]string{
+					"kubernetes.io/metadata.name": "monitoring",
 				},
 			},
 			matches: false,
@@ -241,10 +227,8 @@ func Test_matchesSelector(t *testing.T) {
 				},
 			},
 			obj: &corev1.Pod{
-				ObjectMeta: metav1.ObjectMeta{
-					Labels: map[string]string{
-						"app": "prometheus",
-					},
+				Labels: map[string]string{
+					"app": "prometheus",
 				},
 			},
 			matches: true,
@@ -257,10 +241,8 @@ func Test_matchesSelector(t *testing.T) {
 				},
 			},
 			obj: &corev1.Pod{
-				ObjectMeta: metav1.ObjectMeta{
-					Labels: map[string]string{
-						"app": "prometheus",
-					},
+				Labels: map[string]string{
+					"app": "prometheus",
 				},
 			},
 			matches: false,

@@ -176,10 +176,8 @@ func TestSetResourceBinding(t *testing.T) {
 	}
 
 	newResourceBinding := ResourceBinding{
-		ResourceRef: ResourceRef{
-			Name: "newBinding",
-			Kind: "Secret",
-		},
+		Name:            "newBinding",
+		Kind:            "Secret",
 		Applied:         new(false),
 		Hash:            "xyz",
 		LastAppliedTime: metav1.Time{Time: time.Now().UTC()},

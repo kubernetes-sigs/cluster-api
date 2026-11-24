@@ -122,8 +122,8 @@ func dumpKindClusterLogsAndPods(ctx context.Context, artifactFolder string, clus
 			// NOTE: This assumes a naming convention between machines and nodes, which e.g. applies to the clusters generated with kind.
 			//       This might not work if you are using an existing cluster provided by other means.
 			&clusterv1.Machine{
-				Spec:       clusterv1.MachineSpec{ClusterName: nodeName},
-				ObjectMeta: metav1.ObjectMeta{Name: nodeName},
+				Spec: clusterv1.MachineSpec{ClusterName: nodeName},
+				Name: nodeName,
 			},
 			filepath.Join(artifactFolder, "clusters", clusterProxy.GetName(), "machines", nodeName),
 		)

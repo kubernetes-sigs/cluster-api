@@ -35,10 +35,8 @@ func Test_validateMachineHealthCheck(t *testing.T) {
 		{
 			name: "Return no error if MachineHealthCheck is valid",
 			machineHealthCheck: &clusterv1.MachineHealthCheck{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "mhc",
-					Namespace: metav1.NamespaceDefault,
-				},
+				Name:      "mhc",
+				Namespace: metav1.NamespaceDefault,
 				Spec: clusterv1.MachineHealthCheckSpec{
 					ClusterName: "test-cluster",
 					Selector: metav1.LabelSelector{
@@ -61,10 +59,8 @@ func Test_validateMachineHealthCheck(t *testing.T) {
 		{
 			name: "Return error if UnhealthyMachineCondition type is 'Ready'",
 			machineHealthCheck: &clusterv1.MachineHealthCheck{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "mhc",
-					Namespace: metav1.NamespaceDefault,
-				},
+				Name:      "mhc",
+				Namespace: metav1.NamespaceDefault,
 				Spec: clusterv1.MachineHealthCheckSpec{
 					ClusterName: "test-cluster",
 					Selector: metav1.LabelSelector{
@@ -88,10 +84,8 @@ func Test_validateMachineHealthCheck(t *testing.T) {
 		{
 			name: "Return error if UnhealthyMachineCondition type is 'Available'",
 			machineHealthCheck: &clusterv1.MachineHealthCheck{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "mhc",
-					Namespace: metav1.NamespaceDefault,
-				},
+				Name:      "mhc",
+				Namespace: metav1.NamespaceDefault,
 				Spec: clusterv1.MachineHealthCheckSpec{
 					ClusterName: "test-cluster",
 					Selector: metav1.LabelSelector{
@@ -115,10 +109,8 @@ func Test_validateMachineHealthCheck(t *testing.T) {
 		{
 			name: "Return error if UnhealthyMachineCondition type is 'HealthCheckSucceeded'",
 			machineHealthCheck: &clusterv1.MachineHealthCheck{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "mhc",
-					Namespace: metav1.NamespaceDefault,
-				},
+				Name:      "mhc",
+				Namespace: metav1.NamespaceDefault,
 				Spec: clusterv1.MachineHealthCheckSpec{
 					ClusterName: "test-cluster",
 					Selector: metav1.LabelSelector{
@@ -142,10 +134,8 @@ func Test_validateMachineHealthCheck(t *testing.T) {
 		{
 			name: "Return error if UnhealthyMachineCondition type is 'OwnerRemediated'",
 			machineHealthCheck: &clusterv1.MachineHealthCheck{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "mhc",
-					Namespace: metav1.NamespaceDefault,
-				},
+				Name:      "mhc",
+				Namespace: metav1.NamespaceDefault,
 				Spec: clusterv1.MachineHealthCheckSpec{
 					ClusterName: "test-cluster",
 					Selector: metav1.LabelSelector{
@@ -169,10 +159,8 @@ func Test_validateMachineHealthCheck(t *testing.T) {
 		{
 			name: "Return error if UnhealthyMachineCondition type is 'ExternallyRemediated'",
 			machineHealthCheck: &clusterv1.MachineHealthCheck{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "mhc",
-					Namespace: metav1.NamespaceDefault,
-				},
+				Name:      "mhc",
+				Namespace: metav1.NamespaceDefault,
 				Spec: clusterv1.MachineHealthCheckSpec{
 					ClusterName: "test-cluster",
 					Selector: metav1.LabelSelector{
@@ -196,10 +184,8 @@ func Test_validateMachineHealthCheck(t *testing.T) {
 		{
 			name: "Return no error if UnhealthyMachineCondition type is allowed custom type",
 			machineHealthCheck: &clusterv1.MachineHealthCheck{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "mhc",
-					Namespace: metav1.NamespaceDefault,
-				},
+				Name:      "mhc",
+				Namespace: metav1.NamespaceDefault,
 				Spec: clusterv1.MachineHealthCheckSpec{
 					ClusterName: "test-cluster",
 					Selector: metav1.LabelSelector{

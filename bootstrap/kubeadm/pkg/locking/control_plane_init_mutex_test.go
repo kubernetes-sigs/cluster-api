@@ -25,7 +25,6 @@ import (
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
@@ -70,10 +69,8 @@ func TestControlPlaneInitMutex_Lock(t *testing.T) {
 			name: "should not acquire lock if already exits",
 			client: &fakeClient{
 				Client: fake.NewClientBuilder().WithScheme(scheme).WithObjects(&corev1.ConfigMap{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      configMapName(clusterName),
-						Namespace: clusterNamespace,
-					},
+					Name:      configMapName(clusterName),
+					Namespace: clusterNamespace,
 				}).Build(),
 			},
 			shouldAcquire: false,
@@ -107,16 +104,12 @@ func TestControlPlaneInitMutex_Lock(t *testing.T) {
 			}
 
 			cluster := &clusterv1.Cluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: clusterNamespace,
-					Name:      clusterName,
-					UID:       uid,
-				},
+				Namespace: clusterNamespace,
+				Name:      clusterName,
+				UID:       uid,
 			}
 			machine := &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: fmt.Sprintf("machine-%s", cluster.Name),
-				},
+				Name: fmt.Sprintf("machine-%s", cluster.Name),
 			}
 
 			gs.Expect(l.Lock(ctx, cluster, machine)).To(Equal(tc.shouldAcquire))
@@ -142,17 +135,14 @@ func TestControlPlaneInitMutex_LockWithMachineDeletion(t *testing.T) {
 			client: &fakeClient{
 				Client: fake.NewClientBuilder().WithScheme(scheme).WithObjects(
 					&corev1.ConfigMap{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      configMapName(clusterName),
-							Namespace: clusterNamespace},
+						Name:      configMapName(clusterName),
+						Namespace: clusterNamespace,
 						Data: map[string]string{
 							"lock-information": "{\"machineName\":\"existent-machine\"}",
 						}},
 					&clusterv1.Machine{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      "existent-machine",
-							Namespace: clusterNamespace,
-						},
+						Name:      "existent-machine",
+						Namespace: clusterNamespace,
 					},
 				).Build(),
 			},
@@ -163,9 +153,8 @@ func TestControlPlaneInitMutex_LockWithMachineDeletion(t *testing.T) {
 			client: &fakeClient{
 				Client: fake.NewClientBuilder().WithScheme(scheme).WithObjects(
 					&corev1.ConfigMap{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      configMapName(clusterName),
-							Namespace: clusterNamespace},
+						Name:      configMapName(clusterName),
+						Namespace: clusterNamespace,
 						Data: map[string]string{
 							"lock-information": "{\"machineName\":\"non-existent-machine\"}",
 						}},
@@ -181,15 +170,11 @@ func TestControlPlaneInitMutex_LockWithMachineDeletion(t *testing.T) {
 			}
 
 			cluster := &clusterv1.Cluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: clusterNamespace,
-					Name:      clusterName,
-				},
+				Namespace: clusterNamespace,
+				Name:      clusterName,
 			}
 			machine := &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: newMachineName,
-				},
+				Name: newMachineName,
 			}
 
 			g.Eventually(func(g Gomega) error {
@@ -214,10 +199,8 @@ func TestControlPlaneInitMutex_LockWithMachineDeletion(t *testing.T) {
 func TestControlPlaneInitMutex_UnLock(t *testing.T) {
 	uid := types.UID("test-uid")
 	configMap := &corev1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      configMapName(clusterName),
-			Namespace: clusterNamespace,
-		},
+		Name:      configMapName(clusterName),
+		Namespace: clusterNamespace,
 	}
 	tests := []struct {
 		name          string
@@ -266,11 +249,9 @@ func TestControlPlaneInitMutex_UnLock(t *testing.T) {
 			}
 
 			cluster := &clusterv1.Cluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: clusterNamespace,
-					Name:      clusterName,
-					UID:       uid,
-				},
+				Namespace: clusterNamespace,
+				Name:      clusterName,
+				UID:       uid,
 			}
 
 			gs.Expect(l.Unlock(ctx, cluster)).To(Equal(tc.shouldRelease))

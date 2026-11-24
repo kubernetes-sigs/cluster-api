@@ -34,7 +34,6 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/sets"
 	apiyaml "k8s.io/apimachinery/pkg/util/yaml"
 	"k8s.io/client-go/rest"
@@ -105,13 +104,11 @@ func TestHandler(t *testing.T) {
 	scheme := runtime.NewScheme()
 	_ = apiextensionsv1.AddToScheme(scheme)
 	crd := &apiextensionsv1.CustomResourceDefinition{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "kubeadmcontrolplanes.controlplane.cluster.x-k8s.io",
-			Labels: map[string]string{
-				// Set contract label for tt.contract.
-				fmt.Sprintf("%s/%s", clusterv1.GroupVersion.Group, "v1beta1"): "v1beta1",
-				fmt.Sprintf("%s/%s", clusterv1.GroupVersion.Group, "v1beta2"): "v1beta2",
-			},
+		Name: "kubeadmcontrolplanes.controlplane.cluster.x-k8s.io",
+		Labels: map[string]string{
+			// Set contract label for tt.contract.
+			fmt.Sprintf("%s/%s", clusterv1.GroupVersion.Group, "v1beta1"): "v1beta1",
+			fmt.Sprintf("%s/%s", clusterv1.GroupVersion.Group, "v1beta2"): "v1beta2",
 		},
 	}
 	clientWithV1Beta2ContractCRD := fake.NewClientBuilder().WithScheme(scheme).WithObjects(crd).Build()
@@ -133,10 +130,8 @@ func TestHandler(t *testing.T) {
 	// Reconcile ClusterClass.
 	// Note: this also reconciles variables from inline and external variables into ClusterClass.status.
 	_, err = clusterClassReconciler.Reconcile(ctx, ctrl.Request{
-		NamespacedName: types.NamespacedName{
-			Namespace: s.Blueprint.ClusterClass.Namespace,
-			Name:      s.Blueprint.ClusterClass.Name,
-		}})
+		Namespace: s.Blueprint.ClusterClass.Namespace,
+		Name:      s.Blueprint.ClusterClass.Name})
 	g.Expect(err).ToNot(HaveOccurred())
 	// Overwrite ClusterClass in blueprint with the reconciled ClusterClass.
 	err = clusterClassReconciler.Client.Get(ctx, client.ObjectKeyFromObject(s.Blueprint.ClusterClass), s.Blueprint.ClusterClass)
@@ -158,10 +153,8 @@ func TestHandler(t *testing.T) {
 
 func getCluster() *clusterv1.Cluster {
 	return &clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "cluster-name-test",
-			Namespace: "namespace-name-test",
-		},
+		Name:      "cluster-name-test",
+		Namespace: "namespace-name-test",
 		Spec: clusterv1.ClusterSpec{
 			ClusterNetwork: clusterv1.ClusterNetwork{
 				Pods: clusterv1.NetworkRanges{
@@ -240,11 +233,9 @@ func createClusterClassFakeClientAndManager(blueprint *scope.ClusterBlueprint) (
 func generateCRDForUnstructured(u *unstructured.Unstructured) *apiextensionsv1.CustomResourceDefinition {
 	gvk := u.GroupVersionKind()
 	return &apiextensionsv1.CustomResourceDefinition{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: contract.CalculateCRDName(gvk.Group, gvk.Kind),
-			Labels: map[string]string{
-				clusterv1.GroupVersion.String(): gvk.Version,
-			},
+		Name: contract.CalculateCRDName(gvk.Group, gvk.Kind),
+		Labels: map[string]string{
+			clusterv1.GroupVersion.String(): gvk.Version,
 		},
 	}
 }

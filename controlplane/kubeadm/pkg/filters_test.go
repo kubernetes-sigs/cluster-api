@@ -47,9 +47,7 @@ func TestMatchesKubeadmConfig(t *testing.T) {
 	t.Run("returns true if Machine configRef is not defined", func(t *testing.T) {
 		g := NewWithT(t)
 		m := &clusterv1.Machine{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "machine",
-			},
+			Name: "machine",
 			Spec: clusterv1.MachineSpec{
 				Bootstrap: clusterv1.Bootstrap{
 					// ConfigRef not defined
@@ -64,9 +62,7 @@ func TestMatchesKubeadmConfig(t *testing.T) {
 	t.Run("returns true if Machine KubeadmConfig is not found", func(t *testing.T) {
 		g := NewWithT(t)
 		m := &clusterv1.Machine{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "machine",
-			},
+			Name: "machine",
 			Spec: clusterv1.MachineSpec{
 				Bootstrap: clusterv1.Bootstrap{
 					ConfigRef: clusterv1.ContractVersionedObjectReference{
@@ -95,9 +91,7 @@ func TestMatchesKubeadmConfig(t *testing.T) {
 			},
 		}
 		m := &clusterv1.Machine{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "machine",
-			},
+			Name: "machine",
 			Spec: clusterv1.MachineSpec{
 				Bootstrap: clusterv1.Bootstrap{
 					ConfigRef: clusterv1.ContractVersionedObjectReference{
@@ -109,10 +103,8 @@ func TestMatchesKubeadmConfig(t *testing.T) {
 			},
 		}
 		machineConfig := &bootstrapv1.KubeadmConfig{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: "default",
-				Name:      "test",
-			},
+			Namespace: "default",
+			Name:      "test",
 			Spec: bootstrapv1.KubeadmConfigSpec{
 				ClusterConfiguration: bootstrapv1.ClusterConfiguration{
 					CertificatesDir: "foo",
@@ -140,9 +132,7 @@ func TestMatchesKubeadmConfig(t *testing.T) {
 			},
 		}
 		m := &clusterv1.Machine{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "machine",
-			},
+			Name: "machine",
 			Spec: clusterv1.MachineSpec{
 				Bootstrap: clusterv1.Bootstrap{
 					ConfigRef: clusterv1.ContractVersionedObjectReference{
@@ -154,10 +144,8 @@ func TestMatchesKubeadmConfig(t *testing.T) {
 			},
 		}
 		machineConfig := &bootstrapv1.KubeadmConfig{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: "default",
-				Name:      "test",
-			},
+			Namespace: "default",
+			Name:      "test",
 			Spec: bootstrapv1.KubeadmConfigSpec{
 				ClusterConfiguration: bootstrapv1.ClusterConfiguration{},
 			},
@@ -183,9 +171,7 @@ func TestMatchesKubeadmConfig(t *testing.T) {
 			},
 		}
 		m := &clusterv1.Machine{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "machine",
-			},
+			Name: "machine",
 			Spec: clusterv1.MachineSpec{
 				Bootstrap: clusterv1.Bootstrap{
 					ConfigRef: clusterv1.ContractVersionedObjectReference{
@@ -197,10 +183,8 @@ func TestMatchesKubeadmConfig(t *testing.T) {
 			},
 		}
 		machineConfig := &bootstrapv1.KubeadmConfig{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: "default",
-				Name:      "test",
-			},
+			Namespace: "default",
+			Name:      "test",
 			Spec: bootstrapv1.KubeadmConfigSpec{
 				ClusterConfiguration: bootstrapv1.ClusterConfiguration{
 					FeatureGates: map[string]bool{
@@ -235,9 +219,7 @@ func TestMatchesKubeadmConfig(t *testing.T) {
 			},
 		}
 		m := &clusterv1.Machine{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "machine",
-			},
+			Name: "machine",
 			Spec: clusterv1.MachineSpec{
 				Bootstrap: clusterv1.Bootstrap{
 					ConfigRef: clusterv1.ContractVersionedObjectReference{
@@ -249,10 +231,8 @@ func TestMatchesKubeadmConfig(t *testing.T) {
 			},
 		}
 		machineConfig := &bootstrapv1.KubeadmConfig{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: "default",
-				Name:      "test",
-			},
+			Namespace: "default",
+			Name:      "test",
 			Spec: bootstrapv1.KubeadmConfigSpec{
 				ClusterConfiguration: bootstrapv1.ClusterConfiguration{
 					ControlPlaneEndpoint: "1.2.3.4:6443",
@@ -286,9 +266,7 @@ func TestMatchesKubeadmConfig(t *testing.T) {
 			},
 		}
 		m := &clusterv1.Machine{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "machine",
-			},
+			Name: "machine",
 			Spec: clusterv1.MachineSpec{
 				Bootstrap: clusterv1.Bootstrap{
 					ConfigRef: clusterv1.ContractVersionedObjectReference{
@@ -300,10 +278,8 @@ func TestMatchesKubeadmConfig(t *testing.T) {
 			},
 		}
 		machineConfig := &bootstrapv1.KubeadmConfig{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: "default",
-				Name:      "test",
-			},
+			Namespace: "default",
+			Name:      "test",
 			Spec: bootstrapv1.KubeadmConfigSpec{
 				ClusterConfiguration: bootstrapv1.ClusterConfiguration{
 					CertificatesDir: "bar",
@@ -372,10 +348,8 @@ func TestMatchesKubeadmConfig(t *testing.T) {
 			},
 		}
 		m := &clusterv1.Machine{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: "default",
-				Name:      "test",
-			},
+			Namespace: "default",
+			Name:      "test",
 			Spec: clusterv1.MachineSpec{
 				Bootstrap: clusterv1.Bootstrap{
 					ConfigRef: clusterv1.ContractVersionedObjectReference{
@@ -451,10 +425,8 @@ func TestMatchesKubeadmConfig(t *testing.T) {
 			},
 		}
 		m := &clusterv1.Machine{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: "default",
-				Name:      "test",
-			},
+			Namespace: "default",
+			Name:      "test",
 			Spec: clusterv1.MachineSpec{
 				Bootstrap: clusterv1.Bootstrap{
 					ConfigRef: clusterv1.ContractVersionedObjectReference{
@@ -514,10 +486,8 @@ func TestMatchesKubeadmConfig(t *testing.T) {
 			},
 		}
 		m := &clusterv1.Machine{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: "default",
-				Name:      "test",
-			},
+			Namespace: "default",
+			Name:      "test",
 			Spec: clusterv1.MachineSpec{
 				Bootstrap: clusterv1.Bootstrap{
 					ConfigRef: clusterv1.ContractVersionedObjectReference{
@@ -610,10 +580,8 @@ func TestMatchesKubeadmConfig(t *testing.T) {
 			},
 		}
 		m := &clusterv1.Machine{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: "default",
-				Name:      "test",
-			},
+			Namespace: "default",
+			Name:      "test",
 			Spec: clusterv1.MachineSpec{
 				Bootstrap: clusterv1.Bootstrap{
 					ConfigRef: clusterv1.ContractVersionedObjectReference{
@@ -682,10 +650,8 @@ func TestMatchesKubeadmConfig(t *testing.T) {
 			},
 		}
 		m := &clusterv1.Machine{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: "default",
-				Name:      "test",
-			},
+			Namespace: "default",
+			Name:      "test",
 			Spec: clusterv1.MachineSpec{
 				Bootstrap: clusterv1.Bootstrap{
 					ConfigRef: clusterv1.ContractVersionedObjectReference{
@@ -742,10 +708,8 @@ func TestMatchesKubeadmConfig(t *testing.T) {
 			},
 		}
 		m := &clusterv1.Machine{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: "default",
-				Name:      "test",
-			},
+			Namespace: "default",
+			Name:      "test",
 			Spec: clusterv1.MachineSpec{
 				Bootstrap: clusterv1.Bootstrap{
 					ConfigRef: clusterv1.ContractVersionedObjectReference{
@@ -803,10 +767,8 @@ func TestMatchesKubeadmConfig(t *testing.T) {
 			},
 		}
 		m := &clusterv1.Machine{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: "default",
-				Name:      "test",
-			},
+			Namespace: "default",
+			Name:      "test",
 			Spec: clusterv1.MachineSpec{
 				Bootstrap: clusterv1.Bootstrap{
 					ConfigRef: clusterv1.ContractVersionedObjectReference{
@@ -877,10 +839,8 @@ func TestMatchesKubeadmConfig(t *testing.T) {
 			},
 		}
 		m := &clusterv1.Machine{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: "default",
-				Name:      "test",
-			},
+			Namespace: "default",
+			Name:      "test",
 			Spec: clusterv1.MachineSpec{
 				Bootstrap: clusterv1.Bootstrap{
 					ConfigRef: clusterv1.ContractVersionedObjectReference{
@@ -944,10 +904,8 @@ func TestMatchesKubeadmConfig(t *testing.T) {
 			},
 		}
 		m := &clusterv1.Machine{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: "default",
-				Name:      "test",
-			},
+			Namespace: "default",
+			Name:      "test",
 			Spec: clusterv1.MachineSpec{
 				Bootstrap: clusterv1.Bootstrap{
 					ConfigRef: clusterv1.ContractVersionedObjectReference{
@@ -1017,10 +975,8 @@ func TestMatchesKubeadmConfig(t *testing.T) {
 			},
 		}
 		m := &clusterv1.Machine{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: "default",
-				Name:      "test",
-			},
+			Namespace: "default",
+			Name:      "test",
 			Spec: clusterv1.MachineSpec{
 				Bootstrap: clusterv1.Bootstrap{
 					ConfigRef: clusterv1.ContractVersionedObjectReference{
@@ -1099,10 +1055,8 @@ func TestMatchesKubeadmConfig(t *testing.T) {
 			},
 		}
 		m := &clusterv1.Machine{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: "default",
-				Name:      "test",
-			},
+			Namespace: "default",
+			Name:      "test",
 			Spec: clusterv1.MachineSpec{
 				Bootstrap: clusterv1.Bootstrap{
 					ConfigRef: clusterv1.ContractVersionedObjectReference{
@@ -1168,10 +1122,8 @@ func TestMatchesKubeadmConfig(t *testing.T) {
 			},
 		}
 		m := &clusterv1.Machine{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: "default",
-				Name:      "test",
-			},
+			Namespace: "default",
+			Name:      "test",
 			Spec: clusterv1.MachineSpec{
 				Bootstrap: clusterv1.Bootstrap{
 					ConfigRef: clusterv1.ContractVersionedObjectReference{
@@ -1250,10 +1202,8 @@ func TestMatchesKubeadmConfig(t *testing.T) {
 			},
 		}
 		m := &clusterv1.Machine{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: "default",
-				Name:      "test",
-			},
+			Namespace: "default",
+			Name:      "test",
 			Spec: clusterv1.MachineSpec{
 				Bootstrap: clusterv1.Bootstrap{
 					ConfigRef: clusterv1.ContractVersionedObjectReference{
@@ -1306,10 +1256,8 @@ func TestMatchesKubeadmConfig(t *testing.T) {
 			},
 		}
 		m := &clusterv1.Machine{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: "default",
-				Name:      "test",
-			},
+			Namespace: "default",
+			Name:      "test",
 			Spec: clusterv1.MachineSpec{
 				Bootstrap: clusterv1.Bootstrap{
 					ConfigRef: clusterv1.ContractVersionedObjectReference{
@@ -1363,10 +1311,8 @@ func TestMatchesKubeadmConfig(t *testing.T) {
 			},
 		}
 		m := &clusterv1.Machine{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: "default",
-				Name:      "test",
-			},
+			Namespace: "default",
+			Name:      "test",
 			Spec: clusterv1.MachineSpec{
 				Bootstrap: clusterv1.Bootstrap{
 					ConfigRef: clusterv1.ContractVersionedObjectReference{
@@ -1432,10 +1378,8 @@ func TestMatchesKubeadmConfig(t *testing.T) {
 			},
 		}
 		m := &clusterv1.Machine{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: "default",
-				Name:      "test",
-			},
+			Namespace: "default",
+			Name:      "test",
 			Spec: clusterv1.MachineSpec{
 				Bootstrap: clusterv1.Bootstrap{
 					ConfigRef: clusterv1.ContractVersionedObjectReference{
@@ -1521,9 +1465,7 @@ func TestMatchesInfraMachine(t *testing.T) {
 
 	t.Run("matches labels or annotations", func(t *testing.T) {
 		kcp := &controlplanev1.KubeadmControlPlane{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: "default",
-			},
+			Namespace: "default",
 			Spec: controlplanev1.KubeadmControlPlaneSpec{
 				MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
 					ObjectMeta: clusterv1.ObjectMeta{
@@ -1704,10 +1646,8 @@ func TestUpToDate(t *testing.T) {
 	reconcileStartTime := metav1.Now()
 
 	defaultKcp := &controlplanev1.KubeadmControlPlane{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "default",
-			Name:      "kcp",
-		},
+		Namespace: "default",
+		Name:      "kcp",
 		Spec: controlplanev1.KubeadmControlPlaneSpec{
 			Replicas: nil,
 			Version:  "v1.30.0",

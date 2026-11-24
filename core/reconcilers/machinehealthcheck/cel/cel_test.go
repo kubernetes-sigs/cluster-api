@@ -742,11 +742,9 @@ func TestEvaluateExpressions(t *testing.T) {
 			c := cache.New[ExpressionResultEntry](t.Context(), 30*time.Minute)
 
 			mhc := &clusterv1.MachineHealthCheck{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:       "mhc",
-					Namespace:  metav1.NamespaceDefault,
-					Generation: 5,
-				},
+				Name:       "mhc",
+				Namespace:  metav1.NamespaceDefault,
+				Generation: 5,
 				Spec: clusterv1.MachineHealthCheckSpec{
 					Checks: clusterv1.MachineHealthCheckChecks{
 						UnhealthyExpressions: tt.expressions,
@@ -807,11 +805,9 @@ func TestEvaluateExpressions(t *testing.T) {
 
 func nodeWithConditions(conditions ...corev1.NodeCondition) *corev1.Node {
 	return &corev1.Node{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:            "node",
-			Namespace:       metav1.NamespaceDefault,
-			ResourceVersion: "13",
-		},
+		Name:            "node",
+		Namespace:       metav1.NamespaceDefault,
+		ResourceVersion: "13",
 		Status: corev1.NodeStatus{
 			Conditions: conditions,
 		},
@@ -820,11 +816,9 @@ func nodeWithConditions(conditions ...corev1.NodeCondition) *corev1.Node {
 
 func machineWithConditions(conditions ...metav1.Condition) *clusterv1.Machine {
 	return &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:            "machine",
-			Namespace:       metav1.NamespaceDefault,
-			ResourceVersion: "15",
-		},
+		Name:            "machine",
+		Namespace:       metav1.NamespaceDefault,
+		ResourceVersion: "15",
 		Status: clusterv1.MachineStatus{
 			Conditions: conditions,
 		},

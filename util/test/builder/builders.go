@@ -89,12 +89,10 @@ func (c *ClusterBuilder) WithTopology(topology *clusterv1.Topology) *ClusterBuil
 // Build returns a Cluster with the attributes added to the ClusterBuilder.
 func (c *ClusterBuilder) Build() *clusterv1.Cluster {
 	obj := &clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:        c.name,
-			Namespace:   c.namespace,
-			Labels:      c.labels,
-			Annotations: c.annotations,
-		},
+		Name:        c.name,
+		Namespace:   c.namespace,
+		Labels:      c.labels,
+		Annotations: c.annotations,
 		Spec: clusterv1.ClusterSpec{
 			ClusterNetwork: c.network,
 		},
@@ -523,10 +521,8 @@ func (c *ClusterClassBuilder) WithVersions(versions ...string) *ClusterClassBuil
 // Build takes the objects and variables in the ClusterClass builder and uses them to create a ClusterClass object.
 func (c *ClusterClassBuilder) Build() *clusterv1.ClusterClass {
 	obj := &clusterv1.ClusterClass{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      c.name,
-			Namespace: c.namespace,
-		},
+		Name:      c.name,
+		Namespace: c.namespace,
 		Spec: clusterv1.ClusterClassSpec{
 			Variables: c.variables,
 			Patches:   c.patches,
@@ -1685,10 +1681,8 @@ func (n *NodeBuilder) WithStatus(status corev1.NodeStatus) *NodeBuilder {
 // Build produces a new Node from the information passed to the NodeBuilder.
 func (n *NodeBuilder) Build() *corev1.Node {
 	obj := &corev1.Node{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:        n.name,
-			Annotations: n.annotations,
-		},
+		Name:        n.name,
+		Annotations: n.annotations,
 		Spec: corev1.NodeSpec{
 			Taints: n.taints,
 		},
@@ -1777,12 +1771,10 @@ func (m *MachinePoolBuilder) WithMinReadySeconds(minReadySeconds int32) *Machine
 // Build creates a new MachinePool with the variables and objects passed to the MachinePoolBuilder.
 func (m *MachinePoolBuilder) Build() *clusterv1.MachinePool {
 	obj := &clusterv1.MachinePool{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:        m.name,
-			Namespace:   m.namespace,
-			Labels:      m.labels,
-			Annotations: m.annotations,
-		},
+		Name:        m.name,
+		Namespace:   m.namespace,
+		Labels:      m.labels,
+		Annotations: m.annotations,
 		Spec: clusterv1.MachinePoolSpec{
 			ClusterName: m.clusterName,
 			Replicas:    m.replicas,
@@ -1910,12 +1902,10 @@ func (m *MachineDeploymentBuilder) WithTaints(taints ...clusterv1.MachineTaint) 
 // Build creates a new MachineDeployment with the variables and objects passed to the MachineDeploymentBuilder.
 func (m *MachineDeploymentBuilder) Build() *clusterv1.MachineDeployment {
 	obj := &clusterv1.MachineDeployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:        m.name,
-			Namespace:   m.namespace,
-			Labels:      m.labels,
-			Annotations: m.annotations,
-		},
+		Name:        m.name,
+		Namespace:   m.namespace,
+		Labels:      m.labels,
+		Annotations: m.annotations,
 	}
 	if m.generation != nil {
 		obj.Generation = *m.generation
@@ -2023,12 +2013,10 @@ func (m *MachineSetBuilder) WithTaints(taints ...clusterv1.MachineTaint) *Machin
 // Build creates a new MachineSet with the variables and objects passed to the MachineSetBuilder.
 func (m *MachineSetBuilder) Build() *clusterv1.MachineSet {
 	obj := &clusterv1.MachineSet{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:            m.name,
-			Namespace:       m.namespace,
-			Labels:          m.labels,
-			OwnerReferences: m.ownerRefs,
-		},
+		Name:            m.name,
+		Namespace:       m.namespace,
+		Labels:          m.labels,
+		OwnerReferences: m.ownerRefs,
 	}
 	obj.Spec.ClusterName = m.clusterName
 	obj.Spec.Template.Spec.ClusterName = m.clusterName
@@ -2104,11 +2092,9 @@ func (m *MachineBuilder) WithTaints(taints ...clusterv1.MachineTaint) *MachineBu
 // Build produces a Machine object from the information passed to the MachineBuilder.
 func (m *MachineBuilder) Build() *clusterv1.Machine {
 	machine := &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: m.namespace,
-			Name:      m.name,
-			Labels:    m.labels,
-		},
+		Namespace: m.namespace,
+		Name:      m.name,
+		Labels:    m.labels,
 		Spec: clusterv1.MachineSpec{
 			Version:     ptr.Deref(m.version, ""),
 			ClusterName: m.clusterName,
@@ -2245,11 +2231,9 @@ func (m *MachineHealthCheckBuilder) WithMaxUnhealthy(maxUnhealthy *intstr.IntOrS
 func (m *MachineHealthCheckBuilder) Build() *clusterv1.MachineHealthCheck {
 	// create a MachineHealthCheck with the spec given in the ClusterClass
 	mhc := &clusterv1.MachineHealthCheck{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:            m.name,
-			Namespace:       m.namespace,
-			OwnerReferences: m.ownerRefs,
-		},
+		Name:            m.name,
+		Namespace:       m.namespace,
+		OwnerReferences: m.ownerRefs,
 		Spec: clusterv1.MachineHealthCheckSpec{
 			ClusterName: m.clusterName,
 			Selector:    m.selector,

@@ -595,11 +595,9 @@ func (h *apiServerHandler) apiV1Delete(req *restful.Request, resp *restful.Respo
 			// controller-runtime's typed client decodes the response body of a Delete call into an object,
 			// so we have to write a response.
 			_ = resp.WriteHeaderAndEntity(http.StatusOK, &metav1.Status{
-				TypeMeta: metav1.TypeMeta{
-					APIVersion: "v1",
-					Kind:       "Status",
-				},
-				Status: metav1.StatusSuccess,
+				APIVersion: "v1",
+				Kind:       "Status",
+				Status:     metav1.StatusSuccess,
 			})
 			return
 		}

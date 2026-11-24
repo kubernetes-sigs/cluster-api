@@ -55,17 +55,13 @@ import (
 func TestMachinePoolFinalizer(t *testing.T) {
 	bootstrapData := "some valid machinepool bootstrap data"
 	clusterCorrectMeta := &clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: metav1.NamespaceDefault,
-			Name:      "valid-cluster",
-		},
+		Namespace: metav1.NamespaceDefault,
+		Name:      "valid-cluster",
 	}
 
 	machinePoolValidCluster := &clusterv1.MachinePool{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "machinePool1",
-			Namespace: metav1.NamespaceDefault,
-		},
+		Name:      "machinePool1",
+		Namespace: metav1.NamespaceDefault,
 		Spec: clusterv1.MachinePoolSpec{
 			Replicas: ptr.To[int32](1),
 			Template: clusterv1.MachineTemplateSpec{
@@ -80,11 +76,9 @@ func TestMachinePoolFinalizer(t *testing.T) {
 	}
 
 	machinePoolWithFinalizer := &clusterv1.MachinePool{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:       "machinePool2",
-			Namespace:  metav1.NamespaceDefault,
-			Finalizers: []string{"some-other-finalizer"},
-		},
+		Name:       "machinePool2",
+		Namespace:  metav1.NamespaceDefault,
+		Finalizers: []string{"some-other-finalizer"},
 		Spec: clusterv1.MachinePoolSpec{
 			Replicas: ptr.To[int32](1),
 			Template: clusterv1.MachineTemplateSpec{
@@ -152,14 +146,12 @@ func TestMachinePoolFinalizer(t *testing.T) {
 func TestMachinePoolOwnerReference(t *testing.T) {
 	bootstrapData := "some valid machinepool bootstrap data"
 	testCluster := &clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Name: "test-cluster"},
+		Namespace: metav1.NamespaceDefault, Name: "test-cluster",
 	}
 
 	machinePoolInvalidCluster := &clusterv1.MachinePool{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "machinePool1",
-			Namespace: metav1.NamespaceDefault,
-		},
+		Name:      "machinePool1",
+		Namespace: metav1.NamespaceDefault,
 		Spec: clusterv1.MachinePoolSpec{
 			Replicas:    ptr.To[int32](1),
 			ClusterName: "invalid",
@@ -174,10 +166,8 @@ func TestMachinePoolOwnerReference(t *testing.T) {
 	}
 
 	machinePoolValidCluster := &clusterv1.MachinePool{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "machinePool2",
-			Namespace: metav1.NamespaceDefault,
-		},
+		Name:      "machinePool2",
+		Namespace: metav1.NamespaceDefault,
 		Spec: clusterv1.MachinePoolSpec{
 			Replicas: ptr.To[int32](1),
 			Template: clusterv1.MachineTemplateSpec{
@@ -199,12 +189,10 @@ func TestMachinePoolOwnerReference(t *testing.T) {
 	}
 
 	machinePoolValidMachinePool := &clusterv1.MachinePool{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "machinePool3",
-			Namespace: metav1.NamespaceDefault,
-			Labels: map[string]string{
-				clusterv1.ClusterNameLabel: "valid-cluster",
-			},
+		Name:      "machinePool3",
+		Namespace: metav1.NamespaceDefault,
+		Labels: map[string]string{
+			clusterv1.ClusterNameLabel: "valid-cluster",
 		},
 		Spec: clusterv1.MachinePoolSpec{
 			Replicas: ptr.To[int32](1),
@@ -313,7 +301,7 @@ func TestReconcileMachinePoolRequest(t *testing.T) {
 	}
 
 	testCluster := clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Name: "test-cluster"},
+		Namespace: metav1.NamespaceDefault, Name: "test-cluster",
 	}
 
 	bootstrapConfig := &unstructured.Unstructured{
@@ -436,9 +424,7 @@ func TestReconcileMachinePoolRequest(t *testing.T) {
 			},
 			nodes: []corev1.Node{
 				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "test-node",
-					},
+					Name: "test-node",
 					Spec: corev1.NodeSpec{
 						// This providerID is not in the list above, so the reconciler will try (and fail) to delete it
 						ProviderID: "aws:///us-test-2c/i-013ab00756982217f",
@@ -500,9 +486,7 @@ func TestReconcileMachinePoolRequest(t *testing.T) {
 			},
 			nodes: []corev1.Node{
 				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "test-node",
-					},
+					Name: "test-node",
 					Spec: corev1.NodeSpec{
 						// This providerID is not in the list above, so the reconciler will try (and fail) to delete it
 						ProviderID: "aws:///us-test-2c/i-013ab00756982217f",
@@ -564,9 +548,7 @@ func TestReconcileMachinePoolRequest(t *testing.T) {
 			},
 			nodes: []corev1.Node{
 				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "test-node",
-					},
+					Name: "test-node",
 					Spec: corev1.NodeSpec{
 						// This providerID is not in the list above, so the reconciler will try (and fail) to delete it
 						ProviderID: "aws:///us-test-2c/i-013ab00756982217f",
@@ -649,32 +631,26 @@ func TestMachinePoolNodeDeleteTimeoutPassed(t *testing.T) {
 		{
 			name: "false if deletionTimestamp not set",
 			machinePool: &clusterv1.MachinePool{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "machinepool",
-					Namespace: metav1.NamespaceDefault,
-				},
+				Name:      "machinepool",
+				Namespace: metav1.NamespaceDefault,
 			},
 			want: false,
 		},
 		{
 			name: "false if deletionTimestamp set to now and NodeDeletionTimeoutSeconds not set",
 			machinePool: &clusterv1.MachinePool{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:              "machinepool",
-					Namespace:         metav1.NamespaceDefault,
-					DeletionTimestamp: &timeNow,
-				},
+				Name:              "machinepool",
+				Namespace:         metav1.NamespaceDefault,
+				DeletionTimestamp: &timeNow,
 			},
 			want: false,
 		},
 		{
 			name: "false if deletionTimestamp set to now and NodeDeletionTimeoutSeconds set to 0",
 			machinePool: &clusterv1.MachinePool{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:              "machinepool",
-					Namespace:         metav1.NamespaceDefault,
-					DeletionTimestamp: &timeNow,
-				},
+				Name:              "machinepool",
+				Namespace:         metav1.NamespaceDefault,
+				DeletionTimestamp: &timeNow,
 				Spec: clusterv1.MachinePoolSpec{
 					Template: clusterv1.MachineTemplateSpec{
 						Spec: clusterv1.MachineSpec{
@@ -690,11 +666,9 @@ func TestMachinePoolNodeDeleteTimeoutPassed(t *testing.T) {
 		{
 			name: "false if deletionTimestamp set to now and NodeDeletionTimeoutSeconds set to 1m",
 			machinePool: &clusterv1.MachinePool{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:              "machinepool",
-					Namespace:         metav1.NamespaceDefault,
-					DeletionTimestamp: &timeNow,
-				},
+				Name:              "machinepool",
+				Namespace:         metav1.NamespaceDefault,
+				DeletionTimestamp: &timeNow,
 				Spec: clusterv1.MachinePoolSpec{
 					Template: clusterv1.MachineTemplateSpec{
 						Spec: clusterv1.MachineSpec{
@@ -710,11 +684,9 @@ func TestMachinePoolNodeDeleteTimeoutPassed(t *testing.T) {
 		{
 			name: "true if deletionTimestamp set to now-1m and NodeDeletionTimeoutSeconds set to 10s",
 			machinePool: &clusterv1.MachinePool{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:              "machinepool",
-					Namespace:         metav1.NamespaceDefault,
-					DeletionTimestamp: &metav1.Time{Time: timeNow.Add(time.Minute * -1)},
-				},
+				Name:              "machinepool",
+				Namespace:         metav1.NamespaceDefault,
+				DeletionTimestamp: &metav1.Time{Time: timeNow.Add(time.Minute * -1)},
 				Spec: clusterv1.MachinePoolSpec{
 					Template: clusterv1.MachineTemplateSpec{
 						Spec: clusterv1.MachineSpec{
@@ -741,7 +713,7 @@ func TestMachinePoolNodeDeleteTimeoutPassed(t *testing.T) {
 
 func TestReconcileMachinePoolDeleteExternal(t *testing.T) {
 	testCluster := &clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Name: "test-cluster"},
+		Namespace: metav1.NamespaceDefault, Name: "test-cluster",
 	}
 
 	bootstrapConfig := &unstructured.Unstructured{
@@ -768,10 +740,8 @@ func TestReconcileMachinePoolDeleteExternal(t *testing.T) {
 	}
 
 	machinePool := &clusterv1.MachinePool{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "delete",
-			Namespace: metav1.NamespaceDefault,
-		},
+		Name:      "delete",
+		Namespace: metav1.NamespaceDefault,
 		Spec: clusterv1.MachinePoolSpec{
 			ClusterName: "test-cluster",
 			Replicas:    ptr.To[int32](1),
@@ -873,16 +843,14 @@ func TestRemoveMachinePoolFinalizerAfterDeleteReconcile(t *testing.T) {
 	dt := metav1.Now()
 
 	testCluster := &clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Name: "test-cluster"},
+		Namespace: metav1.NamespaceDefault, Name: "test-cluster",
 	}
 
 	m := &clusterv1.MachinePool{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:              "delete123",
-			Namespace:         metav1.NamespaceDefault,
-			Finalizers:        []string{clusterv1.MachinePoolFinalizer, "test"},
-			DeletionTimestamp: &dt,
-		},
+		Name:              "delete123",
+		Namespace:         metav1.NamespaceDefault,
+		Finalizers:        []string{clusterv1.MachinePoolFinalizer, "test"},
+		DeletionTimestamp: &dt,
 		Spec: clusterv1.MachinePoolSpec{
 			ClusterName: "test-cluster",
 			Replicas:    ptr.To[int32](1),
@@ -928,7 +896,7 @@ func TestMachinePoolConditions(t *testing.T) {
 	scheme.AddKnownTypeWithName(builder.BootstrapGroupVersion.WithKind(builder.TestBootstrapConfigKind), &contractv1.BootstrapConfig{})
 
 	testCluster := &clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Name: "test-cluster"},
+		Namespace: metav1.NamespaceDefault, Name: "test-cluster",
 	}
 
 	bootstrapConfig := func(dataSecretCreated bool) *unstructured.Unstructured {
@@ -973,11 +941,9 @@ func TestMachinePoolConditions(t *testing.T) {
 	}
 
 	machinePool := &clusterv1.MachinePool{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:       "blah",
-			Namespace:  metav1.NamespaceDefault,
-			Finalizers: []string{clusterv1.MachinePoolFinalizer},
-		},
+		Name:       "blah",
+		Namespace:  metav1.NamespaceDefault,
+		Finalizers: []string{clusterv1.MachinePoolFinalizer},
 		Spec: clusterv1.MachinePoolSpec{
 			ClusterName: "test-cluster",
 			Replicas:    ptr.To[int32](2),
@@ -1010,18 +976,14 @@ func TestMachinePoolConditions(t *testing.T) {
 	nodeList := corev1.NodeList{
 		Items: []corev1.Node{
 			{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "node-1",
-				},
+				Name: "node-1",
 				Spec: corev1.NodeSpec{
 					ProviderID: "aws://us-east-1/id-node-1",
 				},
 				Status: corev1.NodeStatus{Conditions: []corev1.NodeCondition{{Type: corev1.NodeReady}}},
 			},
 			{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "azure-node-4",
-				},
+				Name: "azure-node-4",
 				Spec: corev1.NodeSpec{
 					ProviderID: "azure://westus2/id-node-4",
 				},

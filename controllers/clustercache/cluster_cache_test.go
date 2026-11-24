@@ -55,12 +55,10 @@ func TestReconcile(t *testing.T) {
 	g := NewWithT(t)
 
 	testCluster := &clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test-cluster",
-			Namespace: metav1.NamespaceDefault,
-			Labels: map[string]string{
-				"cluster.x-k8s.io/included-in-clustercache-tests": "true",
-			},
+		Name:      "test-cluster",
+		Namespace: metav1.NamespaceDefault,
+		Labels: map[string]string{
+			"cluster.x-k8s.io/included-in-clustercache-tests": "true",
 		},
 		Spec: clusterv1.ClusterSpec{
 			ControlPlaneRef: clusterv1.ContractVersionedObjectReference{
@@ -378,10 +376,8 @@ func TestSendEventsToClusterSources(t *testing.T) {
 	now := time.Now()
 
 	testCluster := &clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test-cluster",
-			Namespace: metav1.NamespaceDefault,
-		},
+		Name:      "test-cluster",
+		Namespace: metav1.NamespaceDefault,
 	}
 
 	type testClusterSources struct {
@@ -802,10 +798,8 @@ func generateTestClusters(clusterCount, brokenClusterPercentage int) []testClust
 
 func createCluster(g Gomega, testCluster testCluster) {
 	cluster := &clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      testCluster.cluster.Name,
-			Namespace: testCluster.cluster.Namespace,
-		},
+		Name:      testCluster.cluster.Name,
+		Namespace: testCluster.cluster.Namespace,
 		Spec: clusterv1.ClusterSpec{
 			ControlPlaneRef: clusterv1.ContractVersionedObjectReference{
 				APIGroup: builder.ControlPlaneGroupVersion.Group,
@@ -892,7 +886,6 @@ func TestSetupWithManagerAppliesClusterFilter(t *testing.T) {
 	defer internalCC.Shutdown()
 	g.Expect(internalCC.clusterFilter).ToNot(BeNil(), "Options.ClusterFilter must be wired into the ClusterCache")
 	g.Expect(internalCC.clusterFilter(&clusterv1.Cluster{})).To(BeFalse())
-	g.Expect(internalCC.clusterFilter(&clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{
-		Labels: map[string]string{"cluster.x-k8s.io/included-in-clustercache-tests": "true"},
-	}})).To(BeTrue())
+	g.Expect(internalCC.clusterFilter(&clusterv1.Cluster{
+		Labels: map[string]string{"cluster.x-k8s.io/included-in-clustercache-tests": "true"}})).To(BeTrue())
 }

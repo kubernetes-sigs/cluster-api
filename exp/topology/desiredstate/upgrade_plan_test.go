@@ -1199,9 +1199,7 @@ func TestGetUpgradePlanFromExtension(t *testing.T) {
 
 	// Create fake runtime client
 	extensionResponse := &runtimehooksv1.GenerateUpgradePlanResponse{
-		CommonResponse: runtimehooksv1.CommonResponse{
-			Status: runtimehooksv1.ResponseStatusSuccess,
-		},
+		Status: runtimehooksv1.ResponseStatusSuccess,
 		ControlPlaneUpgrades: []runtimehooksv1.UpgradeStep{
 			{Version: "v1.32.0"},
 			{Version: "v1.33.0"},

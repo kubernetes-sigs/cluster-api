@@ -437,10 +437,8 @@ func (d *Helper) evictPod(ctx context.Context, pod *corev1.Pod) error {
 	}
 
 	eviction := &policyv1.Eviction{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      pod.Name,
-			Namespace: pod.Namespace,
-		},
+		Name:          pod.Name,
+		Namespace:     pod.Namespace,
 		DeleteOptions: &delOpts,
 	}
 

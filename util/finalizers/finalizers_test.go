@@ -54,11 +54,9 @@ func TestEnsureFinalizer(t *testing.T) {
 		{
 			name: "should not add finalizer if object has deletionTimestamp",
 			obj: &clusterv1.Cluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:              "test-cluster",
-					DeletionTimestamp: &metav1.Time{Time: time.Now()},
-					Finalizers:        []string{"some-other-finalizer"},
-				},
+				Name:              "test-cluster",
+				DeletionTimestamp: &metav1.Time{Time: time.Now()},
+				Finalizers:        []string{"some-other-finalizer"},
 			},
 			wantErr:               false,
 			wantFinalizersUpdated: false,
@@ -67,10 +65,8 @@ func TestEnsureFinalizer(t *testing.T) {
 		{
 			name: "should not add finalizer if finalizer is already set",
 			obj: &clusterv1.Cluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:       "test-cluster",
-					Finalizers: []string{testFinalizer},
-				},
+				Name:       "test-cluster",
+				Finalizers: []string{testFinalizer},
 			},
 			wantErr:               false,
 			wantFinalizersUpdated: false,
@@ -79,10 +75,8 @@ func TestEnsureFinalizer(t *testing.T) {
 		{
 			name: "should add finalizer if finalizer is not already set",
 			obj: &clusterv1.Cluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:       "test-cluster",
-					Finalizers: []string{"some-other-finalizer"},
-				},
+				Name:       "test-cluster",
+				Finalizers: []string{"some-other-finalizer"},
 			},
 			wantErr:               false,
 			wantFinalizersUpdated: true,

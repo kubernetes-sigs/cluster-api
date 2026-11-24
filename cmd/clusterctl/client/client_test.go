@@ -24,7 +24,6 @@ import (
 
 	pkgerrors "github.com/pkg/errors"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -605,7 +604,7 @@ func (f *fakeComponentClient) getRawBytes(ctx context.Context, options *reposito
 func fakeCAPISetupObjects() []client.Object {
 	return []client.Object{
 		&apiextensionsv1.CustomResourceDefinition{
-			ObjectMeta: metav1.ObjectMeta{Name: "clusters.cluster.x-k8s.io"},
+			Name: "clusters.cluster.x-k8s.io",
 			Spec: apiextensionsv1.CustomResourceDefinitionSpec{
 				Versions: []apiextensionsv1.CustomResourceDefinitionVersion{
 					{

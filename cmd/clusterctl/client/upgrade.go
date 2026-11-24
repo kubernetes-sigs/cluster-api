@@ -22,7 +22,6 @@ import (
 	"time"
 
 	pkgerrors "github.com/pkg/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
@@ -265,18 +264,11 @@ func parseUpgradeItemWithNamespace(ref string, providerType clusterctlv1.Provide
 	}
 
 	return &cluster.UpgradeItem{
-		Provider: clusterctlv1.Provider{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: namespace,
-				Name:      clusterctlv1.ManifestLabel(name, providerType),
-			},
-			ProviderName: name,
-			Type:         string(providerType),
-			// The value for the following fields will be retrieved while
-			// creating the custom upgrade plan.
-			WatchedNamespace: "",
-		},
-		NextVersion: version,
+		Namespace:    namespace,
+		Name:         clusterctlv1.ManifestLabel(name, providerType),
+		ProviderName: name,
+		Type:         string(providerType),
+		NextVersion:  version,
 	}, nil
 }
 
@@ -296,17 +288,10 @@ func parseUpgradeItemWithoutNamespace(ctx context.Context, clusterClient cluster
 	}
 
 	return &cluster.UpgradeItem{
-		Provider: clusterctlv1.Provider{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: namespace,
-				Name:      clusterctlv1.ManifestLabel(name, providerType),
-			},
-			ProviderName: name,
-			Type:         string(providerType),
-			// The value for the following fields will be retrieved while
-			// creating the custom upgrade plan.
-			WatchedNamespace: "",
-		},
-		NextVersion: version,
+		Namespace:    namespace,
+		Name:         clusterctlv1.ManifestLabel(name, providerType),
+		ProviderName: name,
+		Type:         string(providerType),
+		NextVersion:  version,
 	}, nil
 }

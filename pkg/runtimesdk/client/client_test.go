@@ -95,10 +95,8 @@ func TestClient_httpCall(t *testing.T) {
 			name: "succeed for valid request and response objects",
 			request: &fakev1alpha1.FakeRequest{
 				// Note: Intentionally setting TypeMeta here to test if everything works if TypeMeta is set.
-				TypeMeta: metav1.TypeMeta{
-					Kind:       "FakeRequest",
-					APIVersion: fakev1alpha1.GroupVersion.Identifier(),
-				},
+				Kind:       "FakeRequest",
+				APIVersion: fakev1alpha1.GroupVersion.Identifier(),
 			},
 			response: &fakev1alpha1.FakeResponse{},
 			opts: func() *httpCallOptions {
@@ -121,10 +119,8 @@ func TestClient_httpCall(t *testing.T) {
 			name: "success if request and response are valid objects - with conversion",
 			request: &fakev1alpha2.FakeRequest{
 				// Note: Intentionally setting TypeMeta here to test if everything works if TypeMeta is set.
-				TypeMeta: metav1.TypeMeta{
-					Kind:       "FakeRequest",
-					APIVersion: fakev1alpha2.GroupVersion.Identifier(),
-				},
+				Kind:       "FakeRequest",
+				APIVersion: fakev1alpha2.GroupVersion.Identifier(),
 			},
 			response: &fakev1alpha2.FakeResponse{},
 			opts: func() *httpCallOptions {
@@ -287,12 +283,10 @@ func TestClient_httpCall(t *testing.T) {
 func fakeHookHandler(w http.ResponseWriter, _ *http.Request) {
 	// Setting GVK because we directly Marshal to JSON.
 	response := &fakev1alpha1.FakeResponse{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "FakeHookResponse",
-			APIVersion: fakev1alpha1.GroupVersion.Identifier(),
-		},
-		Second: "",
-		First:  1,
+		Kind:       "FakeHookResponse",
+		APIVersion: fakev1alpha1.GroupVersion.Identifier(),
+		Second:     "",
+		First:      1,
 	}
 	respBody, err := json.Marshal(response)
 	if err != nil {
@@ -572,15 +566,11 @@ func Test_defaultAndValidateDiscoveryResponse(t *testing.T) {
 
 func TestClient_CallExtension(t *testing.T) {
 	ns := &corev1.Namespace{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "foo",
-		},
+		Name: "foo",
 	}
 
 	validExtensionHandlerWithFailPolicy := runtimev1.ExtensionConfig{
-		ObjectMeta: metav1.ObjectMeta{
-			ResourceVersion: "15",
-		},
+		ResourceVersion: "15",
 		Spec: runtimev1.ExtensionConfigSpec{
 			ClientConfig: runtimev1.ClientConfig{
 				// Set a fake URL, in test cases where we start the test server the URL will be overridden.
@@ -604,9 +594,7 @@ func TestClient_CallExtension(t *testing.T) {
 		},
 	}
 	validExtensionHandlerWithIgnorePolicy := runtimev1.ExtensionConfig{
-		ObjectMeta: metav1.ObjectMeta{
-			ResourceVersion: "15",
-		},
+		ResourceVersion: "15",
 		Spec: runtimev1.ExtensionConfigSpec{
 			ClientConfig: runtimev1.ClientConfig{
 				// Set a fake URL, in test cases where we start the test server the URL will be overridden.
@@ -886,10 +874,8 @@ func TestClient_CallExtension(t *testing.T) {
 			g.Expect(err).ToNot(HaveOccurred())
 
 			obj := &clusterv1.Cluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "cluster",
-					Namespace: "foo",
-				},
+				Name:      "cluster",
+				Namespace: "foo",
 			}
 			// Call once without caching.
 			err = c.CallExtension(context.Background(), tt.args.hook, obj, tt.args.name, tt.args.request, tt.args.response)
@@ -936,15 +922,11 @@ func TestClient_CallExtension(t *testing.T) {
 
 func TestClient_CallExtensionWithClientAuthentication(t *testing.T) {
 	ns := &corev1.Namespace{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "foo",
-		},
+		Name: "foo",
 	}
 
 	validExtensionHandlerWithFailPolicy := runtimev1.ExtensionConfig{
-		ObjectMeta: metav1.ObjectMeta{
-			ResourceVersion: "15",
-		},
+		ResourceVersion: "15",
 		Spec: runtimev1.ExtensionConfigSpec{
 			ClientConfig: runtimev1.ClientConfig{
 				// Set a fake URL, in test cases where we start the test server the URL will be overridden.
@@ -1022,10 +1004,8 @@ func TestClient_CallExtensionWithClientAuthentication(t *testing.T) {
 	}()
 
 	obj := &clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "cluster",
-			Namespace: "foo",
-		},
+		Name:      "cluster",
+		Namespace: "foo",
 	}
 
 	err = c.CallExtension(context.Background(), fakev1alpha1.FakeHook, obj, "valid-extension", &fakev1alpha1.FakeRequest{}, &fakev1alpha1.FakeResponse{})
@@ -1107,10 +1087,8 @@ func TestClient_GetHttpClient(t *testing.T) {
 	g := NewWithT(t)
 
 	extension1 := runtimev1.ExtensionConfig{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:            "extension1",
-			ResourceVersion: "15",
-		},
+		Name:            "extension1",
+		ResourceVersion: "15",
 		Spec: runtimev1.ExtensionConfigSpec{
 			ClientConfig: runtimev1.ClientConfig{
 				URL:      "https://serverA.example.com/",
@@ -1120,10 +1098,8 @@ func TestClient_GetHttpClient(t *testing.T) {
 	}
 
 	extension2 := runtimev1.ExtensionConfig{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:            "extension2",
-			ResourceVersion: "36",
-		},
+		Name:            "extension2",
+		ResourceVersion: "36",
 		Spec: runtimev1.ExtensionConfigSpec{
 			ClientConfig: runtimev1.ClientConfig{
 				URL:      "https://serverA.example.com/",
@@ -1133,10 +1109,8 @@ func TestClient_GetHttpClient(t *testing.T) {
 	}
 
 	extension3 := runtimev1.ExtensionConfig{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:            "extension3",
-			ResourceVersion: "54",
-		},
+		Name:            "extension3",
+		ResourceVersion: "54",
 		Spec: runtimev1.ExtensionConfigSpec{
 			ClientConfig: runtimev1.ClientConfig{
 				URL:      "https://serverB.example.com/",
@@ -1223,10 +1197,8 @@ func TestPrepareRequest(t *testing.T) {
 			{
 				name: "settings in request should be preserved as is if there are not setting in the registration",
 				request: &runtimehooksv1.BeforeClusterCreateRequest{
-					CommonRequest: runtimehooksv1.CommonRequest{
-						Settings: map[string]string{
-							"key1": "value1",
-						},
+					Settings: map[string]string{
+						"key1": "value1",
 					},
 				},
 				registration: &runtimeregistry.ExtensionRegistration{},
@@ -1251,11 +1223,9 @@ func TestPrepareRequest(t *testing.T) {
 			{
 				name: "settings in request and registry should be merged with request taking precedence",
 				request: &runtimehooksv1.BeforeClusterCreateRequest{
-					CommonRequest: runtimehooksv1.CommonRequest{
-						Settings: map[string]string{
-							"key1": "value1",
-							"key2": "value2",
-						},
+					Settings: map[string]string{
+						"key1": "value1",
+						"key2": "value2",
 					},
 				},
 				registration: &runtimeregistry.ExtensionRegistration{
@@ -1291,32 +1261,24 @@ func TestPrepareRequest(t *testing.T) {
 
 func TestClient_GetAllExtensions(t *testing.T) {
 	ns := &corev1.Namespace{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "foo",
-			Labels: map[string]string{
-				"kubernetes.io/metadata.name": "foo",
-			},
+		Name: "foo",
+		Labels: map[string]string{
+			"kubernetes.io/metadata.name": "foo",
 		},
 	}
 	nsDifferent := &corev1.Namespace{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "different",
-			Labels: map[string]string{
-				"kubernetes.io/metadata.name": "different",
-			},
+		Name: "different",
+		Labels: map[string]string{
+			"kubernetes.io/metadata.name": "different",
 		},
 	}
 	cluster := &clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "cluster",
-			Namespace: "foo",
-		},
+		Name:      "cluster",
+		Namespace: "foo",
 	}
 	clusterDifferentNamespace := &clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "cluster",
-			Namespace: "different",
-		},
+		Name:      "cluster",
+		Namespace: "different",
 	}
 
 	extensionConfig := runtimev1.ExtensionConfig{
@@ -1441,9 +1403,7 @@ func TestClient_GetAllExtensions(t *testing.T) {
 
 func TestClient_CallAllExtensions(t *testing.T) {
 	ns := &corev1.Namespace{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "foo",
-		},
+		Name: "foo",
 	}
 
 	extensionConfig := runtimev1.ExtensionConfig{
@@ -1629,10 +1589,8 @@ func TestClient_CallAllExtensions(t *testing.T) {
 			g.Expect(err).ToNot(HaveOccurred())
 
 			obj := &clusterv1.Cluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "cluster",
-					Namespace: "foo",
-				},
+				Name:      "cluster",
+				Namespace: "foo",
 			}
 			err = c.CallAllExtensions(context.Background(), tt.args.hook, obj, tt.args.request, tt.args.response)
 
@@ -1648,19 +1606,15 @@ func TestClient_CallAllExtensions(t *testing.T) {
 func Test_client_matchNamespace(t *testing.T) {
 	g := NewWithT(t)
 	foo := &corev1.Namespace{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "foo",
-			Labels: map[string]string{
-				corev1.LabelMetadataName: "foo",
-			},
+		Name: "foo",
+		Labels: map[string]string{
+			corev1.LabelMetadataName: "foo",
 		},
 	}
 	bar := &corev1.Namespace{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "bar",
-			Labels: map[string]string{
-				corev1.LabelMetadataName: "bar",
-			},
+		Name: "bar",
+		Labels: map[string]string{
+			corev1.LabelMetadataName: "bar",
 		},
 	}
 	matchingMatchExpressions, err := metav1.LabelSelectorAsSelector(&metav1.LabelSelector{
@@ -1811,9 +1765,7 @@ type testServerResponse struct {
 func response(status runtimehooksv1.ResponseStatus) testServerResponse {
 	return testServerResponse{
 		response: &fakev1alpha1.FakeResponse{
-			CommonResponse: runtimehooksv1.CommonResponse{
-				Status: status,
-			},
+			Status: status,
 		},
 		responseStatusCode: http.StatusOK,
 	}
@@ -1863,22 +1815,16 @@ func registry(configs []runtimev1.ExtensionConfig) runtimeregistry.ExtensionRegi
 
 func fakeSuccessResponse(message string) *fakev1alpha1.FakeResponse {
 	return &fakev1alpha1.FakeResponse{
-		CommonResponse: runtimehooksv1.CommonResponse{
-			Message: message,
-			Status:  runtimehooksv1.ResponseStatusSuccess,
-		},
+		Message: message,
+		Status:  runtimehooksv1.ResponseStatusSuccess,
 	}
 }
 
 func fakeRetryableSuccessResponse(retryAfterSeconds int32, message string) *fakev1alpha1.RetryableFakeResponse {
 	return &fakev1alpha1.RetryableFakeResponse{
-		CommonResponse: runtimehooksv1.CommonResponse{
-			Message: message,
-			Status:  runtimehooksv1.ResponseStatusSuccess,
-		},
-		CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
-			RetryAfterSeconds: retryAfterSeconds,
-		},
+		Message:           message,
+		Status:            runtimehooksv1.ResponseStatusSuccess,
+		RetryAfterSeconds: retryAfterSeconds,
 	}
 }
 
@@ -1906,7 +1852,7 @@ func TestNameForHandler(t *testing.T) {
 		{
 			name:            "return well formatted name",
 			handler:         runtimehooksv1.ExtensionHandler{Name: "discover-variables"},
-			extensionConfig: &runtimev1.ExtensionConfig{ObjectMeta: metav1.ObjectMeta{Name: "runtime1"}},
+			extensionConfig: &runtimev1.ExtensionConfig{Name: "runtime1"},
 			want:            "discover-variables.runtime1",
 		},
 		{
@@ -1964,7 +1910,7 @@ func TestExtensionNameFromHandlerName(t *testing.T) {
 }
 
 func Test_responseToExtensionConfig(t *testing.T) {
-	extensionConfig := &runtimev1.ExtensionConfig{ObjectMeta: metav1.ObjectMeta{Name: "runtime1"}}
+	extensionConfig := &runtimev1.ExtensionConfig{Name: "runtime1"}
 
 	t.Run("detects added, modified, unchanged and deleted handlers", func(t *testing.T) {
 		g := NewWithT(t)

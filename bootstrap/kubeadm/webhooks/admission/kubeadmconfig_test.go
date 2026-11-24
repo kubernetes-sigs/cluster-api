@@ -39,10 +39,8 @@ func TestKubeadmConfigValidate(t *testing.T) {
 	}{
 		"valid content": {
 			in: &bootstrapv1.KubeadmConfig{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "baz",
-					Namespace: metav1.NamespaceDefault,
-				},
+				Name:      "baz",
+				Namespace: metav1.NamespaceDefault,
 				Spec: bootstrapv1.KubeadmConfigSpec{
 					Files: []bootstrapv1.File{
 						{
@@ -54,10 +52,8 @@ func TestKubeadmConfigValidate(t *testing.T) {
 		},
 		"valid contentFrom": {
 			in: &bootstrapv1.KubeadmConfig{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "baz",
-					Namespace: metav1.NamespaceDefault,
-				},
+				Name:      "baz",
+				Namespace: metav1.NamespaceDefault,
 				Spec: bootstrapv1.KubeadmConfigSpec{
 					Files: []bootstrapv1.File{
 						{
@@ -74,10 +70,8 @@ func TestKubeadmConfigValidate(t *testing.T) {
 		},
 		"invalid content and contentFrom": {
 			in: &bootstrapv1.KubeadmConfig{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "baz",
-					Namespace: metav1.NamespaceDefault,
-				},
+				Name:      "baz",
+				Namespace: metav1.NamespaceDefault,
 				Spec: bootstrapv1.KubeadmConfigSpec{
 					Files: []bootstrapv1.File{
 						{
@@ -95,10 +89,8 @@ func TestKubeadmConfigValidate(t *testing.T) {
 		},
 		"invalid contentFrom without name": {
 			in: &bootstrapv1.KubeadmConfig{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "baz",
-					Namespace: metav1.NamespaceDefault,
-				},
+				Name:      "baz",
+				Namespace: metav1.NamespaceDefault,
 				Spec: bootstrapv1.KubeadmConfigSpec{
 					Files: []bootstrapv1.File{
 						{
@@ -116,10 +108,8 @@ func TestKubeadmConfigValidate(t *testing.T) {
 		},
 		"invalid contentFrom without key": {
 			in: &bootstrapv1.KubeadmConfig{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "baz",
-					Namespace: metav1.NamespaceDefault,
-				},
+				Name:      "baz",
+				Namespace: metav1.NamespaceDefault,
 				Spec: bootstrapv1.KubeadmConfigSpec{
 					Files: []bootstrapv1.File{
 						{
@@ -137,10 +127,8 @@ func TestKubeadmConfigValidate(t *testing.T) {
 		},
 		"invalid with duplicate file path": {
 			in: &bootstrapv1.KubeadmConfig{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "baz",
-					Namespace: metav1.NamespaceDefault,
-				},
+				Name:      "baz",
+				Namespace: metav1.NamespaceDefault,
 				Spec: bootstrapv1.KubeadmConfigSpec{
 					Files: []bootstrapv1.File{
 						{
@@ -156,10 +144,8 @@ func TestKubeadmConfigValidate(t *testing.T) {
 		},
 		"valid template contentFormat": {
 			in: &bootstrapv1.KubeadmConfig{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "baz",
-					Namespace: metav1.NamespaceDefault,
-				},
+				Name:      "baz",
+				Namespace: metav1.NamespaceDefault,
 				Spec: bootstrapv1.KubeadmConfigSpec{
 					Files: []bootstrapv1.File{
 						{
@@ -173,10 +159,8 @@ func TestKubeadmConfigValidate(t *testing.T) {
 		},
 		"valid passwd": {
 			in: &bootstrapv1.KubeadmConfig{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "baz",
-					Namespace: metav1.NamespaceDefault,
-				},
+				Name:      "baz",
+				Namespace: metav1.NamespaceDefault,
 				Spec: bootstrapv1.KubeadmConfigSpec{
 					Users: []bootstrapv1.User{
 						{
@@ -188,10 +172,8 @@ func TestKubeadmConfigValidate(t *testing.T) {
 		},
 		"valid passwdFrom": {
 			in: &bootstrapv1.KubeadmConfig{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "baz",
-					Namespace: metav1.NamespaceDefault,
-				},
+				Name:      "baz",
+				Namespace: metav1.NamespaceDefault,
 				Spec: bootstrapv1.KubeadmConfigSpec{
 					Users: []bootstrapv1.User{
 						{
@@ -208,10 +190,8 @@ func TestKubeadmConfigValidate(t *testing.T) {
 		},
 		"invalid passwd and passwdFrom": {
 			in: &bootstrapv1.KubeadmConfig{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "baz",
-					Namespace: metav1.NamespaceDefault,
-				},
+				Name:      "baz",
+				Namespace: metav1.NamespaceDefault,
 				Spec: bootstrapv1.KubeadmConfigSpec{
 					Users: []bootstrapv1.User{
 						{
@@ -229,10 +209,8 @@ func TestKubeadmConfigValidate(t *testing.T) {
 		},
 		"invalid passwdFrom without name": {
 			in: &bootstrapv1.KubeadmConfig{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "baz",
-					Namespace: metav1.NamespaceDefault,
-				},
+				Name:      "baz",
+				Namespace: metav1.NamespaceDefault,
 				Spec: bootstrapv1.KubeadmConfigSpec{
 					Users: []bootstrapv1.User{
 						{
@@ -250,10 +228,8 @@ func TestKubeadmConfigValidate(t *testing.T) {
 		},
 		"invalid passwdFrom without key": {
 			in: &bootstrapv1.KubeadmConfig{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "baz",
-					Namespace: metav1.NamespaceDefault,
-				},
+				Name:      "baz",
+				Namespace: metav1.NamespaceDefault,
 				Spec: bootstrapv1.KubeadmConfigSpec{
 					Users: []bootstrapv1.User{
 						{
@@ -272,10 +248,8 @@ func TestKubeadmConfigValidate(t *testing.T) {
 		"Ignition field is set, format is not Ignition": {
 			enableIgnitionFeature: true,
 			in: &bootstrapv1.KubeadmConfig{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "baz",
-					Namespace: "default",
-				},
+				Name:      "baz",
+				Namespace: "default",
 				Spec: bootstrapv1.KubeadmConfigSpec{
 					Ignition: bootstrapv1.IgnitionSpec{
 						ContainerLinuxConfig: bootstrapv1.ContainerLinuxConfig{
@@ -289,10 +263,8 @@ func TestKubeadmConfigValidate(t *testing.T) {
 		"Ignition field is not set, format is Ignition": {
 			enableIgnitionFeature: true,
 			in: &bootstrapv1.KubeadmConfig{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "baz",
-					Namespace: "default",
-				},
+				Name:      "baz",
+				Namespace: "default",
 				Spec: bootstrapv1.KubeadmConfigSpec{
 					Format: bootstrapv1.Ignition,
 				},
@@ -301,10 +273,8 @@ func TestKubeadmConfigValidate(t *testing.T) {
 		"format is Ignition, user is inactive": {
 			enableIgnitionFeature: true,
 			in: &bootstrapv1.KubeadmConfig{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "baz",
-					Namespace: "default",
-				},
+				Name:      "baz",
+				Namespace: "default",
 				Spec: bootstrapv1.KubeadmConfigSpec{
 					Format: bootstrapv1.Ignition,
 					Users: []bootstrapv1.User{
@@ -319,10 +289,8 @@ func TestKubeadmConfigValidate(t *testing.T) {
 		"format is Ignition, non-GPT partition configured": {
 			enableIgnitionFeature: true,
 			in: &bootstrapv1.KubeadmConfig{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "baz",
-					Namespace: "default",
-				},
+				Name:      "baz",
+				Namespace: "default",
 				Spec: bootstrapv1.KubeadmConfigSpec{
 					Format: bootstrapv1.Ignition,
 					DiskSetup: bootstrapv1.DiskSetup{
@@ -338,10 +306,8 @@ func TestKubeadmConfigValidate(t *testing.T) {
 		},
 		"feature gate disabled, format is Ignition": {
 			in: &bootstrapv1.KubeadmConfig{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "baz",
-					Namespace: "default",
-				},
+				Name:      "baz",
+				Namespace: "default",
 				Spec: bootstrapv1.KubeadmConfigSpec{
 					Format: bootstrapv1.Ignition,
 				},
@@ -350,10 +316,8 @@ func TestKubeadmConfigValidate(t *testing.T) {
 		},
 		"feature gate disabled, Ignition field is set": {
 			in: &bootstrapv1.KubeadmConfig{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "baz",
-					Namespace: "default",
-				},
+				Name:      "baz",
+				Namespace: "default",
 				Spec: bootstrapv1.KubeadmConfigSpec{
 					Format: bootstrapv1.Ignition,
 					Ignition: bootstrapv1.IgnitionSpec{
@@ -368,10 +332,8 @@ func TestKubeadmConfigValidate(t *testing.T) {
 		"replaceFS specified with Ignition": {
 			enableIgnitionFeature: true,
 			in: &bootstrapv1.KubeadmConfig{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "baz",
-					Namespace: "default",
-				},
+				Name:      "baz",
+				Namespace: "default",
 				Spec: bootstrapv1.KubeadmConfigSpec{
 					Format: bootstrapv1.Ignition,
 					DiskSetup: bootstrapv1.DiskSetup{
@@ -388,10 +350,8 @@ func TestKubeadmConfigValidate(t *testing.T) {
 		"filesystem partition specified with Ignition": {
 			enableIgnitionFeature: true,
 			in: &bootstrapv1.KubeadmConfig{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "baz",
-					Namespace: "default",
-				},
+				Name:      "baz",
+				Namespace: "default",
 				Spec: bootstrapv1.KubeadmConfigSpec{
 					Format: bootstrapv1.Ignition,
 					DiskSetup: bootstrapv1.DiskSetup{
@@ -408,10 +368,8 @@ func TestKubeadmConfigValidate(t *testing.T) {
 		"file encoding gzip specified with Ignition": {
 			enableIgnitionFeature: true,
 			in: &bootstrapv1.KubeadmConfig{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "baz",
-					Namespace: "default",
-				},
+				Name:      "baz",
+				Namespace: "default",
 				Spec: bootstrapv1.KubeadmConfigSpec{
 					Format: bootstrapv1.Ignition,
 					Files: []bootstrapv1.File{
@@ -426,10 +384,8 @@ func TestKubeadmConfigValidate(t *testing.T) {
 		"file encoding gzip+base64 specified with Ignition": {
 			enableIgnitionFeature: true,
 			in: &bootstrapv1.KubeadmConfig{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "baz",
-					Namespace: "default",
-				},
+				Name:      "baz",
+				Namespace: "default",
 				Spec: bootstrapv1.KubeadmConfigSpec{
 					Format: bootstrapv1.Ignition,
 					Files: []bootstrapv1.File{
@@ -444,10 +400,8 @@ func TestKubeadmConfigValidate(t *testing.T) {
 		"bootCommands configured with Ignition format": {
 			enableIgnitionFeature: true,
 			in: &bootstrapv1.KubeadmConfig{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "baz",
-					Namespace: metav1.NamespaceDefault,
-				},
+				Name:      "baz",
+				Namespace: metav1.NamespaceDefault,
 				Spec: bootstrapv1.KubeadmConfigSpec{
 					Format:       bootstrapv1.Ignition,
 					BootCommands: []string{"echo $(date)", "echo 'hello BootCommands!'"},
@@ -457,10 +411,8 @@ func TestKubeadmConfigValidate(t *testing.T) {
 		},
 		"bootCommands configured with CloudConfig format": {
 			in: &bootstrapv1.KubeadmConfig{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "baz",
-					Namespace: metav1.NamespaceDefault,
-				},
+				Name:      "baz",
+				Namespace: metav1.NamespaceDefault,
 				Spec: bootstrapv1.KubeadmConfigSpec{
 					Format:       bootstrapv1.CloudConfig,
 					BootCommands: []string{"echo $(date)", "echo 'hello BootCommands!'"},
@@ -469,10 +421,8 @@ func TestKubeadmConfigValidate(t *testing.T) {
 		},
 		"valid ControlPlaneComponentHealthCheckSeconds (JoinConfiguration not defined)": {
 			in: &bootstrapv1.KubeadmConfig{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "baz",
-					Namespace: metav1.NamespaceDefault,
-				},
+				Name:      "baz",
+				Namespace: metav1.NamespaceDefault,
 				Spec: bootstrapv1.KubeadmConfigSpec{
 					InitConfiguration: bootstrapv1.InitConfiguration{
 						Timeouts: bootstrapv1.Timeouts{
@@ -485,10 +435,8 @@ func TestKubeadmConfigValidate(t *testing.T) {
 		},
 		"valid ControlPlaneComponentHealthCheckSeconds (InitConfiguration not defined)": {
 			in: &bootstrapv1.KubeadmConfig{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "baz",
-					Namespace: metav1.NamespaceDefault,
-				},
+				Name:      "baz",
+				Namespace: metav1.NamespaceDefault,
 				Spec: bootstrapv1.KubeadmConfigSpec{
 					JoinConfiguration: bootstrapv1.JoinConfiguration{
 						Timeouts: bootstrapv1.Timeouts{
@@ -501,10 +449,8 @@ func TestKubeadmConfigValidate(t *testing.T) {
 		},
 		"valid ControlPlaneComponentHealthCheckSeconds": {
 			in: &bootstrapv1.KubeadmConfig{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "baz",
-					Namespace: metav1.NamespaceDefault,
-				},
+				Name:      "baz",
+				Namespace: metav1.NamespaceDefault,
 				Spec: bootstrapv1.KubeadmConfigSpec{
 					InitConfiguration: bootstrapv1.InitConfiguration{
 						Timeouts: bootstrapv1.Timeouts{
@@ -521,10 +467,8 @@ func TestKubeadmConfigValidate(t *testing.T) {
 		},
 		"valid DiskLayout percentages": {
 			in: &bootstrapv1.KubeadmConfig{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "baz",
-					Namespace: metav1.NamespaceDefault,
-				},
+				Name:      "baz",
+				Namespace: metav1.NamespaceDefault,
 				Spec: bootstrapv1.KubeadmConfigSpec{
 					DiskSetup: bootstrapv1.DiskSetup{
 						Partitions: []bootstrapv1.Partition{
@@ -542,10 +486,8 @@ func TestKubeadmConfigValidate(t *testing.T) {
 		},
 		"invalid DiskLayout percentages > 100": {
 			in: &bootstrapv1.KubeadmConfig{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "baz",
-					Namespace: metav1.NamespaceDefault,
-				},
+				Name:      "baz",
+				Namespace: metav1.NamespaceDefault,
 				Spec: bootstrapv1.KubeadmConfigSpec{
 					DiskSetup: bootstrapv1.DiskSetup{
 						Partitions: []bootstrapv1.Partition{
@@ -564,10 +506,8 @@ func TestKubeadmConfigValidate(t *testing.T) {
 		},
 		"valid DiskLayout percentages < 100": {
 			in: &bootstrapv1.KubeadmConfig{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "baz",
-					Namespace: metav1.NamespaceDefault,
-				},
+				Name:      "baz",
+				Namespace: metav1.NamespaceDefault,
 				Spec: bootstrapv1.KubeadmConfigSpec{
 					DiskSetup: bootstrapv1.DiskSetup{
 						Partitions: []bootstrapv1.Partition{

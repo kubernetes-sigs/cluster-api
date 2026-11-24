@@ -22,7 +22,6 @@ import (
 
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
@@ -41,12 +40,10 @@ func TestIsPending(t *testing.T) {
 		{
 			name: "should return true if the hook is marked as pending",
 			obj: &corev1.ConfigMap{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-cluster",
-					Namespace: "test-ns",
-					Annotations: map[string]string{
-						runtimev1.PendingHooksAnnotation: "AfterClusterUpgrade",
-					},
+				Name:      "test-cluster",
+				Namespace: "test-ns",
+				Annotations: map[string]string{
+					runtimev1.PendingHooksAnnotation: "AfterClusterUpgrade",
 				},
 			},
 			hook: runtimehooksv1.AfterClusterUpgrade,
@@ -55,12 +52,10 @@ func TestIsPending(t *testing.T) {
 		{
 			name: "should return true if the hook is marked - other hooks are marked as pending too",
 			obj: &corev1.ConfigMap{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-cluster",
-					Namespace: "test-ns",
-					Annotations: map[string]string{
-						runtimev1.PendingHooksAnnotation: "AfterClusterUpgrade,AfterControlPlaneUpgrade",
-					},
+				Name:      "test-cluster",
+				Namespace: "test-ns",
+				Annotations: map[string]string{
+					runtimev1.PendingHooksAnnotation: "AfterClusterUpgrade,AfterControlPlaneUpgrade",
 				},
 			},
 			hook: runtimehooksv1.AfterClusterUpgrade,
@@ -69,10 +64,8 @@ func TestIsPending(t *testing.T) {
 		{
 			name: "should return false if the hook is not marked as pending",
 			obj: &corev1.ConfigMap{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-cluster",
-					Namespace: "test-ns",
-				},
+				Name:      "test-cluster",
+				Namespace: "test-ns",
 			},
 			hook: runtimehooksv1.AfterClusterUpgrade,
 			want: false,
@@ -80,12 +73,10 @@ func TestIsPending(t *testing.T) {
 		{
 			name: "should return false if the hook is not marked - other hooks are marked as pending",
 			obj: &corev1.ConfigMap{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-cluster",
-					Namespace: "test-ns",
-					Annotations: map[string]string{
-						runtimev1.PendingHooksAnnotation: "AfterControlPlaneUpgrade",
-					},
+				Name:      "test-cluster",
+				Namespace: "test-ns",
+				Annotations: map[string]string{
+					runtimev1.PendingHooksAnnotation: "AfterControlPlaneUpgrade",
 				},
 			},
 			hook: runtimehooksv1.AfterClusterUpgrade,
@@ -112,10 +103,8 @@ func TestMarkAsPending(t *testing.T) {
 		{
 			name: "should add the marker if not already marked as pending",
 			obj: &corev1.ConfigMap{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-cluster",
-					Namespace: "test-ns",
-				},
+				Name:      "test-cluster",
+				Namespace: "test-ns",
 			},
 			hook:               runtimehooksv1.AfterClusterUpgrade,
 			expectedAnnotation: "AfterClusterUpgrade",
@@ -124,12 +113,10 @@ func TestMarkAsPending(t *testing.T) {
 		{
 			name: "should add the marker if not already marked as pending - other hooks are present",
 			obj: &corev1.ConfigMap{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-cluster",
-					Namespace: "test-ns",
-					Annotations: map[string]string{
-						runtimev1.PendingHooksAnnotation: "AfterControlPlaneUpgrade",
-					},
+				Name:      "test-cluster",
+				Namespace: "test-ns",
+				Annotations: map[string]string{
+					runtimev1.PendingHooksAnnotation: "AfterControlPlaneUpgrade",
 				},
 			},
 			hook:               runtimehooksv1.AfterClusterUpgrade,
@@ -139,12 +126,10 @@ func TestMarkAsPending(t *testing.T) {
 		{
 			name: "should pass if the marker is already marked as pending",
 			obj: &corev1.ConfigMap{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-cluster",
-					Namespace: "test-ns",
-					Annotations: map[string]string{
-						runtimev1.PendingHooksAnnotation: "AfterClusterUpgrade",
-					},
+				Name:      "test-cluster",
+				Namespace: "test-ns",
+				Annotations: map[string]string{
+					runtimev1.PendingHooksAnnotation: "AfterClusterUpgrade",
 				},
 			},
 			hook:               runtimehooksv1.AfterClusterUpgrade,
@@ -154,12 +139,10 @@ func TestMarkAsPending(t *testing.T) {
 		{
 			name: "should pass if the marker is already marked as pending and remove empty string entry",
 			obj: &corev1.ConfigMap{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-cluster",
-					Namespace: "test-ns",
-					Annotations: map[string]string{
-						runtimev1.PendingHooksAnnotation: ",AfterClusterUpgrade",
-					},
+				Name:      "test-cluster",
+				Namespace: "test-ns",
+				Annotations: map[string]string{
+					runtimev1.PendingHooksAnnotation: ",AfterClusterUpgrade",
 				},
 			},
 			hook:               runtimehooksv1.AfterClusterUpgrade,
@@ -205,10 +188,8 @@ func TestMarkAsDone(t *testing.T) {
 		{
 			name: "should pass if the marker is not already present",
 			obj: &corev1.ConfigMap{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-cluster",
-					Namespace: "test-ns",
-				},
+				Name:      "test-cluster",
+				Namespace: "test-ns",
 			},
 			hook:               runtimehooksv1.AfterClusterUpgrade,
 			expectedAnnotation: "",
@@ -217,12 +198,10 @@ func TestMarkAsDone(t *testing.T) {
 		{
 			name: "should remove if the marker is already present",
 			obj: &corev1.ConfigMap{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-cluster",
-					Namespace: "test-ns",
-					Annotations: map[string]string{
-						runtimev1.PendingHooksAnnotation: "AfterClusterUpgrade",
-					},
+				Name:      "test-cluster",
+				Namespace: "test-ns",
+				Annotations: map[string]string{
+					runtimev1.PendingHooksAnnotation: "AfterClusterUpgrade",
 				},
 			},
 			hook:               runtimehooksv1.AfterClusterUpgrade,
@@ -232,12 +211,10 @@ func TestMarkAsDone(t *testing.T) {
 		{
 			name: "should remove if the marker is already present among multiple hooks",
 			obj: &corev1.ConfigMap{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-cluster",
-					Namespace: "test-ns",
-					Annotations: map[string]string{
-						runtimev1.PendingHooksAnnotation: "AfterClusterUpgrade,AfterControlPlaneUpgrade",
-					},
+				Name:      "test-cluster",
+				Namespace: "test-ns",
+				Annotations: map[string]string{
+					runtimev1.PendingHooksAnnotation: "AfterClusterUpgrade,AfterControlPlaneUpgrade",
 				},
 			},
 			hook:               runtimehooksv1.AfterClusterUpgrade,
@@ -247,12 +224,10 @@ func TestMarkAsDone(t *testing.T) {
 		{
 			name: "should remove empty string entry",
 			obj: &corev1.ConfigMap{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-cluster",
-					Namespace: "test-ns",
-					Annotations: map[string]string{
-						runtimev1.PendingHooksAnnotation: ",AfterClusterUpgrade,AfterControlPlaneUpgrade",
-					},
+				Name:      "test-cluster",
+				Namespace: "test-ns",
+				Annotations: map[string]string{
+					runtimev1.PendingHooksAnnotation: ",AfterClusterUpgrade,AfterControlPlaneUpgrade",
 				},
 			},
 			hook:               runtimehooksv1.AfterClusterUpgrade,
@@ -296,12 +271,10 @@ func TestIsOkToDelete(t *testing.T) {
 		{
 			name: "should return true if the object has the 'ok-to-delete' annotation",
 			obj: &corev1.ConfigMap{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-cluster",
-					Namespace: "test-ns",
-					Annotations: map[string]string{
-						runtimev1.OkToDeleteAnnotation: "",
-					},
+				Name:      "test-cluster",
+				Namespace: "test-ns",
+				Annotations: map[string]string{
+					runtimev1.OkToDeleteAnnotation: "",
 				},
 			},
 			want: true,
@@ -309,10 +282,8 @@ func TestIsOkToDelete(t *testing.T) {
 		{
 			name: "should return false if the object does not have the 'ok-to-delete' annotation",
 			obj: &corev1.ConfigMap{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-cluster",
-					Namespace: "test-ns",
-				},
+				Name:      "test-cluster",
+				Namespace: "test-ns",
 			},
 			want: false,
 		},
@@ -335,22 +306,18 @@ func TestMarkAsOkToDelete(t *testing.T) {
 		{
 			name: "should add the 'ok-to-delete' annotation on the object if not already present",
 			obj: &corev1.ConfigMap{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-cluster",
-					Namespace: "test-ns",
-				},
+				Name:      "test-cluster",
+				Namespace: "test-ns",
 			},
 			expectNoOp: false,
 		},
 		{
 			name: "should succeed if the 'ok-to-delete' annotation is already present",
 			obj: &corev1.ConfigMap{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-cluster",
-					Namespace: "test-ns",
-					Annotations: map[string]string{
-						runtimev1.OkToDeleteAnnotation: "",
-					},
+				Name:      "test-cluster",
+				Namespace: "test-ns",
+				Annotations: map[string]string{
+					runtimev1.OkToDeleteAnnotation: "",
 				},
 			},
 			expectNoOp: true,

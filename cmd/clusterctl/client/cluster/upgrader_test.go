@@ -23,7 +23,6 @@ import (
 	"github.com/google/go-cmp/cmp"
 	. "github.com/onsi/gomega"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/yaml"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
@@ -1459,7 +1458,7 @@ func Test_providerUpgrader_checkClusterClassRefs(t *testing.T) {
 
 	ccWithInfraTemplateRefAPIVersion := func(apiVersion string) *clusterv1.ClusterClass {
 		return &clusterv1.ClusterClass{
-			ObjectMeta: metav1.ObjectMeta{Name: "cc1", Namespace: "default"},
+			Name: "cc1", Namespace: "default",
 			Spec: clusterv1.ClusterClassSpec{
 				Infrastructure: clusterv1.InfrastructureClass{
 					TemplateRef: clusterv1.ClusterClassTemplateReference{
@@ -1583,11 +1582,9 @@ func Test_providerUpgrader_checkClusterClassRefs(t *testing.T) {
 
 func fakeCRD(name, group, kind string, versions ...string) *apiextensionsv1.CustomResourceDefinition {
 	crd := &apiextensionsv1.CustomResourceDefinition{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: apiextensionsv1.SchemeGroupVersion.String(),
-			Kind:       "CustomResourceDefinition",
-		},
-		ObjectMeta: metav1.ObjectMeta{Name: name},
+		APIVersion: apiextensionsv1.SchemeGroupVersion.String(),
+		Kind:       "CustomResourceDefinition",
+		Name:       name,
 		Spec: apiextensionsv1.CustomResourceDefinitionSpec{
 			Group: group,
 			Names: apiextensionsv1.CustomResourceDefinitionNames{Kind: kind},

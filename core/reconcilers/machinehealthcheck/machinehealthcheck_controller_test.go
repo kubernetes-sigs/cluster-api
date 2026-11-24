@@ -31,7 +31,6 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/uuid"
 	"k8s.io/client-go/tools/record"
@@ -1484,10 +1483,8 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 		g.Expect(env.Create(ctx, infraTmpl)).To(Succeed())
 
 		machineSet := &clusterv1.MachineSet{
-			ObjectMeta: metav1.ObjectMeta{
-				GenerateName: "mhc-ms-",
-				Namespace:    mhc.Namespace,
-			},
+			GenerateName: "mhc-ms-",
+			Namespace:    mhc.Namespace,
 			Spec: clusterv1.MachineSetSpec{
 				ClusterName: cluster.Name,
 				Replicas:    ptr.To[int32](1),
@@ -2117,16 +2114,14 @@ func TestClusterToMachineHealthCheck(t *testing.T) {
 	labels := make(map[string]string)
 
 	mhc1 := newMachineHealthCheckWithLabels("mhc1", namespace, clusterName, labels)
-	mhc1Req := reconcile.Request{NamespacedName: types.NamespacedName{Namespace: mhc1.Namespace, Name: mhc1.Name}}
+	mhc1Req := reconcile.Request{Namespace: mhc1.Namespace, Name: mhc1.Name}
 	mhc2 := newMachineHealthCheckWithLabels("mhc2", namespace, clusterName, labels)
-	mhc2Req := reconcile.Request{NamespacedName: types.NamespacedName{Namespace: mhc2.Namespace, Name: mhc2.Name}}
+	mhc2Req := reconcile.Request{Namespace: mhc2.Namespace, Name: mhc2.Name}
 	mhc3 := newMachineHealthCheckWithLabels("mhc3", namespace, "othercluster", labels)
 	mhc4 := newMachineHealthCheckWithLabels("mhc4", "othernamespace", clusterName, labels)
 	cluster1 := &clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      clusterName,
-			Namespace: namespace,
-		},
+		Name:      clusterName,
+		Namespace: namespace,
 	}
 
 	testCases := []struct {
@@ -2197,9 +2192,9 @@ func TestMachineToMachineHealthCheck(t *testing.T) {
 	labels := map[string]string{"cluster": "foo", "nodepool": "bar"}
 
 	mhc1 := newMachineHealthCheckWithLabels("mhc1", namespace, clusterName, labels)
-	mhc1Req := reconcile.Request{NamespacedName: types.NamespacedName{Namespace: mhc1.Namespace, Name: mhc1.Name}}
+	mhc1Req := reconcile.Request{Namespace: mhc1.Namespace, Name: mhc1.Name}
 	mhc2 := newMachineHealthCheckWithLabels("mhc2", namespace, clusterName, labels)
-	mhc2Req := reconcile.Request{NamespacedName: types.NamespacedName{Namespace: mhc2.Namespace, Name: mhc2.Name}}
+	mhc2Req := reconcile.Request{Namespace: mhc2.Namespace, Name: mhc2.Name}
 	mhc3 := newMachineHealthCheckWithLabels("mhc3", namespace, clusterName, map[string]string{"cluster": "foo", "nodepool": "other"})
 	mhc4 := newMachineHealthCheckWithLabels("mhc4", "othernamespace", clusterName, labels)
 	machine1 := newTestMachine("machine1", namespace, clusterName, nodeName, labels)
@@ -2275,9 +2270,9 @@ func TestNodeToMachineHealthCheck(t *testing.T) {
 	labels := map[string]string{"cluster": "foo", "nodepool": "bar"}
 
 	mhc1 := newMachineHealthCheckWithLabels("mhc1", namespace, clusterName, labels)
-	mhc1Req := reconcile.Request{NamespacedName: types.NamespacedName{Namespace: mhc1.Namespace, Name: mhc1.Name}}
+	mhc1Req := reconcile.Request{Namespace: mhc1.Namespace, Name: mhc1.Name}
 	mhc2 := newMachineHealthCheckWithLabels("mhc2", namespace, clusterName, labels)
-	mhc2Req := reconcile.Request{NamespacedName: types.NamespacedName{Namespace: mhc2.Namespace, Name: mhc2.Name}}
+	mhc2Req := reconcile.Request{Namespace: mhc2.Namespace, Name: mhc2.Name}
 	mhc3 := newMachineHealthCheckWithLabels("mhc3", namespace, "othercluster", labels)
 	mhc4 := newMachineHealthCheckWithLabels("mhc4", "othernamespace", clusterName, labels)
 
@@ -2285,9 +2280,7 @@ func TestNodeToMachineHealthCheck(t *testing.T) {
 	machine2 := newTestMachine("machine2", namespace, clusterName, nodeName, labels)
 
 	node1 := &corev1.Node{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: nodeName,
-		},
+		Name: nodeName,
 	}
 
 	testCases := []struct {
@@ -2570,10 +2563,8 @@ func ownerReferenceForCluster(ctx context.Context, g *WithT, c *clusterv1.Cluste
 // createCluster creates a Cluster and KubeconfigSecret for that cluster in said namespace.
 func createCluster(g *WithT, namespaceName string) *clusterv1.Cluster {
 	cluster := &clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{
-			GenerateName: "test-cluster-",
-			Namespace:    namespaceName,
-		},
+		GenerateName: "test-cluster-",
+		Namespace:    namespaceName,
 		Spec: clusterv1.ClusterSpec{
 			ControlPlaneRef: clusterv1.ContractVersionedObjectReference{
 				APIGroup: builder.ControlPlaneGroupVersion.Group,
@@ -2617,11 +2608,9 @@ func createCluster(g *WithT, namespaceName string) *clusterv1.Cluster {
 // newRunningMachine creates a Machine object with a Status.Phase == Running.
 func newRunningMachine(c *clusterv1.Cluster, labels map[string]string) *clusterv1.Machine {
 	return &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{
-			GenerateName: "test-mhc-machine-",
-			Namespace:    c.Namespace,
-			Labels:       labels,
-		},
+		GenerateName: "test-mhc-machine-",
+		Namespace:    c.Namespace,
+		Labels:       labels,
 		Spec: clusterv1.MachineSpec{
 			ClusterName: c.Name,
 			Bootstrap: clusterv1.Bootstrap{
@@ -2774,9 +2763,7 @@ func createMachinesWithNodes(
 		if o.createNodeRefForMachine {
 			// Create node
 			node := &corev1.Node{
-				ObjectMeta: metav1.ObjectMeta{
-					GenerateName: "test-mhc-node-",
-				},
+				GenerateName: "test-mhc-node-",
 				Spec: corev1.NodeSpec{
 					ProviderID: providerID,
 				},
@@ -2863,10 +2850,8 @@ func newMachineHealthCheckWithLabels(name, namespace, cluster string, labels map
 func newMachineHealthCheck(namespace, clusterName string) *clusterv1.MachineHealthCheck {
 	maxUnhealthy := intstr.FromString("100%")
 	return &clusterv1.MachineHealthCheck{
-		ObjectMeta: metav1.ObjectMeta{
-			GenerateName: "test-mhc-",
-			Namespace:    namespace,
-		},
+		GenerateName: "test-mhc-",
+		Namespace:    namespace,
 		Spec: clusterv1.MachineHealthCheckSpec{
 			ClusterName: clusterName,
 			Selector: metav1.LabelSelector{
@@ -2899,10 +2884,8 @@ func TestPatchTargets(t *testing.T) {
 	namespace := metav1.NamespaceDefault
 	clusterName := testClusterName
 	defaultCluster := &clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      clusterName,
-			Namespace: namespace,
-		},
+		Name:      clusterName,
+		Namespace: namespace,
 	}
 	labels := map[string]string{"cluster": "foo", "nodepool": "bar"}
 

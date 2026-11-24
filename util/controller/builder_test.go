@@ -26,7 +26,6 @@ import (
 	"github.com/go-logr/logr"
 	. "github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/config"
@@ -102,10 +101,8 @@ func TestTypedItemExponentialFailureRateLimiter(t *testing.T) {
 	rateLimiter := newTypedItemExponentialFailureRateLimiter[reconcile.Request](rateLimitInterval, 5*time.Millisecond, 1000*time.Second)
 
 	req := reconcile.Request{
-		NamespacedName: types.NamespacedName{
-			Namespace: "default",
-			Name:      "cluster-1",
-		},
+		Namespace: "default",
+		Name:      "cluster-1",
 	}
 
 	durations := make([]time.Duration, 0, 100)

@@ -57,12 +57,10 @@ func newDControllerRef(md *clusterv1.MachineDeployment) *metav1.OwnerReference {
 func generateMS(md clusterv1.MachineDeployment) clusterv1.MachineSet {
 	template := md.Spec.Template.DeepCopy()
 	return clusterv1.MachineSet{
-		ObjectMeta: metav1.ObjectMeta{
-			UID:             randomUID(),
-			Name:            names.SimpleNameGenerator.GenerateName("machineset"),
-			Labels:          template.Labels,
-			OwnerReferences: []metav1.OwnerReference{*newDControllerRef(&md)},
-		},
+		UID:             randomUID(),
+		Name:            names.SimpleNameGenerator.GenerateName("machineset"),
+		Labels:          template.Labels,
+		OwnerReferences: []metav1.OwnerReference{*newDControllerRef(&md)},
 		Spec: clusterv1.MachineSetSpec{
 			Replicas: new(int32),
 			Template: *template,
@@ -79,10 +77,8 @@ func randomUID() types.UID {
 func generateDeployment(image string) clusterv1.MachineDeployment {
 	machineLabels := map[string]string{"name": image}
 	return clusterv1.MachineDeployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:        image,
-			Annotations: make(map[string]string),
-		},
+		Name:        image,
+		Annotations: make(map[string]string),
 		Spec: clusterv1.MachineDeploymentSpec{
 			Replicas: ptr.To[int32](3),
 			Selector: metav1.LabelSelector{MatchLabels: machineLabels},
@@ -104,40 +100,32 @@ func TestMachineSetsByDecreasingReplicas(t *testing.T) {
 	t0 := time.Now()
 	t1 := t0.Add(1 * time.Minute)
 	msAReplicas1T0 := &clusterv1.MachineSet{
-		ObjectMeta: metav1.ObjectMeta{
-			CreationTimestamp: metav1.Time{Time: t0},
-			Name:              "ms-a",
-		},
+		CreationTimestamp: metav1.Time{Time: t0},
+		Name:              "ms-a",
 		Spec: clusterv1.MachineSetSpec{
 			Replicas: ptr.To[int32](1),
 		},
 	}
 
 	msAAReplicas3T0 := &clusterv1.MachineSet{
-		ObjectMeta: metav1.ObjectMeta{
-			CreationTimestamp: metav1.Time{Time: t0},
-			Name:              "ms-aa",
-		},
+		CreationTimestamp: metav1.Time{Time: t0},
+		Name:              "ms-aa",
 		Spec: clusterv1.MachineSetSpec{
 			Replicas: ptr.To[int32](3),
 		},
 	}
 
 	msBReplicas1T0 := &clusterv1.MachineSet{
-		ObjectMeta: metav1.ObjectMeta{
-			CreationTimestamp: metav1.Time{Time: t0},
-			Name:              "ms-b",
-		},
+		CreationTimestamp: metav1.Time{Time: t0},
+		Name:              "ms-b",
 		Spec: clusterv1.MachineSetSpec{
 			Replicas: ptr.To[int32](1),
 		},
 	}
 
 	msAReplicas1T1 := &clusterv1.MachineSet{
-		ObjectMeta: metav1.ObjectMeta{
-			CreationTimestamp: metav1.Time{Time: t1},
-			Name:              "ms-a",
-		},
+		CreationTimestamp: metav1.Time{Time: t1},
+		Name:              "ms-a",
 		Spec: clusterv1.MachineSetSpec{
 			Replicas: ptr.To[int32](1),
 		},
@@ -177,10 +165,8 @@ func TestMachineSetsByDecreasingReplicas(t *testing.T) {
 
 func TestMachineTemplateUpToDate(t *testing.T) {
 	machineTemplate := &clusterv1.MachineTemplateSpec{
-		ObjectMeta: clusterv1.ObjectMeta{
-			Labels:      map[string]string{"l1": "v1"},
-			Annotations: map[string]string{"a1": "v1"},
-		},
+		Labels:      map[string]string{"l1": "v1"},
+		Annotations: map[string]string{"a1": "v1"},
 		Spec: clusterv1.MachineSpec{
 			Deletion: clusterv1.MachineDeletionSpec{
 				NodeDrainTimeoutSeconds:        new(int32(10)),
@@ -1137,10 +1123,8 @@ func TestIsSaturated(t *testing.T) {
 	tDeployment.Spec.Replicas = ptr.To[int32](3)
 
 	tMS := &clusterv1.MachineSet{
-		ObjectMeta: metav1.ObjectMeta{
-			Annotations: map[string]string{
-				clusterv1.DesiredReplicasAnnotation: "3",
-			},
+		Annotations: map[string]string{
+			clusterv1.DesiredReplicasAnnotation: "3",
 		},
 	}
 
@@ -1252,10 +1236,8 @@ func TestGetRevisionAnnotations(t *testing.T) {
 
 func machineSetWithRevision(revision string) *clusterv1.MachineSet {
 	return &clusterv1.MachineSet{
-		ObjectMeta: metav1.ObjectMeta{
-			Annotations: map[string]string{
-				clusterv1.RevisionAnnotation: revision,
-			},
+		Annotations: map[string]string{
+			clusterv1.RevisionAnnotation: revision,
 		},
 	}
 }

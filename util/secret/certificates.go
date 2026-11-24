@@ -372,12 +372,10 @@ func hashCert(certificate *x509.Certificate) string {
 // AsSecret converts a single certificate into a Kubernetes secret.
 func (c *Certificate) AsSecret(clusterName client.ObjectKey, owner metav1.OwnerReference) *corev1.Secret {
 	s := &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: clusterName.Namespace,
-			Name:      Name(clusterName.Name, c.Purpose),
-			Labels: map[string]string{
-				clusterv1.ClusterNameLabel: clusterName.Name,
-			},
+		Namespace: clusterName.Namespace,
+		Name:      Name(clusterName.Name, c.Purpose),
+		Labels: map[string]string{
+			clusterv1.ClusterNameLabel: clusterName.Name,
 		},
 		Data: map[string][]byte{
 			TLSKeyDataName: c.KeyPair.Key,

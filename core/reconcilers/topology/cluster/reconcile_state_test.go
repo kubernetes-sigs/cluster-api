@@ -324,14 +324,10 @@ func TestReconcile_callAfterControlPlaneInitialized(t *testing.T) {
 	}
 
 	successResponse := &runtimehooksv1.AfterControlPlaneInitializedResponse{
-		CommonResponse: runtimehooksv1.CommonResponse{
-			Status: runtimehooksv1.ResponseStatusSuccess,
-		},
+		Status: runtimehooksv1.ResponseStatusSuccess,
 	}
 	failureResponse := &runtimehooksv1.AfterControlPlaneInitializedResponse{
-		CommonResponse: runtimehooksv1.CommonResponse{
-			Status: runtimehooksv1.ResponseStatusFailure,
-		},
+		Status: runtimehooksv1.ResponseStatusFailure,
 	}
 
 	tests := []struct {
@@ -345,11 +341,9 @@ func TestReconcile_callAfterControlPlaneInitialized(t *testing.T) {
 		{
 			name: "hook should be marked if the cluster is about to be created",
 			cluster: &clusterv1.Cluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-cluster",
-					Namespace: "test-ns",
-				},
-				Spec: clusterv1.ClusterSpec{},
+				Name:      "test-cluster",
+				Namespace: "test-ns",
+				Spec:      clusterv1.ClusterSpec{},
 			},
 			hookResponse:       successResponse,
 			wantMarked:         true,
@@ -359,12 +353,10 @@ func TestReconcile_callAfterControlPlaneInitialized(t *testing.T) {
 		{
 			name: "hook should be called if it is marked and the control plane is ready - the hook should become unmarked for a success response",
 			cluster: &clusterv1.Cluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-cluster",
-					Namespace: "test-ns",
-					Annotations: map[string]string{
-						runtimev1.PendingHooksAnnotation: "AfterControlPlaneInitialized",
-					},
+				Name:      "test-cluster",
+				Namespace: "test-ns",
+				Annotations: map[string]string{
+					runtimev1.PendingHooksAnnotation: "AfterControlPlaneInitialized",
 				},
 				Spec: clusterv1.ClusterSpec{
 					ControlPlaneRef: clusterv1.ContractVersionedObjectReference{
@@ -392,12 +384,10 @@ func TestReconcile_callAfterControlPlaneInitialized(t *testing.T) {
 		{
 			name: "hook should be called if it is marked and the control plane is ready - the hook should remain marked for a failure response",
 			cluster: &clusterv1.Cluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-cluster",
-					Namespace: "test-ns",
-					Annotations: map[string]string{
-						runtimev1.PendingHooksAnnotation: "AfterControlPlaneInitialized",
-					},
+				Name:      "test-cluster",
+				Namespace: "test-ns",
+				Annotations: map[string]string{
+					runtimev1.PendingHooksAnnotation: "AfterControlPlaneInitialized",
 				},
 				Spec: clusterv1.ClusterSpec{
 					ControlPlaneRef: clusterv1.ContractVersionedObjectReference{
@@ -425,12 +415,10 @@ func TestReconcile_callAfterControlPlaneInitialized(t *testing.T) {
 		{
 			name: "hook should not be called if it is marked and the control plane is not ready - the hook should remain marked",
 			cluster: &clusterv1.Cluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-cluster",
-					Namespace: "test-ns",
-					Annotations: map[string]string{
-						runtimev1.PendingHooksAnnotation: "AfterControlPlaneInitialized",
-					},
+				Name:      "test-cluster",
+				Namespace: "test-ns",
+				Annotations: map[string]string{
+					runtimev1.PendingHooksAnnotation: "AfterControlPlaneInitialized",
 				},
 				Spec: clusterv1.ClusterSpec{
 					ControlPlaneRef: clusterv1.ContractVersionedObjectReference{
@@ -458,10 +446,8 @@ func TestReconcile_callAfterControlPlaneInitialized(t *testing.T) {
 		{
 			name: "hook should not be called if it is not marked",
 			cluster: &clusterv1.Cluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-cluster",
-					Namespace: "test-ns",
-				},
+				Name:      "test-cluster",
+				Namespace: "test-ns",
 				Spec: clusterv1.ClusterSpec{
 					ControlPlaneRef: clusterv1.ContractVersionedObjectReference{
 						APIGroup: "refAPIGroup1",
@@ -558,27 +544,15 @@ func TestReconcile_callAfterClusterUpgrade(t *testing.T) {
 	}
 
 	successResponse := &runtimehooksv1.AfterClusterUpgradeResponse{
-		CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
-			CommonResponse: runtimehooksv1.CommonResponse{
-				Status: runtimehooksv1.ResponseStatusSuccess,
-			},
-		},
+		Status: runtimehooksv1.ResponseStatusSuccess,
 	}
 	failureResponse := &runtimehooksv1.AfterClusterUpgradeResponse{
-		CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
-			CommonResponse: runtimehooksv1.CommonResponse{
-				Status: runtimehooksv1.ResponseStatusFailure,
-			},
-		},
+		Status: runtimehooksv1.ResponseStatusFailure,
 	}
 	blockingResponse := &runtimehooksv1.AfterClusterUpgradeResponse{
-		CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
-			CommonResponse: runtimehooksv1.CommonResponse{
-				Status:  runtimehooksv1.ResponseStatusSuccess,
-				Message: "processing",
-			},
-			RetryAfterSeconds: 60,
-		},
+		Status:            runtimehooksv1.ResponseStatusSuccess,
+		Message:           "processing",
+		RetryAfterSeconds: 60,
 	}
 
 	topologyVersion := "v1.2.3"
@@ -607,11 +581,9 @@ func TestReconcile_callAfterClusterUpgrade(t *testing.T) {
 				},
 				Current: &scope.ClusterState{
 					Cluster: &clusterv1.Cluster{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      "test-cluster",
-							Namespace: "test-ns",
-						},
-						Spec: clusterv1.ClusterSpec{},
+						Name:      "test-cluster",
+						Namespace: "test-ns",
+						Spec:      clusterv1.ClusterSpec{},
 					},
 					ControlPlane: &scope.ControlPlaneState{
 						Object: controlPlaneObj,
@@ -637,12 +609,10 @@ func TestReconcile_callAfterClusterUpgrade(t *testing.T) {
 				},
 				Current: &scope.ClusterState{
 					Cluster: &clusterv1.Cluster{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      "test-cluster",
-							Namespace: "test-ns",
-							Annotations: map[string]string{
-								runtimev1.PendingHooksAnnotation: "AfterClusterUpgrade",
-							},
+						Name:      "test-cluster",
+						Namespace: "test-ns",
+						Annotations: map[string]string{
+							runtimev1.PendingHooksAnnotation: "AfterClusterUpgrade",
 						},
 						Spec: clusterv1.ClusterSpec{},
 					},
@@ -674,12 +644,10 @@ func TestReconcile_callAfterClusterUpgrade(t *testing.T) {
 				},
 				Current: &scope.ClusterState{
 					Cluster: &clusterv1.Cluster{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      "test-cluster",
-							Namespace: "test-ns",
-							Annotations: map[string]string{
-								runtimev1.PendingHooksAnnotation: "AfterClusterUpgrade",
-							},
+						Name:      "test-cluster",
+						Namespace: "test-ns",
+						Annotations: map[string]string{
+							runtimev1.PendingHooksAnnotation: "AfterClusterUpgrade",
 						},
 						Spec: clusterv1.ClusterSpec{},
 					},
@@ -711,12 +679,10 @@ func TestReconcile_callAfterClusterUpgrade(t *testing.T) {
 				},
 				Current: &scope.ClusterState{
 					Cluster: &clusterv1.Cluster{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      "test-cluster",
-							Namespace: "test-ns",
-							Annotations: map[string]string{
-								runtimev1.PendingHooksAnnotation: "AfterClusterUpgrade",
-							},
+						Name:      "test-cluster",
+						Namespace: "test-ns",
+						Annotations: map[string]string{
+							runtimev1.PendingHooksAnnotation: "AfterClusterUpgrade",
 						},
 						Spec: clusterv1.ClusterSpec{Topology: clusterv1.Topology{}},
 					},
@@ -747,12 +713,10 @@ func TestReconcile_callAfterClusterUpgrade(t *testing.T) {
 				},
 				Current: &scope.ClusterState{
 					Cluster: &clusterv1.Cluster{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      "test-cluster",
-							Namespace: "test-ns",
-							Annotations: map[string]string{
-								runtimev1.PendingHooksAnnotation: "AfterClusterUpgrade",
-							},
+						Name:      "test-cluster",
+						Namespace: "test-ns",
+						Annotations: map[string]string{
+							runtimev1.PendingHooksAnnotation: "AfterClusterUpgrade",
 						},
 						Spec: clusterv1.ClusterSpec{},
 					},
@@ -784,12 +748,10 @@ func TestReconcile_callAfterClusterUpgrade(t *testing.T) {
 				},
 				Current: &scope.ClusterState{
 					Cluster: &clusterv1.Cluster{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      "test-cluster",
-							Namespace: "test-ns",
-							Annotations: map[string]string{
-								runtimev1.PendingHooksAnnotation: "AfterClusterUpgrade",
-							},
+						Name:      "test-cluster",
+						Namespace: "test-ns",
+						Annotations: map[string]string{
+							runtimev1.PendingHooksAnnotation: "AfterClusterUpgrade",
 						},
 						Spec: clusterv1.ClusterSpec{},
 					},
@@ -822,12 +784,10 @@ func TestReconcile_callAfterClusterUpgrade(t *testing.T) {
 				},
 				Current: &scope.ClusterState{
 					Cluster: &clusterv1.Cluster{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      "test-cluster",
-							Namespace: "test-ns",
-							Annotations: map[string]string{
-								runtimev1.PendingHooksAnnotation: "AfterClusterUpgrade",
-							},
+						Name:      "test-cluster",
+						Namespace: "test-ns",
+						Annotations: map[string]string{
+							runtimev1.PendingHooksAnnotation: "AfterClusterUpgrade",
 						},
 						Spec: clusterv1.ClusterSpec{},
 					},
@@ -860,12 +820,10 @@ func TestReconcile_callAfterClusterUpgrade(t *testing.T) {
 				},
 				Current: &scope.ClusterState{
 					Cluster: &clusterv1.Cluster{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      "test-cluster",
-							Namespace: "test-ns",
-							Annotations: map[string]string{
-								runtimev1.PendingHooksAnnotation: "AfterClusterUpgrade",
-							},
+						Name:      "test-cluster",
+						Namespace: "test-ns",
+						Annotations: map[string]string{
+							runtimev1.PendingHooksAnnotation: "AfterClusterUpgrade",
 						},
 						Spec: clusterv1.ClusterSpec{},
 					},
@@ -898,12 +856,10 @@ func TestReconcile_callAfterClusterUpgrade(t *testing.T) {
 				},
 				Current: &scope.ClusterState{
 					Cluster: &clusterv1.Cluster{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      "test-cluster",
-							Namespace: "test-ns",
-							Annotations: map[string]string{
-								runtimev1.PendingHooksAnnotation: "AfterClusterUpgrade",
-							},
+						Name:      "test-cluster",
+						Namespace: "test-ns",
+						Annotations: map[string]string{
+							runtimev1.PendingHooksAnnotation: "AfterClusterUpgrade",
 						},
 						Spec: clusterv1.ClusterSpec{},
 					},
@@ -936,12 +892,10 @@ func TestReconcile_callAfterClusterUpgrade(t *testing.T) {
 				},
 				Current: &scope.ClusterState{
 					Cluster: &clusterv1.Cluster{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      "test-cluster",
-							Namespace: "test-ns",
-							Annotations: map[string]string{
-								runtimev1.PendingHooksAnnotation: "AfterClusterUpgrade",
-							},
+						Name:      "test-cluster",
+						Namespace: "test-ns",
+						Annotations: map[string]string{
+							runtimev1.PendingHooksAnnotation: "AfterClusterUpgrade",
 						},
 						Spec: clusterv1.ClusterSpec{},
 					},
@@ -974,12 +928,10 @@ func TestReconcile_callAfterClusterUpgrade(t *testing.T) {
 				},
 				Current: &scope.ClusterState{
 					Cluster: &clusterv1.Cluster{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      "test-cluster",
-							Namespace: "test-ns",
-							Annotations: map[string]string{
-								runtimev1.PendingHooksAnnotation: "AfterClusterUpgrade",
-							},
+						Name:      "test-cluster",
+						Namespace: "test-ns",
+						Annotations: map[string]string{
+							runtimev1.PendingHooksAnnotation: "AfterClusterUpgrade",
 						},
 						Spec: clusterv1.ClusterSpec{},
 					},
@@ -1012,12 +964,10 @@ func TestReconcile_callAfterClusterUpgrade(t *testing.T) {
 				},
 				Current: &scope.ClusterState{
 					Cluster: &clusterv1.Cluster{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      "test-cluster",
-							Namespace: "test-ns",
-							Annotations: map[string]string{
-								runtimev1.PendingHooksAnnotation: "AfterClusterUpgrade",
-							},
+						Name:      "test-cluster",
+						Namespace: "test-ns",
+						Annotations: map[string]string{
+							runtimev1.PendingHooksAnnotation: "AfterClusterUpgrade",
 						},
 						Spec: clusterv1.ClusterSpec{},
 					},
@@ -1050,12 +1000,10 @@ func TestReconcile_callAfterClusterUpgrade(t *testing.T) {
 				},
 				Current: &scope.ClusterState{
 					Cluster: &clusterv1.Cluster{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      "test-cluster",
-							Namespace: "test-ns",
-							Annotations: map[string]string{
-								runtimev1.PendingHooksAnnotation: "AfterClusterUpgrade",
-							},
+						Name:      "test-cluster",
+						Namespace: "test-ns",
+						Annotations: map[string]string{
+							runtimev1.PendingHooksAnnotation: "AfterClusterUpgrade",
 						},
 						Spec: clusterv1.ClusterSpec{},
 					},
@@ -1088,12 +1036,10 @@ func TestReconcile_callAfterClusterUpgrade(t *testing.T) {
 				},
 				Current: &scope.ClusterState{
 					Cluster: &clusterv1.Cluster{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      "test-cluster",
-							Namespace: "test-ns",
-							Annotations: map[string]string{
-								runtimev1.PendingHooksAnnotation: "AfterClusterUpgrade,AfterControlPlaneUpgrade",
-							},
+						Name:      "test-cluster",
+						Namespace: "test-ns",
+						Annotations: map[string]string{
+							runtimev1.PendingHooksAnnotation: "AfterClusterUpgrade,AfterControlPlaneUpgrade",
 						},
 						Spec: clusterv1.ClusterSpec{
 							Topology: clusterv1.Topology{
@@ -1125,12 +1071,10 @@ func TestReconcile_callAfterClusterUpgrade(t *testing.T) {
 				},
 				Current: &scope.ClusterState{
 					Cluster: &clusterv1.Cluster{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      "test-cluster",
-							Namespace: "test-ns",
-							Annotations: map[string]string{
-								runtimev1.PendingHooksAnnotation: "AfterClusterUpgrade,AfterWorkersUpgrade",
-							},
+						Name:      "test-cluster",
+						Namespace: "test-ns",
+						Annotations: map[string]string{
+							runtimev1.PendingHooksAnnotation: "AfterClusterUpgrade,AfterWorkersUpgrade",
 						},
 						Spec: clusterv1.ClusterSpec{
 							Topology: clusterv1.Topology{
@@ -1162,12 +1106,10 @@ func TestReconcile_callAfterClusterUpgrade(t *testing.T) {
 				},
 				Current: &scope.ClusterState{
 					Cluster: &clusterv1.Cluster{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      "test-cluster",
-							Namespace: "test-ns",
-							Annotations: map[string]string{
-								runtimev1.PendingHooksAnnotation: "AfterClusterUpgrade",
-							},
+						Name:      "test-cluster",
+						Namespace: "test-ns",
+						Annotations: map[string]string{
+							runtimev1.PendingHooksAnnotation: "AfterClusterUpgrade",
 						},
 						Spec: clusterv1.ClusterSpec{
 							Topology: clusterv1.Topology{
@@ -1199,12 +1141,10 @@ func TestReconcile_callAfterClusterUpgrade(t *testing.T) {
 				},
 				Current: &scope.ClusterState{
 					Cluster: &clusterv1.Cluster{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      "test-cluster",
-							Namespace: "test-ns",
-							Annotations: map[string]string{
-								runtimev1.PendingHooksAnnotation: "AfterClusterUpgrade",
-							},
+						Name:      "test-cluster",
+						Namespace: "test-ns",
+						Annotations: map[string]string{
+							runtimev1.PendingHooksAnnotation: "AfterClusterUpgrade",
 						},
 						Spec: clusterv1.ClusterSpec{
 							Topology: clusterv1.Topology{
@@ -1225,10 +1165,8 @@ func TestReconcile_callAfterClusterUpgrade(t *testing.T) {
 			wantRetryAfter:     time.Second * time.Duration(blockingResponse.RetryAfterSeconds),
 			wantError:          false,
 			wantHookCacheEntry: new(cache.NewHookEntry(&clusterv1.Cluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "test-ns",
-					Name:      "test-cluster",
-				},
+				Namespace: "test-ns",
+				Name:      "test-cluster",
 			}, runtimehooksv1.AfterClusterUpgrade,
 				time.Now().Add(time.Duration(blockingResponse.RetryAfterSeconds)*time.Second), blockingResponse.Message)),
 		},
@@ -1244,12 +1182,10 @@ func TestReconcile_callAfterClusterUpgrade(t *testing.T) {
 				},
 				Current: &scope.ClusterState{
 					Cluster: &clusterv1.Cluster{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      "test-cluster",
-							Namespace: "test-ns",
-							Annotations: map[string]string{
-								runtimev1.PendingHooksAnnotation: "AfterClusterUpgrade",
-							},
+						Name:      "test-cluster",
+						Namespace: "test-ns",
+						Annotations: map[string]string{
+							runtimev1.PendingHooksAnnotation: "AfterClusterUpgrade",
 						},
 						Spec: clusterv1.ClusterSpec{
 							Topology: clusterv1.Topology{

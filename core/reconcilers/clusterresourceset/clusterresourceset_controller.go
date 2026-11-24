@@ -94,10 +94,8 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 		WatchesRawSource(source.Kind(
 			partialSecretCache,
 			&metav1.PartialObjectMetadata{
-				TypeMeta: metav1.TypeMeta{
-					Kind:       "Secret",
-					APIVersion: "v1",
-				},
+				Kind:       "Secret",
+				APIVersion: "v1",
 			},
 			handler.TypedEnqueueRequestsFromMapFunc(
 				resourceToClusterResourceSetFunc[*metav1.PartialObjectMetadata](r.Client),

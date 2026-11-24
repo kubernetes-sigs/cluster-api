@@ -21,7 +21,6 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
@@ -57,10 +56,8 @@ func Test_metadataClient_Get(t *testing.T) {
 					}),
 			},
 			want: &clusterctlv1.Metadata{
-				TypeMeta: metav1.TypeMeta{
-					APIVersion: clusterctlv1.GroupVersion.String(),
-					Kind:       "Metadata",
-				},
+				APIVersion: clusterctlv1.GroupVersion.String(),
+				Kind:       "Metadata",
 				ReleaseSeries: []clusterctlv1.ReleaseSeries{
 					{
 						Major:    1,
@@ -147,10 +144,8 @@ func Test_validateMetadata(t *testing.T) {
 		{
 			name: "valid metadata",
 			metadata: &clusterctlv1.Metadata{
-				TypeMeta: metav1.TypeMeta{
-					APIVersion: clusterctlv1.GroupVersion.String(),
-					Kind:       "Metadata",
-				},
+				APIVersion: clusterctlv1.GroupVersion.String(),
+				Kind:       "Metadata",
 				ReleaseSeries: []clusterctlv1.ReleaseSeries{
 					{Major: 1, Minor: 0, Contract: "v1beta1"},
 				},
@@ -161,10 +156,8 @@ func Test_validateMetadata(t *testing.T) {
 		{
 			name: "invalid apiVersion",
 			metadata: &clusterctlv1.Metadata{
-				TypeMeta: metav1.TypeMeta{
-					APIVersion: "wrong.group/v1",
-					Kind:       "Metadata",
-				},
+				APIVersion: "wrong.group/v1",
+				Kind:       "Metadata",
 				ReleaseSeries: []clusterctlv1.ReleaseSeries{
 					{Major: 1, Minor: 0, Contract: "v1beta1"},
 				},
@@ -176,10 +169,8 @@ func Test_validateMetadata(t *testing.T) {
 		{
 			name: "invalid kind",
 			metadata: &clusterctlv1.Metadata{
-				TypeMeta: metav1.TypeMeta{
-					APIVersion: clusterctlv1.GroupVersion.String(),
-					Kind:       "WrongKind",
-				},
+				APIVersion: clusterctlv1.GroupVersion.String(),
+				Kind:       "WrongKind",
 				ReleaseSeries: []clusterctlv1.ReleaseSeries{
 					{Major: 1, Minor: 0, Contract: "v1beta1"},
 				},
@@ -191,10 +182,8 @@ func Test_validateMetadata(t *testing.T) {
 		{
 			name: "empty kind passes validation",
 			metadata: &clusterctlv1.Metadata{
-				TypeMeta: metav1.TypeMeta{
-					APIVersion: clusterctlv1.GroupVersion.String(),
-					Kind:       "",
-				},
+				APIVersion: clusterctlv1.GroupVersion.String(),
+				Kind:       "",
 				ReleaseSeries: []clusterctlv1.ReleaseSeries{
 					{Major: 1, Minor: 0, Contract: "v1beta1"},
 				},
@@ -205,10 +194,8 @@ func Test_validateMetadata(t *testing.T) {
 		{
 			name: "empty releaseSeries",
 			metadata: &clusterctlv1.Metadata{
-				TypeMeta: metav1.TypeMeta{
-					APIVersion: clusterctlv1.GroupVersion.String(),
-					Kind:       "Metadata",
-				},
+				APIVersion:    clusterctlv1.GroupVersion.String(),
+				Kind:          "Metadata",
 				ReleaseSeries: []clusterctlv1.ReleaseSeries{},
 			},
 			providerLabel: "infra-test",

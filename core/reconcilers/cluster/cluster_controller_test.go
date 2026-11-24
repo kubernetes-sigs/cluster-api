@@ -61,10 +61,8 @@ func TestClusterReconciler(t *testing.T) {
 		g := NewWithT(t)
 
 		instance := &clusterv1.Cluster{
-			ObjectMeta: metav1.ObjectMeta{
-				GenerateName: "test1-",
-				Namespace:    ns.Name,
-			},
+			GenerateName: "test1-",
+			Namespace:    ns.Name,
 			Spec: clusterv1.ClusterSpec{
 				ControlPlaneRef: clusterv1.ContractVersionedObjectReference{
 					APIGroup: builder.ControlPlaneGroupVersion.Group,
@@ -128,10 +126,8 @@ func TestClusterReconciler(t *testing.T) {
 
 		// Setup
 		cluster := &clusterv1.Cluster{
-			ObjectMeta: metav1.ObjectMeta{
-				GenerateName: "test2-",
-				Namespace:    ns.Name,
-			},
+			GenerateName: "test2-",
+			Namespace:    ns.Name,
 			Spec: clusterv1.ClusterSpec{
 				ControlPlaneRef: clusterv1.ContractVersionedObjectReference{
 					APIGroup: builder.ControlPlaneGroupVersion.Group,
@@ -189,10 +185,8 @@ func TestClusterReconciler(t *testing.T) {
 
 		// Setup
 		cluster := &clusterv1.Cluster{
-			ObjectMeta: metav1.ObjectMeta{
-				GenerateName: "test3-",
-				Namespace:    ns.Name,
-			},
+			GenerateName: "test3-",
+			Namespace:    ns.Name,
 			Spec: clusterv1.ClusterSpec{
 				ControlPlaneRef: clusterv1.ContractVersionedObjectReference{
 					APIGroup: builder.ControlPlaneGroupVersion.Group,
@@ -240,10 +234,8 @@ func TestClusterReconciler(t *testing.T) {
 
 		// Setup
 		cluster := &clusterv1.Cluster{
-			ObjectMeta: metav1.ObjectMeta{
-				GenerateName: "test3-",
-				Namespace:    ns.Name,
-			},
+			GenerateName: "test3-",
+			Namespace:    ns.Name,
 			Spec: clusterv1.ClusterSpec{
 				ControlPlaneRef: clusterv1.ContractVersionedObjectReference{
 					APIGroup: builder.ControlPlaneGroupVersion.Group,
@@ -295,10 +287,8 @@ func TestClusterReconciler(t *testing.T) {
 
 		// Setup
 		cluster := &clusterv1.Cluster{
-			ObjectMeta: metav1.ObjectMeta{
-				GenerateName: "test4-",
-				Namespace:    ns.Name,
-			},
+			GenerateName: "test4-",
+			Namespace:    ns.Name,
 			Spec: clusterv1.ClusterSpec{
 				ControlPlaneRef: clusterv1.ContractVersionedObjectReference{
 					APIGroup: builder.ControlPlaneGroupVersion.Group,
@@ -354,10 +344,8 @@ func TestClusterReconciler(t *testing.T) {
 
 		// Setup
 		cluster := &clusterv1.Cluster{
-			ObjectMeta: metav1.ObjectMeta{
-				GenerateName: "test5-",
-				Namespace:    ns.Name,
-			},
+			GenerateName: "test5-",
+			Namespace:    ns.Name,
 			Spec: clusterv1.ClusterSpec{
 				ControlPlaneRef: clusterv1.ContractVersionedObjectReference{
 					APIGroup: builder.ControlPlaneGroupVersion.Group,
@@ -415,10 +403,8 @@ func TestClusterReconciler(t *testing.T) {
 		g.Expect(env.Status().Patch(ctx, ic, client.MergeFrom(icOriginal))).To(Succeed())
 
 		cluster := &clusterv1.Cluster{
-			ObjectMeta: metav1.ObjectMeta{
-				GenerateName: "test6-",
-				Namespace:    ns.Name,
-			},
+			GenerateName: "test6-",
+			Namespace:    ns.Name,
 			Spec: clusterv1.ClusterSpec{
 				InfrastructureRef: clusterv1.ContractVersionedObjectReference{
 					APIGroup: builder.InfrastructureGroupVersion.Group,
@@ -447,9 +433,7 @@ func TestClusterReconciler(t *testing.T) {
 		// Create a node so we can speed up reconciliation. Otherwise, the machine reconciler will requeue the machine
 		// after 10 seconds, potentially slowing down this test.
 		node := &corev1.Node{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "id-node-1",
-			},
+			Name: "id-node-1",
 			Spec: corev1.NodeSpec{
 				ProviderID: "aws:///id-node-1",
 			},
@@ -458,12 +442,10 @@ func TestClusterReconciler(t *testing.T) {
 		g.Expect(env.Create(ctx, node)).To(Succeed())
 
 		machine := &clusterv1.Machine{
-			ObjectMeta: metav1.ObjectMeta{
-				GenerateName: "test6-",
-				Namespace:    ns.Name,
-				Labels: map[string]string{
-					clusterv1.MachineControlPlaneLabel: "",
-				},
+			GenerateName: "test6-",
+			Namespace:    ns.Name,
+			Labels: map[string]string{
+				clusterv1.MachineControlPlaneLabel: "",
 			},
 			Spec: clusterv1.MachineSpec{
 				ClusterName: cluster.Name,
@@ -566,22 +548,18 @@ func TestClusterReconciler_reconcileDelete(t *testing.T) {
 func TestClusterReconcilerNodeRef(t *testing.T) {
 	t.Run("machine to cluster", func(t *testing.T) {
 		cluster := &clusterv1.Cluster{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "test-cluster",
-				Namespace: "test",
-			},
-			Spec:   clusterv1.ClusterSpec{},
-			Status: clusterv1.ClusterStatus{},
+			Name:      "test-cluster",
+			Namespace: "test",
+			Spec:      clusterv1.ClusterSpec{},
+			Status:    clusterv1.ClusterStatus{},
 		}
 
 		controlPlaneWithNoderef := &clusterv1.Machine{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "controlPlaneWithNoderef",
-				Namespace: "test",
-				Labels: map[string]string{
-					clusterv1.ClusterNameLabel:         cluster.Name,
-					clusterv1.MachineControlPlaneLabel: "",
-				},
+			Name:      "controlPlaneWithNoderef",
+			Namespace: "test",
+			Labels: map[string]string{
+				clusterv1.ClusterNameLabel:         cluster.Name,
+				clusterv1.MachineControlPlaneLabel: "",
 			},
 			Spec: clusterv1.MachineSpec{
 				ClusterName: "test-cluster",
@@ -591,25 +569,21 @@ func TestClusterReconcilerNodeRef(t *testing.T) {
 			},
 		}
 		controlPlaneWithoutNoderef := &clusterv1.Machine{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "controlPlaneWithoutNoderef",
-				Namespace: "test",
-				Labels: map[string]string{
-					clusterv1.ClusterNameLabel:         cluster.Name,
-					clusterv1.MachineControlPlaneLabel: "",
-				},
+			Name:      "controlPlaneWithoutNoderef",
+			Namespace: "test",
+			Labels: map[string]string{
+				clusterv1.ClusterNameLabel:         cluster.Name,
+				clusterv1.MachineControlPlaneLabel: "",
 			},
 			Spec: clusterv1.MachineSpec{
 				ClusterName: "test-cluster",
 			},
 		}
 		nonControlPlaneWithNoderef := &clusterv1.Machine{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "nonControlPlaneWitNoderef",
-				Namespace: "test",
-				Labels: map[string]string{
-					clusterv1.ClusterNameLabel: cluster.Name,
-				},
+			Name:      "nonControlPlaneWitNoderef",
+			Namespace: "test",
+			Labels: map[string]string{
+				clusterv1.ClusterNameLabel: cluster.Name,
 			},
 			Spec: clusterv1.MachineSpec{
 				ClusterName: "test-cluster",
@@ -619,12 +593,10 @@ func TestClusterReconcilerNodeRef(t *testing.T) {
 			},
 		}
 		nonControlPlaneWithoutNoderef := &clusterv1.Machine{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "nonControlPlaneWithoutNoderef",
-				Namespace: "test",
-				Labels: map[string]string{
-					clusterv1.ClusterNameLabel: cluster.Name,
-				},
+			Name:      "nonControlPlaneWithoutNoderef",
+			Namespace: "test",
+			Labels: map[string]string{
+				clusterv1.ClusterNameLabel: cluster.Name,
 			},
 			Spec: clusterv1.MachineSpec{
 				ClusterName: "test-cluster",
@@ -789,9 +761,7 @@ func TestFilterOwnedDescendants(t *testing.T) {
 	utilfeature.SetFeatureGateDuringTest(t, features.Gates, features.MachinePool, true)
 
 	c := clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "c",
-		},
+		Name: "c",
 	}
 
 	md1NotOwnedByCluster := newMachineDeploymentBuilder().named("md1").build()
@@ -964,9 +934,7 @@ func TestReconcileV1Beta1ControlPlaneInitializedControlPlaneRef(t *testing.T) {
 	g := NewWithT(t)
 
 	c := &clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "c",
-		},
+		Name: "c",
 		Spec: clusterv1.ClusterSpec{
 			ControlPlaneRef: clusterv1.ContractVersionedObjectReference{
 				APIGroup: "test.io",

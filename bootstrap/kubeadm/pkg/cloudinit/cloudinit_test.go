@@ -30,41 +30,39 @@ func TestNewInitControlPlaneAdditionalFileEncodings(t *testing.T) {
 	g := NewWithT(t)
 
 	cpinput := &ControlPlaneInput{
-		BaseUserData: BaseUserData{
-			Header:              "test",
-			BootCommands:        nil,
-			PreKubeadmCommands:  nil,
-			PostKubeadmCommands: nil,
-			AdditionalFiles: []bootstrapv1.File{
-				{
-					Path:     "/tmp/my-path",
-					Encoding: bootstrapv1.Base64,
-					Content:  "aGk=",
-				},
-				{
-					Path:    "/tmp/my-other-path",
-					Content: "hi",
-				},
-				{
-					Path:    "/tmp/existing-path",
-					Append:  new(true),
-					Content: "hi",
-				},
-				{
-					Path:    "/tmp/deferred-path",
-					Defer:   new(true),
-					Content: "hi",
-				},
-				{
-					Path:    "/tmp/deferred-false-path",
-					Defer:   new(false),
-					Content: "hi",
-				},
+		Header:              "test",
+		BootCommands:        nil,
+		PreKubeadmCommands:  nil,
+		PostKubeadmCommands: nil,
+		AdditionalFiles: []bootstrapv1.File{
+			{
+				Path:     "/tmp/my-path",
+				Encoding: bootstrapv1.Base64,
+				Content:  "aGk=",
 			},
-			WriteFiles: nil,
-			Users:      nil,
-			NTP:        nil,
+			{
+				Path:    "/tmp/my-other-path",
+				Content: "hi",
+			},
+			{
+				Path:    "/tmp/existing-path",
+				Append:  new(true),
+				Content: "hi",
+			},
+			{
+				Path:    "/tmp/deferred-path",
+				Defer:   new(true),
+				Content: "hi",
+			},
+			{
+				Path:    "/tmp/deferred-false-path",
+				Defer:   new(false),
+				Content: "hi",
+			},
 		},
+		WriteFiles:           nil,
+		Users:                nil,
+		NTP:                  nil,
 		Certificates:         secret.Certificates{},
 		ClusterConfiguration: "my-cluster-config",
 		InitConfiguration:    "my-init-config",
@@ -110,16 +108,14 @@ func TestNewInitControlPlaneCommands(t *testing.T) {
 	g := NewWithT(t)
 
 	cpinput := &ControlPlaneInput{
-		BaseUserData: BaseUserData{
-			Header:              "test",
-			BootCommands:        []string{"echo $(date)", "echo 'hello BootCommands!'"},
-			PreKubeadmCommands:  []string{`"echo $(date) ': hello PreKubeadmCommands!'"`},
-			PostKubeadmCommands: []string{"echo $(date) ': hello PostKubeadmCommands!'"},
-			AdditionalFiles:     nil,
-			WriteFiles:          nil,
-			Users:               nil,
-			NTP:                 nil,
-		},
+		Header:               "test",
+		BootCommands:         []string{"echo $(date)", "echo 'hello BootCommands!'"},
+		PreKubeadmCommands:   []string{`"echo $(date) ': hello PreKubeadmCommands!'"`},
+		PostKubeadmCommands:  []string{"echo $(date) ': hello PostKubeadmCommands!'"},
+		AdditionalFiles:      nil,
+		WriteFiles:           nil,
+		Users:                nil,
+		NTP:                  nil,
 		Certificates:         secret.Certificates{},
 		ClusterConfiguration: "my-cluster-config",
 		InitConfiguration:    "my-init-config",
@@ -280,11 +276,9 @@ func TestNewInitControlPlaneDiskSetup(t *testing.T) {
 			g := NewWithT(t)
 
 			cpinput := &ControlPlaneInput{
-				BaseUserData: BaseUserData{
-					Header:    "test",
-					DiskSetup: tt.diskSetup,
-					Mounts:    tt.mounts,
-				},
+				Header:               "test",
+				DiskSetup:            tt.diskSetup,
+				Mounts:               tt.mounts,
 				Certificates:         secret.Certificates{},
 				ClusterConfiguration: "my-cluster-config",
 				InitConfiguration:    "my-init-config",
@@ -310,26 +304,24 @@ func TestNewJoinControlPlaneAdditionalFileEncodings(t *testing.T) {
 	g := NewWithT(t)
 
 	cpinput := &ControlPlaneJoinInput{
-		BaseUserData: BaseUserData{
-			BootCommands:        nil,
-			Header:              "test",
-			PreKubeadmCommands:  nil,
-			PostKubeadmCommands: nil,
-			AdditionalFiles: []bootstrapv1.File{
-				{
-					Path:     "/tmp/my-path",
-					Encoding: bootstrapv1.Base64,
-					Content:  "aGk=",
-				},
-				{
-					Path:    "/tmp/my-other-path",
-					Content: "hi",
-				},
+		BootCommands:        nil,
+		Header:              "test",
+		PreKubeadmCommands:  nil,
+		PostKubeadmCommands: nil,
+		AdditionalFiles: []bootstrapv1.File{
+			{
+				Path:     "/tmp/my-path",
+				Encoding: bootstrapv1.Base64,
+				Content:  "aGk=",
 			},
-			WriteFiles: nil,
-			Users:      nil,
-			NTP:        nil,
+			{
+				Path:    "/tmp/my-other-path",
+				Content: "hi",
+			},
 		},
+		WriteFiles:        nil,
+		Users:             nil,
+		NTP:               nil,
 		Certificates:      secret.Certificates{},
 		BootstrapToken:    "my-bootstrap-token",
 		JoinConfiguration: "my-join-config",
@@ -363,18 +355,16 @@ func TestNewJoinControlPlaneCommands(t *testing.T) {
 	g := NewWithT(t)
 
 	cpinput := &ControlPlaneJoinInput{
-		BaseUserData: BaseUserData{
-			Header:              "test",
-			BootCommands:        []string{"echo $(date)", "echo 'hello BootCommands!'"},
-			PreKubeadmCommands:  []string{`"echo $(date) ': hello PreKubeadmCommands!'"`},
-			PostKubeadmCommands: []string{"echo $(date) ': hello PostKubeadmCommands!'"},
-			AdditionalFiles:     nil,
-			WriteFiles:          nil,
-			Users:               nil,
-			NTP:                 nil,
-		},
-		Certificates:      secret.Certificates{},
-		JoinConfiguration: "my-join-config",
+		Header:              "test",
+		BootCommands:        []string{"echo $(date)", "echo 'hello BootCommands!'"},
+		PreKubeadmCommands:  []string{`"echo $(date) ': hello PreKubeadmCommands!'"`},
+		PostKubeadmCommands: []string{"echo $(date) ': hello PostKubeadmCommands!'"},
+		AdditionalFiles:     nil,
+		WriteFiles:          nil,
+		Users:               nil,
+		NTP:                 nil,
+		Certificates:        secret.Certificates{},
+		JoinConfiguration:   "my-join-config",
 	}
 
 	for _, certificate := range cpinput.Certificates {
@@ -405,17 +395,15 @@ func TestNewJoinNodeCommands(t *testing.T) {
 	g := NewWithT(t)
 
 	nodeinput := &NodeInput{
-		BaseUserData: BaseUserData{
-			Header:              "test",
-			BootCommands:        []string{"echo $(date)", "echo 'hello BootCommands!'"},
-			PreKubeadmCommands:  []string{`"echo $(date) ': hello PreKubeadmCommands!'"`},
-			PostKubeadmCommands: []string{"echo $(date) ': hello PostKubeadmCommands!'"},
-			AdditionalFiles:     nil,
-			WriteFiles:          nil,
-			Users:               nil,
-			NTP:                 nil,
-		},
-		JoinConfiguration: "my-join-config",
+		Header:              "test",
+		BootCommands:        []string{"echo $(date)", "echo 'hello BootCommands!'"},
+		PreKubeadmCommands:  []string{`"echo $(date) ': hello PreKubeadmCommands!'"`},
+		PostKubeadmCommands: []string{"echo $(date) ': hello PostKubeadmCommands!'"},
+		AdditionalFiles:     nil,
+		WriteFiles:          nil,
+		Users:               nil,
+		NTP:                 nil,
+		JoinConfiguration:   "my-join-config",
 	}
 
 	out, err := NewNode(nodeinput)

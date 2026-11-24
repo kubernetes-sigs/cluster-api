@@ -21,7 +21,6 @@ import (
 
 	. "github.com/onsi/gomega"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/util/sets"
 	utilfeature "k8s.io/component-base/featuregate/testing"
@@ -87,9 +86,7 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 			{
 				name: "should pass if the control plane version is not defined",
 				cluster: &clusterv1.Cluster{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: ns,
-					},
+					Namespace: ns,
 					Spec: clusterv1.ClusterSpec{
 						ControlPlaneRef: contract.ObjToContractVersionedObjectReference(controlPlaneWithNoVersion),
 					},
@@ -102,9 +99,7 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 			{
 				name: "should error if the control plane version is invalid",
 				cluster: &clusterv1.Cluster{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: ns,
-					},
+					Namespace: ns,
 					Spec: clusterv1.ClusterSpec{
 						ControlPlaneRef: contract.ObjToContractVersionedObjectReference(controlPlaneWithInvalidVersion),
 					},
@@ -117,31 +112,25 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 			{
 				name: "should pass if all preflight checks are skipped",
 				cluster: &clusterv1.Cluster{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: ns,
-					},
+					Namespace: ns,
 					Spec: clusterv1.ClusterSpec{
 						ControlPlaneRef: contract.ObjToContractVersionedObjectReference(controlPlaneUpgrading),
 					},
 				},
 				controlPlane: controlPlaneUpgrading,
 				machineSet: &clusterv1.MachineSet{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: ns,
-						Annotations: map[string]string{
-							clusterv1.MachineSetSkipPreflightChecksAnnotation: string(clusterv1.MachineSetPreflightCheckAll),
-						},
+					Namespace: ns,
+					Annotations: map[string]string{
+						clusterv1.MachineSetSkipPreflightChecksAnnotation: string(clusterv1.MachineSetPreflightCheckAll),
 					},
 				},
 				kubeadmConfigTemplate: &bootstrapv1.KubeadmConfigTemplate{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: ns,
-						Name:      "kubeadmconfigtemplate-1",
-						Annotations: map[string]string{
-							// Note: Disabling this check is not enough, so this test verifies that this annotation is overwritten
-							// by the one from the MachineSet.
-							clusterv1.MachineSetSkipPreflightChecksAnnotation: string(clusterv1.MachineSetPreflightCheckKubeadmVersionSkew),
-						},
+					Namespace: ns,
+					Name:      "kubeadmconfigtemplate-1",
+					Annotations: map[string]string{
+						// Note: Disabling this check is not enough, so this test verifies that this annotation is overwritten
+						// by the one from the MachineSet.
+						clusterv1.MachineSetSkipPreflightChecksAnnotation: string(clusterv1.MachineSetPreflightCheckKubeadmVersionSkew),
 					},
 				},
 				wantMessages: nil,
@@ -150,18 +139,14 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 			{
 				name: "should pass if all preflight checks are skipped via KubeadmConfigTemplate",
 				cluster: &clusterv1.Cluster{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: ns,
-					},
+					Namespace: ns,
 					Spec: clusterv1.ClusterSpec{
 						ControlPlaneRef: contract.ObjToContractVersionedObjectReference(controlPlaneUpgrading),
 					},
 				},
 				controlPlane: controlPlaneUpgrading,
 				machineSet: &clusterv1.MachineSet{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: ns,
-					},
+					Namespace: ns,
 					Spec: clusterv1.MachineSetSpec{
 						Template: clusterv1.MachineTemplateSpec{
 							Spec: clusterv1.MachineSpec{
@@ -178,12 +163,10 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 					},
 				},
 				kubeadmConfigTemplate: &bootstrapv1.KubeadmConfigTemplate{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: ns,
-						Name:      "kubeadmconfigtemplate-1",
-						Annotations: map[string]string{
-							clusterv1.MachineSetSkipPreflightChecksAnnotation: string(clusterv1.MachineSetPreflightCheckAll),
-						},
+					Namespace: ns,
+					Name:      "kubeadmconfigtemplate-1",
+					Annotations: map[string]string{
+						clusterv1.MachineSetSkipPreflightChecksAnnotation: string(clusterv1.MachineSetPreflightCheckAll),
 					},
 				},
 				wantMessages: nil,
@@ -192,9 +175,7 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 			{
 				name: "control plane preflight check: should fail if the control plane is provisioning",
 				cluster: &clusterv1.Cluster{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: ns,
-					},
+					Namespace: ns,
 					Spec: clusterv1.ClusterSpec{
 						ControlPlaneRef: contract.ObjToContractVersionedObjectReference(controlPlaneProvisioning),
 					},
@@ -209,9 +190,7 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 			{
 				name: "control plane preflight check: should fail if the control plane is upgrading",
 				cluster: &clusterv1.Cluster{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: ns,
-					},
+					Namespace: ns,
 					Spec: clusterv1.ClusterSpec{
 						ControlPlaneRef: contract.ObjToContractVersionedObjectReference(controlPlaneUpgrading),
 					},
@@ -226,9 +205,7 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 			{
 				name: "control plane preflight check: should fail if the cluster defines a different version than the control plane",
 				cluster: &clusterv1.Cluster{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: ns,
-					},
+					Namespace: ns,
 					Spec: clusterv1.ClusterSpec{
 						ControlPlaneRef: contract.ObjToContractVersionedObjectReference(controlPlaneStable),
 						Topology: clusterv1.Topology{
@@ -246,11 +223,9 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 			{
 				name: "control plane preflight check: should fail if the cluster defines a different version than the control plane, and the control plane is not yet at the current step of the upgrade plan",
 				cluster: &clusterv1.Cluster{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: ns,
-						Annotations: map[string]string{
-							clusterv1.ClusterTopologyUpgradeStepAnnotation: "v1.27.0",
-						},
+					Namespace: ns,
+					Annotations: map[string]string{
+						clusterv1.ClusterTopologyUpgradeStepAnnotation: "v1.27.0",
 					},
 					Spec: clusterv1.ClusterSpec{
 						ControlPlaneRef: contract.ObjToContractVersionedObjectReference(controlPlaneStable),
@@ -269,20 +244,16 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 			{
 				name: "control plane preflight check: should pass if the control plane is upgrading but the preflight check is skipped",
 				cluster: &clusterv1.Cluster{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: ns,
-					},
+					Namespace: ns,
 					Spec: clusterv1.ClusterSpec{
 						ControlPlaneRef: contract.ObjToContractVersionedObjectReference(controlPlaneUpgrading),
 					},
 				},
 				controlPlane: controlPlaneUpgrading,
 				machineSet: &clusterv1.MachineSet{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: ns,
-						Annotations: map[string]string{
-							clusterv1.MachineSetSkipPreflightChecksAnnotation: string(clusterv1.MachineSetPreflightCheckControlPlaneIsStable),
-						},
+					Namespace: ns,
+					Annotations: map[string]string{
+						clusterv1.MachineSetSkipPreflightChecksAnnotation: string(clusterv1.MachineSetPreflightCheckControlPlaneIsStable),
 					},
 					Spec: clusterv1.MachineSetSpec{
 						Template: clusterv1.MachineTemplateSpec{
@@ -300,10 +271,8 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 					},
 				},
 				kubeadmConfigTemplate: &bootstrapv1.KubeadmConfigTemplate{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: ns,
-						Name:      "kubeadmconfigtemplate-1",
-					},
+					Namespace: ns,
+					Name:      "kubeadmconfigtemplate-1",
 				},
 				wantMessages: nil,
 				wantErr:      false,
@@ -311,9 +280,7 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 			{
 				name: "control plane preflight check: should pass if the control plane is stable",
 				cluster: &clusterv1.Cluster{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: ns,
-					},
+					Namespace: ns,
 					Spec: clusterv1.ClusterSpec{
 						ControlPlaneRef: contract.ObjToContractVersionedObjectReference(controlPlaneStable),
 					},
@@ -326,11 +293,9 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 			{
 				name: "control plane preflight check: should pass if the control plane is stable, and the control plane is at the current step of the upgrade plan",
 				cluster: &clusterv1.Cluster{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: ns,
-						Annotations: map[string]string{
-							clusterv1.ClusterTopologyUpgradeStepAnnotation: "v1.28.0",
-						},
+					Namespace: ns,
+					Annotations: map[string]string{
+						clusterv1.ClusterTopologyUpgradeStepAnnotation: "v1.28.0",
 					},
 					Spec: clusterv1.ClusterSpec{
 						ControlPlaneRef: contract.ObjToContractVersionedObjectReference(controlPlaneStable128),
@@ -347,19 +312,15 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 			{
 				name: "should pass if the machine set version is not defined",
 				cluster: &clusterv1.Cluster{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: ns,
-					},
+					Namespace: ns,
 					Spec: clusterv1.ClusterSpec{
 						ControlPlaneRef: contract.ObjToContractVersionedObjectReference(controlPlaneStable),
 					},
 				},
 				controlPlane: controlPlaneStable,
 				machineSet: &clusterv1.MachineSet{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: ns,
-					},
-					Spec: clusterv1.MachineSetSpec{},
+					Namespace: ns,
+					Spec:      clusterv1.MachineSetSpec{},
 				},
 				wantMessages: nil,
 				wantErr:      false,
@@ -367,18 +328,14 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 			{
 				name: "should error if the machine set version is invalid",
 				cluster: &clusterv1.Cluster{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: ns,
-					},
+					Namespace: ns,
 					Spec: clusterv1.ClusterSpec{
 						ControlPlaneRef: contract.ObjToContractVersionedObjectReference(controlPlaneStable),
 					},
 				},
 				controlPlane: controlPlaneStable,
 				machineSet: &clusterv1.MachineSet{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: ns,
-					},
+					Namespace: ns,
 					Spec: clusterv1.MachineSetSpec{
 						Template: clusterv1.MachineTemplateSpec{
 							Spec: clusterv1.MachineSpec{
@@ -393,18 +350,14 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 			{
 				name: "kubernetes version preflight check: should fail if the machine set minor version is greater than control plane minor version",
 				cluster: &clusterv1.Cluster{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: ns,
-					},
+					Namespace: ns,
 					Spec: clusterv1.ClusterSpec{
 						ControlPlaneRef: contract.ObjToContractVersionedObjectReference(controlPlaneStable),
 					},
 				},
 				controlPlane: controlPlaneStable,
 				machineSet: &clusterv1.MachineSet{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: ns,
-					},
+					Namespace: ns,
 					Spec: clusterv1.MachineSetSpec{
 						Template: clusterv1.MachineTemplateSpec{
 							Spec: clusterv1.MachineSpec{
@@ -421,18 +374,14 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 			{
 				name: "kubernetes version preflight check: should fail if the machine set minor version is 4 older than control plane minor version",
 				cluster: &clusterv1.Cluster{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: ns,
-					},
+					Namespace: ns,
 					Spec: clusterv1.ClusterSpec{
 						ControlPlaneRef: contract.ObjToContractVersionedObjectReference(controlPlaneStable128),
 					},
 				},
 				controlPlane: controlPlaneStable128,
 				machineSet: &clusterv1.MachineSet{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: ns,
-					},
+					Namespace: ns,
 					Spec: clusterv1.MachineSetSpec{
 						Template: clusterv1.MachineTemplateSpec{
 							Spec: clusterv1.MachineSpec{
@@ -449,20 +398,16 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 			{
 				name: "kubernetes version preflight check: should pass if the machine set minor version is greater than control plane minor version but the preflight check is skipped",
 				cluster: &clusterv1.Cluster{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: ns,
-					},
+					Namespace: ns,
 					Spec: clusterv1.ClusterSpec{
 						ControlPlaneRef: contract.ObjToContractVersionedObjectReference(controlPlaneStable),
 					},
 				},
 				controlPlane: controlPlaneStable,
 				machineSet: &clusterv1.MachineSet{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: ns,
-						Annotations: map[string]string{
-							clusterv1.MachineSetSkipPreflightChecksAnnotation: string(clusterv1.MachineSetPreflightCheckKubernetesVersionSkew),
-						},
+					Namespace: ns,
+					Annotations: map[string]string{
+						clusterv1.MachineSetSkipPreflightChecksAnnotation: string(clusterv1.MachineSetPreflightCheckKubernetesVersionSkew),
 					},
 					Spec: clusterv1.MachineSetSpec{
 						Template: clusterv1.MachineTemplateSpec{
@@ -478,18 +423,14 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 			{
 				name: "kubernetes version preflight check: should pass if the machine set minor version and control plane version conform to kubernetes version skew policy",
 				cluster: &clusterv1.Cluster{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: ns,
-					},
+					Namespace: ns,
 					Spec: clusterv1.ClusterSpec{
 						ControlPlaneRef: contract.ObjToContractVersionedObjectReference(controlPlaneStable128),
 					},
 				},
 				controlPlane: controlPlaneStable128,
 				machineSet: &clusterv1.MachineSet{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: ns,
-					},
+					Namespace: ns,
 					Spec: clusterv1.MachineSetSpec{
 						Template: clusterv1.MachineTemplateSpec{
 							Spec: clusterv1.MachineSpec{
@@ -504,18 +445,14 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 			{
 				name: "kubeadm version preflight check: should fail if the machine set version is not equal (major+minor) to control plane version when using kubeadm bootstrap provider",
 				cluster: &clusterv1.Cluster{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: ns,
-					},
+					Namespace: ns,
 					Spec: clusterv1.ClusterSpec{
 						ControlPlaneRef: contract.ObjToContractVersionedObjectReference(controlPlaneStable),
 					},
 				},
 				controlPlane: controlPlaneStable,
 				machineSet: &clusterv1.MachineSet{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: ns,
-					},
+					Namespace: ns,
 					Spec: clusterv1.MachineSetSpec{
 						Template: clusterv1.MachineTemplateSpec{
 							Spec: clusterv1.MachineSpec{
@@ -532,10 +469,8 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 					},
 				},
 				kubeadmConfigTemplate: &bootstrapv1.KubeadmConfigTemplate{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: ns,
-						Name:      "kubeadmconfigtemplate-1",
-					},
+					Namespace: ns,
+					Name:      "kubeadmconfigtemplate-1",
 				},
 				wantMessages: []string{
 					"MachineSet version (1.25.5) and ControlPlane version (1.26.2) do not conform to kubeadm version skew policy as kubeadm only supports joining with the same major+minor version as the control plane (\"KubeadmVersionSkew\" preflight check failed)",
@@ -545,18 +480,14 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 			{
 				name: "kubeadm version preflight check: should pass if the machine set is not using kubeadm bootstrap provider",
 				cluster: &clusterv1.Cluster{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: ns,
-					},
+					Namespace: ns,
 					Spec: clusterv1.ClusterSpec{
 						ControlPlaneRef: contract.ObjToContractVersionedObjectReference(controlPlaneStable),
 					},
 				},
 				controlPlane: controlPlaneStable,
 				machineSet: &clusterv1.MachineSet{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: ns,
-					},
+					Namespace: ns,
 					Spec: clusterv1.MachineSetSpec{
 						Template: clusterv1.MachineTemplateSpec{
 							Spec: clusterv1.MachineSpec{
@@ -571,20 +502,16 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 			{
 				name: "kubeadm version preflight check: should pass if the machine set version and control plane version do not conform to kubeadm version skew policy but the preflight check is skipped",
 				cluster: &clusterv1.Cluster{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: ns,
-					},
+					Namespace: ns,
 					Spec: clusterv1.ClusterSpec{
 						ControlPlaneRef: contract.ObjToContractVersionedObjectReference(controlPlaneStable),
 					},
 				},
 				controlPlane: controlPlaneStable,
 				machineSet: &clusterv1.MachineSet{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: ns,
-						Annotations: map[string]string{
-							clusterv1.MachineSetSkipPreflightChecksAnnotation: "foobar," + string(clusterv1.MachineSetPreflightCheckKubeadmVersionSkew),
-						},
+					Namespace: ns,
+					Annotations: map[string]string{
+						clusterv1.MachineSetSkipPreflightChecksAnnotation: "foobar," + string(clusterv1.MachineSetPreflightCheckKubeadmVersionSkew),
 					},
 					Spec: clusterv1.MachineSetSpec{
 						Template: clusterv1.MachineTemplateSpec{
@@ -602,10 +529,8 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 					},
 				},
 				kubeadmConfigTemplate: &bootstrapv1.KubeadmConfigTemplate{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: ns,
-						Name:      "kubeadmconfigtemplate-1",
-					},
+					Namespace: ns,
+					Name:      "kubeadmconfigtemplate-1",
 				},
 				wantMessages: nil,
 				wantErr:      false,
@@ -613,18 +538,14 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 			{
 				name: "kubeadm version preflight check: should pass if the machine set version and control plane version conform to kubeadm version skew when using kubeadm bootstrap provider",
 				cluster: &clusterv1.Cluster{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: ns,
-					},
+					Namespace: ns,
 					Spec: clusterv1.ClusterSpec{
 						ControlPlaneRef: contract.ObjToContractVersionedObjectReference(controlPlaneStable),
 					},
 				},
 				controlPlane: controlPlaneStable,
 				machineSet: &clusterv1.MachineSet{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: ns,
-					},
+					Namespace: ns,
 					Spec: clusterv1.MachineSetSpec{
 						Template: clusterv1.MachineTemplateSpec{
 							Spec: clusterv1.MachineSpec{
@@ -641,10 +562,8 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 					},
 				},
 				kubeadmConfigTemplate: &bootstrapv1.KubeadmConfigTemplate{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: ns,
-						Name:      "kubeadmconfigtemplate-1",
-					},
+					Namespace: ns,
+					Name:      "kubeadmconfigtemplate-1",
 				},
 				wantMessages: nil,
 				wantErr:      false,
@@ -652,9 +571,7 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 			{
 				name: "control plane version preflight check: should pass if the machine set version and control plane version are not the same but the preflight check is skipped",
 				cluster: &clusterv1.Cluster{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: ns,
-					},
+					Namespace: ns,
 					Spec: clusterv1.ClusterSpec{
 						Topology: clusterv1.Topology{
 							ClassRef: clusterv1.ClusterClassRef{
@@ -666,11 +583,9 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 				},
 				controlPlane: controlPlaneStable,
 				machineSet: &clusterv1.MachineSet{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: ns,
-						Annotations: map[string]string{
-							clusterv1.MachineSetSkipPreflightChecksAnnotation: "foobar," + string(clusterv1.MachineSetPreflightCheckControlPlaneVersionSkew) + "," + string(clusterv1.MachineSetPreflightCheckControlPlaneIsStable),
-						},
+					Namespace: ns,
+					Annotations: map[string]string{
+						clusterv1.MachineSetSkipPreflightChecksAnnotation: "foobar," + string(clusterv1.MachineSetPreflightCheckControlPlaneVersionSkew) + "," + string(clusterv1.MachineSetPreflightCheckControlPlaneIsStable),
 					},
 					Spec: clusterv1.MachineSetSpec{
 						Template: clusterv1.MachineTemplateSpec{
@@ -686,9 +601,7 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 			{
 				name: "control plane version preflight check: should pass if the machine set version and control plane version are not the same but the Cluster does not have a managed topology",
 				cluster: &clusterv1.Cluster{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: ns,
-					},
+					Namespace: ns,
 					Spec: clusterv1.ClusterSpec{
 						// No Topology
 						ControlPlaneRef: contract.ObjToContractVersionedObjectReference(controlPlaneStable),
@@ -696,11 +609,9 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 				},
 				controlPlane: controlPlaneStable,
 				machineSet: &clusterv1.MachineSet{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: ns,
-						Annotations: map[string]string{
-							clusterv1.MachineSetSkipPreflightChecksAnnotation: string(clusterv1.MachineSetPreflightCheckControlPlaneIsStable),
-						},
+					Namespace: ns,
+					Annotations: map[string]string{
+						clusterv1.MachineSetSkipPreflightChecksAnnotation: string(clusterv1.MachineSetPreflightCheckControlPlaneIsStable),
 					},
 					Spec: clusterv1.MachineSetSpec{
 						Template: clusterv1.MachineTemplateSpec{
@@ -716,9 +627,7 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 			{
 				name: "control plane version preflight check: should fail if the machine set version and control plane version are not the same",
 				cluster: &clusterv1.Cluster{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: ns,
-					},
+					Namespace: ns,
 					Spec: clusterv1.ClusterSpec{
 						Topology: clusterv1.Topology{
 							ClassRef: clusterv1.ClusterClassRef{
@@ -730,11 +639,9 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 				},
 				controlPlane: controlPlaneStable,
 				machineSet: &clusterv1.MachineSet{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: ns,
-						Annotations: map[string]string{
-							clusterv1.MachineSetSkipPreflightChecksAnnotation: string(clusterv1.MachineSetPreflightCheckControlPlaneIsStable),
-						},
+					Namespace: ns,
+					Annotations: map[string]string{
+						clusterv1.MachineSetSkipPreflightChecksAnnotation: string(clusterv1.MachineSetPreflightCheckControlPlaneIsStable),
 					},
 					Spec: clusterv1.MachineSetSpec{
 						Template: clusterv1.MachineTemplateSpec{
@@ -750,9 +657,7 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 			{
 				name: "control plane version preflight check: should pass if the machine set version and control plane version are the same",
 				cluster: &clusterv1.Cluster{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: ns,
-					},
+					Namespace: ns,
 					Spec: clusterv1.ClusterSpec{
 						Topology: clusterv1.Topology{
 							ClassRef: clusterv1.ClusterClassRef{
@@ -764,11 +669,9 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 				},
 				controlPlane: controlPlaneStable,
 				machineSet: &clusterv1.MachineSet{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: ns,
-						Annotations: map[string]string{
-							clusterv1.MachineSetSkipPreflightChecksAnnotation: string(clusterv1.MachineSetPreflightCheckControlPlaneIsStable),
-						},
+					Namespace: ns,
+					Annotations: map[string]string{
+						clusterv1.MachineSetSkipPreflightChecksAnnotation: string(clusterv1.MachineSetPreflightCheckControlPlaneIsStable),
 					},
 					Spec: clusterv1.MachineSetSpec{
 						Template: clusterv1.MachineTemplateSpec{
@@ -792,11 +695,9 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 				}
 				if tt.kubeadmConfigTemplate != nil {
 					objs = append(objs, tt.kubeadmConfigTemplate, &apiextensionsv1.CustomResourceDefinition{
-						ObjectMeta: metav1.ObjectMeta{
-							Name: "kubeadmconfigtemplates.bootstrap.cluster.x-k8s.io",
-							Labels: map[string]string{
-								clusterv1.GroupVersion.String(): bootstrapv1.GroupVersion.Version,
-							},
+						Name: "kubeadmconfigtemplates.bootstrap.cluster.x-k8s.io",
+						Labels: map[string]string{
+							clusterv1.GroupVersion.String(): bootstrapv1.GroupVersion.Version,
 						},
 					})
 				}
@@ -821,18 +722,14 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 
 		g := NewWithT(t)
 		cluster := &clusterv1.Cluster{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: ns,
-			},
+			Namespace: ns,
 			Spec: clusterv1.ClusterSpec{
 				ControlPlaneRef: contract.ObjToContractVersionedObjectReference(controlPlaneUpgrading),
 			},
 		}
 		controlPlane := controlPlaneUpgrading
 		machineSet := &clusterv1.MachineSet{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: ns,
-			},
+			Namespace: ns,
 			Spec: clusterv1.MachineSetSpec{
 				Template: clusterv1.MachineTemplateSpec{
 					Spec: clusterv1.MachineSpec{

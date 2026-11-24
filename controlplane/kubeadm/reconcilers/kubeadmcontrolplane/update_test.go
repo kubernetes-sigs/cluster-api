@@ -244,11 +244,9 @@ func TestKubeadmControlPlaneReconciler_RolloutStrategy_ScaleDown(t *testing.T) {
 	for i := range 3 {
 		name := fmt.Sprintf("test-%d", i)
 		m := &clusterv1.Machine{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: cluster.Namespace,
-				Name:      name,
-				Labels:    desiredstate.ControlPlaneMachineLabels(kcp, cluster.Name),
-			},
+			Namespace: cluster.Namespace,
+			Name:      name,
+			Labels:    desiredstate.ControlPlaneMachineLabels(kcp, cluster.Name),
 			Spec: clusterv1.MachineSpec{
 				Bootstrap: clusterv1.Bootstrap{
 					ConfigRef: clusterv1.ContractVersionedObjectReference{
@@ -261,10 +259,8 @@ func TestKubeadmControlPlaneReconciler_RolloutStrategy_ScaleDown(t *testing.T) {
 			},
 		}
 		cfg := &bootstrapv1.KubeadmConfig{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: cluster.Namespace,
-				Name:      name,
-			},
+			Namespace: cluster.Namespace,
+			Name:      name,
 		}
 		objs = append(objs, m, cfg)
 		fmc.Machines.Insert(m)
@@ -864,15 +860,13 @@ func Test_rollingUpdate(t *testing.T) {
 
 			controlPlane := &pkg.ControlPlane{
 				KCP: &controlplanev1.KubeadmControlPlane{
-					ObjectMeta: metav1.ObjectMeta{
-						Annotations: func() map[string]string {
-							annotations := map[string]string{}
-							if tt.isRemediation {
-								annotations[controlplanev1.RemediationInProgressAnnotation] = ""
-							}
-							return annotations
-						}(),
-					},
+					Annotations: func() map[string]string {
+						annotations := map[string]string{}
+						if tt.isRemediation {
+							annotations[controlplanev1.RemediationInProgressAnnotation] = ""
+						}
+						return annotations
+					}(),
 					Spec: controlplanev1.KubeadmControlPlaneSpec{
 						Replicas: new(tt.desiredReplicas),
 						Rollout: controlplanev1.KubeadmControlPlaneRolloutSpec{
@@ -922,14 +916,12 @@ func Test_rollingUpdateSequences(t *testing.T) {
 	}
 	newMachine := func(attr machineAttr) *clusterv1.Machine {
 		return &clusterv1.Machine{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: attr.Name,
-				Annotations: map[string]string{
-					"upToDate":                 strconv.FormatBool(attr.UpToDate),
-					"eligibleForInPlaceUpdate": strconv.FormatBool(attr.EligibleForInPlaceUpdate),
-					"canUpdateMachine":         strconv.FormatBool(attr.CanUpdateMachine),
-					"affectsAvailability":      strconv.FormatBool(attr.AffectsAvailability),
-				},
+			Name: attr.Name,
+			Annotations: map[string]string{
+				"upToDate":                 strconv.FormatBool(attr.UpToDate),
+				"eligibleForInPlaceUpdate": strconv.FormatBool(attr.EligibleForInPlaceUpdate),
+				"canUpdateMachine":         strconv.FormatBool(attr.CanUpdateMachine),
+				"affectsAvailability":      strconv.FormatBool(attr.AffectsAvailability),
 			},
 		}
 	}
@@ -1300,15 +1292,13 @@ func Test_rollingUpdateSequences(t *testing.T) {
 
 			controlPlane := &pkg.ControlPlane{
 				KCP: &controlplanev1.KubeadmControlPlane{
-					ObjectMeta: metav1.ObjectMeta{
-						Annotations: func() map[string]string {
-							annotations := map[string]string{}
-							if tt.remediationInProgress {
-								annotations[controlplanev1.RemediationInProgressAnnotation] = ""
-							}
-							return annotations
-						}(),
-					},
+					Annotations: func() map[string]string {
+						annotations := map[string]string{}
+						if tt.remediationInProgress {
+							annotations[controlplanev1.RemediationInProgressAnnotation] = ""
+						}
+						return annotations
+					}(),
 					Spec: controlplanev1.KubeadmControlPlaneSpec{
 						Replicas: new(tt.desiredReplicas),
 						Rollout: controlplanev1.KubeadmControlPlaneRolloutSpec{
@@ -1408,10 +1398,8 @@ type machineOpt func(*clusterv1.Machine)
 
 func machine(name string, opts ...machineOpt) *clusterv1.Machine {
 	m := &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: metav1.NamespaceDefault,
-		},
+		Name:      name,
+		Namespace: metav1.NamespaceDefault,
 	}
 	for _, opt := range opts {
 		opt(m)

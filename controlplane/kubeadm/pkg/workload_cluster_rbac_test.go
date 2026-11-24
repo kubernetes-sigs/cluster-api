@@ -23,7 +23,6 @@ import (
 	"github.com/google/go-cmp/cmp"
 	. "github.com/onsi/gomega"
 	rbacv1 "k8s.io/api/rbac/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
@@ -41,9 +40,7 @@ func TestEnsureKubeadmPermissions(t *testing.T) {
 			targetVersion: semver.MustParse("1.37.5"),
 			wantObjs: []client.Object{
 				&rbacv1.ClusterRoleBinding{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: KubeletAPIAdminClusterRoleBindingName,
-					},
+					Name: KubeletAPIAdminClusterRoleBindingName,
 					RoleRef: rbacv1.RoleRef{
 						APIGroup: rbacv1.GroupName,
 						Kind:     "ClusterRole",
@@ -62,18 +59,14 @@ func TestEnsureKubeadmPermissions(t *testing.T) {
 			name: "Ignore kubeadm:apiserver-kubelet-client ClusterRoleBinding if they already exist for K8s <= 1.37 (kubeadm started adding those roles in patch versions)",
 			objs: []client.Object{
 				&rbacv1.ClusterRoleBinding{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: KubeletAPIAdminClusterRoleBindingName,
-					},
+					Name: KubeletAPIAdminClusterRoleBindingName,
 					// Intentionally using a different ClusterRoleBinding to check that it is not changed.
 				},
 			},
 			targetVersion: semver.MustParse("1.37.0"),
 			wantObjs: []client.Object{
 				&rbacv1.ClusterRoleBinding{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: KubeletAPIAdminClusterRoleBindingName,
-					},
+					Name: KubeletAPIAdminClusterRoleBindingName,
 				},
 			},
 		},
@@ -81,18 +74,14 @@ func TestEnsureKubeadmPermissions(t *testing.T) {
 			name: "Ignore kubeadm:apiserver-kubelet-client ClusterRoleBinding if they already exist for K8s >= 1.38 (kubeadm should add those roles or KCP in a previous update)",
 			objs: []client.Object{
 				&rbacv1.ClusterRoleBinding{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: KubeletAPIAdminClusterRoleBindingName,
-					},
+					Name: KubeletAPIAdminClusterRoleBindingName,
 					// Intentionally using a different ClusterRoleBinding to check that it is not changed.
 				},
 			},
 			targetVersion: semver.MustParse("1.38.0"),
 			wantObjs: []client.Object{
 				&rbacv1.ClusterRoleBinding{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: KubeletAPIAdminClusterRoleBindingName,
-					},
+					Name: KubeletAPIAdminClusterRoleBindingName,
 				},
 			},
 		},
@@ -108,9 +97,7 @@ func TestEnsureKubeadmPermissions(t *testing.T) {
 			targetVersion: semver.MustParse("1.28.0"),
 			wantObjs: []client.Object{
 				&rbacv1.ClusterRoleBinding{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: KubeletAPIAdminClusterRoleBindingName,
-					},
+					Name: KubeletAPIAdminClusterRoleBindingName,
 					RoleRef: rbacv1.RoleRef{
 						APIGroup: rbacv1.GroupName,
 						Kind:     "ClusterRole",

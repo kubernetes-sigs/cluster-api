@@ -47,13 +47,13 @@ func (f *FakeController) DeferNextReconcile(req reconcile.Request, reconcileAfte
 
 func (f *FakeController) DeferNextReconcileForObject(obj metav1.Object, reconcileAfter time.Time) {
 	f.Deferrals[reconcile.Request{
-		NamespacedName: types.NamespacedName{Namespace: obj.GetNamespace(), Name: obj.GetName()},
+		Namespace: obj.GetNamespace(), Name: obj.GetName(),
 	}] = reconcileAfter
 }
 
 func (f *FakeController) DeferNextReconcileUntilCacheUpToDate(obj metav1.Object, _ GroupVersionKindType, _ string) {
 	f.DeferralsUntilCacheUpToDate[reconcile.Request{
-		NamespacedName: types.NamespacedName{Namespace: obj.GetNamespace(), Name: obj.GetName()},
+		Namespace: obj.GetNamespace(), Name: obj.GetName(),
 	}] = true
 }
 

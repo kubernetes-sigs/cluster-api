@@ -38,27 +38,21 @@ const (
 
 func TestGetorCreateClusterResourceSetBinding(t *testing.T) {
 	testClusterWithBinding := &clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test-cluster-with-binding",
-			Namespace: metav1.NamespaceDefault,
-		},
+		Name:      "test-cluster-with-binding",
+		Namespace: metav1.NamespaceDefault,
 	}
 
 	testClusterResourceSetBinding := &addonsv1.ClusterResourceSetBinding{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: testClusterWithBinding.Namespace,
-			Name:      testClusterWithBinding.Name,
-		},
+		Namespace: testClusterWithBinding.Namespace,
+		Name:      testClusterWithBinding.Name,
 		Spec: addonsv1.ClusterResourceSetBindingSpec{
 			Bindings: []addonsv1.ResourceSetBinding{
 				{
 					ClusterResourceSetName: "test-clusterResourceSet",
 					Resources: []addonsv1.ResourceBinding{
 						{
-							ResourceRef: addonsv1.ResourceRef{
-								Name: "mySecret",
-								Kind: "Secret",
-							},
+							Name:            "mySecret",
+							Kind:            "Secret",
 							Applied:         new(true),
 							Hash:            "xyz",
 							LastAppliedTime: metav1.Time{Time: time.Now().UTC()},
@@ -70,10 +64,8 @@ func TestGetorCreateClusterResourceSetBinding(t *testing.T) {
 	}
 
 	testClusterNoBinding := &clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test-cluster-no-binding",
-			Namespace: metav1.NamespaceDefault,
-		},
+		Name:      "test-cluster-no-binding",
+		Namespace: metav1.NamespaceDefault,
 	}
 
 	c := fake.NewClientBuilder().
@@ -115,10 +107,8 @@ func TestGetorCreateClusterResourceSetBinding(t *testing.T) {
 func TestGetSecretFromNamespacedName(t *testing.T) {
 	existingSecretName := types.NamespacedName{Name: "my-secret", Namespace: metav1.NamespaceDefault}
 	existingSecret := &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      existingSecretName.Name,
-			Namespace: existingSecretName.Namespace,
-		},
+		Name:      existingSecretName.Name,
+		Namespace: existingSecretName.Namespace,
 	}
 
 	tests := []struct {
@@ -170,10 +160,8 @@ func TestGetConfigMapFromNamespacedName(t *testing.T) {
 
 	existingConfigMapName := types.NamespacedName{Name: "my-configmap", Namespace: metav1.NamespaceDefault}
 	existingConfigMap := &corev1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      existingConfigMapName.Name,
-			Namespace: existingConfigMapName.Namespace,
-		},
+		Name:      existingConfigMapName.Name,
+		Namespace: existingConfigMapName.Namespace,
 	}
 
 	tests := []struct {

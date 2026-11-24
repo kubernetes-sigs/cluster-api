@@ -144,15 +144,13 @@ func GenerateSecret(cluster *clusterv1.Cluster, data []byte) *corev1.Secret {
 // GenerateSecretWithOwner returns a Kubernetes secret for the given Cluster name, namespace, kubeconfig data, and ownerReference.
 func GenerateSecretWithOwner(clusterName client.ObjectKey, data []byte, owner metav1.OwnerReference) *corev1.Secret {
 	return &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      secret.Name(clusterName.Name, secret.Kubeconfig),
-			Namespace: clusterName.Namespace,
-			Labels: map[string]string{
-				clusterv1.ClusterNameLabel: clusterName.Name,
-			},
-			OwnerReferences: []metav1.OwnerReference{
-				owner,
-			},
+		Name:      secret.Name(clusterName.Name, secret.Kubeconfig),
+		Namespace: clusterName.Namespace,
+		Labels: map[string]string{
+			clusterv1.ClusterNameLabel: clusterName.Name,
+		},
+		OwnerReferences: []metav1.OwnerReference{
+			owner,
 		},
 		Data: map[string][]byte{
 			secret.KubeconfigDataName: data,

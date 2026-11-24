@@ -531,9 +531,7 @@ func discoveryHandler(handlerList ...string) func(http.ResponseWriter, *http.Req
 		})
 	}
 	response := &runtimehooksv1.DiscoveryResponse{
-		CommonResponse: runtimehooksv1.CommonResponse{
-			Status: runtimehooksv1.ResponseStatusSuccess,
-		},
+		Status:   runtimehooksv1.ResponseStatusSuccess,
 		Handlers: handlers,
 	}
 	respBody, err := json.Marshal(response)
@@ -549,11 +547,9 @@ func discoveryHandler(handlerList ...string) func(http.ResponseWriter, *http.Req
 
 func fakeExtensionConfigForURL(namespace, name, url string) *runtimev1.ExtensionConfig {
 	return &runtimev1.ExtensionConfig{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:        name,
-			Namespace:   namespace,
-			Annotations: map[string]string{},
-		},
+		Name:        name,
+		Namespace:   namespace,
+		Annotations: map[string]string{},
 		Spec: runtimev1.ExtensionConfigSpec{
 			ClientConfig: runtimev1.ClientConfig{
 				URL: url,
@@ -583,11 +579,9 @@ func fakeSecureExtensionServer(discoveryHandler func(w http.ResponseWriter, r *h
 
 func fakeCASecret(namespace, name string, caData []byte) *corev1.Secret {
 	secret := &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: namespace,
-		},
-		Data: map[string][]byte{},
+		Name:      name,
+		Namespace: namespace,
+		Data:      map[string][]byte{},
 	}
 	if caData != nil {
 		secret.Data["ca.crt"] = caData
@@ -597,11 +591,9 @@ func fakeCASecret(namespace, name string, caData []byte) *corev1.Secret {
 
 func fakeCAInjectionRuntimeExtensionConfig(namespace, name, annotationString, caBundleData string) *runtimev1.ExtensionConfig {
 	ext := &runtimev1.ExtensionConfig{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:        name,
-			Namespace:   namespace,
-			Annotations: map[string]string{},
-		},
+		Name:        name,
+		Namespace:   namespace,
+		Annotations: map[string]string{},
 	}
 	if annotationString != "" {
 		ext.Annotations[runtimev1.InjectCAFromSecretAnnotation] = annotationString
@@ -614,11 +606,9 @@ func fakeCAInjectionRuntimeExtensionConfig(namespace, name, annotationString, ca
 
 func extensionConfig(caBundle []byte, conditions ...metav1.Condition) *runtimev1.ExtensionConfig {
 	return &runtimev1.ExtensionConfig{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:       "extensionconfig",
-			Namespace:  "default",
-			Generation: 1,
-		},
+		Name:       "extensionconfig",
+		Namespace:  "default",
+		Generation: 1,
 		Spec: runtimev1.ExtensionConfigSpec{
 			ClientConfig: runtimev1.ClientConfig{
 				CABundle: caBundle,

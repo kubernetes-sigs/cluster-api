@@ -43,10 +43,8 @@ func Test_validate(t *testing.T) {
 		{
 			name: "Return no error if MachineDrainRule is valid",
 			machineDrainRule: &clusterv1.MachineDrainRule{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "mdr",
-					Namespace: metav1.NamespaceDefault,
-				},
+				Name:      "mdr",
+				Namespace: metav1.NamespaceDefault,
 				Spec: clusterv1.MachineDrainRuleSpec{
 					Drain: clusterv1.MachineDrainRuleDrainConfig{
 						Behavior: clusterv1.MachineDrainRuleDrainBehaviorDrain,
@@ -86,10 +84,8 @@ func Test_validate(t *testing.T) {
 		{
 			name: "Return error if order is set with drain behavior Skip",
 			machineDrainRule: &clusterv1.MachineDrainRule{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "mdr",
-					Namespace: metav1.NamespaceDefault,
-				},
+				Name:      "mdr",
+				Namespace: metav1.NamespaceDefault,
 				Spec: clusterv1.MachineDrainRuleSpec{
 					Drain: clusterv1.MachineDrainRuleDrainConfig{
 						Behavior: clusterv1.MachineDrainRuleDrainBehaviorSkip,
@@ -104,10 +100,8 @@ func Test_validate(t *testing.T) {
 		{
 			name: "Return error if order is set with drain behavior WaitCompleted",
 			machineDrainRule: &clusterv1.MachineDrainRule{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "mdr",
-					Namespace: metav1.NamespaceDefault,
-				},
+				Name:      "mdr",
+				Namespace: metav1.NamespaceDefault,
 				Spec: clusterv1.MachineDrainRuleSpec{
 					Drain: clusterv1.MachineDrainRuleDrainConfig{
 						Behavior: clusterv1.MachineDrainRuleDrainBehaviorWaitCompleted,
@@ -122,10 +116,8 @@ func Test_validate(t *testing.T) {
 		{
 			name: "Return error for MachineDrainRules with invalid selector",
 			machineDrainRule: &clusterv1.MachineDrainRule{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "mdr",
-					Namespace: metav1.NamespaceDefault,
-				},
+				Name:      "mdr",
+				Namespace: metav1.NamespaceDefault,
 				Spec: clusterv1.MachineDrainRuleSpec{
 					Drain: clusterv1.MachineDrainRuleDrainConfig{
 						Behavior: clusterv1.MachineDrainRuleDrainBehaviorSkip,
@@ -154,10 +146,8 @@ func Test_validate(t *testing.T) {
 		{
 			name: "Return error if machine selectors are not unique",
 			machineDrainRule: &clusterv1.MachineDrainRule{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "mdr",
-					Namespace: metav1.NamespaceDefault,
-				},
+				Name:      "mdr",
+				Namespace: metav1.NamespaceDefault,
 				Spec: clusterv1.MachineDrainRuleSpec{
 					Drain: clusterv1.MachineDrainRuleDrainConfig{
 						Behavior: clusterv1.MachineDrainRuleDrainBehaviorSkip,
@@ -195,10 +185,8 @@ func Test_validate(t *testing.T) {
 		{
 			name: "Return error if pod selectors are not unique",
 			machineDrainRule: &clusterv1.MachineDrainRule{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "mdr",
-					Namespace: metav1.NamespaceDefault,
-				},
+				Name:      "mdr",
+				Namespace: metav1.NamespaceDefault,
 				Spec: clusterv1.MachineDrainRuleSpec{
 					Drain: clusterv1.MachineDrainRuleDrainConfig{
 						Behavior: clusterv1.MachineDrainRuleDrainBehaviorSkip,

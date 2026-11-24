@@ -1506,14 +1506,10 @@ func Test_objectMover_checkProvisioningCompleted(t *testing.T) {
 			fields: fields{
 				objs: []client.Object{
 					&clusterv1.Cluster{
-						TypeMeta: metav1.TypeMeta{
-							Kind:       "Cluster",
-							APIVersion: clusterv1.GroupVersion.String(),
-						},
-						ObjectMeta: metav1.ObjectMeta{
-							Namespace: "ns1",
-							Name:      "cluster1",
-						},
+						Kind:       "Cluster",
+						APIVersion: clusterv1.GroupVersion.String(),
+						Namespace:  "ns1",
+						Name:       "cluster1",
 						Status: clusterv1.ClusterStatus{
 							Initialization: clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: new(false)},
 							Conditions: []metav1.Condition{
@@ -1530,14 +1526,10 @@ func Test_objectMover_checkProvisioningCompleted(t *testing.T) {
 			fields: fields{
 				objs: []client.Object{
 					&clusterv1.Cluster{
-						TypeMeta: metav1.TypeMeta{
-							Kind:       "Cluster",
-							APIVersion: clusterv1.GroupVersion.String(),
-						},
-						ObjectMeta: metav1.ObjectMeta{
-							Namespace: "ns1",
-							Name:      "cluster1",
-						},
+						Kind:       "Cluster",
+						APIVersion: clusterv1.GroupVersion.String(),
+						Namespace:  "ns1",
+						Name:       "cluster1",
 						Status: clusterv1.ClusterStatus{
 							Initialization: clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: new(true)},
 						},
@@ -1551,14 +1543,10 @@ func Test_objectMover_checkProvisioningCompleted(t *testing.T) {
 			fields: fields{
 				objs: []client.Object{
 					&clusterv1.Cluster{
-						TypeMeta: metav1.TypeMeta{
-							Kind:       "Cluster",
-							APIVersion: clusterv1.GroupVersion.String(),
-						},
-						ObjectMeta: metav1.ObjectMeta{
-							Namespace: "ns1",
-							Name:      "cluster1",
-						},
+						Kind:       "Cluster",
+						APIVersion: clusterv1.GroupVersion.String(),
+						Namespace:  "ns1",
+						Name:       "cluster1",
 						Status: clusterv1.ClusterStatus{
 							Initialization: clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: new(true)},
 							Conditions: []metav1.Condition{
@@ -1575,14 +1563,10 @@ func Test_objectMover_checkProvisioningCompleted(t *testing.T) {
 			fields: fields{
 				objs: []client.Object{
 					&clusterv1.Cluster{
-						TypeMeta: metav1.TypeMeta{
-							Kind:       "Cluster",
-							APIVersion: clusterv1.GroupVersion.String(),
-						},
-						ObjectMeta: metav1.ObjectMeta{
-							Namespace: "ns1",
-							Name:      "cluster1",
-						},
+						Kind:       "Cluster",
+						APIVersion: clusterv1.GroupVersion.String(),
+						Namespace:  "ns1",
+						Name:       "cluster1",
 						Spec: clusterv1.ClusterSpec{
 							ControlPlaneRef: clusterv1.ContractVersionedObjectReference{
 								Name: "cp1",
@@ -1604,15 +1588,11 @@ func Test_objectMover_checkProvisioningCompleted(t *testing.T) {
 			fields: fields{
 				objs: []client.Object{
 					&clusterv1.Cluster{
-						TypeMeta: metav1.TypeMeta{
-							Kind:       "Cluster",
-							APIVersion: clusterv1.GroupVersion.String(),
-						},
-						ObjectMeta: metav1.ObjectMeta{
-							Namespace: "ns1",
-							Name:      "cluster1",
-							UID:       "cluster1",
-						},
+						Kind:       "Cluster",
+						APIVersion: clusterv1.GroupVersion.String(),
+						Namespace:  "ns1",
+						Name:       "cluster1",
+						UID:        "cluster1",
 						Status: clusterv1.ClusterStatus{
 							Initialization: clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: new(true)},
 							Conditions: []metav1.Condition{
@@ -1621,20 +1601,16 @@ func Test_objectMover_checkProvisioningCompleted(t *testing.T) {
 						},
 					},
 					&clusterv1.Machine{
-						TypeMeta: metav1.TypeMeta{
-							Kind:       "Machine",
-							APIVersion: clusterv1.GroupVersion.String(),
-						},
-						ObjectMeta: metav1.ObjectMeta{
-							Namespace: "ns1",
-							Name:      "machine1",
-							OwnerReferences: []metav1.OwnerReference{
-								{
-									APIVersion: clusterv1.GroupVersion.String(),
-									Kind:       "Cluster",
-									Name:       "cluster1",
-									UID:        "cluster1",
-								},
+						Kind:       "Machine",
+						APIVersion: clusterv1.GroupVersion.String(),
+						Namespace:  "ns1",
+						Name:       "machine1",
+						OwnerReferences: []metav1.OwnerReference{
+							{
+								APIVersion: clusterv1.GroupVersion.String(),
+								Kind:       "Cluster",
+								Name:       "cluster1",
+								UID:        "cluster1",
 							},
 						},
 						Status: clusterv1.MachineStatus{
@@ -1650,15 +1626,11 @@ func Test_objectMover_checkProvisioningCompleted(t *testing.T) {
 			fields: fields{
 				objs: []client.Object{
 					&clusterv1.Cluster{
-						TypeMeta: metav1.TypeMeta{
-							Kind:       "Cluster",
-							APIVersion: clusterv1.GroupVersion.String(),
-						},
-						ObjectMeta: metav1.ObjectMeta{
-							Namespace: "ns1",
-							Name:      "cluster1",
-							UID:       "cluster1",
-						},
+						Kind:       "Cluster",
+						APIVersion: clusterv1.GroupVersion.String(),
+						Namespace:  "ns1",
+						Name:       "cluster1",
+						UID:        "cluster1",
 						Status: clusterv1.ClusterStatus{
 							Initialization: clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: new(true), ControlPlaneInitialized: new(true)},
 							Conditions: []metav1.Condition{
@@ -1667,20 +1639,16 @@ func Test_objectMover_checkProvisioningCompleted(t *testing.T) {
 						},
 					},
 					&clusterv1.Machine{
-						TypeMeta: metav1.TypeMeta{
-							Kind:       "Machine",
-							APIVersion: clusterv1.GroupVersion.String(),
-						},
-						ObjectMeta: metav1.ObjectMeta{
-							Namespace: "ns1",
-							Name:      "machine1",
-							OwnerReferences: []metav1.OwnerReference{
-								{
-									APIVersion: clusterv1.GroupVersion.String(),
-									Kind:       "Cluster",
-									Name:       "cluster1",
-									UID:        "cluster1",
-								},
+						Kind:       "Machine",
+						APIVersion: clusterv1.GroupVersion.String(),
+						Namespace:  "ns1",
+						Name:       "machine1",
+						OwnerReferences: []metav1.OwnerReference{
+							{
+								APIVersion: clusterv1.GroupVersion.String(),
+								Kind:       "Cluster",
+								Name:       "cluster1",
+								UID:        "cluster1",
 							},
 						},
 						Status: clusterv1.MachineStatus{
@@ -1813,9 +1781,7 @@ func Test_objectMoverService_ensureNamespace(t *testing.T) {
 	}
 
 	namespace1 := &corev1.Namespace{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "namespace-1",
-		},
+		Name: "namespace-1",
 	}
 
 	tests := []struct {
@@ -1882,9 +1848,7 @@ func Test_objectMoverService_ensureNamespaces(t *testing.T) {
 
 	// Create some test runtime objects to be used in the tests
 	namespace1 := &corev1.Namespace{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "namespace-1",
-		},
+		Name: "namespace-1",
 	}
 
 	cluster1 := test.NewFakeCluster("namespace-1", "cluster-1")
@@ -2026,10 +1990,8 @@ func Test_createTargetObject(t *testing.T) {
 				fromProxy: test.NewFakeProxy(),
 				toProxy: test.NewFakeProxy().WithObjs(
 					&clusterv1.Cluster{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      "foo",
-							Namespace: "ns1",
-						},
+						Name:      "foo",
+						Namespace: "ns1",
 					},
 				),
 				node: &node{
@@ -2048,10 +2010,8 @@ func Test_createTargetObject(t *testing.T) {
 			args: args{
 				fromProxy: test.NewFakeProxy().WithObjs(
 					&clusterv1.Cluster{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      "foo",
-							Namespace: "ns1",
-						},
+						Name:      "foo",
+						Namespace: "ns1",
 					},
 				),
 				toProxy: test.NewFakeProxy(),
@@ -2097,19 +2057,15 @@ func Test_createTargetObject(t *testing.T) {
 			args: args{
 				fromProxy: test.NewFakeProxy().WithObjs(
 					&clusterv1.Cluster{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      "foo",
-							Namespace: "ns1",
-						},
+						Name:      "foo",
+						Namespace: "ns1",
 					},
 				),
 				toProxy: test.NewFakeProxy().WithObjs(
 					&clusterv1.Cluster{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:        "foo",
-							Namespace:   "ns1",
-							Annotations: map[string]string{"foo": "bar"},
-						},
+						Name:        "foo",
+						Namespace:   "ns1",
+						Annotations: map[string]string{"foo": "bar"},
 					},
 				),
 				node: &node{
@@ -2136,19 +2092,15 @@ func Test_createTargetObject(t *testing.T) {
 			args: args{
 				fromProxy: test.NewFakeProxy().WithObjs(
 					&clusterv1.Cluster{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      "foo",
-							Namespace: "ns1",
-						},
+						Name:      "foo",
+						Namespace: "ns1",
 					},
 				),
 				toProxy: test.NewFakeProxy().WithObjs(
 					&clusterv1.Cluster{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:        "foo",
-							Namespace:   "mutatedns1",
-							Annotations: map[string]string{"foo": "bar"},
-						},
+						Name:        "foo",
+						Namespace:   "mutatedns1",
+						Annotations: map[string]string{"foo": "bar"},
 					},
 				),
 				node: &node{
@@ -2182,17 +2134,13 @@ func Test_createTargetObject(t *testing.T) {
 			args: args{
 				fromProxy: test.NewFakeProxy().WithObjs(
 					&infrastructure.GenericClusterInfrastructureIdentity{
-						ObjectMeta: metav1.ObjectMeta{
-							Name: "foo",
-						},
+						Name: "foo",
 					},
 				),
 				toProxy: test.NewFakeProxy().WithObjs(
 					&infrastructure.GenericClusterInfrastructureIdentity{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:        "foo",
-							Annotations: map[string]string{"foo": "bar"},
-						},
+						Name:        "foo",
+						Annotations: map[string]string{"foo": "bar"},
 					},
 				),
 				node: &node{
@@ -2218,19 +2166,15 @@ func Test_createTargetObject(t *testing.T) {
 			args: args{
 				fromProxy: test.NewFakeProxy().WithObjs(
 					&corev1.Secret{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      "foo",
-							Namespace: "ns1",
-						},
+						Name:      "foo",
+						Namespace: "ns1",
 					},
 				),
 				toProxy: test.NewFakeProxy().WithObjs(
 					&corev1.Secret{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:        "foo",
-							Namespace:   "ns1",
-							Annotations: map[string]string{"foo": "bar"},
-						},
+						Name:        "foo",
+						Namespace:   "ns1",
+						Annotations: map[string]string{"foo": "bar"},
 					},
 				),
 				node: &node{
@@ -2318,10 +2262,8 @@ func Test_deleteSourceObject(t *testing.T) {
 			args: args{
 				fromProxy: test.NewFakeProxy().WithObjs(
 					&clusterv1.Cluster{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      "foo",
-							Namespace: "ns1",
-						},
+						Name:      "foo",
+						Namespace: "ns1",
 					},
 				),
 				node: &node{
@@ -2347,9 +2289,7 @@ func Test_deleteSourceObject(t *testing.T) {
 			args: args{
 				fromProxy: test.NewFakeProxy().WithObjs(
 					&infrastructure.GenericClusterInfrastructureIdentity{
-						ObjectMeta: metav1.ObjectMeta{
-							Name: "foo",
-						},
+						Name: "foo",
 					},
 				),
 				node: &node{
@@ -2375,10 +2315,8 @@ func Test_deleteSourceObject(t *testing.T) {
 			args: args{
 				fromProxy: test.NewFakeProxy().WithObjs(
 					&corev1.Secret{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      "foo",
-							Namespace: "ns1",
-						},
+						Name:      "foo",
+						Namespace: "ns1",
 					},
 				),
 				node: &node{

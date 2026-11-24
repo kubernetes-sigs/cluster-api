@@ -77,14 +77,12 @@ type Pod struct {
 // Note: This func *must* be aligned to our cache configuration in: controlplane/kubeadm/pkg/setup/setup.go.
 func TransformPod(pod *corev1.Pod) *Pod {
 	return &Pod{
-		ObjectMeta: ObjectMeta{
-			Name:              pod.Name,
-			Namespace:         pod.Namespace,
-			CreationTimestamp: pod.CreationTimestamp,
-			Labels:            pod.Labels,
-			Annotations:       pod.Annotations,
-		},
-		Status: pod.Status,
+		Name:              pod.Name,
+		Namespace:         pod.Namespace,
+		CreationTimestamp: pod.CreationTimestamp,
+		Labels:            pod.Labels,
+		Annotations:       pod.Annotations,
+		Status:            pod.Status,
 	}
 }
 
@@ -110,13 +108,11 @@ type NodeStatus struct {
 // Note: This func *must* be aligned to our cache configuration in: controlplane/kubeadm/pkg/setup/setup.go.
 func TransformNode(node *corev1.Node) *Node {
 	return &Node{
-		ObjectMeta: ObjectMeta{
-			Name:              node.Name,
-			Namespace:         node.Namespace,
-			CreationTimestamp: node.CreationTimestamp,
-			Labels:            node.Labels,
-			Annotations:       node.Annotations,
-		},
+		Name:              node.Name,
+		Namespace:         node.Namespace,
+		CreationTimestamp: node.CreationTimestamp,
+		Labels:            node.Labels,
+		Annotations:       node.Annotations,
 		Spec: NodeSpec{
 			ProviderID: node.Spec.ProviderID,
 			Taints:     node.Spec.Taints,

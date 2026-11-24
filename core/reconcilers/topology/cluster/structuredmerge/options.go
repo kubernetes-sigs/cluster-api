@@ -53,10 +53,8 @@ type HelperOptions struct {
 // newHelperOptions returns initialized HelperOptions.
 func newHelperOptions(opts ...HelperOption) *HelperOptions {
 	helperOptions := &HelperOptions{
-		FilterObjectInput: ssa.FilterObjectInput{
-			AllowedPaths: defaultAllowedPaths,
-			IgnorePaths:  []contract.Path{},
-		},
+		AllowedPaths: defaultAllowedPaths,
+		IgnorePaths:  []contract.Path{},
 	}
 	helperOptions = helperOptions.ApplyOptions(opts)
 	return helperOptions

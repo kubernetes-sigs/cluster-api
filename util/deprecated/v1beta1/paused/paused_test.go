@@ -42,10 +42,8 @@ func TestEnsurePausedCondition(t *testing.T) {
 
 	// Cluster Case 1: unpaused
 	normalCluster := &clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "some-cluster",
-			Namespace: "default",
-		},
+		Name:      "some-cluster",
+		Namespace: "default",
 	}
 
 	// Cluster Case 2: paused
@@ -53,11 +51,10 @@ func TestEnsurePausedCondition(t *testing.T) {
 	pausedCluster.Spec.Paused = new(true)
 
 	// Object case 1: unpaused
-	obj := &builder.Phase1Obj{ObjectMeta: metav1.ObjectMeta{
+	obj := &builder.Phase1Obj{
 		Name:       "some-object",
 		Namespace:  "default",
-		Generation: 1,
-	}}
+		Generation: 1}
 
 	// Object case 2: paused
 	pausedObj := obj.DeepCopy()

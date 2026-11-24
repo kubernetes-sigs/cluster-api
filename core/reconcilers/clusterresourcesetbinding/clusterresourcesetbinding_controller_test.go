@@ -57,10 +57,8 @@ func TestReconcile(t *testing.T) {
 		g := NewWithT(t)
 
 		binding := &addonsv1.ClusterResourceSetBinding{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "test-binding",
-				Namespace: metav1.NamespaceDefault,
-			},
+			Name:      "test-binding",
+			Namespace: metav1.NamespaceDefault,
 			Spec: addonsv1.ClusterResourceSetBindingSpec{
 				ClusterName: "missing-cluster",
 			},
@@ -82,18 +80,14 @@ func TestReconcile(t *testing.T) {
 		g := NewWithT(t)
 
 		cluster := &clusterv1.Cluster{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:              "test-cluster",
-				Namespace:         metav1.NamespaceDefault,
-				DeletionTimestamp: &metav1.Time{Time: metav1.Now().Time},
-				Finalizers:        []string{"test.cluster.x-k8s.io/block-deletion"},
-			},
+			Name:              "test-cluster",
+			Namespace:         metav1.NamespaceDefault,
+			DeletionTimestamp: &metav1.Time{Time: metav1.Now().Time},
+			Finalizers:        []string{"test.cluster.x-k8s.io/block-deletion"},
 		}
 		binding := &addonsv1.ClusterResourceSetBinding{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "test-binding",
-				Namespace: metav1.NamespaceDefault,
-			},
+			Name:      "test-binding",
+			Namespace: metav1.NamespaceDefault,
 			Spec: addonsv1.ClusterResourceSetBindingSpec{
 				ClusterName: cluster.Name,
 			},

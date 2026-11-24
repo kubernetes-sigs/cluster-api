@@ -51,12 +51,10 @@ func init() {
 
 func TestReconcileBootstrap(t *testing.T) {
 	defaultMachine := clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "machine-test",
-			Namespace: metav1.NamespaceDefault,
-			Labels: map[string]string{
-				clusterv1.ClusterNameLabel: "test-cluster",
-			},
+		Name:      "machine-test",
+		Namespace: metav1.NamespaceDefault,
+		Labels: map[string]string{
+			clusterv1.ClusterNameLabel: "test-cluster",
 		},
 		Spec: clusterv1.MachineSpec{
 			Bootstrap: clusterv1.Bootstrap{
@@ -70,10 +68,8 @@ func TestReconcileBootstrap(t *testing.T) {
 	}
 
 	defaultCluster := &clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test-cluster",
-			Namespace: metav1.NamespaceDefault,
-		},
+		Name:      "test-cluster",
+		Namespace: metav1.NamespaceDefault,
 	}
 
 	testCases := []struct {
@@ -327,10 +323,8 @@ func TestReconcileBootstrap(t *testing.T) {
 			name:     "bootstrap data secret and bootstrap ready should not change after bootstrap config is set",
 			contract: "v1beta1",
 			machine: &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "bootstrap-test-existing",
-					Namespace: metav1.NamespaceDefault,
-				},
+				Name:      "bootstrap-test-existing",
+				Namespace: metav1.NamespaceDefault,
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
 						ConfigRef: clusterv1.ContractVersionedObjectReference{
@@ -372,12 +366,10 @@ func TestReconcileBootstrap(t *testing.T) {
 			name:     "bootstrap config not found is tolerated when machine is deleting",
 			contract: "v1beta1",
 			machine: &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:              "deleting-machine",
-					Namespace:         metav1.NamespaceDefault,
-					DeletionTimestamp: new(metav1.Now()),
-					Finalizers:        []string{"foo"},
-				},
+				Name:              "deleting-machine",
+				Namespace:         metav1.NamespaceDefault,
+				DeletionTimestamp: new(metav1.Now()),
+				Finalizers:        []string{"foo"},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
 						ConfigRef: clusterv1.ContractVersionedObjectReference{
@@ -462,12 +454,10 @@ func TestReconcileBootstrap(t *testing.T) {
 
 func TestReconcileInfrastructure(t *testing.T) {
 	defaultMachine := clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "machine-test",
-			Namespace: metav1.NamespaceDefault,
-			Labels: map[string]string{
-				clusterv1.ClusterNameLabel: "test-cluster",
-			},
+		Name:      "machine-test",
+		Namespace: metav1.NamespaceDefault,
+		Labels: map[string]string{
+			clusterv1.ClusterNameLabel: "test-cluster",
 		},
 		Spec: clusterv1.MachineSpec{
 			InfrastructureRef: clusterv1.ContractVersionedObjectReference{
@@ -479,10 +469,8 @@ func TestReconcileInfrastructure(t *testing.T) {
 	}
 
 	defaultCluster := &clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test-cluster",
-			Namespace: metav1.NamespaceDefault,
-		},
+		Name:      "test-cluster",
+		Namespace: metav1.NamespaceDefault,
 	}
 
 	testCases := []struct {
@@ -892,10 +880,8 @@ func TestReconcileInfrastructure(t *testing.T) {
 			name:     "should never revert back to infrastructure not ready",
 			contract: "v1beta1",
 			machine: &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "machine-test",
-					Namespace: metav1.NamespaceDefault,
-				},
+				Name:      "machine-test",
+				Namespace: metav1.NamespaceDefault,
 				Spec: clusterv1.MachineSpec{
 					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
 						APIGroup: clusterv1.GroupVersionInfrastructure.Group,
@@ -956,10 +942,8 @@ func TestReconcileInfrastructure(t *testing.T) {
 			name:     "should change data also after infrastructure ready is set",
 			contract: "v1beta1",
 			machine: &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "machine-test",
-					Namespace: metav1.NamespaceDefault,
-				},
+				Name:      "machine-test",
+				Namespace: metav1.NamespaceDefault,
 				Spec: clusterv1.MachineSpec{
 					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
 						APIGroup: clusterv1.GroupVersionInfrastructure.Group,
@@ -1020,10 +1004,8 @@ func TestReconcileInfrastructure(t *testing.T) {
 			name:     "err reading infra machine when infrastructure have been ready (something different than not found), it should return error",
 			contract: "v1beta1",
 			machine: &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "machine-test",
-					Namespace: metav1.NamespaceDefault,
-				},
+				Name:      "machine-test",
+				Namespace: metav1.NamespaceDefault,
 				Spec: clusterv1.MachineSpec{
 					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
 						APIGroup: clusterv1.GroupVersionInfrastructure.Group,
@@ -1050,10 +1032,8 @@ func TestReconcileInfrastructure(t *testing.T) {
 			name:     "infra machine not found when infrastructure have been ready, should be treated as terminal error",
 			contract: "v1beta1",
 			machine: &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "machine-test",
-					Namespace: metav1.NamespaceDefault,
-				},
+				Name:      "machine-test",
+				Namespace: metav1.NamespaceDefault,
 				Spec: clusterv1.MachineSpec{
 					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
 						APIGroup: clusterv1.GroupVersionInfrastructure.Group,
@@ -1083,12 +1063,10 @@ func TestReconcileInfrastructure(t *testing.T) {
 			name:     "infra machine is not found is tolerated when infrastructure not yet ready and machine is deleting",
 			contract: "v1beta1",
 			machine: &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:              "deleting-machine",
-					Namespace:         metav1.NamespaceDefault,
-					DeletionTimestamp: new(metav1.Now()),
-					Finalizers:        []string{"foo"},
-				},
+				Name:              "deleting-machine",
+				Namespace:         metav1.NamespaceDefault,
+				DeletionTimestamp: new(metav1.Now()),
+				Finalizers:        []string{"foo"},
 				Spec: clusterv1.MachineSpec{
 					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
 						APIGroup: clusterv1.GroupVersionInfrastructure.Group,
@@ -1112,12 +1090,10 @@ func TestReconcileInfrastructure(t *testing.T) {
 			name:     "infra machine is not found is tolerated when infrastructure ready and machine is deleting",
 			contract: "v1beta1",
 			machine: &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:              "deleting-machine",
-					Namespace:         metav1.NamespaceDefault,
-					DeletionTimestamp: new(metav1.Now()),
-					Finalizers:        []string{"foo"},
-				},
+				Name:              "deleting-machine",
+				Namespace:         metav1.NamespaceDefault,
+				DeletionTimestamp: new(metav1.Now()),
+				Finalizers:        []string{"foo"},
 				Spec: clusterv1.MachineSpec{
 					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
 						APIGroup: clusterv1.GroupVersionInfrastructure.Group,
@@ -1215,12 +1191,10 @@ func TestReconcileCertificateExpiry(t *testing.T) {
 	fakeMetaTime2 := metav1.Time{Time: fakeTime2}
 
 	bootstrapConfigWithExpiry := &contractv1.BootstrapConfig{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "bootstrap-config-with-expiry",
-			Namespace: metav1.NamespaceDefault,
-			Annotations: map[string]string{
-				clusterv1.MachineCertificatesExpiryDateAnnotation: fakeTimeString,
-			},
+		Name:      "bootstrap-config-with-expiry",
+		Namespace: metav1.NamespaceDefault,
+		Annotations: map[string]string{
+			clusterv1.MachineCertificatesExpiryDateAnnotation: fakeTimeString,
 		},
 		Status: contractv1.BootstrapConfigStatus{
 			Initialization: contractv1.BootstrapConfigInitializationStatus{
@@ -1231,10 +1205,8 @@ func TestReconcileCertificateExpiry(t *testing.T) {
 	}
 
 	bootstrapConfigWithoutExpiry := &contractv1.BootstrapConfig{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "bootstrap-config-without-expiry",
-			Namespace: metav1.NamespaceDefault,
-		},
+		Name:      "bootstrap-config-without-expiry",
+		Namespace: metav1.NamespaceDefault,
 		Status: contractv1.BootstrapConfigStatus{
 			Initialization: contractv1.BootstrapConfigInitializationStatus{
 				DataSecretCreated: new(true),
@@ -1252,12 +1224,10 @@ func TestReconcileCertificateExpiry(t *testing.T) {
 		{
 			name: "worker machine with certificate expiry annotation should not update expiry date",
 			machine: &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "bootstrap-test-existing",
-					Namespace: metav1.NamespaceDefault,
-					Annotations: map[string]string{
-						clusterv1.MachineCertificatesExpiryDateAnnotation: fakeTimeString,
-					},
+				Name:      "bootstrap-test-existing",
+				Namespace: metav1.NamespaceDefault,
+				Annotations: map[string]string{
+					clusterv1.MachineCertificatesExpiryDateAnnotation: fakeTimeString,
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{},
@@ -1270,12 +1240,10 @@ func TestReconcileCertificateExpiry(t *testing.T) {
 		{
 			name: "control plane machine with no bootstrap config and no certificate expiry annotation should not set expiry date",
 			machine: &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "bootstrap-test-existing",
-					Namespace: metav1.NamespaceDefault,
-					Labels: map[string]string{
-						clusterv1.MachineControlPlaneLabel: "",
-					},
+				Name:      "bootstrap-test-existing",
+				Namespace: metav1.NamespaceDefault,
+				Labels: map[string]string{
+					clusterv1.MachineControlPlaneLabel: "",
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{},
@@ -1288,12 +1256,10 @@ func TestReconcileCertificateExpiry(t *testing.T) {
 		{
 			name: "control plane machine with bootstrap config and no certificate expiry annotation should not set expiry date",
 			machine: &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "bootstrap-test-existing",
-					Namespace: metav1.NamespaceDefault,
-					Labels: map[string]string{
-						clusterv1.MachineControlPlaneLabel: "",
-					},
+				Name:      "bootstrap-test-existing",
+				Namespace: metav1.NamespaceDefault,
+				Labels: map[string]string{
+					clusterv1.MachineControlPlaneLabel: "",
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
@@ -1313,12 +1279,10 @@ func TestReconcileCertificateExpiry(t *testing.T) {
 		{
 			name: "control plane machine with certificate expiry annotation in bootstrap config should set expiry date",
 			machine: &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "bootstrap-test-existing",
-					Namespace: metav1.NamespaceDefault,
-					Labels: map[string]string{
-						clusterv1.MachineControlPlaneLabel: "",
-					},
+				Name:      "bootstrap-test-existing",
+				Namespace: metav1.NamespaceDefault,
+				Labels: map[string]string{
+					clusterv1.MachineControlPlaneLabel: "",
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
@@ -1338,15 +1302,13 @@ func TestReconcileCertificateExpiry(t *testing.T) {
 		{
 			name: "control plane machine with certificate expiry annotation and no certificate expiry annotation on bootstrap config should set expiry date",
 			machine: &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "bootstrap-test-existing",
-					Namespace: metav1.NamespaceDefault,
-					Labels: map[string]string{
-						clusterv1.MachineControlPlaneLabel: "",
-					},
-					Annotations: map[string]string{
-						clusterv1.MachineCertificatesExpiryDateAnnotation: fakeTimeString,
-					},
+				Name:      "bootstrap-test-existing",
+				Namespace: metav1.NamespaceDefault,
+				Labels: map[string]string{
+					clusterv1.MachineControlPlaneLabel: "",
+				},
+				Annotations: map[string]string{
+					clusterv1.MachineCertificatesExpiryDateAnnotation: fakeTimeString,
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
@@ -1366,15 +1328,13 @@ func TestReconcileCertificateExpiry(t *testing.T) {
 		{
 			name: "control plane machine with certificate expiry annotation in machine should take precedence over bootstrap config and should set expiry date",
 			machine: &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "bootstrap-test-existing",
-					Namespace: metav1.NamespaceDefault,
-					Labels: map[string]string{
-						clusterv1.MachineControlPlaneLabel: "",
-					},
-					Annotations: map[string]string{
-						clusterv1.MachineCertificatesExpiryDateAnnotation: fakeTimeString2,
-					},
+				Name:      "bootstrap-test-existing",
+				Namespace: metav1.NamespaceDefault,
+				Labels: map[string]string{
+					clusterv1.MachineControlPlaneLabel: "",
+				},
+				Annotations: map[string]string{
+					clusterv1.MachineCertificatesExpiryDateAnnotation: fakeTimeString2,
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
@@ -1394,12 +1354,10 @@ func TestReconcileCertificateExpiry(t *testing.T) {
 		{
 			name: "reset certificates expiry information in machine status if the information is not available on the machine and the bootstrap config",
 			machine: &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "bootstrap-test-existing",
-					Namespace: metav1.NamespaceDefault,
-					Labels: map[string]string{
-						clusterv1.MachineControlPlaneLabel: "",
-					},
+				Name:      "bootstrap-test-existing",
+				Namespace: metav1.NamespaceDefault,
+				Labels: map[string]string{
+					clusterv1.MachineControlPlaneLabel: "",
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{

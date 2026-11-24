@@ -42,12 +42,10 @@ func TestGetConfigOwner(t *testing.T) {
 		t.Run("should get the owner when present (Machine)", func(t *testing.T) {
 			g := NewWithT(t)
 			myMachine := &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "my-machine",
-					Namespace: metav1.NamespaceDefault,
-					Labels: map[string]string{
-						clusterv1.MachineControlPlaneLabel: "",
-					},
+				Name:      "my-machine",
+				Namespace: metav1.NamespaceDefault,
+				Labels: map[string]string{
+					clusterv1.MachineControlPlaneLabel: "",
 				},
 				Spec: clusterv1.MachineSpec{
 					ClusterName: "my-cluster",
@@ -67,17 +65,15 @@ func TestGetConfigOwner(t *testing.T) {
 			_ = clusterv1.AddToScheme(scheme)
 			c := fake.NewClientBuilder().WithScheme(scheme).WithObjects(myMachine).Build()
 			obj := &bootstrapv1.KubeadmConfig{
-				ObjectMeta: metav1.ObjectMeta{
-					OwnerReferences: []metav1.OwnerReference{
-						{
-							Kind:       "Machine",
-							APIVersion: clusterv1.GroupVersion.String(),
-							Name:       "my-machine",
-						},
+				OwnerReferences: []metav1.OwnerReference{
+					{
+						Kind:       "Machine",
+						APIVersion: clusterv1.GroupVersion.String(),
+						Name:       "my-machine",
 					},
-					Namespace: metav1.NamespaceDefault,
-					Name:      "my-resource-owned-by-machine",
 				},
+				Namespace: metav1.NamespaceDefault,
+				Name:      "my-resource-owned-by-machine",
 			}
 			configOwner, err := getFn(t.Context(), c, obj)
 			g.Expect(err).ToNot(HaveOccurred())
@@ -95,12 +91,10 @@ func TestGetConfigOwner(t *testing.T) {
 
 			g := NewWithT(t)
 			myPool := &clusterv1.MachinePool{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "my-machine-pool",
-					Namespace: metav1.NamespaceDefault,
-					Labels: map[string]string{
-						clusterv1.MachineControlPlaneLabel: "",
-					},
+				Name:      "my-machine-pool",
+				Namespace: metav1.NamespaceDefault,
+				Labels: map[string]string{
+					clusterv1.MachineControlPlaneLabel: "",
 				},
 				Spec: clusterv1.MachinePoolSpec{
 					ClusterName: "my-cluster",
@@ -121,17 +115,15 @@ func TestGetConfigOwner(t *testing.T) {
 			_ = clusterv1.AddToScheme(scheme)
 			c := fake.NewClientBuilder().WithScheme(scheme).WithObjects(myPool).Build()
 			obj := &bootstrapv1.KubeadmConfig{
-				ObjectMeta: metav1.ObjectMeta{
-					OwnerReferences: []metav1.OwnerReference{
-						{
-							Kind:       "MachinePool",
-							APIVersion: clusterv1.GroupVersion.String(),
-							Name:       "my-machine-pool",
-						},
+				OwnerReferences: []metav1.OwnerReference{
+					{
+						Kind:       "MachinePool",
+						APIVersion: clusterv1.GroupVersion.String(),
+						Name:       "my-machine-pool",
 					},
-					Namespace: metav1.NamespaceDefault,
-					Name:      "my-resource-owned-by-machine-pool",
 				},
+				Namespace: metav1.NamespaceDefault,
+				Name:      "my-resource-owned-by-machine-pool",
 			}
 			configOwner, err := getFn(t.Context(), c, obj)
 			g.Expect(err).ToNot(HaveOccurred())
@@ -148,17 +140,15 @@ func TestGetConfigOwner(t *testing.T) {
 			g := NewWithT(t)
 			c := fake.NewClientBuilder().Build()
 			obj := &bootstrapv1.KubeadmConfig{
-				ObjectMeta: metav1.ObjectMeta{
-					OwnerReferences: []metav1.OwnerReference{
-						{
-							Kind:       "Machine",
-							APIVersion: clusterv1.GroupVersion.String(),
-							Name:       "my-machine",
-						},
+				OwnerReferences: []metav1.OwnerReference{
+					{
+						Kind:       "Machine",
+						APIVersion: clusterv1.GroupVersion.String(),
+						Name:       "my-machine",
 					},
-					Namespace: metav1.NamespaceDefault,
-					Name:      "my-resource-owned-by-machine",
 				},
+				Namespace: metav1.NamespaceDefault,
+				Name:      "my-resource-owned-by-machine",
 			}
 			_, err := getFn(t.Context(), c, obj)
 			g.Expect(err).To(HaveOccurred())
@@ -168,11 +158,9 @@ func TestGetConfigOwner(t *testing.T) {
 			g := NewWithT(t)
 			c := fake.NewClientBuilder().Build()
 			obj := &bootstrapv1.KubeadmConfig{
-				ObjectMeta: metav1.ObjectMeta{
-					OwnerReferences: []metav1.OwnerReference{},
-					Namespace:       metav1.NamespaceDefault,
-					Name:            "my-resource-owned-by-machine",
-				},
+				OwnerReferences: []metav1.OwnerReference{},
+				Namespace:       metav1.NamespaceDefault,
+				Name:            "my-resource-owned-by-machine",
 			}
 			configOwner, err := getFn(t.Context(), c, obj)
 			g.Expect(err).ToNot(HaveOccurred())
@@ -191,10 +179,8 @@ func TestHasNodeRefs(t *testing.T) {
 	t.Run("should return false if there is no nodeRef", func(t *testing.T) {
 		g := NewWithT(t)
 		machine := &clusterv1.Machine{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "machine-name",
-				Namespace: metav1.NamespaceDefault,
-			},
+			Name:      "machine-name",
+			Namespace: metav1.NamespaceDefault,
 		}
 		content, err := runtime.DefaultUnstructuredConverter.ToUnstructured(&machine)
 		if err != nil {
@@ -209,10 +195,8 @@ func TestHasNodeRefs(t *testing.T) {
 	t.Run("should return true if there is a nodeRef for Machine", func(t *testing.T) {
 		g := NewWithT(t)
 		machine := &clusterv1.Machine{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "machine-name",
-				Namespace: metav1.NamespaceDefault,
-			},
+			Name:      "machine-name",
+			Namespace: metav1.NamespaceDefault,
 			Status: clusterv1.MachineStatus{
 				Initialization: clusterv1.MachineInitializationStatus{
 					InfrastructureProvisioned: new(true),
@@ -238,27 +222,21 @@ func TestHasNodeRefs(t *testing.T) {
 		machinePools := []clusterv1.MachinePool{
 			{
 				// No replicas specified (default is 1). No nodeRefs either.
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: metav1.NamespaceDefault,
-					Name:      "machine-pool-name",
-				},
+				Namespace: metav1.NamespaceDefault,
+				Name:      "machine-pool-name",
 			},
 			{
 				// 1 replica but no nodeRefs
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: metav1.NamespaceDefault,
-					Name:      "machine-pool-name",
-				},
+				Namespace: metav1.NamespaceDefault,
+				Name:      "machine-pool-name",
 				Spec: clusterv1.MachinePoolSpec{
 					Replicas: ptr.To[int32](1),
 				},
 			},
 			{
 				// 2 replicas but only 1 nodeRef
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: metav1.NamespaceDefault,
-					Name:      "machine-pool-name",
-				},
+				Namespace: metav1.NamespaceDefault,
+				Name:      "machine-pool-name",
 				Spec: clusterv1.MachinePoolSpec{
 					Replicas: ptr.To[int32](2),
 				},
@@ -292,10 +270,8 @@ func TestHasNodeRefs(t *testing.T) {
 		machinePools := []clusterv1.MachinePool{
 			{
 				// 1 replica (default) and 1 nodeRef
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: metav1.NamespaceDefault,
-					Name:      "machine-pool-name",
-				},
+				Namespace: metav1.NamespaceDefault,
+				Name:      "machine-pool-name",
 				Status: clusterv1.MachinePoolStatus{
 					NodeRefs: []corev1.ObjectReference{
 						{
@@ -308,10 +284,8 @@ func TestHasNodeRefs(t *testing.T) {
 			},
 			{
 				// 2 replicas and nodeRefs
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: metav1.NamespaceDefault,
-					Name:      "machine-pool-name",
-				},
+				Namespace: metav1.NamespaceDefault,
+				Name:      "machine-pool-name",
 				Spec: clusterv1.MachinePoolSpec{
 					Replicas: ptr.To[int32](2),
 				},
@@ -332,10 +306,8 @@ func TestHasNodeRefs(t *testing.T) {
 			},
 			{
 				// 0 replicas and 0 nodeRef
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: metav1.NamespaceDefault,
-					Name:      "machine-pool-name",
-				},
+				Namespace: metav1.NamespaceDefault,
+				Name:      "machine-pool-name",
 				Spec: clusterv1.MachinePoolSpec{
 					Replicas: ptr.To[int32](0),
 				},

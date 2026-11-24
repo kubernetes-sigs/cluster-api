@@ -32,8 +32,8 @@ func TestMachineRandomDelete(t *testing.T) {
 	nodeRef := clusterv1.MachineNodeReference{Name: "some-node"}
 	healthyMachine := &clusterv1.Machine{Status: clusterv1.MachineStatus{NodeRef: nodeRef}}
 	mustDeleteMachine := &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{DeletionTimestamp: &now},
-		Status:     clusterv1.MachineStatus{NodeRef: nodeRef},
+		DeletionTimestamp: &now,
+		Status:            clusterv1.MachineStatus{NodeRef: nodeRef},
 	}
 	betterDeleteMachine := &clusterv1.Machine{
 		Status: clusterv1.MachineStatus{
@@ -47,12 +47,12 @@ func TestMachineRandomDelete(t *testing.T) {
 		},
 	}
 	deleteMachineWithMachineAnnotation := &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{Annotations: map[string]string{clusterv1.DeleteMachineAnnotation: ""}},
-		Status:     clusterv1.MachineStatus{NodeRef: nodeRef},
+		Annotations: map[string]string{clusterv1.DeleteMachineAnnotation: ""},
+		Status:      clusterv1.MachineStatus{NodeRef: nodeRef},
 	}
 	machineWithUpdateInProgressAnnotation := &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{Annotations: map[string]string{clusterv1.UpdateInProgressAnnotation: ""}},
-		Status:     clusterv1.MachineStatus{NodeRef: nodeRef},
+		Annotations: map[string]string{clusterv1.UpdateInProgressAnnotation: ""},
+		Status:      clusterv1.MachineStatus{NodeRef: nodeRef},
 	}
 	deleteMachineWithoutNodeRef := &clusterv1.Machine{}
 	nodeHealthyConditionFalseMachine := &clusterv1.Machine{
@@ -306,35 +306,35 @@ func TestMachineNewestDelete(t *testing.T) {
 	currentTime := metav1.Now()
 	nodeRef := clusterv1.MachineNodeReference{Name: "some-node"}
 	mustDeleteMachine := &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{DeletionTimestamp: &currentTime},
-		Status:     clusterv1.MachineStatus{NodeRef: nodeRef},
+		DeletionTimestamp: &currentTime,
+		Status:            clusterv1.MachineStatus{NodeRef: nodeRef},
 	}
 	newest := &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{CreationTimestamp: metav1.NewTime(currentTime.AddDate(0, 0, -1))},
-		Status:     clusterv1.MachineStatus{NodeRef: nodeRef},
+		CreationTimestamp: metav1.NewTime(currentTime.AddDate(0, 0, -1)),
+		Status:            clusterv1.MachineStatus{NodeRef: nodeRef},
 	}
 	secondNewest := &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{CreationTimestamp: metav1.NewTime(currentTime.AddDate(0, 0, -5))},
-		Status:     clusterv1.MachineStatus{NodeRef: nodeRef},
+		CreationTimestamp: metav1.NewTime(currentTime.AddDate(0, 0, -5)),
+		Status:            clusterv1.MachineStatus{NodeRef: nodeRef},
 	}
 	secondOldest := &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{CreationTimestamp: metav1.NewTime(currentTime.AddDate(0, 0, -10))},
-		Status:     clusterv1.MachineStatus{NodeRef: nodeRef},
+		CreationTimestamp: metav1.NewTime(currentTime.AddDate(0, 0, -10)),
+		Status:            clusterv1.MachineStatus{NodeRef: nodeRef},
 	}
 	oldest := &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{CreationTimestamp: metav1.NewTime(currentTime.AddDate(0, 0, -10))},
-		Status:     clusterv1.MachineStatus{NodeRef: nodeRef},
+		CreationTimestamp: metav1.NewTime(currentTime.AddDate(0, 0, -10)),
+		Status:            clusterv1.MachineStatus{NodeRef: nodeRef},
 	}
 	deleteMachineWithMachineAnnotation := &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{Annotations: map[string]string{clusterv1.DeleteMachineAnnotation: ""}, CreationTimestamp: metav1.NewTime(currentTime.AddDate(0, 0, -10))},
-		Status:     clusterv1.MachineStatus{NodeRef: nodeRef},
+		Annotations: map[string]string{clusterv1.DeleteMachineAnnotation: ""}, CreationTimestamp: metav1.NewTime(currentTime.AddDate(0, 0, -10)),
+		Status: clusterv1.MachineStatus{NodeRef: nodeRef},
 	}
 	machineWithUpdateInProgressAnnotation := &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{Annotations: map[string]string{clusterv1.UpdateInProgressAnnotation: ""}, CreationTimestamp: metav1.NewTime(currentTime.AddDate(0, 0, -10))},
-		Status:     clusterv1.MachineStatus{NodeRef: nodeRef},
+		Annotations: map[string]string{clusterv1.UpdateInProgressAnnotation: ""}, CreationTimestamp: metav1.NewTime(currentTime.AddDate(0, 0, -10)),
+		Status: clusterv1.MachineStatus{NodeRef: nodeRef},
 	}
 	unhealthyMachine := &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{CreationTimestamp: metav1.NewTime(currentTime.AddDate(0, 0, -10))},
+		CreationTimestamp: metav1.NewTime(currentTime.AddDate(0, 0, -10)),
 		Status: clusterv1.MachineStatus{
 			Conditions: []metav1.Condition{
 				{
@@ -346,10 +346,10 @@ func TestMachineNewestDelete(t *testing.T) {
 		},
 	}
 	deleteMachineWithoutNodeRef := &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{CreationTimestamp: metav1.NewTime(currentTime.AddDate(0, 0, -1))},
+		CreationTimestamp: metav1.NewTime(currentTime.AddDate(0, 0, -1)),
 	}
 	nodeHealthyConditionFalseMachine := &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{CreationTimestamp: metav1.NewTime(currentTime.AddDate(0, 0, -10))},
+		CreationTimestamp: metav1.NewTime(currentTime.AddDate(0, 0, -10)),
 		Status: clusterv1.MachineStatus{
 			NodeRef: nodeRef,
 			Conditions: []metav1.Condition{
@@ -361,7 +361,7 @@ func TestMachineNewestDelete(t *testing.T) {
 		},
 	}
 	nodeHealthyConditionUnknownMachine := &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{CreationTimestamp: metav1.NewTime(currentTime.AddDate(0, 0, -10))},
+		CreationTimestamp: metav1.NewTime(currentTime.AddDate(0, 0, -10)),
 		Status: clusterv1.MachineStatus{
 			NodeRef: nodeRef,
 			Conditions: []metav1.Condition{
@@ -471,31 +471,31 @@ func TestMachineOldestDelete(t *testing.T) {
 		Status: clusterv1.MachineStatus{NodeRef: nodeRef},
 	}
 	newest := &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{CreationTimestamp: metav1.NewTime(currentTime.AddDate(0, 0, -1))},
-		Status:     clusterv1.MachineStatus{NodeRef: nodeRef},
+		CreationTimestamp: metav1.NewTime(currentTime.AddDate(0, 0, -1)),
+		Status:            clusterv1.MachineStatus{NodeRef: nodeRef},
 	}
 	secondNewest := &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{CreationTimestamp: metav1.NewTime(currentTime.AddDate(0, 0, -5))},
-		Status:     clusterv1.MachineStatus{NodeRef: nodeRef},
+		CreationTimestamp: metav1.NewTime(currentTime.AddDate(0, 0, -5)),
+		Status:            clusterv1.MachineStatus{NodeRef: nodeRef},
 	}
 	secondOldest := &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{CreationTimestamp: metav1.NewTime(currentTime.AddDate(0, 0, -10))},
-		Status:     clusterv1.MachineStatus{NodeRef: nodeRef},
+		CreationTimestamp: metav1.NewTime(currentTime.AddDate(0, 0, -10)),
+		Status:            clusterv1.MachineStatus{NodeRef: nodeRef},
 	}
 	oldest := &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{CreationTimestamp: metav1.NewTime(currentTime.AddDate(0, 0, -10))},
-		Status:     clusterv1.MachineStatus{NodeRef: nodeRef},
+		CreationTimestamp: metav1.NewTime(currentTime.AddDate(0, 0, -10)),
+		Status:            clusterv1.MachineStatus{NodeRef: nodeRef},
 	}
 	deleteMachineWithMachineAnnotation := &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{Annotations: map[string]string{clusterv1.DeleteMachineAnnotation: ""}, CreationTimestamp: metav1.NewTime(currentTime.AddDate(0, 0, -10))},
-		Status:     clusterv1.MachineStatus{NodeRef: nodeRef},
+		Annotations: map[string]string{clusterv1.DeleteMachineAnnotation: ""}, CreationTimestamp: metav1.NewTime(currentTime.AddDate(0, 0, -10)),
+		Status: clusterv1.MachineStatus{NodeRef: nodeRef},
 	}
 	machineWithUpdateInProgressAnnotation := &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{Annotations: map[string]string{clusterv1.UpdateInProgressAnnotation: ""}, CreationTimestamp: metav1.NewTime(currentTime.AddDate(0, 0, -10))},
-		Status:     clusterv1.MachineStatus{NodeRef: nodeRef},
+		Annotations: map[string]string{clusterv1.UpdateInProgressAnnotation: ""}, CreationTimestamp: metav1.NewTime(currentTime.AddDate(0, 0, -10)),
+		Status: clusterv1.MachineStatus{NodeRef: nodeRef},
 	}
 	unhealthyMachine := &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{CreationTimestamp: metav1.NewTime(currentTime.AddDate(0, 0, -10))},
+		CreationTimestamp: metav1.NewTime(currentTime.AddDate(0, 0, -10)),
 		Status: clusterv1.MachineStatus{
 			Conditions: []metav1.Condition{
 				{
@@ -507,11 +507,11 @@ func TestMachineOldestDelete(t *testing.T) {
 		},
 	}
 	mustDeleteMachine := &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{Name: "b", DeletionTimestamp: &currentTime},
-		Status:     clusterv1.MachineStatus{NodeRef: nodeRef},
+		Name: "b", DeletionTimestamp: &currentTime,
+		Status: clusterv1.MachineStatus{NodeRef: nodeRef},
 	}
 	unhealthyMachineA := &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{Name: "unhealthyMachineA", CreationTimestamp: metav1.NewTime(currentTime.AddDate(0, 0, -10))},
+		Name: "unhealthyMachineA", CreationTimestamp: metav1.NewTime(currentTime.AddDate(0, 0, -10)),
 		Status: clusterv1.MachineStatus{
 			Conditions: []metav1.Condition{
 				{
@@ -523,7 +523,7 @@ func TestMachineOldestDelete(t *testing.T) {
 		},
 	}
 	unhealthyMachineZ := &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{Name: "z", CreationTimestamp: metav1.NewTime(currentTime.AddDate(0, 0, -10))},
+		Name: "z", CreationTimestamp: metav1.NewTime(currentTime.AddDate(0, 0, -10)),
 		Status: clusterv1.MachineStatus{
 			Conditions: []metav1.Condition{
 				{
@@ -535,10 +535,10 @@ func TestMachineOldestDelete(t *testing.T) {
 		},
 	}
 	deleteMachineWithoutNodeRef := &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{CreationTimestamp: metav1.NewTime(currentTime.AddDate(0, 0, -10))},
+		CreationTimestamp: metav1.NewTime(currentTime.AddDate(0, 0, -10)),
 	}
 	nodeHealthyConditionFalseMachine := &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{CreationTimestamp: metav1.NewTime(currentTime.AddDate(0, 0, -10))},
+		CreationTimestamp: metav1.NewTime(currentTime.AddDate(0, 0, -10)),
 		Status: clusterv1.MachineStatus{
 			NodeRef: nodeRef,
 			Conditions: []metav1.Condition{
@@ -550,7 +550,7 @@ func TestMachineOldestDelete(t *testing.T) {
 		},
 	}
 	nodeHealthyConditionUnknownMachine := &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{CreationTimestamp: metav1.NewTime(currentTime.AddDate(0, 0, -10))},
+		CreationTimestamp: metav1.NewTime(currentTime.AddDate(0, 0, -10)),
 		Status: clusterv1.MachineStatus{
 			NodeRef: nodeRef,
 			Conditions: []metav1.Condition{
@@ -683,7 +683,7 @@ func TestMachineDeleteMultipleSamePriority(t *testing.T) {
 	// All of these machines will have the same delete priority because they all have the "must delete" annotation.
 	for i := range 10 {
 		machines = append(machines, &clusterv1.Machine{
-			ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("machine-%d", i), Annotations: map[string]string{clusterv1.DeleteMachineAnnotation: "true"}},
+			Name: fmt.Sprintf("machine-%d", i), Annotations: map[string]string{clusterv1.DeleteMachineAnnotation: "true"},
 		})
 	}
 

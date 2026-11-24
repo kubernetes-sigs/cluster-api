@@ -23,7 +23,6 @@ import (
 	pkgerrors "github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/apimachinery/pkg/types"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
@@ -232,10 +231,8 @@ func devMachineToDevMachinePool(_ context.Context, o client.Object) []ctrl.Reque
 		if ownerRef.Kind == "DevMachinePool" && gv.Group == infrav1.GroupVersion.Group {
 			return []ctrl.Request{
 				{
-					NamespacedName: types.NamespacedName{
-						Name:      ownerRef.Name,
-						Namespace: devMachine.Namespace,
-					},
+					Name:      ownerRef.Name,
+					Namespace: devMachine.Namespace,
 				},
 			}
 		}

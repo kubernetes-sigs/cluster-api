@@ -91,10 +91,8 @@ func TestReconcile(t *testing.T) {
 		g.Expect(ctrl.Watch(source.Channel(sourceChannel, handler.Funcs{
 			GenericFunc: func(_ context.Context, e event.TypedGenericEvent[client.Object], q workqueue.TypedRateLimitingInterface[reconcile.Request]) {
 				q.Add(reconcile.Request{
-					NamespacedName: types.NamespacedName{
-						Namespace: e.Object.GetNamespace(),
-						Name:      e.Object.GetName(),
-					},
+					Namespace: e.Object.GetNamespace(),
+					Name:      e.Object.GetName(),
 				})
 			},
 		}))).To(Succeed())
@@ -106,10 +104,8 @@ func TestReconcile(t *testing.T) {
 		}()
 
 		cluster := &clusterv1.Cluster{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: metav1.NamespaceDefault,
-				Name:      "cluster-1",
-			},
+			Namespace: metav1.NamespaceDefault,
+			Name:      "cluster-1",
 		}
 		req := reconcile.Request{
 			NamespacedName: client.ObjectKeyFromObject(cluster),
@@ -299,10 +295,8 @@ func TestReconcileMetrics(t *testing.T) {
 		}
 
 		req := reconcile.Request{
-			NamespacedName: types.NamespacedName{
-				Namespace: metav1.NamespaceDefault,
-				Name:      "cluster-1",
-			},
+			Namespace: metav1.NamespaceDefault,
+			Name:      "cluster-1",
 		}
 
 		// Reset the metrics (otherwise they have data from other tests).

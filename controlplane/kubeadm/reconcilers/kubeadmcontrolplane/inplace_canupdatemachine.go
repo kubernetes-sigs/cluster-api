@@ -25,7 +25,6 @@ import (
 
 	pkgerrors "github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog/v2"
@@ -406,34 +405,26 @@ func createRequest(ctx context.Context, c client.Client, currentMachine *cluster
 func cleanupMachine(machine *clusterv1.Machine) *clusterv1.Machine {
 	return &clusterv1.Machine{
 		// Set GVK because object is later marshalled with json.Marshal.
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: clusterv1.GroupVersion.String(),
-			Kind:       "Machine",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:        machine.Name,
-			Namespace:   machine.Namespace,
-			Labels:      machine.Labels,
-			Annotations: machine.Annotations,
-		},
-		Spec: *machine.Spec.DeepCopy(),
+		APIVersion:  clusterv1.GroupVersion.String(),
+		Kind:        "Machine",
+		Name:        machine.Name,
+		Namespace:   machine.Namespace,
+		Labels:      machine.Labels,
+		Annotations: machine.Annotations,
+		Spec:        *machine.Spec.DeepCopy(),
 	}
 }
 
 func cleanupKubeadmConfig(kubeadmConfig *bootstrapv1.KubeadmConfig) *bootstrapv1.KubeadmConfig {
 	return &bootstrapv1.KubeadmConfig{
 		// Set GVK because object is later marshalled with json.Marshal.
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: bootstrapv1.GroupVersion.String(),
-			Kind:       "KubeadmConfig",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:        kubeadmConfig.Name,
-			Namespace:   kubeadmConfig.Namespace,
-			Labels:      kubeadmConfig.Labels,
-			Annotations: kubeadmConfig.Annotations,
-		},
-		Spec: *kubeadmConfig.Spec.DeepCopy(),
+		APIVersion:  bootstrapv1.GroupVersion.String(),
+		Kind:        "KubeadmConfig",
+		Name:        kubeadmConfig.Name,
+		Namespace:   kubeadmConfig.Namespace,
+		Labels:      kubeadmConfig.Labels,
+		Annotations: kubeadmConfig.Annotations,
+		Spec:        *kubeadmConfig.Spec.DeepCopy(),
 	}
 }
 

@@ -92,10 +92,8 @@ func TestPreflightChecks(t *testing.T) {
 		{
 			name: "control plane with a pending upgrade, but not yet at the current step of the upgrade plan, should requeue",
 			cluster: &clusterv1.Cluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Annotations: map[string]string{
-						clusterv1.ClusterTopologyUpgradeStepAnnotation: "v1.32.0",
-					},
+				Annotations: map[string]string{
+					clusterv1.ClusterTopologyUpgradeStepAnnotation: "v1.32.0",
 				},
 				Spec: clusterv1.ClusterSpec{
 					Topology: clusterv1.Topology{
@@ -134,10 +132,8 @@ func TestPreflightChecks(t *testing.T) {
 			},
 			machines: []*clusterv1.Machine{
 				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:              "deleting-machine",
-						DeletionTimestamp: &metav1.Time{Time: time.Now()},
-					},
+					Name:              "deleting-machine",
+					DeletionTimestamp: &metav1.Time{Time: time.Now()},
 				},
 			},
 			expectResult: ctrl.Result{RequeueAfter: deleteRequeueAfter},
@@ -163,9 +159,7 @@ func TestPreflightChecks(t *testing.T) {
 			},
 			machines: []*clusterv1.Machine{
 				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "machine-1",
-					},
+					Name:   "machine-1",
 					Status: clusterv1.MachineStatus{
 						// NodeRef is not set
 						// Note: with v1beta1 no conditions are applied to machine when NodeRef is not set, this will change with v1beta2.
@@ -196,9 +190,7 @@ func TestPreflightChecks(t *testing.T) {
 			},
 			machines: []*clusterv1.Machine{
 				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "machine-1",
-					},
+					Name: "machine-1",
 					Status: clusterv1.MachineStatus{
 						NodeRef: clusterv1.MachineNodeReference{
 							Name: "node-1",
@@ -237,9 +229,7 @@ func TestPreflightChecks(t *testing.T) {
 			},
 			machines: []*clusterv1.Machine{
 				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "machine-1",
-					},
+					Name: "machine-1",
 					Status: clusterv1.MachineStatus{
 						NodeRef: clusterv1.MachineNodeReference{
 							Name: "node-1",
@@ -270,10 +260,8 @@ func TestPreflightChecks(t *testing.T) {
 		{
 			name: "control plane where target etcd cluster and k8s control plane will be healthy state should pass when scaling up after remediation, no matter of failures on other machines",
 			kcp: &controlplanev1.KubeadmControlPlane{
-				ObjectMeta: metav1.ObjectMeta{
-					Annotations: map[string]string{
-						controlplanev1.RemediationInProgressAnnotation: "...",
-					},
+				Annotations: map[string]string{
+					controlplanev1.RemediationInProgressAnnotation: "...",
 				},
 				Status: controlplanev1.KubeadmControlPlaneStatus{
 					Conditions: []metav1.Condition{
@@ -283,9 +271,7 @@ func TestPreflightChecks(t *testing.T) {
 			},
 			machines: []*clusterv1.Machine{
 				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "machine-1",
-					},
+					Name: "machine-1",
 					Status: clusterv1.MachineStatus{
 						NodeRef: clusterv1.MachineNodeReference{
 							Name: "node-1",
@@ -300,9 +286,7 @@ func TestPreflightChecks(t *testing.T) {
 					},
 				},
 				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "machine-2",
-					},
+					Name: "machine-2",
 					Status: clusterv1.MachineStatus{
 						NodeRef: clusterv1.MachineNodeReference{
 							Name: "node-2",
@@ -330,10 +314,8 @@ func TestPreflightChecks(t *testing.T) {
 		{
 			name: "requeue control plane where target k8s control plane will be unhealthy when scaling up after remediation",
 			kcp: &controlplanev1.KubeadmControlPlane{
-				ObjectMeta: metav1.ObjectMeta{
-					Annotations: map[string]string{
-						controlplanev1.RemediationInProgressAnnotation: "...",
-					},
+				Annotations: map[string]string{
+					controlplanev1.RemediationInProgressAnnotation: "...",
 				},
 				Status: controlplanev1.KubeadmControlPlaneStatus{
 					Conditions: []metav1.Condition{
@@ -343,9 +325,7 @@ func TestPreflightChecks(t *testing.T) {
 			},
 			machines: []*clusterv1.Machine{
 				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "machine-1",
-					},
+					Name: "machine-1",
 					Status: clusterv1.MachineStatus{
 						NodeRef: clusterv1.MachineNodeReference{
 							Name: "node-1",
@@ -360,9 +340,7 @@ func TestPreflightChecks(t *testing.T) {
 					},
 				},
 				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "machine-2",
-					},
+					Name: "machine-2",
 					Status: clusterv1.MachineStatus{
 						NodeRef: clusterv1.MachineNodeReference{
 							Name: "node-2",
@@ -395,10 +373,8 @@ func TestPreflightChecks(t *testing.T) {
 		{
 			name: "requeue control plane where target etcd cluster will be unhealthy when scaling up after remediation",
 			kcp: &controlplanev1.KubeadmControlPlane{
-				ObjectMeta: metav1.ObjectMeta{
-					Annotations: map[string]string{
-						controlplanev1.RemediationInProgressAnnotation: "...",
-					},
+				Annotations: map[string]string{
+					controlplanev1.RemediationInProgressAnnotation: "...",
 				},
 				Status: controlplanev1.KubeadmControlPlaneStatus{
 					Conditions: []metav1.Condition{
@@ -408,9 +384,7 @@ func TestPreflightChecks(t *testing.T) {
 			},
 			machines: []*clusterv1.Machine{
 				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "machine-1",
-					},
+					Name: "machine-1",
 					Status: clusterv1.MachineStatus{
 						NodeRef: clusterv1.MachineNodeReference{
 							Name: "node-1",
@@ -425,9 +399,7 @@ func TestPreflightChecks(t *testing.T) {
 					},
 				},
 				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "machine-2",
-					},
+					Name: "machine-2",
 					Status: clusterv1.MachineStatus{
 						NodeRef: clusterv1.MachineNodeReference{
 							Name: "node-2",
@@ -442,9 +414,7 @@ func TestPreflightChecks(t *testing.T) {
 					},
 				},
 				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "machine-3",
-					},
+					Name: "machine-3",
 					Status: clusterv1.MachineStatus{
 						NodeRef: clusterv1.MachineNodeReference{
 							Name: "node-3",
@@ -486,9 +456,7 @@ func TestPreflightChecks(t *testing.T) {
 			},
 			machines: []*clusterv1.Machine{
 				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "machine-1",
-					},
+					Name: "machine-1",
 					Status: clusterv1.MachineStatus{
 						NodeRef: clusterv1.MachineNodeReference{
 							Name: "node-1",
@@ -515,10 +483,8 @@ func TestPreflightChecks(t *testing.T) {
 		{
 			name: "control plane with a pending upgrade, but already at the current step of the upgrade plan, should pass",
 			cluster: &clusterv1.Cluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Annotations: map[string]string{
-						clusterv1.ClusterTopologyUpgradeStepAnnotation: "v1.32.0",
-					},
+				Annotations: map[string]string{
+					clusterv1.ClusterTopologyUpgradeStepAnnotation: "v1.32.0",
 				},
 				Spec: clusterv1.ClusterSpec{
 					Topology: clusterv1.Topology{
@@ -539,9 +505,7 @@ func TestPreflightChecks(t *testing.T) {
 			},
 			machines: []*clusterv1.Machine{
 				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "machine-1",
-					},
+					Name: "machine-1",
 					Status: clusterv1.MachineStatus{
 						NodeRef: clusterv1.MachineNodeReference{
 							Name: "node-1",

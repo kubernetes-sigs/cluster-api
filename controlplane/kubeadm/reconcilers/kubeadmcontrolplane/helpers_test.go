@@ -57,20 +57,16 @@ func TestReconcileKubeconfigEmptyAPIEndpoints(t *testing.T) {
 	g := NewWithT(t)
 
 	cluster := &clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "foo",
-			Namespace: metav1.NamespaceDefault,
-		},
+		Name:      "foo",
+		Namespace: metav1.NamespaceDefault,
 		Spec: clusterv1.ClusterSpec{
 			ControlPlaneEndpoint: clusterv1.APIEndpoint{},
 		},
 	}
 
 	kcp := &controlplanev1.KubeadmControlPlane{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "foo",
-			Namespace: metav1.NamespaceDefault,
-		},
+		Name:      "foo",
+		Namespace: metav1.NamespaceDefault,
 		Spec: controlplanev1.KubeadmControlPlaneSpec{
 			Version: "v1.16.6",
 		},
@@ -105,20 +101,16 @@ func TestReconcileKubeconfigMissingCACertificate(t *testing.T) {
 	g := NewWithT(t)
 
 	cluster := &clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "foo",
-			Namespace: metav1.NamespaceDefault,
-		},
+		Name:      "foo",
+		Namespace: metav1.NamespaceDefault,
 		Spec: clusterv1.ClusterSpec{
 			ControlPlaneEndpoint: clusterv1.APIEndpoint{Host: "test.local", Port: 8443},
 		},
 	}
 
 	kcp := &controlplanev1.KubeadmControlPlane{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "foo",
-			Namespace: metav1.NamespaceDefault,
-		},
+		Name:      "foo",
+		Namespace: metav1.NamespaceDefault,
 		Spec: controlplanev1.KubeadmControlPlaneSpec{
 			Version: "v1.16.6",
 		},
@@ -152,34 +144,28 @@ func TestReconcileKubeconfigSecretDoesNotAdoptsUserSecrets(t *testing.T) {
 	g := NewWithT(t)
 
 	cluster := &clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "foo",
-			Namespace: metav1.NamespaceDefault,
-		},
+		Name:      "foo",
+		Namespace: metav1.NamespaceDefault,
 		Spec: clusterv1.ClusterSpec{
 			ControlPlaneEndpoint: clusterv1.APIEndpoint{Host: "test.local", Port: 8443},
 		},
 	}
 
 	kcp := &controlplanev1.KubeadmControlPlane{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "foo",
-			Namespace: metav1.NamespaceDefault,
-		},
+		Name:      "foo",
+		Namespace: metav1.NamespaceDefault,
 		Spec: controlplanev1.KubeadmControlPlaneSpec{
 			Version: "v1.16.6",
 		},
 	}
 
 	existingKubeconfigSecret := &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      secret.Name("foo", secret.Kubeconfig),
-			Namespace: metav1.NamespaceDefault,
-			Labels: map[string]string{
-				clusterv1.ClusterNameLabel: "foo",
-			},
-			OwnerReferences: []metav1.OwnerReference{},
+		Name:      secret.Name("foo", secret.Kubeconfig),
+		Namespace: metav1.NamespaceDefault,
+		Labels: map[string]string{
+			clusterv1.ClusterNameLabel: "foo",
 		},
+		OwnerReferences: []metav1.OwnerReference{},
 		Data: map[string][]byte{
 			secret.KubeconfigDataName: {},
 		},
@@ -219,20 +205,16 @@ func TestKubeadmControlPlaneReconciler_reconcileKubeconfig(t *testing.T) {
 	g := NewWithT(t)
 
 	cluster := &clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "foo",
-			Namespace: metav1.NamespaceDefault,
-		},
+		Name:      "foo",
+		Namespace: metav1.NamespaceDefault,
 		Spec: clusterv1.ClusterSpec{
 			ControlPlaneEndpoint: clusterv1.APIEndpoint{Host: "test.local", Port: 8443},
 		},
 	}
 
 	kcp := &controlplanev1.KubeadmControlPlane{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "foo",
-			Namespace: metav1.NamespaceDefault,
-		},
+		Name:      "foo",
+		Namespace: metav1.NamespaceDefault,
 		Spec: controlplanev1.KubeadmControlPlaneSpec{
 			Version: "v1.16.6",
 		},
@@ -296,10 +278,8 @@ func TestCloneConfigsAndGenerateMachineAndSyncMachines(t *testing.T) {
 	defer teardown(t, g, namespace)
 
 	cluster := &clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "foo",
-			Namespace: namespace.Name,
-		},
+		Name:      "foo",
+		Namespace: namespace.Name,
 	}
 
 	genericInfrastructureMachineTemplate := &unstructured.Unstructured{
@@ -329,11 +309,9 @@ func TestCloneConfigsAndGenerateMachineAndSyncMachines(t *testing.T) {
 
 	namingTemplateKey := "-testkcp"
 	kcp := &controlplanev1.KubeadmControlPlane{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "kcp-foo",
-			Namespace: cluster.Namespace,
-			UID:       "abc-123-kcp-control-plane",
-		},
+		Name:      "kcp-foo",
+		Namespace: cluster.Namespace,
+		UID:       "abc-123-kcp-control-plane",
 		Spec: controlplanev1.KubeadmControlPlaneSpec{
 			KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
 				JoinConfiguration: bootstrapv1.JoinConfiguration{
@@ -615,10 +593,8 @@ func TestCloneConfigsAndGenerateMachineFailInfraMachineCreation(t *testing.T) {
 	g := NewWithT(t)
 
 	cluster := &clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "foo",
-			Namespace: metav1.NamespaceDefault,
-		},
+		Name:      "foo",
+		Namespace: metav1.NamespaceDefault,
 	}
 
 	genericMachineTemplate := &unstructured.Unstructured{
@@ -640,10 +616,8 @@ func TestCloneConfigsAndGenerateMachineFailInfraMachineCreation(t *testing.T) {
 	}
 
 	kcp := &controlplanev1.KubeadmControlPlane{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "kcp-foo",
-			Namespace: cluster.Namespace,
-		},
+		Name:      "kcp-foo",
+		Namespace: cluster.Namespace,
 		Spec: controlplanev1.KubeadmControlPlaneSpec{
 			MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
 				Spec: controlplanev1.KubeadmControlPlaneMachineTemplateSpec{
@@ -699,10 +673,8 @@ func TestCloneConfigsAndGenerateMachineFailKubeadmConfigCreation(t *testing.T) {
 	g := NewWithT(t)
 
 	cluster := &clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "foo",
-			Namespace: metav1.NamespaceDefault,
-		},
+		Name:      "foo",
+		Namespace: metav1.NamespaceDefault,
 	}
 
 	genericMachineTemplate := &unstructured.Unstructured{
@@ -724,10 +696,8 @@ func TestCloneConfigsAndGenerateMachineFailKubeadmConfigCreation(t *testing.T) {
 	}
 
 	kcp := &controlplanev1.KubeadmControlPlane{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "kcp-foo",
-			Namespace: cluster.Namespace,
-		},
+		Name:      "kcp-foo",
+		Namespace: cluster.Namespace,
 		Spec: controlplanev1.KubeadmControlPlaneSpec{
 			MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
 				Spec: controlplanev1.KubeadmControlPlaneMachineTemplateSpec{
@@ -786,10 +756,8 @@ func TestCloneConfigsAndGenerateMachineFailMachineCreation(t *testing.T) {
 	g := NewWithT(t)
 
 	cluster := &clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "foo",
-			Namespace: metav1.NamespaceDefault,
-		},
+		Name:      "foo",
+		Namespace: metav1.NamespaceDefault,
 	}
 
 	genericMachineTemplate := &unstructured.Unstructured{
@@ -811,10 +779,8 @@ func TestCloneConfigsAndGenerateMachineFailMachineCreation(t *testing.T) {
 	}
 
 	kcp := &controlplanev1.KubeadmControlPlane{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "kcp-foo",
-			Namespace: cluster.Namespace,
-		},
+		Name:      "kcp-foo",
+		Namespace: cluster.Namespace,
 		Spec: controlplanev1.KubeadmControlPlaneSpec{
 			MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
 				Spec: controlplanev1.KubeadmControlPlaneMachineTemplateSpec{
@@ -914,10 +880,8 @@ func TestKubeadmControlPlaneReconciler_adoptKubeconfigSecret(t *testing.T) {
 	userProvidedKubeadmConfigSecretOtherOwner.OwnerReferences = []metav1.OwnerReference{otherOwner}
 
 	kcp := &controlplanev1.KubeadmControlPlane{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "testControlPlane",
-			Namespace: metav1.NamespaceDefault,
-		},
+		Name:      "testControlPlane",
+		Namespace: metav1.NamespaceDefault,
 	}
 	tests := []struct {
 		name             string

@@ -24,7 +24,6 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/go-logr/logr/funcr"
 	. "github.com/onsi/gomega"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
@@ -32,7 +31,7 @@ import (
 func TestLimiterInfoAtMostEvery(t *testing.T) {
 	const interval = time.Minute
 
-	machine := &clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Namespace: "ns", Name: "m-1"}}
+	machine := &clusterv1.Machine{Namespace: "ns", Name: "m-1"}
 	key := NewKey("Waiting", WithObjects(machine))
 
 	// Note: The Limiter has to be created outside synctest.Test, otherwise the test would fail because of the cleanup go routine in the cache.
@@ -99,7 +98,7 @@ func TestLimiterInfoAtMostEvery(t *testing.T) {
 		limiter := New(t.Context())
 		log, lines := newTestLogger(0)
 
-		otherMachine := &clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Namespace: "ns", Name: "m-2"}}
+		otherMachine := &clusterv1.Machine{Namespace: "ns", Name: "m-2"}
 		limiter.InfoAtMostEvery(log, interval, key, "Waiting for something")
 		limiter.InfoAtMostEvery(log, interval, NewKey("Waiting", WithObjects(otherMachine)), "Waiting for something")
 		limiter.InfoAtMostEvery(log, interval, NewKey("WaitingForOther", WithObjects(machine)), "Waiting for something else")

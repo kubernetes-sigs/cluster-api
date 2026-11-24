@@ -207,9 +207,7 @@ func (r *MachineBackendReconciler) reconcileNormalCloudMachine(ctx context.Conte
 	// Create VM; a Cloud VM can be created as soon as the Infra Machine is created
 	// NOTE: for sake of simplicity we keep in memory resources as global resources (namespace empty).
 	cloudMachine := &cloudv1.CloudMachine{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: inMemoryMachine.Name,
-		},
+		Name: inMemoryMachine.Name,
 	}
 	if err := inmemoryClient.Get(ctx, client.ObjectKeyFromObject(cloudMachine), cloudMachine); err != nil {
 		if !apierrors.IsNotFound(err) {
@@ -322,9 +320,7 @@ func (r *MachineBackendReconciler) reconcileNormalNode(ctx context.Context, clus
 	// Create Node
 	// TODO: consider if to handle an additional setting adding a delay in between create node and node ready/provider ID being set
 	node := &corev1.Node{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: inMemoryMachine.Name,
-		},
+		Name: inMemoryMachine.Name,
 		Spec: corev1.NodeSpec{
 			ProviderID: calculateProviderID(inMemoryMachine),
 		},
@@ -474,13 +470,11 @@ func (r *MachineBackendReconciler) reconcileNormalETCD(ctx context.Context, clus
 	// TODO: consider if to handle an additional setting adding a delay in between create pod and pod ready
 	etcdMember := fmt.Sprintf("etcd-%s", inMemoryMachine.Name)
 	etcdPod := &corev1.Pod{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: metav1.NamespaceSystem,
-			Name:      etcdMember,
-			Labels: map[string]string{
-				"component": "etcd",
-				"tier":      "control-plane",
-			},
+		Namespace: metav1.NamespaceSystem,
+		Name:      etcdMember,
+		Labels: map[string]string{
+			"component": "etcd",
+			"tier":      "control-plane",
 		},
 		Spec: corev1.PodSpec{
 			NodeName: inMemoryMachine.Name,
@@ -716,13 +710,11 @@ func (r *MachineBackendReconciler) reconcileNormalAPIServer(ctx context.Context,
 	apiServer := fmt.Sprintf("kube-apiserver-%s", inMemoryMachine.Name)
 
 	apiServerPod := &corev1.Pod{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: metav1.NamespaceSystem,
-			Name:      apiServer,
-			Labels: map[string]string{
-				"component": "kube-apiserver",
-				"tier":      "control-plane",
-			},
+		Namespace: metav1.NamespaceSystem,
+		Name:      apiServer,
+		Labels: map[string]string{
+			"component": "kube-apiserver",
+			"tier":      "control-plane",
 		},
 		Spec: corev1.PodSpec{
 			NodeName: inMemoryMachine.Name,
@@ -809,13 +801,11 @@ func (r *MachineBackendReconciler) reconcileNormalScheduler(ctx context.Context,
 	inmemoryClient := r.InMemoryManager.GetResourceGroup(resourceGroup).GetClient()
 
 	schedulerPod := &corev1.Pod{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: metav1.NamespaceSystem,
-			Name:      fmt.Sprintf("kube-scheduler-%s", inMemoryMachine.Name),
-			Labels: map[string]string{
-				"component": "kube-scheduler",
-				"tier":      "control-plane",
-			},
+		Namespace: metav1.NamespaceSystem,
+		Name:      fmt.Sprintf("kube-scheduler-%s", inMemoryMachine.Name),
+		Labels: map[string]string{
+			"component": "kube-scheduler",
+			"tier":      "control-plane",
 		},
 		Spec: corev1.PodSpec{
 			NodeName: inMemoryMachine.Name,
@@ -856,13 +846,11 @@ func (r *MachineBackendReconciler) reconcileNormalControllerManager(ctx context.
 	inmemoryClient := r.InMemoryManager.GetResourceGroup(resourceGroup).GetClient()
 
 	controllerManagerPod := &corev1.Pod{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: metav1.NamespaceSystem,
-			Name:      fmt.Sprintf("kube-controller-manager-%s", inMemoryMachine.Name),
-			Labels: map[string]string{
-				"component": "kube-controller-manager",
-				"tier":      "control-plane",
-			},
+		Namespace: metav1.NamespaceSystem,
+		Name:      fmt.Sprintf("kube-controller-manager-%s", inMemoryMachine.Name),
+		Labels: map[string]string{
+			"component": "kube-controller-manager",
+			"tier":      "control-plane",
 		},
 		Spec: corev1.PodSpec{
 			NodeName: inMemoryMachine.Name,
@@ -899,9 +887,7 @@ func (r *MachineBackendReconciler) reconcileNormalKubeadmObjects(ctx context.Con
 	// ClusterRole and ClusterRoleBinding if not found.
 
 	role := &rbacv1.ClusterRole{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "kubeadm:get-nodes",
-		},
+		Name: "kubeadm:get-nodes",
 		Rules: []rbacv1.PolicyRule{
 			{
 				Verbs:     []string{"get"},
@@ -915,9 +901,7 @@ func (r *MachineBackendReconciler) reconcileNormalKubeadmObjects(ctx context.Con
 	}
 
 	roleBinding := &rbacv1.ClusterRoleBinding{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "kubeadm:get-nodes",
-		},
+		Name: "kubeadm:get-nodes",
 		RoleRef: rbacv1.RoleRef{
 			APIGroup: rbacv1.GroupName,
 			Kind:     "ClusterRole",
@@ -936,10 +920,8 @@ func (r *MachineBackendReconciler) reconcileNormalKubeadmObjects(ctx context.Con
 
 	// create kubeadm config map
 	cm := &corev1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "kubeadm-config",
-			Namespace: metav1.NamespaceSystem,
-		},
+		Name:      "kubeadm-config",
+		Namespace: metav1.NamespaceSystem,
 		Data: map[string]string{
 			"ClusterConfiguration": "",
 		},
@@ -965,12 +947,10 @@ func (r *MachineBackendReconciler) reconcileNormalKubeProxy(ctx context.Context,
 
 	// Create the kube-proxy-daemonset
 	kubeProxyDaemonSet := &appsv1.DaemonSet{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: metav1.NamespaceSystem,
-			Name:      "kube-proxy",
-			Labels: map[string]string{
-				"component": "kube-proxy",
-			},
+		Namespace: metav1.NamespaceSystem,
+		Name:      "kube-proxy",
+		Labels: map[string]string{
+			"component": "kube-proxy",
 		},
 		Spec: appsv1.DaemonSetSpec{
 			Template: corev1.PodTemplateSpec{
@@ -1011,10 +991,8 @@ func (r *MachineBackendReconciler) reconcileNormalCoredns(ctx context.Context, c
 
 	// Create the coredns configMap.
 	corednsConfigMap := &corev1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: metav1.NamespaceSystem,
-			Name:      "coredns",
-		},
+		Namespace: metav1.NamespaceSystem,
+		Name:      "coredns",
 		Data: map[string]string{
 			"Corefile": "ANG",
 		},
@@ -1030,10 +1008,8 @@ func (r *MachineBackendReconciler) reconcileNormalCoredns(ctx context.Context, c
 	}
 	// Create the coredns deployment.
 	corednsDeployment := &appsv1.Deployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: metav1.NamespaceSystem,
-			Name:      "coredns",
-		},
+		Namespace: metav1.NamespaceSystem,
+		Name:      "coredns",
 		Spec: appsv1.DeploymentSpec{
 			Template: corev1.PodTemplateSpec{
 				Spec: corev1.PodSpec{
@@ -1106,9 +1082,7 @@ func (r *MachineBackendReconciler) reconcileDeleteCloudMachine(ctx context.Conte
 
 	// Delete VM
 	cloudMachine := &cloudv1.CloudMachine{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: inMemoryMachine.Name,
-		},
+		Name: inMemoryMachine.Name,
 	}
 	if err := inmemoryClient.Delete(ctx, cloudMachine); err != nil && !apierrors.IsNotFound(err) {
 		return ctrl.Result{}, pkgerrors.Wrapf(err, "failed to delete CloudMachine")
@@ -1124,9 +1098,7 @@ func (r *MachineBackendReconciler) reconcileDeleteNode(ctx context.Context, clus
 
 	// Delete Node
 	node := &corev1.Node{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: inMemoryMachine.Name,
-		},
+		Name: inMemoryMachine.Name,
 	}
 
 	// TODO(killianmuldoon): check if we can drop this given that the MachineController is already draining pods and deleting nodes.
@@ -1151,10 +1123,8 @@ func (r *MachineBackendReconciler) reconcileDeleteETCD(ctx context.Context, clus
 
 	etcdMember := fmt.Sprintf("etcd-%s", inMemoryMachine.Name)
 	etcdPod := &corev1.Pod{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: metav1.NamespaceSystem,
-			Name:      etcdMember,
-		},
+		Namespace: metav1.NamespaceSystem,
+		Name:      etcdMember,
 	}
 	if err := inmemoryClient.Delete(ctx, etcdPod); err != nil && !apierrors.IsNotFound(err) {
 		return ctrl.Result{}, pkgerrors.Wrapf(err, "failed to delete etcd Pod")
@@ -1185,10 +1155,8 @@ func (r *MachineBackendReconciler) reconcileDeleteAPIServer(ctx context.Context,
 
 	apiServer := fmt.Sprintf("kube-apiserver-%s", inMemoryMachine.Name)
 	apiServerPod := &corev1.Pod{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: metav1.NamespaceSystem,
-			Name:      apiServer,
-		},
+		Namespace: metav1.NamespaceSystem,
+		Name:      apiServer,
 	}
 	if err := inmemoryClient.Delete(ctx, apiServerPod); err != nil && !apierrors.IsNotFound(err) {
 		return ctrl.Result{}, pkgerrors.Wrapf(err, "failed to delete apiServer Pod")
@@ -1211,10 +1179,8 @@ func (r *MachineBackendReconciler) reconcileDeleteScheduler(ctx context.Context,
 	inmemoryClient := r.InMemoryManager.GetResourceGroup(resourceGroup).GetClient()
 
 	schedulerPod := &corev1.Pod{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: metav1.NamespaceSystem,
-			Name:      fmt.Sprintf("kube-scheduler-%s", inMemoryMachine.Name),
-		},
+		Namespace: metav1.NamespaceSystem,
+		Name:      fmt.Sprintf("kube-scheduler-%s", inMemoryMachine.Name),
 	}
 	if err := inmemoryClient.Delete(ctx, schedulerPod); err != nil && !apierrors.IsNotFound(err) {
 		return ctrl.Result{}, pkgerrors.Wrapf(err, "failed to scheduler Pod")
@@ -1234,10 +1200,8 @@ func (r *MachineBackendReconciler) reconcileDeleteControllerManager(ctx context.
 	inmemoryClient := r.InMemoryManager.GetResourceGroup(resourceGroup).GetClient()
 
 	controllerManagerPod := &corev1.Pod{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: metav1.NamespaceSystem,
-			Name:      fmt.Sprintf("kube-controller-manager-%s", inMemoryMachine.Name),
-		},
+		Namespace: metav1.NamespaceSystem,
+		Name:      fmt.Sprintf("kube-controller-manager-%s", inMemoryMachine.Name),
 	}
 	if err := inmemoryClient.Delete(ctx, controllerManagerPod); err != nil && !apierrors.IsNotFound(err) {
 		return ctrl.Result{}, pkgerrors.Wrapf(err, "failed to controller manager Pod")

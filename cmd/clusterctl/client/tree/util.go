@@ -177,18 +177,14 @@ func objToSetter(obj client.Object) v1beta1conditions.Setter {
 // VirtualObject returns a new virtual object.
 func VirtualObject(namespace, kind, name string) *NodeObject {
 	return &NodeObject{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       kind,
-			APIVersion: GroupVersionVirtualObject.String(),
+		Kind:       kind,
+		APIVersion: GroupVersionVirtualObject.String(),
+		Namespace:  namespace,
+		Name:       name,
+		Annotations: map[string]string{
+			VirtualObjectAnnotation: "True",
 		},
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: namespace,
-			Name:      name,
-			Annotations: map[string]string{
-				VirtualObjectAnnotation: "True",
-			},
-			UID: types.UID(fmt.Sprintf("%s, Kind=%s, %s/%s", GroupVersionVirtualObject.String(), kind, namespace, name)),
-		},
+		UID:    types.UID(fmt.Sprintf("%s, Kind=%s, %s/%s", GroupVersionVirtualObject.String(), kind, namespace, name)),
 		Status: NodeStatus{},
 	}
 }
@@ -196,15 +192,11 @@ func VirtualObject(namespace, kind, name string) *NodeObject {
 // ObjectReferenceObject returns a new object referenced by the objectRef.
 func ObjectReferenceObject(objectRef *corev1.ObjectReference) *NodeObject {
 	return &NodeObject{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       objectRef.Kind,
-			APIVersion: objectRef.APIVersion,
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: objectRef.Namespace,
-			Name:      objectRef.Name,
-			UID:       types.UID(fmt.Sprintf("%s, Kind=%s, %s/%s", objectRef.APIVersion, objectRef.Kind, objectRef.Namespace, objectRef.Name)),
-		},
-		Status: NodeStatus{},
+		Kind:       objectRef.Kind,
+		APIVersion: objectRef.APIVersion,
+		Namespace:  objectRef.Namespace,
+		Name:       objectRef.Name,
+		UID:        types.UID(fmt.Sprintf("%s, Kind=%s, %s/%s", objectRef.APIVersion, objectRef.Kind, objectRef.Namespace, objectRef.Name)),
+		Status:     NodeStatus{},
 	}
 }

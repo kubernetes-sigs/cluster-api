@@ -63,17 +63,13 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 
 	var defaultKubeconfigSecret *corev1.Secret
 	defaultCluster := &clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      clusterName,
-			Namespace: metav1.NamespaceDefault,
-		},
+		Name:      clusterName,
+		Namespace: metav1.NamespaceDefault,
 	}
 
 	defaultMachinePool := clusterv1.MachinePool{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "machinepool-test",
-			Namespace: metav1.NamespaceDefault,
-		},
+		Name:      "machinepool-test",
+		Namespace: metav1.NamespaceDefault,
 		Spec: clusterv1.MachinePoolSpec{
 			ClusterName: defaultCluster.Name,
 			Replicas:    ptr.To[int32](1),
@@ -841,12 +837,10 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 
 func TestReconcileMachinePoolBootstrap(t *testing.T) {
 	defaultMachinePool := clusterv1.MachinePool{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "machinepool-test",
-			Namespace: metav1.NamespaceDefault,
-			Labels: map[string]string{
-				clusterv1.ClusterNameLabel: clusterName,
-			},
+		Name:      "machinepool-test",
+		Namespace: metav1.NamespaceDefault,
+		Labels: map[string]string{
+			clusterv1.ClusterNameLabel: clusterName,
 		},
 		Spec: clusterv1.MachinePoolSpec{
 			Template: clusterv1.MachineTemplateSpec{
@@ -864,10 +858,8 @@ func TestReconcileMachinePoolBootstrap(t *testing.T) {
 	}
 
 	defaultCluster := &clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      clusterName,
-			Namespace: metav1.NamespaceDefault,
-		},
+		Name:      clusterName,
+		Namespace: metav1.NamespaceDefault,
 	}
 
 	testCases := []struct {
@@ -991,10 +983,8 @@ func TestReconcileMachinePoolBootstrap(t *testing.T) {
 				},
 			},
 			machinepool: &clusterv1.MachinePool{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "bootstrap-test-existing",
-					Namespace: metav1.NamespaceDefault,
-				},
+				Name:      "bootstrap-test-existing",
+				Namespace: metav1.NamespaceDefault,
 				Spec: clusterv1.MachinePoolSpec{
 					Template: clusterv1.MachineTemplateSpec{
 						Spec: clusterv1.MachineSpec{
@@ -1039,10 +1029,8 @@ func TestReconcileMachinePoolBootstrap(t *testing.T) {
 				},
 			},
 			machinepool: &clusterv1.MachinePool{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "bootstrap-test-existing",
-					Namespace: metav1.NamespaceDefault,
-				},
+				Name:      "bootstrap-test-existing",
+				Namespace: metav1.NamespaceDefault,
 				Spec: clusterv1.MachinePoolSpec{
 					Template: clusterv1.MachineTemplateSpec{
 						Spec: clusterv1.MachineSpec{
@@ -1082,10 +1070,8 @@ func TestReconcileMachinePoolBootstrap(t *testing.T) {
 				},
 			},
 			machinepool: &clusterv1.MachinePool{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "bootstrap-test-existing",
-					Namespace: metav1.NamespaceDefault,
-				},
+				Name:      "bootstrap-test-existing",
+				Namespace: metav1.NamespaceDefault,
 				Spec: clusterv1.MachinePoolSpec{
 					Template: clusterv1.MachineTemplateSpec{
 						Spec: clusterv1.MachineSpec{
@@ -1194,12 +1180,10 @@ func TestReconcileMachinePoolBootstrap(t *testing.T) {
 
 func TestReconcileMachinePoolInfrastructure(t *testing.T) {
 	defaultMachinePool := clusterv1.MachinePool{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "machinepool-test",
-			Namespace: metav1.NamespaceDefault,
-			Labels: map[string]string{
-				clusterv1.ClusterNameLabel: clusterName,
-			},
+		Name:      "machinepool-test",
+		Namespace: metav1.NamespaceDefault,
+		Labels: map[string]string{
+			clusterv1.ClusterNameLabel: clusterName,
 		},
 		Spec: clusterv1.MachinePoolSpec{
 			Replicas: ptr.To[int32](1),
@@ -1223,10 +1207,8 @@ func TestReconcileMachinePoolInfrastructure(t *testing.T) {
 	}
 
 	defaultCluster := &clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      clusterName,
-			Namespace: metav1.NamespaceDefault,
-		},
+		Name:      clusterName,
+		Namespace: metav1.NamespaceDefault,
 	}
 
 	testCases := []struct {
@@ -1275,10 +1257,8 @@ func TestReconcileMachinePoolInfrastructure(t *testing.T) {
 		{
 			name: "ready bootstrap, infra, and nodeRef, machinepool is running, replicas 0, providerIDList not set",
 			machinepool: &clusterv1.MachinePool{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "machinepool-test",
-					Namespace: metav1.NamespaceDefault,
-				},
+				Name:      "machinepool-test",
+				Namespace: metav1.NamespaceDefault,
 				Spec: clusterv1.MachinePoolSpec{
 					Replicas: ptr.To[int32](0),
 					Template: clusterv1.MachineTemplateSpec{
@@ -1768,42 +1748,34 @@ func TestReconcileMachinePoolMachines(t *testing.T) {
 
 func TestInfraMachineToMachinePoolMapper(t *testing.T) {
 	machinePool1 := clusterv1.MachinePool{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "machinepool-1",
-			Namespace: metav1.NamespaceDefault,
-			Labels: map[string]string{
-				clusterv1.ClusterNameLabel: clusterName,
-			},
+		Name:      "machinepool-1",
+		Namespace: metav1.NamespaceDefault,
+		Labels: map[string]string{
+			clusterv1.ClusterNameLabel: clusterName,
 		},
 	}
 
 	machinePool2 := clusterv1.MachinePool{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "machinepool-2",
-			Namespace: "other-namespace",
-			Labels: map[string]string{
-				clusterv1.ClusterNameLabel: clusterName,
-			},
+		Name:      "machinepool-2",
+		Namespace: "other-namespace",
+		Labels: map[string]string{
+			clusterv1.ClusterNameLabel: clusterName,
 		},
 	}
 
 	machinePool3 := clusterv1.MachinePool{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "machinepool-3",
-			Namespace: metav1.NamespaceDefault,
-			Labels: map[string]string{
-				clusterv1.ClusterNameLabel: "other-cluster",
-			},
+		Name:      "machinepool-3",
+		Namespace: metav1.NamespaceDefault,
+		Labels: map[string]string{
+			clusterv1.ClusterNameLabel: "other-cluster",
 		},
 	}
 
 	machinePoolLongName := clusterv1.MachinePool{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "machinepool-very-very-very-very-very-very-very-very-very-very-very-very-very-very-very-very-very-very-very-very-long", // Use a name longer than 64 characters to trigger a hash
-			Namespace: metav1.NamespaceDefault,
-			Labels: map[string]string{
-				clusterv1.ClusterNameLabel: "other-cluster",
-			},
+		Name:      "machinepool-very-very-very-very-very-very-very-very-very-very-very-very-very-very-very-very-very-very-very-very-long", // Use a name longer than 64 characters to trigger a hash
+		Namespace: metav1.NamespaceDefault,
+		Labels: map[string]string{
+			clusterv1.ClusterNameLabel: "other-cluster",
 		},
 	}
 
@@ -1927,10 +1899,8 @@ func TestReconcileMachinePoolScaleToFromZero(t *testing.T) {
 
 	// Set up cluster to test against.
 	testCluster := &clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{
-			GenerateName: "machinepool-scale-zero-",
-			Namespace:    ns.Name,
-		},
+		GenerateName: "machinepool-scale-zero-",
+		Namespace:    ns.Name,
 		Spec: clusterv1.ClusterSpec{
 			ControlPlaneRef: clusterv1.ContractVersionedObjectReference{
 				APIGroup: builder.ControlPlaneGroupVersion.Group,
@@ -1946,10 +1916,8 @@ func TestReconcileMachinePoolScaleToFromZero(t *testing.T) {
 	}(testCluster)
 
 	defaultMachinePool := clusterv1.MachinePool{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "machinepool-test",
-			Namespace: ns.Name,
-		},
+		Name:      "machinepool-test",
+		Namespace: ns.Name,
 		Spec: clusterv1.MachinePoolSpec{
 			ClusterName: testCluster.Name,
 			Template: clusterv1.MachineTemplateSpec{
@@ -2016,9 +1984,7 @@ func TestReconcileMachinePoolScaleToFromZero(t *testing.T) {
 		g := NewWithT(t)
 
 		node := &corev1.Node{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "machinepool-test-node",
-			},
+			Name: "machinepool-test-node",
 			Spec: corev1.NodeSpec{
 				ProviderID: "test://machinepool-test-node",
 			},
@@ -2090,9 +2056,7 @@ func TestReconcileMachinePoolScaleToFromZero(t *testing.T) {
 		g := NewWithT(t)
 
 		node := &corev1.Node{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "machinepool-test-node",
-			},
+			Name: "machinepool-test-node",
 			Spec: corev1.NodeSpec{
 				ProviderID: "test://machinepool-test-node",
 			},
@@ -2256,9 +2220,7 @@ func TestReconcileMachinePoolScaleToFromZero(t *testing.T) {
 		g := NewWithT(t)
 
 		node := &corev1.Node{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "machinepool-test-node",
-			},
+			Name: "machinepool-test-node",
 			Spec: corev1.NodeSpec{
 				ProviderID: "test://machinepool-test-node",
 			},
@@ -2351,13 +2313,11 @@ func getMachines(replicas int, mpName, clusterName, nsName string) []clusterv1.M
 	machines := make([]clusterv1.Machine, replicas)
 	for i := range replicas {
 		machines[i] = clusterv1.Machine{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      fmt.Sprintf("%s-machine-%d", mpName, i),
-				Namespace: nsName,
-				Labels: map[string]string{
-					clusterv1.ClusterNameLabel:     clusterName,
-					clusterv1.MachinePoolNameLabel: mpName,
-				},
+			Name:      fmt.Sprintf("%s-machine-%d", mpName, i),
+			Namespace: nsName,
+			Labels: map[string]string{
+				clusterv1.ClusterNameLabel:     clusterName,
+				clusterv1.MachinePoolNameLabel: mpName,
 			},
 			Spec: clusterv1.MachineSpec{
 				ClusterName: clusterName,
@@ -2381,12 +2341,10 @@ func getMachines(replicas int, mpName, clusterName, nsName string) []clusterv1.M
 
 func getMachinePool(replicas int, mpName, clusterName, nsName string) clusterv1.MachinePool {
 	return clusterv1.MachinePool{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      mpName,
-			Namespace: nsName,
-			Labels: map[string]string{
-				clusterv1.ClusterNameLabel: clusterName,
-			},
+		Name:      mpName,
+		Namespace: nsName,
+		Labels: map[string]string{
+			clusterv1.ClusterNameLabel: clusterName,
 		},
 		Spec: clusterv1.MachinePoolSpec{
 			ClusterName: clusterName,
@@ -2423,25 +2381,19 @@ func TestMachinePoolReconciler_getNodeRefMap(t *testing.T) {
 			name: "all valid provider ids",
 			nodeList: []client.Object{
 				&corev1.Node{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "node-1",
-					},
+					Name: "node-1",
 					Spec: corev1.NodeSpec{
 						ProviderID: "aws://us-east-1/id-node-1",
 					},
 				},
 				&corev1.Node{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "gce-node-2",
-					},
+					Name: "gce-node-2",
 					Spec: corev1.NodeSpec{
 						ProviderID: "gce://us-central1/gce-id-node-2",
 					},
 				},
 				&corev1.Node{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "azure-node-4",
-					},
+					Name: "azure-node-4",
 					Spec: corev1.NodeSpec{
 						ProviderID: "azure://westus2/id-node-4",
 					},
@@ -2478,25 +2430,19 @@ func TestMachinePoolReconciler_getNodeRefMap(t *testing.T) {
 			name: "missing provider id",
 			nodeList: []client.Object{
 				&corev1.Node{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "node-1",
-					},
+					Name: "node-1",
 					Spec: corev1.NodeSpec{
 						ProviderID: "aws://us-east-1/id-node-1",
 					},
 				},
 				&corev1.Node{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "gce-node-2",
-					},
+					Name: "gce-node-2",
 					Spec: corev1.NodeSpec{
 						ProviderID: "gce://us-central1/gce-id-node-2",
 					},
 				},
 				&corev1.Node{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "azure-node-4",
-					},
+					Name: "azure-node-4",
 				},
 			},
 			expected: map[string]*corev1.Node{
@@ -2590,10 +2536,8 @@ func TestComputeDesiredMachine(t *testing.T) {
 			name:             "update an existing Machine and sync deletion settings from the MachinePool template",
 			templateDeletion: deletionSpec,
 			existingMachine: &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "existing-machine",
-					UID:  "existing-machine-uid",
-				},
+				Name: "existing-machine",
+				UID:  "existing-machine-uid",
 				Spec: clusterv1.MachineSpec{
 					Deletion: clusterv1.MachineDeletionSpec{
 						NodeDrainTimeoutSeconds: ptr.To[int32](1),
@@ -2614,10 +2558,8 @@ func TestComputeDesiredMachine(t *testing.T) {
 			g := NewWithT(t)
 
 			mp := &clusterv1.MachinePool{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-mp",
-					Namespace: metav1.NamespaceDefault,
-				},
+				Name:      "test-mp",
+				Namespace: metav1.NamespaceDefault,
 				Spec: clusterv1.MachinePoolSpec{
 					ClusterName: "test-cluster",
 					Template: clusterv1.MachineTemplateSpec{

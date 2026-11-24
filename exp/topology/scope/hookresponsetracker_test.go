@@ -28,37 +28,21 @@ import (
 
 func TestHookResponseTracker_AggregateRetryAfter(t *testing.T) {
 	nonBlockingBeforeClusterCreateResponse := &runtimehooksv1.BeforeClusterCreateResponse{
-		CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
-			RetryAfterSeconds: int32(0),
-			CommonResponse: runtimehooksv1.CommonResponse{
-				Status: runtimehooksv1.ResponseStatusSuccess,
-			},
-		},
+		RetryAfterSeconds: int32(0),
+		Status:            runtimehooksv1.ResponseStatusSuccess,
 	}
 	blockingBeforeClusterCreateResponse := &runtimehooksv1.BeforeClusterCreateResponse{
-		CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
-			RetryAfterSeconds: int32(10),
-			CommonResponse: runtimehooksv1.CommonResponse{
-				Status: runtimehooksv1.ResponseStatusSuccess,
-			},
-		},
+		RetryAfterSeconds: int32(10),
+		Status:            runtimehooksv1.ResponseStatusSuccess,
 	}
 
 	nonBlockingBeforeClusterUpgradeResponse := &runtimehooksv1.BeforeClusterUpgradeResponse{
-		CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
-			RetryAfterSeconds: int32(0),
-			CommonResponse: runtimehooksv1.CommonResponse{
-				Status: runtimehooksv1.ResponseStatusSuccess,
-			},
-		},
+		RetryAfterSeconds: int32(0),
+		Status:            runtimehooksv1.ResponseStatusSuccess,
 	}
 	blockingBeforeClusterUpgradeResponse := &runtimehooksv1.BeforeClusterUpgradeResponse{
-		CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
-			RetryAfterSeconds: int32(5),
-			CommonResponse: runtimehooksv1.CommonResponse{
-				Status: runtimehooksv1.ResponseStatusSuccess,
-			},
-		},
+		RetryAfterSeconds: int32(5),
+		Status:            runtimehooksv1.ResponseStatusSuccess,
 	}
 
 	t.Run("AggregateRetryAfter should return non zero value if there are any blocking hook responses", func(t *testing.T) {
@@ -92,37 +76,21 @@ func TestHookResponseTracker_AggregateRetryAfter(t *testing.T) {
 
 func TestHookResponseTracker_AggregateMessage(t *testing.T) {
 	nonBlockingBeforeClusterCreateResponse := &runtimehooksv1.BeforeClusterCreateResponse{
-		CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
-			RetryAfterSeconds: int32(0),
-			CommonResponse: runtimehooksv1.CommonResponse{
-				Status: runtimehooksv1.ResponseStatusSuccess,
-			},
-		},
+		RetryAfterSeconds: int32(0),
+		Status:            runtimehooksv1.ResponseStatusSuccess,
 	}
 	blockingBeforeClusterCreateResponse := &runtimehooksv1.BeforeClusterCreateResponse{
-		CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
-			RetryAfterSeconds: int32(10),
-			CommonResponse: runtimehooksv1.CommonResponse{
-				Status: runtimehooksv1.ResponseStatusSuccess,
-			},
-		},
+		RetryAfterSeconds: int32(10),
+		Status:            runtimehooksv1.ResponseStatusSuccess,
 	}
 
 	nonBlockingBeforeClusterUpgradeResponse := &runtimehooksv1.BeforeClusterUpgradeResponse{
-		CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
-			RetryAfterSeconds: int32(0),
-			CommonResponse: runtimehooksv1.CommonResponse{
-				Status: runtimehooksv1.ResponseStatusSuccess,
-			},
-		},
+		RetryAfterSeconds: int32(0),
+		Status:            runtimehooksv1.ResponseStatusSuccess,
 	}
 	blockingBeforeClusterUpgradeResponse := &runtimehooksv1.BeforeClusterUpgradeResponse{
-		CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
-			RetryAfterSeconds: int32(5),
-			CommonResponse: runtimehooksv1.CommonResponse{
-				Status: runtimehooksv1.ResponseStatusSuccess,
-			},
-		},
+		RetryAfterSeconds: int32(5),
+		Status:            runtimehooksv1.ResponseStatusSuccess,
 	}
 
 	t.Run("AggregateMessage should return a message with the names of all the blocking hooks", func(t *testing.T) {
@@ -148,20 +116,12 @@ func TestHookResponseTracker_AggregateMessage(t *testing.T) {
 
 func TestHookResponseTracker_IsBlocking(t *testing.T) {
 	nonBlockingBeforeClusterCreateResponse := &runtimehooksv1.BeforeClusterCreateResponse{
-		CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
-			RetryAfterSeconds: int32(0),
-			CommonResponse: runtimehooksv1.CommonResponse{
-				Status: runtimehooksv1.ResponseStatusSuccess,
-			},
-		},
+		RetryAfterSeconds: int32(0),
+		Status:            runtimehooksv1.ResponseStatusSuccess,
 	}
 	blockingBeforeClusterCreateResponse := &runtimehooksv1.BeforeClusterCreateResponse{
-		CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
-			RetryAfterSeconds: int32(10),
-			CommonResponse: runtimehooksv1.CommonResponse{
-				Status: runtimehooksv1.ResponseStatusSuccess,
-			},
-		},
+		RetryAfterSeconds: int32(10),
+		Status:            runtimehooksv1.ResponseStatusSuccess,
 	}
 
 	afterAfterControlPlaneInitializedResponse := &runtimehooksv1.AfterControlPlaneInitializedResponse{

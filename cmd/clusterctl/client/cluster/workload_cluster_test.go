@@ -22,7 +22,6 @@ import (
 
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/internal/test"
@@ -53,11 +52,9 @@ users:
 `
 
 		validSecret = &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "test1-kubeconfig",
-				Namespace: "test",
-				Labels:    map[string]string{clusterv1.ClusterNameLabel: "test1"},
-			},
+			Name:      "test1-kubeconfig",
+			Namespace: "test",
+			Labels:    map[string]string{clusterv1.ClusterNameLabel: "test1"},
 			Data: map[string][]byte{
 				secret.KubeconfigDataName: []byte(validKubeConfig),
 			},

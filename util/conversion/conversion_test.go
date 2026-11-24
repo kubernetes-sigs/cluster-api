@@ -43,11 +43,9 @@ func TestMarshalData(t *testing.T) {
 		version := "v1.16.4"
 		providerID := "aws://some-id"
 		src := &clusterv1.Machine{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "test-1",
-				Labels: map[string]string{
-					"label1": "",
-				},
+			Name: "test-1",
+			Labels: map[string]string{
+				"label1": "",
 			},
 			Spec: clusterv1.MachineSpec{
 				ClusterName: "test-cluster",
@@ -78,34 +76,32 @@ func TestMarshalData(t *testing.T) {
 		version := "v1.16.4"
 		providerID := "aws://some-id"
 		src := &clusterv1.Machine{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:                       "test-1",
-				GenerateName:               "test-",
-				Namespace:                  "default",
-				UID:                        "123456",
-				ResourceVersion:            "123",
-				Generation:                 15,
-				CreationTimestamp:          metav1.Now(),
-				DeletionTimestamp:          new(metav1.Now()),
-				DeletionGracePeriodSeconds: ptr.To[int64](10),
-				OwnerReferences: []metav1.OwnerReference{{
-					APIVersion: "test/v1beta1",
-					Kind:       "TestKind",
-					Name:       "name",
-					UID:        "1234567",
-				}},
-				Finalizers: []string{"finalizer"},
-				ManagedFields: []metav1.ManagedFieldsEntry{
-					{
-						Manager: "test-manager",
-					},
+			Name:                       "test-1",
+			GenerateName:               "test-",
+			Namespace:                  "default",
+			UID:                        "123456",
+			ResourceVersion:            "123",
+			Generation:                 15,
+			CreationTimestamp:          metav1.Now(),
+			DeletionTimestamp:          new(metav1.Now()),
+			DeletionGracePeriodSeconds: ptr.To[int64](10),
+			OwnerReferences: []metav1.OwnerReference{{
+				APIVersion: "test/v1beta1",
+				Kind:       "TestKind",
+				Name:       "name",
+				UID:        "1234567",
+			}},
+			Finalizers: []string{"finalizer"},
+			ManagedFields: []metav1.ManagedFieldsEntry{
+				{
+					Manager: "test-manager",
 				},
-				Labels: map[string]string{
-					"label1": "",
-				},
-				Annotations: map[string]string{
-					"annotation1": "",
-				},
+			},
+			Labels: map[string]string{
+				"label1": "",
+			},
+			Annotations: map[string]string{
+				"annotation1": "",
 			},
 			Spec: clusterv1.MachineSpec{
 				ClusterName: "test-cluster",
@@ -132,9 +128,7 @@ func TestMarshalData(t *testing.T) {
 		g := NewWithT(t)
 
 		src := &clusterv1.Machine{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "test-1",
-			},
+			Name: "test-1",
 		}
 		dst := &unstructured.Unstructured{}
 		dst.SetGroupVersionKind(clusterv1.GroupVersion.WithKind("Machine"))
@@ -151,9 +145,7 @@ func TestMarshalData(t *testing.T) {
 		g := NewWithT(t)
 
 		src := &clusterv1.Machine{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "test-1",
-			},
+			Name: "test-1",
 		}
 		dst := &unstructured.Unstructured{}
 		dst.SetGroupVersionKind(clusterv1.GroupVersion.WithKind("Machine"))
@@ -172,9 +164,7 @@ func TestUnmarshalData(t *testing.T) {
 
 	t.Run("should return false without errors if annotation doesn't exist", func(*testing.T) {
 		src := &clusterv1.Machine{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "test-1",
-			},
+			Name: "test-1",
 		}
 		dst := &unstructured.Unstructured{}
 		dst.SetGroupVersionKind(oldMachineGVK)
@@ -194,9 +184,7 @@ func TestUnmarshalData(t *testing.T) {
 		})
 
 		dst := &clusterv1.Machine{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "test-1",
-			},
+			Name: "test-1",
 		}
 
 		ok, err := UnmarshalData(src, dst)
@@ -219,9 +207,7 @@ func TestUnmarshalData(t *testing.T) {
 		})
 
 		dst := &clusterv1.Machine{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "test-1",
-			},
+			Name: "test-1",
 		}
 
 		ok, err := UnmarshalData(src, dst)

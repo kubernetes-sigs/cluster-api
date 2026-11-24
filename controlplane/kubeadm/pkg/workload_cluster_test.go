@@ -48,18 +48,14 @@ func TestGetControlPlaneNodes(t *testing.T) {
 			name: "Return control plane nodes",
 			nodes: []corev1.Node{
 				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "control-plane-node-with-label",
-						Labels: map[string]string{
-							labelNodeRoleControlPlane: "",
-						},
+					Name: "control-plane-node-with-label",
+					Labels: map[string]string{
+						labelNodeRoleControlPlane: "",
 					},
 				},
 				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:   "worker-node",
-						Labels: map[string]string{},
-					},
+					Name:   "worker-node",
+					Labels: map[string]string{},
 				},
 			},
 			expectedNodes: []string{
@@ -178,10 +174,8 @@ func TestUpdateKubeProxyImageInfo(t *testing.T) {
 			expectErr:   false,
 			expectImage: "",
 			KCP: &controlplanev1.KubeadmControlPlane{
-				ObjectMeta: metav1.ObjectMeta{
-					Annotations: map[string]string{
-						controlplanev1.SkipKubeProxyAnnotation: "",
-					},
+				Annotations: map[string]string{
+					controlplanev1.SkipKubeProxyAnnotation: "",
 				},
 				Spec: controlplanev1.KubeadmControlPlaneSpec{
 					Version: "v1.16.3",
@@ -237,11 +231,9 @@ func TestUpdateUpdateClusterConfigurationInKubeadmConfigMap(t *testing.T) {
 			name:    "fail if config map without ClusterConfiguration data",
 			version: semver.MustParse("1.17.2"),
 			objs: []client.Object{&corev1.ConfigMap{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      kubeadmConfigKey,
-					Namespace: metav1.NamespaceSystem,
-				},
-				Data: map[string]string{},
+				Name:      kubeadmConfigKey,
+				Namespace: metav1.NamespaceSystem,
+				Data:      map[string]string{},
 			}},
 			wantErr: true,
 		},
@@ -249,10 +241,8 @@ func TestUpdateUpdateClusterConfigurationInKubeadmConfigMap(t *testing.T) {
 			name:    "fail if config map with invalid ClusterConfiguration data",
 			version: semver.MustParse("1.17.2"),
 			objs: []client.Object{&corev1.ConfigMap{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      kubeadmConfigKey,
-					Namespace: metav1.NamespaceSystem,
-				},
+				Name:      kubeadmConfigKey,
+				Namespace: metav1.NamespaceSystem,
 				Data: map[string]string{
 					clusterConfigurationKey: "foo",
 				},
@@ -263,10 +253,8 @@ func TestUpdateUpdateClusterConfigurationInKubeadmConfigMap(t *testing.T) {
 			name:    "no op if mutator does not apply changes and Kubernetes version is up-to-date",
 			version: semver.MustParse("1.31.2"),
 			objs: []client.Object{&corev1.ConfigMap{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      kubeadmConfigKey,
-					Namespace: metav1.NamespaceSystem,
-				},
+				Name:      kubeadmConfigKey,
+				Namespace: metav1.NamespaceSystem,
 				Data: map[string]string{
 					clusterConfigurationKey: utilyaml.Raw(`
 						apiVersion: kubeadm.k8s.io/v1beta4
@@ -277,10 +265,8 @@ func TestUpdateUpdateClusterConfigurationInKubeadmConfigMap(t *testing.T) {
 			}},
 			mutator: func(*bootstrapv1.ClusterConfiguration) {},
 			wantConfigMap: &corev1.ConfigMap{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      kubeadmConfigKey,
-					Namespace: metav1.NamespaceSystem,
-				},
+				Name:      kubeadmConfigKey,
+				Namespace: metav1.NamespaceSystem,
 				Data: map[string]string{
 					clusterConfigurationKey: utilyaml.Raw(`
 						apiVersion: kubeadm.k8s.io/v1beta4
@@ -294,10 +280,8 @@ func TestUpdateUpdateClusterConfigurationInKubeadmConfigMap(t *testing.T) {
 			name:    "update if mutator does not apply changes and Kubernetes version is outdated",
 			version: semver.MustParse("1.31.2"),
 			objs: []client.Object{&corev1.ConfigMap{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      kubeadmConfigKey,
-					Namespace: metav1.NamespaceSystem,
-				},
+				Name:      kubeadmConfigKey,
+				Namespace: metav1.NamespaceSystem,
 				Data: map[string]string{
 					clusterConfigurationKey: utilyaml.Raw(`
 						apiVersion: kubeadm.k8s.io/v1beta4
@@ -308,10 +292,8 @@ func TestUpdateUpdateClusterConfigurationInKubeadmConfigMap(t *testing.T) {
 			}},
 			mutator: func(*bootstrapv1.ClusterConfiguration) {},
 			wantConfigMap: &corev1.ConfigMap{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      kubeadmConfigKey,
-					Namespace: metav1.NamespaceSystem,
-				},
+				Name:      kubeadmConfigKey,
+				Namespace: metav1.NamespaceSystem,
 				Data: map[string]string{
 					clusterConfigurationKey: utilyaml.Raw(`
 						apiServer: {}
@@ -332,10 +314,8 @@ func TestUpdateUpdateClusterConfigurationInKubeadmConfigMap(t *testing.T) {
 			name:    "apply changes",
 			version: semver.MustParse("1.31.2"),
 			objs: []client.Object{&corev1.ConfigMap{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      kubeadmConfigKey,
-					Namespace: metav1.NamespaceSystem,
-				},
+				Name:      kubeadmConfigKey,
+				Namespace: metav1.NamespaceSystem,
 				Data: map[string]string{
 					clusterConfigurationKey: utilyaml.Raw(`
 						apiVersion: kubeadm.k8s.io/v1beta4
@@ -349,10 +329,8 @@ func TestUpdateUpdateClusterConfigurationInKubeadmConfigMap(t *testing.T) {
 				c.CertificatesDir = "foo"
 			},
 			wantConfigMap: &corev1.ConfigMap{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      kubeadmConfigKey,
-					Namespace: metav1.NamespaceSystem,
-				},
+				Name:      kubeadmConfigKey,
+				Namespace: metav1.NamespaceSystem,
 				Data: map[string]string{
 					clusterConfigurationKey: utilyaml.Raw(`
 						apiServer: {}
@@ -428,10 +406,8 @@ func TestUpdateImageRepositoryInKubeadmConfigMap(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 			fakeClient := fake.NewClientBuilder().WithObjects(&corev1.ConfigMap{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      kubeadmConfigKey,
-					Namespace: metav1.NamespaceSystem,
-				},
+				Name:      kubeadmConfigKey,
+				Namespace: metav1.NamespaceSystem,
 				Data: map[string]string{
 					clusterConfigurationKey: tt.clusterConfigurationData,
 				},
@@ -516,10 +492,8 @@ func TestUpdateApiServerInKubeadmConfigMap(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 			fakeClient := fake.NewClientBuilder().WithObjects(&corev1.ConfigMap{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      kubeadmConfigKey,
-					Namespace: metav1.NamespaceSystem,
-				},
+				Name:      kubeadmConfigKey,
+				Namespace: metav1.NamespaceSystem,
 				Data: map[string]string{
 					clusterConfigurationKey: tt.clusterConfigurationData,
 				},
@@ -602,10 +576,8 @@ func TestUpdateControllerManagerInKubeadmConfigMap(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 			fakeClient := fake.NewClientBuilder().WithObjects(&corev1.ConfigMap{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      kubeadmConfigKey,
-					Namespace: metav1.NamespaceSystem,
-				},
+				Name:      kubeadmConfigKey,
+				Namespace: metav1.NamespaceSystem,
 				Data: map[string]string{
 					clusterConfigurationKey: tt.clusterConfigurationData,
 				},
@@ -687,10 +659,8 @@ func TestUpdateSchedulerInKubeadmConfigMap(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 			fakeClient := fake.NewClientBuilder().WithObjects(&corev1.ConfigMap{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      kubeadmConfigKey,
-					Namespace: metav1.NamespaceSystem,
-				},
+				Name:      kubeadmConfigKey,
+				Namespace: metav1.NamespaceSystem,
 				Data: map[string]string{
 					clusterConfigurationKey: tt.clusterConfigurationData,
 				},
@@ -715,10 +685,8 @@ func TestUpdateSchedulerInKubeadmConfigMap(t *testing.T) {
 
 func TestHasKubeadmConfig(t *testing.T) {
 	kconf := &corev1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      kubeadmConfigKey,
-			Namespace: metav1.NamespaceSystem,
-		},
+		Name:      kubeadmConfigKey,
+		Namespace: metav1.NamespaceSystem,
 	}
 	tests := []struct {
 		name                   string
@@ -890,10 +858,8 @@ func TestUpdateFeatureGatesInKubeadmConfigMap(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 			fakeClient := fake.NewClientBuilder().WithObjects(&corev1.ConfigMap{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      kubeadmConfigKey,
-					Namespace: metav1.NamespaceSystem,
-				},
+				Name:      kubeadmConfigKey,
+				Namespace: metav1.NamespaceSystem,
 				Data: map[string]string{
 					clusterConfigurationKey: tt.clusterConfigurationData,
 				},
@@ -955,10 +921,8 @@ func TestUpdateCertificateValidityPeriodDaysInKubeadmConfigMap(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 			fakeClient := fake.NewClientBuilder().WithObjects(&corev1.ConfigMap{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      kubeadmConfigKey,
-					Namespace: metav1.NamespaceSystem,
-				},
+				Name:      kubeadmConfigKey,
+				Namespace: metav1.NamespaceSystem,
 				Data: map[string]string{
 					clusterConfigurationKey: tt.clusterConfigurationData,
 				},
@@ -999,10 +963,8 @@ func getProxyImageInfo(ctx context.Context, c client.Client) (string, error) {
 
 func newKubeProxyDS() appsv1.DaemonSet {
 	return appsv1.DaemonSet{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      kubeProxyKey,
-			Namespace: metav1.NamespaceSystem,
-		},
+		Name:      kubeProxyKey,
+		Namespace: metav1.NamespaceSystem,
 		Spec: appsv1.DaemonSetSpec{
 			Template: corev1.PodTemplateSpec{
 				Spec: corev1.PodSpec{

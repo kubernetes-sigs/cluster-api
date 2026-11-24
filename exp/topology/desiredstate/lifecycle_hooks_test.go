@@ -73,10 +73,8 @@ func TestComputeControlPlaneVersion_LifecycleHooksSequences(t *testing.T) {
 	utilfeature.SetFeatureGateDuringTest(t, features.Gates, features.RuntimeSDK, true)
 
 	clusterForCacheEntry := &clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "test-ns",
-			Name:      "test-cluster",
-		},
+		Namespace: "test-ns",
+		Name:      "test-cluster",
 	}
 
 	catalog := runtimecatalog.New()
@@ -88,88 +86,48 @@ func TestComputeControlPlaneVersion_LifecycleHooksSequences(t *testing.T) {
 	afterWorkersUpgradeGVH, _ := catalog.GroupVersionHook(runtimehooksv1.AfterWorkersUpgrade)
 
 	blockingBeforeClusterUpgradeResponse := &runtimehooksv1.BeforeClusterUpgradeResponse{
-		CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
-			CommonResponse: runtimehooksv1.CommonResponse{
-				Status:  runtimehooksv1.ResponseStatusSuccess,
-				Message: "processing",
-			},
-			RetryAfterSeconds: int32(10),
-		},
+		Status:            runtimehooksv1.ResponseStatusSuccess,
+		Message:           "processing",
+		RetryAfterSeconds: int32(10),
 	}
 	nonBlockingBeforeClusterUpgradeResponse := &runtimehooksv1.BeforeClusterUpgradeResponse{
-		CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
-			CommonResponse: runtimehooksv1.CommonResponse{
-				Status: runtimehooksv1.ResponseStatusSuccess,
-			},
-		},
+		Status: runtimehooksv1.ResponseStatusSuccess,
 	}
 
 	blockingBeforeControlPlaneUpgradeResponse := &runtimehooksv1.BeforeControlPlaneUpgradeResponse{
-		CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
-			CommonResponse: runtimehooksv1.CommonResponse{
-				Status:  runtimehooksv1.ResponseStatusSuccess,
-				Message: "processing",
-			},
-			RetryAfterSeconds: int32(10),
-		},
+		Status:            runtimehooksv1.ResponseStatusSuccess,
+		Message:           "processing",
+		RetryAfterSeconds: int32(10),
 	}
 	nonBlockingBeforeControlPlaneUpgradeResponse := &runtimehooksv1.BeforeControlPlaneUpgradeResponse{
-		CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
-			CommonResponse: runtimehooksv1.CommonResponse{
-				Status: runtimehooksv1.ResponseStatusSuccess,
-			},
-		},
+		Status: runtimehooksv1.ResponseStatusSuccess,
 	}
 
 	blockingAfterControlPlaneUpgradeResponse := &runtimehooksv1.AfterControlPlaneUpgradeResponse{
-		CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
-			CommonResponse: runtimehooksv1.CommonResponse{
-				Status:  runtimehooksv1.ResponseStatusSuccess,
-				Message: "processing",
-			},
-			RetryAfterSeconds: int32(10),
-		},
+		Status:            runtimehooksv1.ResponseStatusSuccess,
+		Message:           "processing",
+		RetryAfterSeconds: int32(10),
 	}
 	nonBlockingAfterControlPlaneUpgradeResponse := &runtimehooksv1.AfterControlPlaneUpgradeResponse{
-		CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
-			CommonResponse: runtimehooksv1.CommonResponse{
-				Status: runtimehooksv1.ResponseStatusSuccess,
-			},
-		},
+		Status: runtimehooksv1.ResponseStatusSuccess,
 	}
 
 	blockingBeforeWorkersUpgradeResponse := &runtimehooksv1.BeforeWorkersUpgradeResponse{
-		CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
-			CommonResponse: runtimehooksv1.CommonResponse{
-				Status:  runtimehooksv1.ResponseStatusSuccess,
-				Message: "processing",
-			},
-			RetryAfterSeconds: int32(10),
-		},
+		Status:            runtimehooksv1.ResponseStatusSuccess,
+		Message:           "processing",
+		RetryAfterSeconds: int32(10),
 	}
 	nonBlockingBeforeWorkersUpgradeResponse := &runtimehooksv1.BeforeWorkersUpgradeResponse{
-		CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
-			CommonResponse: runtimehooksv1.CommonResponse{
-				Status: runtimehooksv1.ResponseStatusSuccess,
-			},
-		},
+		Status: runtimehooksv1.ResponseStatusSuccess,
 	}
 
 	blockingAfterWorkersUpgradeResponse := &runtimehooksv1.AfterWorkersUpgradeResponse{
-		CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
-			CommonResponse: runtimehooksv1.CommonResponse{
-				Status:  runtimehooksv1.ResponseStatusSuccess,
-				Message: "processing",
-			},
-			RetryAfterSeconds: int32(10),
-		},
+		Status:            runtimehooksv1.ResponseStatusSuccess,
+		Message:           "processing",
+		RetryAfterSeconds: int32(10),
 	}
 	nonBlockingAfterWorkersUpgradeResponse := &runtimehooksv1.AfterWorkersUpgradeResponse{
-		CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
-			CommonResponse: runtimehooksv1.CommonResponse{
-				Status: runtimehooksv1.ResponseStatusSuccess,
-			},
-		},
+		Status: runtimehooksv1.ResponseStatusSuccess,
 	}
 
 	tests := []struct {
@@ -1212,24 +1170,22 @@ func TestComputeControlPlaneVersion_LifecycleHooksSequences(t *testing.T) {
 				}},
 				Current: &scope.ClusterState{
 					Cluster: &clusterv1.Cluster{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      "test-cluster",
-							Namespace: "test-ns",
-							// Add managedFields and annotations that should be cleaned up before the Cluster is sent to the RuntimeExtension.
-							ManagedFields: []metav1.ManagedFieldsEntry{
-								{
-									APIVersion: builder.InfrastructureGroupVersion.String(),
-									Manager:    "manager",
-									Operation:  "Apply",
-									Time:       new(metav1.Now()),
-									FieldsType: "FieldsV1",
-								},
+						Name:      "test-cluster",
+						Namespace: "test-ns",
+						// Add managedFields and annotations that should be cleaned up before the Cluster is sent to the RuntimeExtension.
+						ManagedFields: []metav1.ManagedFieldsEntry{
+							{
+								APIVersion: builder.InfrastructureGroupVersion.String(),
+								Manager:    "manager",
+								Operation:  "Apply",
+								Time:       new(metav1.Now()),
+								FieldsType: "FieldsV1",
 							},
-							Annotations: map[string]string{
-								"fizz":                             "buzz",
-								corev1.LastAppliedConfigAnnotation: "should be cleaned up",
-								conversionutil.DataAnnotation:      "should be cleaned up",
-							},
+						},
+						Annotations: map[string]string{
+							"fizz":                             "buzz",
+							corev1.LastAppliedConfigAnnotation: "should be cleaned up",
+							conversionutil.DataAnnotation:      "should be cleaned up",
 						},
 						// Add some more fields to check that conversion implemented when calling RuntimeExtension are properly handled.
 						Spec: clusterv1.ClusterSpec{

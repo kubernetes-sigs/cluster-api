@@ -47,10 +47,8 @@ var (
 
 func TestKubeadmControlPlaneValidateScale(t *testing.T) {
 	kcpManagedEtcd := &controlplanev1.KubeadmControlPlane{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "kcp-managed-etcd",
-			Namespace: "foo",
-		},
+		Name:      "kcp-managed-etcd",
+		Namespace: "foo",
 		Spec: controlplanev1.KubeadmControlPlaneSpec{
 			MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
 				Spec: controlplanev1.KubeadmControlPlaneMachineTemplateSpec{

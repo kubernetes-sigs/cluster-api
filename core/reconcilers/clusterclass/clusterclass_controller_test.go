@@ -28,7 +28,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/version"
 	utilfeature "k8s.io/component-base/featuregate/testing"
 	"k8s.io/klog/v2"
@@ -550,9 +549,7 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 				}).
 				Build(),
 			patchResponse: &runtimehooksv1.DiscoverVariablesResponse{
-				CommonResponse: runtimehooksv1.CommonResponse{
-					Status: runtimehooksv1.ResponseStatusSuccess,
-				},
+				Status: runtimehooksv1.ResponseStatusSuccess,
 				Variables: []clusterv1.ClusterClassVariable{
 					{
 						Name: "cpu",
@@ -768,9 +765,7 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 				}).
 				Build(),
 			patchResponse: &runtimehooksv1.DiscoverVariablesResponse{
-				CommonResponse: runtimehooksv1.CommonResponse{
-					Status: runtimehooksv1.ResponseStatusSuccess,
-				},
+				Status: runtimehooksv1.ResponseStatusSuccess,
 				Variables: []clusterv1.ClusterClassVariable{
 					{
 						Name: "cpu",
@@ -800,9 +795,7 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 				}).
 				Build(),
 			patchResponse: &runtimehooksv1.DiscoverVariablesResponse{
-				CommonResponse: runtimehooksv1.CommonResponse{
-					Status: runtimehooksv1.ResponseStatusSuccess,
-				},
+				Status: runtimehooksv1.ResponseStatusSuccess,
 				Variables: []clusterv1.ClusterClassVariable{
 					{
 						Name:     "cpu",
@@ -974,9 +967,7 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 				}).
 				Build(),
 			patchResponse: &runtimehooksv1.DiscoverVariablesResponse{
-				CommonResponse: runtimehooksv1.CommonResponse{
-					Status: runtimehooksv1.ResponseStatusSuccess,
-				},
+				Status: runtimehooksv1.ResponseStatusSuccess,
 				Variables: []clusterv1.ClusterClassVariable{
 					{
 						Name: "cpu",
@@ -1014,9 +1005,7 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 				}).
 				Build(),
 			patchResponse: &runtimehooksv1.DiscoverVariablesResponse{
-				CommonResponse: runtimehooksv1.CommonResponse{
-					Status: runtimehooksv1.ResponseStatusSuccess,
-				},
+				Status: runtimehooksv1.ResponseStatusSuccess,
 				Variables: []clusterv1.ClusterClassVariable{
 					{
 						Name: "httpProxy",
@@ -1059,9 +1048,7 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 				}).
 				Build(),
 			patchResponse: &runtimehooksv1.DiscoverVariablesResponse{
-				CommonResponse: runtimehooksv1.CommonResponse{
-					Status: runtimehooksv1.ResponseStatusSuccess,
-				},
+				Status: runtimehooksv1.ResponseStatusSuccess,
 				Variables: []clusterv1.ClusterClassVariable{
 					{
 						Name: "cpu",
@@ -1128,9 +1115,7 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 				}).
 				Build(),
 			patchResponse: &runtimehooksv1.DiscoverVariablesResponse{
-				CommonResponse: runtimehooksv1.CommonResponse{
-					Status: runtimehooksv1.ResponseStatusSuccess,
-				},
+				Status: runtimehooksv1.ResponseStatusSuccess,
 				Variables: []clusterv1.ClusterClassVariable{
 					{
 						Name: "someIP",
@@ -1214,17 +1199,13 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 
 func TestReconciler_extensionConfigToClusterClass(t *testing.T) {
 	firstExtConfig := &runtimev1.ExtensionConfig{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "runtime1",
-		},
+		Name: "runtime1",
 		Spec: runtimev1.ExtensionConfigSpec{
 			NamespaceSelector: &metav1.LabelSelector{},
 		},
 	}
 	secondExtConfig := &runtimev1.ExtensionConfig{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "runtime2",
-		},
+		Name: "runtime2",
 		Spec: runtimev1.ExtensionConfigSpec{
 			NamespaceSelector: &metav1.LabelSelector{},
 		},
@@ -1258,8 +1239,8 @@ func TestReconciler_extensionConfigToClusterClass(t *testing.T) {
 
 		// Expect both onePatchClusterClass and twoPatchClusterClass to trigger a reconcile as both reference ExtensionCopnfig `runtime1`.
 		firstExtConfigExpected := []reconcile.Request{
-			{NamespacedName: types.NamespacedName{Namespace: onePatchClusterClass.Namespace, Name: onePatchClusterClass.Name}},
-			{NamespacedName: types.NamespacedName{Namespace: twoPatchClusterClass.Namespace, Name: twoPatchClusterClass.Name}},
+			{Namespace: onePatchClusterClass.Namespace, Name: onePatchClusterClass.Name},
+			{Namespace: twoPatchClusterClass.Namespace, Name: twoPatchClusterClass.Name},
 		}
 		if got := r.extensionConfigToClusterClass(context.Background(), firstExtConfig); !cmp.Equal(got, firstExtConfigExpected) {
 			t.Errorf("extensionConfigToClusterClass() = %v, want %v", got, firstExtConfigExpected)
@@ -1267,7 +1248,7 @@ func TestReconciler_extensionConfigToClusterClass(t *testing.T) {
 
 		// Expect only twoPatchClusterClass to trigger a reconcile as it's the only class with a reference to ExtensionCopnfig `runtime2`.
 		secondExtConfigExpected := []reconcile.Request{
-			{NamespacedName: types.NamespacedName{Namespace: twoPatchClusterClass.Namespace, Name: twoPatchClusterClass.Name}},
+			{Namespace: twoPatchClusterClass.Namespace, Name: twoPatchClusterClass.Name},
 		}
 		if got := r.extensionConfigToClusterClass(context.Background(), secondExtConfig); !cmp.Equal(got, secondExtConfigExpected) {
 			t.Errorf("extensionConfigToClusterClass() = %v, want %v", got, secondExtConfigExpected)

@@ -280,10 +280,8 @@ func createClusterWithClusterClass(g *WithT, namespace, name string, clusterClas
 // createT1ClusterClass creates a CC with v1beta1 references and a patch adding the omittable field.
 func createT1ClusterClass(g *WithT, ns *corev1.Namespace, ct1 client.Client) *clusterv1.ClusterClass {
 	infrastructureClusterTemplate1 := &testt1v1beta1.TestResourceTemplate{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: ns.Name,
-			Name:      "test-infra-cluster-template-v1beta1-t1",
-		},
+		Namespace: ns.Name,
+		Name:      "test-infra-cluster-template-v1beta1-t1",
 		Spec: testt1v1beta1.TestResourceTemplateSpec{
 			Template: testt1v1beta1.TestResourceTemplateResource{
 				Spec: testt1v1beta1.TestResourceSpec{
@@ -303,10 +301,8 @@ func createT1ClusterClass(g *WithT, ns *corev1.Namespace, ct1 client.Client) *cl
 	g.Expect(ct1.Create(ctx, infrastructureClusterTemplate1)).To(Succeed())
 
 	controlPlaneTemplate := &testt1v1beta1.TestResourceTemplate{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: ns.Name,
-			Name:      "test-control-plane-template-v1beta1-t1",
-		},
+		Namespace: ns.Name,
+		Name:      "test-control-plane-template-v1beta1-t1",
 		Spec: testt1v1beta1.TestResourceTemplateSpec{
 			Template: testt1v1beta1.TestResourceTemplateResource{
 				Spec: testt1v1beta1.TestResourceSpec{
@@ -323,19 +319,15 @@ func createT1ClusterClass(g *WithT, ns *corev1.Namespace, ct1 client.Client) *cl
 	g.Expect(ct1.Create(ctx, controlPlaneTemplate)).To(Succeed())
 
 	infrastructureMachineTemplate1 := &testt1v1beta1.TestResourceTemplate{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: ns.Name,
-			Name:      "test-infra-machine-template-v1beta1-t1",
-		},
+		Namespace: ns.Name,
+		Name:      "test-infra-machine-template-v1beta1-t1",
 	}
 
 	g.Expect(ct1.Create(ctx, infrastructureMachineTemplate1)).To(Succeed())
 
 	bootstrapTemplate := &testt1v1beta1.TestResourceTemplate{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: ns.Name,
-			Name:      "test-bootstrap-config-template-v1beta1-t1",
-		},
+		Namespace: ns.Name,
+		Name:      "test-bootstrap-config-template-v1beta1-t1",
 	}
 
 	g.Expect(ct1.Create(ctx, bootstrapTemplate)).To(Succeed())
@@ -362,10 +354,8 @@ func createT1ClusterClass(g *WithT, ns *corev1.Namespace, ct1 client.Client) *cl
 	}
 
 	clusterClass := &clusterv1.ClusterClass{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "cluster-class-t1",
-			Namespace: ns.Name,
-		},
+		Name:      "cluster-class-t1",
+		Namespace: ns.Name,
 		Spec: clusterv1.ClusterClassSpec{
 			Infrastructure: clusterv1.InfrastructureClass{
 				TemplateRef: clusterv1.ClusterClassTemplateReference{
@@ -475,10 +465,8 @@ func waitForObjects(g *WithT, scheme *runtime.Scheme, objs ...client.Object) {
 // createT2ClusterClass creates a CC with v1beta2 references and a patch adding the omittable field.
 func createT2ClusterClass(g *WithT, ns *corev1.Namespace, ct2 client.Client) *clusterv1.ClusterClass {
 	infrastructureClusterTemplate1 := &testt2v1beta2.TestResourceTemplate{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: ns.Name,
-			Name:      "test-infra-cluster-template-v1beta2-t2",
-		},
+		Namespace: ns.Name,
+		Name:      "test-infra-cluster-template-v1beta2-t2",
 		Spec: testt2v1beta2.TestResourceTemplateSpec{
 			Template: testt2v1beta2.TestResourceTemplateResource{
 				Spec: testt2v1beta2.TestResourceSpec{
@@ -497,10 +485,8 @@ func createT2ClusterClass(g *WithT, ns *corev1.Namespace, ct2 client.Client) *cl
 	g.Expect(ct2.Create(ctx, infrastructureClusterTemplate1)).To(Succeed())
 
 	controlPlaneTemplate := &testt2v1beta2.TestResourceTemplate{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: ns.Name,
-			Name:      "test-control-plane-template-v1beta2-t2",
-		},
+		Namespace: ns.Name,
+		Name:      "test-control-plane-template-v1beta2-t2",
 		Spec: testt2v1beta2.TestResourceTemplateSpec{
 			Template: testt2v1beta2.TestResourceTemplateResource{
 				Spec: testt2v1beta2.TestResourceSpec{
@@ -516,19 +502,15 @@ func createT2ClusterClass(g *WithT, ns *corev1.Namespace, ct2 client.Client) *cl
 	g.Expect(ct2.Create(ctx, controlPlaneTemplate)).To(Succeed())
 
 	infrastructureMachineTemplate1 := &testt2v1beta2.TestResourceTemplate{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: ns.Name,
-			Name:      "test-infra-machine-template-v1beta2-t2",
-		},
+		Namespace: ns.Name,
+		Name:      "test-infra-machine-template-v1beta2-t2",
 	}
 
 	g.Expect(ct2.Create(ctx, infrastructureMachineTemplate1)).To(Succeed())
 
 	bootstrapTemplate := &testt2v1beta2.TestResourceTemplate{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: ns.Name,
-			Name:      "test-bootstrap-config-template-v1beta2-t2",
-		},
+		Namespace: ns.Name,
+		Name:      "test-bootstrap-config-template-v1beta2-t2",
 	}
 
 	g.Expect(ct2.Create(ctx, bootstrapTemplate)).To(Succeed())
@@ -555,10 +537,8 @@ func createT2ClusterClass(g *WithT, ns *corev1.Namespace, ct2 client.Client) *cl
 	}
 
 	clusterClass := &clusterv1.ClusterClass{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "cluster-class-t2",
-			Namespace: ns.Name,
-		},
+		Name:      "cluster-class-t2",
+		Namespace: ns.Name,
 		Spec: clusterv1.ClusterClassSpec{
 			Infrastructure: clusterv1.InfrastructureClass{
 				TemplateRef: clusterv1.ClusterClassTemplateReference{
@@ -1136,10 +1116,8 @@ func setupT1CRDAndWebHooks(g *WithT, ns *corev1.Namespace) (client.Client, *test
 	// Test if webhook is working
 	g.Eventually(ctx, func(g Gomega) {
 		t1TemplateObj := &testt1v1beta1.TestResourceTemplate{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "test-setup-dryrun",
-				Namespace: ns.Name,
-			},
+			Name:      "test-setup-dryrun",
+			Namespace: ns.Name,
 		}
 		g.Expect(ct1.Create(ctx, t1TemplateObj, client.DryRunAll)).To(Succeed())
 		g.Expect(t1TemplateObj.Annotations).To(HaveKey("default-t1"))
@@ -1147,10 +1125,8 @@ func setupT1CRDAndWebHooks(g *WithT, ns *corev1.Namespace) (client.Client, *test
 
 	g.Eventually(ctx, func(g Gomega) {
 		t1Obj := &testt1v1beta1.TestResource{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "test-setup-dryrun",
-				Namespace: ns.Name,
-			},
+			Name:      "test-setup-dryrun",
+			Namespace: ns.Name,
 		}
 		g.Expect(ct1.Create(ctx, t1Obj, client.DryRunAll)).To(Succeed())
 		g.Expect(t1Obj.Annotations).To(HaveKey("default-t1"))
@@ -1158,20 +1134,16 @@ func setupT1CRDAndWebHooks(g *WithT, ns *corev1.Namespace) (client.Client, *test
 
 	// Create an object
 	t1CheckTemplate := &testt1v1beta1.TestResourceTemplate{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test-setup",
-			Namespace: ns.Name,
-		},
+		Name:      "test-setup",
+		Namespace: ns.Name,
 	}
 
 	err = ct1.Create(ctx, t1CheckTemplate)
 	g.Expect(err).ToNot(HaveOccurred())
 
 	t1CheckObj := &testt1v1beta1.TestResource{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test-setup",
-			Namespace: ns.Name,
-		},
+		Name:      "test-setup",
+		Namespace: ns.Name,
 	}
 
 	err = ct1.Create(ctx, t1CheckObj)
@@ -1230,10 +1202,8 @@ func setupT2CRDAndWebHooks(g *WithT, ns *corev1.Namespace, t1CheckObj *testt1v1b
 	// Test the defaulter works
 	g.Eventually(ctx, func(g Gomega) {
 		t2TemplateObj := &testt2v1beta2.TestResourceTemplate{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "test-setup-dryrun",
-				Namespace: ns.Name,
-			},
+			Name:      "test-setup-dryrun",
+			Namespace: ns.Name,
 		}
 		g.Expect(ct2.Create(ctx, t2TemplateObj, client.DryRunAll)).To(Succeed())
 		g.Expect(t2TemplateObj.Annotations).ToNot(HaveKey("default-t1"))
@@ -1243,10 +1213,8 @@ func setupT2CRDAndWebHooks(g *WithT, ns *corev1.Namespace, t1CheckObj *testt1v1b
 
 	g.Eventually(ctx, func(g Gomega) {
 		t2Obj := &testt2v1beta2.TestResource{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "test-setup-dryrun",
-				Namespace: ns.Name,
-			},
+			Name:      "test-setup-dryrun",
+			Namespace: ns.Name,
 		}
 		g.Expect(ct2.Create(ctx, t2Obj, client.DryRunAll)).To(Succeed())
 		g.Expect(t2Obj.Annotations).ToNot(HaveKey("default-t1"))
@@ -1295,9 +1263,7 @@ func newMutatingWebhookConfigurationForCustomDefaulter(ns *corev1.Namespace, gvr
 
 	sideEffectNone := admissionv1.SideEffectClassNone
 	webhookConfig := &admissionv1.MutatingWebhookConfiguration{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: fmt.Sprintf("%s-%s-webhook-config", ns.Name, gvr.Resource),
-		},
+		Name: fmt.Sprintf("%s-%s-webhook-config", ns.Name, gvr.Resource),
 		Webhooks: []admissionv1.MutatingWebhook{
 			{
 				Name: fmt.Sprintf("%s.%s.test.cluster.x-k8s.io", ns.Name, gvr.Resource),
@@ -1311,11 +1277,9 @@ func newMutatingWebhookConfigurationForCustomDefaulter(ns *corev1.Namespace, gvr
 							admissionv1.Create,
 							admissionv1.Update,
 						},
-						Rule: admissionv1.Rule{
-							APIGroups:   []string{gvr.Group},
-							APIVersions: []string{gvr.Version},
-							Resources:   []string{gvr.Resource},
-						},
+						APIGroups:   []string{gvr.Group},
+						APIVersions: []string{gvr.Version},
+						Resources:   []string{gvr.Resource},
 					},
 				},
 				NamespaceSelector: &metav1.LabelSelector{
@@ -1350,7 +1314,7 @@ func addOrReplaceConversionWebhookHandler(ctx context.Context, c client.Client, 
 
 	// Get the CRD
 	crd := &apiextensionsv1.CustomResourceDefinition{
-		ObjectMeta: metav1.ObjectMeta{Name: crdName},
+		Name: crdName,
 	}
 	if err := c.Get(ctx, client.ObjectKeyFromObject(crd), crd); err != nil {
 		return err
@@ -1373,7 +1337,7 @@ func addOrReplaceConversionWebhookHandler(ctx context.Context, c client.Client, 
 
 func addOrReplaceContractLabels(ctx context.Context, crdName string, contractLabelValue string) error {
 	crd := &apiextensionsv1.CustomResourceDefinition{
-		ObjectMeta: metav1.ObjectMeta{Name: crdName},
+		Name: crdName,
 	}
 	if err := env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(crd), crd); err != nil {
 		return err

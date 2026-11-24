@@ -20,7 +20,6 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
@@ -40,7 +39,7 @@ func TestCheckOrCleanupAcknowledgeMove(t *testing.T) {
 			name: "Machine not updating in place",
 			ms:   &clusterv1.MachineSet{},
 			machine: &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{Name: "m1"},
+				Name: "m1",
 			},
 			wantAcknowledged:  false,
 			wantAnnotationSet: false,
@@ -49,11 +48,9 @@ func TestCheckOrCleanupAcknowledgeMove(t *testing.T) {
 			name: "Machine updating in place but UpdateMachine hook still pending",
 			ms:   &clusterv1.MachineSet{},
 			machine: machineWithPendingHook(&clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "m1",
-					Annotations: map[string]string{
-						clusterv1.UpdateInProgressAnnotation: "{}",
-					},
+				Name: "m1",
+				Annotations: map[string]string{
+					clusterv1.UpdateInProgressAnnotation: "{}",
 				},
 			}),
 			wantAcknowledged:  false,
@@ -63,11 +60,9 @@ func TestCheckOrCleanupAcknowledgeMove(t *testing.T) {
 			name: "Machine updating in place, no pending-acknowledge-move annotation",
 			ms:   &clusterv1.MachineSet{},
 			machine: &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "m1",
-					Annotations: map[string]string{
-						clusterv1.UpdateInProgressAnnotation: "{}",
-					},
+				Name: "m1",
+				Annotations: map[string]string{
+					clusterv1.UpdateInProgressAnnotation: "{}",
 				},
 			},
 			wantAcknowledged:  true,
@@ -79,20 +74,16 @@ func TestCheckOrCleanupAcknowledgeMove(t *testing.T) {
 		{
 			name: "Machine pending acknowledge, MS not accepting machines from other MachineSets but machine not yet acknowledged",
 			ms: &clusterv1.MachineSet{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:        "ms1",
-					Annotations: map[string]string{
-						// MachineSetReceiveMachinesFromMachineSetsAnnotation missing
-					},
+				Name:        "ms1",
+				Annotations: map[string]string{
+					// MachineSetReceiveMachinesFromMachineSetsAnnotation missing
 				},
 			},
 			machine: &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "m1",
-					Annotations: map[string]string{
-						clusterv1.UpdateInProgressAnnotation:       "{}",
-						clusterv1.PendingAcknowledgeMoveAnnotation: "true",
-					},
+				Name: "m1",
+				Annotations: map[string]string{
+					clusterv1.UpdateInProgressAnnotation:       "{}",
+					clusterv1.PendingAcknowledgeMoveAnnotation: "true",
 				},
 			},
 			wantAcknowledged:  false,
@@ -101,21 +92,17 @@ func TestCheckOrCleanupAcknowledgeMove(t *testing.T) {
 		{
 			name: "Machine pending acknowledge, MS not accepting machines from other MachineSets and machine already acknowledged",
 			ms: &clusterv1.MachineSet{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "ms1",
-					Annotations: map[string]string{
-						// MachineSetReceiveMachinesFromMachineSetsAnnotation missing
-						clusterv1.AcknowledgedMoveAnnotation: "m1,m2",
-					},
+				Name: "ms1",
+				Annotations: map[string]string{
+					// MachineSetReceiveMachinesFromMachineSetsAnnotation missing
+					clusterv1.AcknowledgedMoveAnnotation: "m1,m2",
 				},
 			},
 			machine: &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "m1",
-					Annotations: map[string]string{
-						clusterv1.UpdateInProgressAnnotation:       "{}",
-						clusterv1.PendingAcknowledgeMoveAnnotation: "true",
-					},
+				Name: "m1",
+				Annotations: map[string]string{
+					clusterv1.UpdateInProgressAnnotation:       "{}",
+					clusterv1.PendingAcknowledgeMoveAnnotation: "true",
 				},
 			},
 			wantAcknowledged:  true,
@@ -127,20 +114,16 @@ func TestCheckOrCleanupAcknowledgeMove(t *testing.T) {
 		{
 			name: "Machine pending acknowledge, MS accepting machines from other MachineSets but machine not yet acknowledged",
 			ms: &clusterv1.MachineSet{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "ms1",
-					Annotations: map[string]string{
-						clusterv1.MachineSetReceiveMachinesFromMachineSetsAnnotation: "ms0",
-					},
+				Name: "ms1",
+				Annotations: map[string]string{
+					clusterv1.MachineSetReceiveMachinesFromMachineSetsAnnotation: "ms0",
 				},
 			},
 			machine: &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "m1",
-					Annotations: map[string]string{
-						clusterv1.UpdateInProgressAnnotation:       "{}",
-						clusterv1.PendingAcknowledgeMoveAnnotation: "true",
-					},
+				Name: "m1",
+				Annotations: map[string]string{
+					clusterv1.UpdateInProgressAnnotation:       "{}",
+					clusterv1.PendingAcknowledgeMoveAnnotation: "true",
 				},
 			},
 			wantAcknowledged:  false,
@@ -149,21 +132,17 @@ func TestCheckOrCleanupAcknowledgeMove(t *testing.T) {
 		{
 			name: "Machine pending acknowledge, MS accepting machines from other MachineSets and machine already acknowledged",
 			ms: &clusterv1.MachineSet{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "ms1",
-					Annotations: map[string]string{
-						clusterv1.MachineSetReceiveMachinesFromMachineSetsAnnotation: "ms0",
-						clusterv1.AcknowledgedMoveAnnotation:                         "m1,m2",
-					},
+				Name: "ms1",
+				Annotations: map[string]string{
+					clusterv1.MachineSetReceiveMachinesFromMachineSetsAnnotation: "ms0",
+					clusterv1.AcknowledgedMoveAnnotation:                         "m1,m2",
 				},
 			},
 			machine: &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "m1",
-					Annotations: map[string]string{
-						clusterv1.UpdateInProgressAnnotation:       "{}",
-						clusterv1.PendingAcknowledgeMoveAnnotation: "true",
-					},
+				Name: "m1",
+				Annotations: map[string]string{
+					clusterv1.UpdateInProgressAnnotation:       "{}",
+					clusterv1.PendingAcknowledgeMoveAnnotation: "true",
 				},
 			},
 			wantAcknowledged:  true,
@@ -202,20 +181,18 @@ func TestSyncMachinesPlanner(t *testing.T) {
 				Spec: clusterv1.MachineSetSpec{Replicas: ptr.To[int32](3)},
 			},
 			machines: []*clusterv1.Machine{
-				{ObjectMeta: metav1.ObjectMeta{Name: "m1"}},
+				{Name: "m1"},
 			},
 			wantResult: SyncMachinesPlannerResult{MachinesToAdd: 2},
 		},
 		{
 			name: "Not enough machines but machine creation disabled",
 			ms: &clusterv1.MachineSet{
-				ObjectMeta: metav1.ObjectMeta{
-					Annotations: map[string]string{clusterv1.DisableMachineCreateAnnotation: "true"},
-				},
-				Spec: clusterv1.MachineSetSpec{Replicas: ptr.To[int32](3)},
+				Annotations: map[string]string{clusterv1.DisableMachineCreateAnnotation: "true"},
+				Spec:        clusterv1.MachineSetSpec{Replicas: ptr.To[int32](3)},
 			},
 			machines: []*clusterv1.Machine{
-				{ObjectMeta: metav1.ObjectMeta{Name: "m1"}},
+				{Name: "m1"},
 			},
 			wantResult: SyncMachinesPlannerResult{MachineCreationDisabled: true},
 		},
@@ -225,8 +202,8 @@ func TestSyncMachinesPlanner(t *testing.T) {
 				Spec: clusterv1.MachineSetSpec{Replicas: ptr.To[int32](2)},
 			},
 			machines: []*clusterv1.Machine{
-				{ObjectMeta: metav1.ObjectMeta{Name: "m1"}},
-				{ObjectMeta: metav1.ObjectMeta{Name: "m2"}},
+				{Name: "m1"},
+				{Name: "m2"},
 			},
 			wantResult: SyncMachinesPlannerResult{},
 		},
@@ -236,26 +213,24 @@ func TestSyncMachinesPlanner(t *testing.T) {
 				Spec: clusterv1.MachineSetSpec{Replicas: ptr.To[int32](1)},
 			},
 			machines: []*clusterv1.Machine{
-				{ObjectMeta: metav1.ObjectMeta{Name: "m1"}},
-				{ObjectMeta: metav1.ObjectMeta{Name: "m2"}},
-				{ObjectMeta: metav1.ObjectMeta{Name: "m3"}},
+				{Name: "m1"},
+				{Name: "m2"},
+				{Name: "m3"},
 			},
 			wantResult: SyncMachinesPlannerResult{MachinesToDelete: 2},
 		},
 		{
 			name: "Too many machines, move annotation set: move exceeding machines",
 			ms: &clusterv1.MachineSet{
-				ObjectMeta: metav1.ObjectMeta{
-					Annotations: map[string]string{
-						clusterv1.MachineSetMoveMachinesToMachineSetAnnotation: `{"name":"ms-target","affectsAvailability":false}`,
-					},
+				Annotations: map[string]string{
+					clusterv1.MachineSetMoveMachinesToMachineSetAnnotation: `{"name":"ms-target","affectsAvailability":false}`,
 				},
 				Spec: clusterv1.MachineSetSpec{Replicas: ptr.To[int32](1)},
 			},
 			machines: []*clusterv1.Machine{
-				{ObjectMeta: metav1.ObjectMeta{Name: "m1"}},
-				{ObjectMeta: metav1.ObjectMeta{Name: "m2"}},
-				{ObjectMeta: metav1.ObjectMeta{Name: "m3"}},
+				{Name: "m1"},
+				{Name: "m2"},
+				{Name: "m3"},
 			},
 			wantResult: SyncMachinesPlannerResult{
 				MachinesToMove:          2,
@@ -266,17 +241,15 @@ func TestSyncMachinesPlanner(t *testing.T) {
 		{
 			name: "Too many machines, move annotation set with legacy plain-text format",
 			ms: &clusterv1.MachineSet{
-				ObjectMeta: metav1.ObjectMeta{
-					Annotations: map[string]string{
-						clusterv1.MachineSetMoveMachinesToMachineSetAnnotation: "ms-target",
-					},
+				Annotations: map[string]string{
+					clusterv1.MachineSetMoveMachinesToMachineSetAnnotation: "ms-target",
 				},
 				Spec: clusterv1.MachineSetSpec{Replicas: ptr.To[int32](1)},
 			},
 			machines: []*clusterv1.Machine{
-				{ObjectMeta: metav1.ObjectMeta{Name: "m1"}},
-				{ObjectMeta: metav1.ObjectMeta{Name: "m2"}},
-				{ObjectMeta: metav1.ObjectMeta{Name: "m3"}},
+				{Name: "m1"},
+				{Name: "m2"},
+				{Name: "m3"},
 			},
 			wantResult: SyncMachinesPlannerResult{
 				MachinesToMove:   2,
@@ -286,55 +259,47 @@ func TestSyncMachinesPlanner(t *testing.T) {
 		{
 			name: "Too many machines, move annotation set but with empty name: fall back to delete",
 			ms: &clusterv1.MachineSet{
-				ObjectMeta: metav1.ObjectMeta{
-					Annotations: map[string]string{
-						clusterv1.MachineSetMoveMachinesToMachineSetAnnotation: `{"name":""}`,
-					},
+				Annotations: map[string]string{
+					clusterv1.MachineSetMoveMachinesToMachineSetAnnotation: `{"name":""}`,
 				},
 				Spec: clusterv1.MachineSetSpec{Replicas: ptr.To[int32](1)},
 			},
 			machines: []*clusterv1.Machine{
-				{ObjectMeta: metav1.ObjectMeta{Name: "m1"}},
-				{ObjectMeta: metav1.ObjectMeta{Name: "m2"}},
-				{ObjectMeta: metav1.ObjectMeta{Name: "m3"}},
+				{Name: "m1"},
+				{Name: "m2"},
+				{Name: "m3"},
 			},
 			wantResult: SyncMachinesPlannerResult{MachinesToDelete: 2},
 		},
 		{
 			name: "Too many machines, invalid move annotation: error",
 			ms: &clusterv1.MachineSet{
-				ObjectMeta: metav1.ObjectMeta{
-					Annotations: map[string]string{
-						clusterv1.MachineSetMoveMachinesToMachineSetAnnotation: `{invalid`,
-					},
+				Annotations: map[string]string{
+					clusterv1.MachineSetMoveMachinesToMachineSetAnnotation: `{invalid`,
 				},
 				Spec: clusterv1.MachineSetSpec{Replicas: ptr.To[int32](1)},
 			},
 			machines: []*clusterv1.Machine{
-				{ObjectMeta: metav1.ObjectMeta{Name: "m1"}},
-				{ObjectMeta: metav1.ObjectMeta{Name: "m2"}},
+				{Name: "m1"},
+				{Name: "m2"},
 			},
 			wantErr: true,
 		},
 		{
 			name: "Machine pending acknowledge move is not counted for delete/move computation",
 			ms: &clusterv1.MachineSet{
-				ObjectMeta: metav1.ObjectMeta{
-					Annotations: map[string]string{
-						clusterv1.MachineSetReceiveMachinesFromMachineSetsAnnotation: "ms0",
-					},
+				Annotations: map[string]string{
+					clusterv1.MachineSetReceiveMachinesFromMachineSetsAnnotation: "ms0",
 				},
 				Spec: clusterv1.MachineSetSpec{Replicas: ptr.To[int32](2)},
 			},
 			machines: []*clusterv1.Machine{
-				{ObjectMeta: metav1.ObjectMeta{Name: "m1"}},
-				{ObjectMeta: metav1.ObjectMeta{Name: "m2"}},
+				{Name: "m1"},
+				{Name: "m2"},
 				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "m3",
-						Annotations: map[string]string{
-							clusterv1.PendingAcknowledgeMoveAnnotation: "true",
-						},
+					Name: "m3",
+					Annotations: map[string]string{
+						clusterv1.PendingAcknowledgeMoveAnnotation: "true",
 					},
 				},
 			},
@@ -345,22 +310,18 @@ func TestSyncMachinesPlanner(t *testing.T) {
 		{
 			name: "Machines pending acknowledge move still leave exceeding machines to delete",
 			ms: &clusterv1.MachineSet{
-				ObjectMeta: metav1.ObjectMeta{
-					Annotations: map[string]string{
-						clusterv1.MachineSetReceiveMachinesFromMachineSetsAnnotation: "ms0",
-					},
+				Annotations: map[string]string{
+					clusterv1.MachineSetReceiveMachinesFromMachineSetsAnnotation: "ms0",
 				},
 				Spec: clusterv1.MachineSetSpec{Replicas: ptr.To[int32](1)},
 			},
 			machines: []*clusterv1.Machine{
-				{ObjectMeta: metav1.ObjectMeta{Name: "m1"}},
-				{ObjectMeta: metav1.ObjectMeta{Name: "m2"}},
+				{Name: "m1"},
+				{Name: "m2"},
 				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "m3",
-						Annotations: map[string]string{
-							clusterv1.PendingAcknowledgeMoveAnnotation: "true",
-						},
+					Name: "m3",
+					Annotations: map[string]string{
+						clusterv1.PendingAcknowledgeMoveAnnotation: "true",
 					},
 				},
 			},

@@ -35,9 +35,7 @@ import (
 func TestMachineHealthCheckDefault(t *testing.T) {
 	g := NewWithT(t)
 	mhc := &clusterv1.MachineHealthCheck{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "foo",
-		},
+		Namespace: "foo",
 		Spec: clusterv1.MachineHealthCheckSpec{
 			Selector: metav1.LabelSelector{
 				MatchLabels: map[string]string{"foo": "bar"},

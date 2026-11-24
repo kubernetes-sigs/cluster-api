@@ -65,10 +65,8 @@ func TestMachineDeploymentReconciler(t *testing.T) {
 
 		t.Log("Creating the Cluster")
 		cluster := &clusterv1.Cluster{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: ns.Name,
-				Name:      "test-cluster",
-			},
+			Namespace: ns.Name,
+			Name:      "test-cluster",
 			Spec: clusterv1.ClusterSpec{
 				ControlPlaneRef: clusterv1.ContractVersionedObjectReference{
 					APIGroup: builder.ControlPlaneGroupVersion.Group,
@@ -575,10 +573,8 @@ func TestMachineSetToDeployments(t *testing.T) {
 	g := NewWithT(t)
 
 	machineDeployment := &clusterv1.MachineDeployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "withMatchingLabels",
-			Namespace: metav1.NamespaceDefault,
-		},
+		Name:      "withMatchingLabels",
+		Namespace: metav1.NamespaceDefault,
 		Spec: clusterv1.MachineDeploymentSpec{
 			Selector: metav1.LabelSelector{
 				MatchLabels: map[string]string{
@@ -592,34 +588,28 @@ func TestMachineSetToDeployments(t *testing.T) {
 	machineDeplopymentList := []client.Object{machineDeployment}
 
 	ms1 := clusterv1.MachineSet{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "withOwnerRef",
-			Namespace: metav1.NamespaceDefault,
-			OwnerReferences: []metav1.OwnerReference{
-				*metav1.NewControllerRef(machineDeployment, machineDeploymentKind),
-			},
-			Labels: map[string]string{
-				clusterv1.ClusterNameLabel: "test-cluster",
-			},
+		Name:      "withOwnerRef",
+		Namespace: metav1.NamespaceDefault,
+		OwnerReferences: []metav1.OwnerReference{
+			*metav1.NewControllerRef(machineDeployment, machineDeploymentKind),
+		},
+		Labels: map[string]string{
+			clusterv1.ClusterNameLabel: "test-cluster",
 		},
 	}
 	ms2 := clusterv1.MachineSet{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "noOwnerRefNoLabels",
-			Namespace: metav1.NamespaceDefault,
-			Labels: map[string]string{
-				clusterv1.ClusterNameLabel: "test-cluster",
-			},
+		Name:      "noOwnerRefNoLabels",
+		Namespace: metav1.NamespaceDefault,
+		Labels: map[string]string{
+			clusterv1.ClusterNameLabel: "test-cluster",
 		},
 	}
 	ms3 := clusterv1.MachineSet{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "withMatchingLabels",
-			Namespace: metav1.NamespaceDefault,
-			Labels: map[string]string{
-				"foo":                      "bar",
-				clusterv1.ClusterNameLabel: "test-cluster",
-			},
+		Name:      "withMatchingLabels",
+		Namespace: metav1.NamespaceDefault,
+		Labels: map[string]string{
+			"foo":                      "bar",
+			clusterv1.ClusterNameLabel: "test-cluster",
 		},
 	}
 
@@ -642,7 +632,7 @@ func TestMachineSetToDeployments(t *testing.T) {
 			machineSet: ms3,
 			mapObject:  &ms3,
 			expected: []reconcile.Request{
-				{NamespacedName: client.ObjectKey{Namespace: metav1.NamespaceDefault, Name: "withMatchingLabels"}},
+				{Namespace: metav1.NamespaceDefault, Name: "withMatchingLabels"},
 			},
 		},
 	}
@@ -662,10 +652,8 @@ func TestGetMachineDeploymentsForMachineSet(t *testing.T) {
 	g := NewWithT(t)
 
 	machineDeployment := &clusterv1.MachineDeployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "withLabels",
-			Namespace: metav1.NamespaceDefault,
-		},
+		Name:      "withLabels",
+		Namespace: metav1.NamespaceDefault,
 		Spec: clusterv1.MachineDeploymentSpec{
 			Selector: metav1.LabelSelector{
 				MatchLabels: map[string]string{
@@ -677,18 +665,14 @@ func TestGetMachineDeploymentsForMachineSet(t *testing.T) {
 	machineDeploymentList := []client.Object{machineDeployment}
 
 	ms1 := clusterv1.MachineSet{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "NoMatchingLabels",
-			Namespace: metav1.NamespaceDefault,
-		},
+		Name:      "NoMatchingLabels",
+		Namespace: metav1.NamespaceDefault,
 	}
 	ms2 := clusterv1.MachineSet{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "withMatchingLabels",
-			Namespace: metav1.NamespaceDefault,
-			Labels: map[string]string{
-				"foo": "bar",
-			},
+		Name:      "withMatchingLabels",
+		Namespace: metav1.NamespaceDefault,
+		Labels: map[string]string{
+			"foo": "bar",
 		},
 	}
 
@@ -723,11 +707,9 @@ func TestGetMachineDeploymentsForMachineSet(t *testing.T) {
 
 func TestGetMachineSetsForDeployment(t *testing.T) {
 	machineDeployment1 := clusterv1.MachineDeployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "withMatchingOwnerRefAndLabels",
-			Namespace: metav1.NamespaceDefault,
-			UID:       "UID",
-		},
+		Name:      "withMatchingOwnerRefAndLabels",
+		Namespace: metav1.NamespaceDefault,
+		UID:       "UID",
 		Spec: clusterv1.MachineDeploymentSpec{
 			Selector: metav1.LabelSelector{
 				MatchLabels: map[string]string{
@@ -737,11 +719,9 @@ func TestGetMachineSetsForDeployment(t *testing.T) {
 		},
 	}
 	machineDeployment2 := clusterv1.MachineDeployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "withNoMatchingOwnerRef",
-			Namespace: metav1.NamespaceDefault,
-			UID:       "unMatchingUID",
-		},
+		Name:      "withNoMatchingOwnerRef",
+		Namespace: metav1.NamespaceDefault,
+		UID:       "unMatchingUID",
 		Spec: clusterv1.MachineDeploymentSpec{
 			Selector: metav1.LabelSelector{
 				MatchLabels: map[string]string{
@@ -751,11 +731,9 @@ func TestGetMachineSetsForDeployment(t *testing.T) {
 		},
 	}
 	machineDeployment3 := clusterv1.MachineDeployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "withMatchingOwnerRefAndNoMatchingLabels",
-			Namespace: metav1.NamespaceDefault,
-			UID:       "UID3",
-		},
+		Name:      "withMatchingOwnerRefAndNoMatchingLabels",
+		Namespace: metav1.NamespaceDefault,
+		UID:       "UID3",
 		Spec: clusterv1.MachineDeploymentSpec{
 			Selector: metav1.LabelSelector{
 				MatchLabels: map[string]string{
@@ -766,54 +744,44 @@ func TestGetMachineSetsForDeployment(t *testing.T) {
 	}
 
 	ms1 := clusterv1.MachineSet{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "withNoOwnerRefShouldBeAdopted2",
-			Namespace: metav1.NamespaceDefault,
-			Labels: map[string]string{
-				"foo": "bar2",
-			},
+		Name:      "withNoOwnerRefShouldBeAdopted2",
+		Namespace: metav1.NamespaceDefault,
+		Labels: map[string]string{
+			"foo": "bar2",
 		},
 	}
 	ms2 := clusterv1.MachineSet{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "withOwnerRefAndLabels",
-			Namespace: metav1.NamespaceDefault,
-			OwnerReferences: []metav1.OwnerReference{
-				*metav1.NewControllerRef(&machineDeployment1, machineDeploymentKind),
-			},
-			Labels: map[string]string{
-				"foo": "bar",
-			},
+		Name:      "withOwnerRefAndLabels",
+		Namespace: metav1.NamespaceDefault,
+		OwnerReferences: []metav1.OwnerReference{
+			*metav1.NewControllerRef(&machineDeployment1, machineDeploymentKind),
+		},
+		Labels: map[string]string{
+			"foo": "bar",
 		},
 	}
 	ms3 := clusterv1.MachineSet{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "withNoOwnerRefShouldBeAdopted1",
-			Namespace: metav1.NamespaceDefault,
-			Labels: map[string]string{
-				"foo": "bar",
-			},
+		Name:      "withNoOwnerRefShouldBeAdopted1",
+		Namespace: metav1.NamespaceDefault,
+		Labels: map[string]string{
+			"foo": "bar",
 		},
 	}
 	ms4 := clusterv1.MachineSet{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "withNoOwnerRefNoMatch",
-			Namespace: metav1.NamespaceDefault,
-			Labels: map[string]string{
-				"foo": "nomatch",
-			},
+		Name:      "withNoOwnerRefNoMatch",
+		Namespace: metav1.NamespaceDefault,
+		Labels: map[string]string{
+			"foo": "nomatch",
 		},
 	}
 	ms5 := clusterv1.MachineSet{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "withOwnerRefAndNoMatchLabels",
-			Namespace: metav1.NamespaceDefault,
-			OwnerReferences: []metav1.OwnerReference{
-				*metav1.NewControllerRef(&machineDeployment3, machineDeploymentKind),
-			},
-			Labels: map[string]string{
-				"foo": "nomatch",
-			},
+		Name:      "withOwnerRefAndNoMatchLabels",
+		Namespace: metav1.NamespaceDefault,
+		OwnerReferences: []metav1.OwnerReference{
+			*metav1.NewControllerRef(&machineDeployment3, machineDeploymentKind),
+		},
+		Labels: map[string]string{
+			"foo": "nomatch",
 		},
 	}
 	machineSetList := []client.Object{

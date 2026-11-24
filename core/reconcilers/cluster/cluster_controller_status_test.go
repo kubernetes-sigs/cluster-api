@@ -34,9 +34,7 @@ import (
 
 func TestSetPhases(t *testing.T) {
 	cluster := &clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "test-cluster",
-		},
+		Name:   "test-cluster",
 		Status: clusterv1.ClusterStatus{},
 		Spec:   clusterv1.ClusterSpec{},
 	}
@@ -54,9 +52,7 @@ func TestSetPhases(t *testing.T) {
 		{
 			name: "cluster has infrastructureRef",
 			cluster: &clusterv1.Cluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "test-cluster",
-				},
+				Name:   "test-cluster",
 				Status: clusterv1.ClusterStatus{},
 				Spec: clusterv1.ClusterSpec{
 					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
@@ -70,9 +66,7 @@ func TestSetPhases(t *testing.T) {
 		{
 			name: "cluster infrastructure is ready",
 			cluster: &clusterv1.Cluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "test-cluster",
-				},
+				Name: "test-cluster",
 				Status: clusterv1.ClusterStatus{
 					Initialization: clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: new(true)},
 				},
@@ -88,9 +82,7 @@ func TestSetPhases(t *testing.T) {
 		{
 			name: "cluster infrastructure is ready and ControlPlaneEndpoint is set",
 			cluster: &clusterv1.Cluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "test-cluster",
-				},
+				Name: "test-cluster",
 				Spec: clusterv1.ClusterSpec{
 					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
 						Name: "infra1",
@@ -110,9 +102,7 @@ func TestSetPhases(t *testing.T) {
 		{
 			name: "no cluster infrastructure, control plane ready and ControlPlaneEndpoint is set",
 			cluster: &clusterv1.Cluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "test-cluster",
-				},
+				Name: "test-cluster",
 				Spec: clusterv1.ClusterSpec{
 					ControlPlaneEndpoint: clusterv1.APIEndpoint{ // This is set by the control plane ref controller when the cluster endpoint is available.
 						Host: "1.2.3.4",
@@ -132,11 +122,9 @@ func TestSetPhases(t *testing.T) {
 		{
 			name: "cluster has deletion timestamp",
 			cluster: &clusterv1.Cluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:              "test-cluster",
-					DeletionTimestamp: &metav1.Time{Time: time.Now().UTC()},
-					Finalizers:        []string{clusterv1.ClusterFinalizer},
-				},
+				Name:              "test-cluster",
+				DeletionTimestamp: &metav1.Time{Time: time.Now().UTC()},
+				Finalizers:        []string{clusterv1.ClusterFinalizer},
 				Status: clusterv1.ClusterStatus{
 					Initialization: clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: new(true)},
 				},
@@ -2439,10 +2427,8 @@ func TestSetAvailableCondition(t *testing.T) {
 		{
 			name: "Takes into account all the required conditions",
 			cluster: &clusterv1.Cluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "machine-test",
-					Namespace: metav1.NamespaceDefault,
-				},
+				Name:      "machine-test",
+				Namespace: metav1.NamespaceDefault,
 				Spec: clusterv1.ClusterSpec{
 					Topology: clusterv1.Topology{}, // not using CC
 				},
@@ -2466,10 +2452,8 @@ func TestSetAvailableCondition(t *testing.T) {
 		{
 			name: "TopologyReconciled is ignored when the cluster is not using CC",
 			cluster: &clusterv1.Cluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "machine-test",
-					Namespace: metav1.NamespaceDefault,
-				},
+				Name:      "machine-test",
+				Namespace: metav1.NamespaceDefault,
 				Spec: clusterv1.ClusterSpec{
 					Topology: clusterv1.Topology{}, // not using CC
 				},
@@ -2514,10 +2498,8 @@ func TestSetAvailableCondition(t *testing.T) {
 		{
 			name: "Handles multiline conditions",
 			cluster: &clusterv1.Cluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "machine-test",
-					Namespace: metav1.NamespaceDefault,
-				},
+				Name:      "machine-test",
+				Namespace: metav1.NamespaceDefault,
 				Spec: clusterv1.ClusterSpec{
 					Topology: clusterv1.Topology{}, // not using CC
 				},
@@ -2569,10 +2551,8 @@ func TestSetAvailableCondition(t *testing.T) {
 		{
 			name: "TopologyReconciled is required when the cluster is using CC",
 			cluster: &clusterv1.Cluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "machine-test",
-					Namespace: metav1.NamespaceDefault,
-				},
+				Name:      "machine-test",
+				Namespace: metav1.NamespaceDefault,
 				Spec: clusterv1.ClusterSpec{
 					Topology: clusterv1.Topology{ // using CC
 						ClassRef: clusterv1.ClusterClassRef{
@@ -2621,10 +2601,8 @@ func TestSetAvailableCondition(t *testing.T) {
 		{
 			name: "Takes into account Availability gates when defined on the cluster",
 			cluster: &clusterv1.Cluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "machine-test",
-					Namespace: metav1.NamespaceDefault,
-				},
+				Name:      "machine-test",
+				Namespace: metav1.NamespaceDefault,
 				Spec: clusterv1.ClusterSpec{
 					AvailabilityGates: []clusterv1.ClusterAvailabilityGate{
 						{
@@ -2698,10 +2676,8 @@ func TestSetAvailableCondition(t *testing.T) {
 		{
 			name: "Takes into account Availability gates when defined on the cluster class",
 			cluster: &clusterv1.Cluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "machine-test",
-					Namespace: metav1.NamespaceDefault,
-				},
+				Name:      "machine-test",
+				Namespace: metav1.NamespaceDefault,
 				Status: clusterv1.ClusterStatus{
 					Conditions: []metav1.Condition{
 						{
@@ -2768,11 +2744,9 @@ func TestSetAvailableCondition(t *testing.T) {
 		{
 			name: "Tolerates InfraCluster and ControlPlane do not exists while the cluster is deleting",
 			cluster: &clusterv1.Cluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:              "machine-test",
-					Namespace:         metav1.NamespaceDefault,
-					DeletionTimestamp: &metav1.Time{Time: time.Now()},
-				},
+				Name:              "machine-test",
+				Namespace:         metav1.NamespaceDefault,
+				DeletionTimestamp: &metav1.Time{Time: time.Now()},
 				Status: clusterv1.ClusterStatus{
 					Conditions: []metav1.Condition{
 						{
@@ -2814,10 +2788,8 @@ func TestSetAvailableCondition(t *testing.T) {
 		{
 			name: "Surfaces message from TopologyReconciled for reason that doesn't affect availability (no other issues)",
 			cluster: &clusterv1.Cluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "machine-test",
-					Namespace: metav1.NamespaceDefault,
-				},
+				Name:      "machine-test",
+				Namespace: metav1.NamespaceDefault,
 				Spec: clusterv1.ClusterSpec{
 					Topology: clusterv1.Topology{ // using CC
 						ClassRef: clusterv1.ClusterClassRef{
@@ -2874,10 +2846,8 @@ func TestSetAvailableCondition(t *testing.T) {
 		{
 			name: "Drops messages from TopologyReconciled for reason that doesn't affect availability (when there is another issue)",
 			cluster: &clusterv1.Cluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "machine-test",
-					Namespace: metav1.NamespaceDefault,
-				},
+				Name:      "machine-test",
+				Namespace: metav1.NamespaceDefault,
 				Spec: clusterv1.ClusterSpec{
 					Topology: clusterv1.Topology{ // using CC
 						ClassRef: clusterv1.ClusterClassRef{
@@ -2933,10 +2903,8 @@ func TestSetAvailableCondition(t *testing.T) {
 		{
 			name: "Takes into account messages from TopologyReconciled for reason that affects availability (no other issues)",
 			cluster: &clusterv1.Cluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "machine-test",
-					Namespace: metav1.NamespaceDefault,
-				},
+				Name:      "machine-test",
+				Namespace: metav1.NamespaceDefault,
 				Spec: clusterv1.ClusterSpec{
 					Topology: clusterv1.Topology{ // using CC
 						ClassRef: clusterv1.ClusterClassRef{
@@ -2992,10 +2960,8 @@ func TestSetAvailableCondition(t *testing.T) {
 		{
 			name: "Takes into account messages from TopologyReconciled for reason that affects availability (when there is another issue)",
 			cluster: &clusterv1.Cluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "machine-test",
-					Namespace: metav1.NamespaceDefault,
-				},
+				Name:      "machine-test",
+				Namespace: metav1.NamespaceDefault,
 				Spec: clusterv1.ClusterSpec{
 					Topology: clusterv1.Topology{ // using CC
 						ClassRef: clusterv1.ClusterClassRef{
@@ -3070,9 +3036,7 @@ type fakeClusterOption interface {
 
 func fakeCluster(name string, options ...fakeClusterOption) *clusterv1.Cluster {
 	c := &clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: name,
-		},
+		Name: name,
 	}
 
 	for _, opt := range options {
@@ -3123,9 +3087,7 @@ type fakeMachinePoolOption interface {
 
 func fakeMachinePool(name string, options ...fakeMachinePoolOption) *clusterv1.MachinePool {
 	mp := &clusterv1.MachinePool{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: name,
-		},
+		Name: name,
 	}
 	for _, opt := range options {
 		opt.ApplyToMachinePool(mp)
@@ -3139,9 +3101,7 @@ type fakeMachineDeploymentOption interface {
 
 func fakeMachineDeployment(name string, options ...fakeMachineDeploymentOption) *clusterv1.MachineDeployment {
 	md := &clusterv1.MachineDeployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: name,
-		},
+		Name: name,
 	}
 	for _, opt := range options {
 		opt.ApplyToMachineDeployment(md)
@@ -3155,9 +3115,7 @@ type fakeMachineSetOption interface {
 
 func fakeMachineSet(name string, options ...fakeMachineSetOption) *clusterv1.MachineSet {
 	ms := &clusterv1.MachineSet{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: name,
-		},
+		Name: name,
 	}
 	for _, opt := range options {
 		opt.ApplyToMachineSet(ms)
@@ -3171,9 +3129,7 @@ type fakeMachineOption interface {
 
 func fakeMachine(name string, options ...fakeMachineOption) *clusterv1.Machine {
 	m := &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: name,
-		},
+		Name: name,
 	}
 	for _, opt := range options {
 		opt.ApplyToMachine(m)

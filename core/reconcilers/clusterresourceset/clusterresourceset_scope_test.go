@@ -22,7 +22,6 @@ import (
 
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -39,12 +38,10 @@ func TestReconcileStrategyScopeNeedsApply(t *testing.T) {
 		{
 			name: "no ResourceBinding",
 			scope: &reconcileStrategyScope{
-				baseResourceReconcileScope: baseResourceReconcileScope{
-					resourceSetBinding: &addonsv1.ResourceSetBinding{},
-					resourceRef: addonsv1.ResourceRef{
-						Name: "cp",
-						Kind: "ConfigMap",
-					},
+				resourceSetBinding: &addonsv1.ResourceSetBinding{},
+				resourceRef: addonsv1.ResourceRef{
+					Name: "cp",
+					Kind: "ConfigMap",
 				},
 			},
 			want: true,
@@ -52,22 +49,18 @@ func TestReconcileStrategyScopeNeedsApply(t *testing.T) {
 		{
 			name: "not applied ResourceBinding",
 			scope: &reconcileStrategyScope{
-				baseResourceReconcileScope: baseResourceReconcileScope{
-					resourceSetBinding: &addonsv1.ResourceSetBinding{
-						Resources: []addonsv1.ResourceBinding{
-							{
-								ResourceRef: addonsv1.ResourceRef{
-									Name: "cp",
-									Kind: "ConfigMap",
-								},
-								Applied: new(false),
-							},
+				resourceSetBinding: &addonsv1.ResourceSetBinding{
+					Resources: []addonsv1.ResourceBinding{
+						{
+							Name:    "cp",
+							Kind:    "ConfigMap",
+							Applied: new(false),
 						},
 					},
-					resourceRef: addonsv1.ResourceRef{
-						Name: "cp",
-						Kind: "ConfigMap",
-					},
+				},
+				resourceRef: addonsv1.ResourceRef{
+					Name: "cp",
+					Kind: "ConfigMap",
 				},
 			},
 			want: true,
@@ -75,50 +68,42 @@ func TestReconcileStrategyScopeNeedsApply(t *testing.T) {
 		{
 			name: "applied ResourceBinding and different hash",
 			scope: &reconcileStrategyScope{
-				baseResourceReconcileScope: baseResourceReconcileScope{
-					resourceSetBinding: &addonsv1.ResourceSetBinding{
-						Resources: []addonsv1.ResourceBinding{
-							{
-								ResourceRef: addonsv1.ResourceRef{
-									Name: "cp",
-									Kind: "ConfigMap",
-								},
-								Applied: new(true),
-								Hash:    "111",
-							},
+				resourceSetBinding: &addonsv1.ResourceSetBinding{
+					Resources: []addonsv1.ResourceBinding{
+						{
+							Name:    "cp",
+							Kind:    "ConfigMap",
+							Applied: new(true),
+							Hash:    "111",
 						},
 					},
-					resourceRef: addonsv1.ResourceRef{
-						Name: "cp",
-						Kind: "ConfigMap",
-					},
-					computedHash: "222",
 				},
+				resourceRef: addonsv1.ResourceRef{
+					Name: "cp",
+					Kind: "ConfigMap",
+				},
+				computedHash: "222",
 			},
 			want: true,
 		},
 		{
 			name: "applied ResourceBinding and same hash",
 			scope: &reconcileStrategyScope{
-				baseResourceReconcileScope: baseResourceReconcileScope{
-					resourceSetBinding: &addonsv1.ResourceSetBinding{
-						Resources: []addonsv1.ResourceBinding{
-							{
-								ResourceRef: addonsv1.ResourceRef{
-									Name: "cp",
-									Kind: "ConfigMap",
-								},
-								Applied: new(true),
-								Hash:    "111",
-							},
+				resourceSetBinding: &addonsv1.ResourceSetBinding{
+					Resources: []addonsv1.ResourceBinding{
+						{
+							Name:    "cp",
+							Kind:    "ConfigMap",
+							Applied: new(true),
+							Hash:    "111",
 						},
 					},
-					resourceRef: addonsv1.ResourceRef{
-						Name: "cp",
-						Kind: "ConfigMap",
-					},
-					computedHash: "111",
 				},
+				resourceRef: addonsv1.ResourceRef{
+					Name: "cp",
+					Kind: "ConfigMap",
+				},
+				computedHash: "111",
 			},
 			want: false,
 		},
@@ -140,22 +125,18 @@ func TestReconcileApplyOnceScopeNeedsApply(t *testing.T) {
 		{
 			name: "not applied ResourceBinding",
 			scope: &reconcileApplyOnceScope{
-				baseResourceReconcileScope: baseResourceReconcileScope{
-					resourceSetBinding: &addonsv1.ResourceSetBinding{
-						Resources: []addonsv1.ResourceBinding{
-							{
-								ResourceRef: addonsv1.ResourceRef{
-									Name: "cp",
-									Kind: "ConfigMap",
-								},
-								Applied: new(false),
-							},
+				resourceSetBinding: &addonsv1.ResourceSetBinding{
+					Resources: []addonsv1.ResourceBinding{
+						{
+							Name:    "cp",
+							Kind:    "ConfigMap",
+							Applied: new(false),
 						},
 					},
-					resourceRef: addonsv1.ResourceRef{
-						Name: "cp",
-						Kind: "ConfigMap",
-					},
+				},
+				resourceRef: addonsv1.ResourceRef{
+					Name: "cp",
+					Kind: "ConfigMap",
 				},
 			},
 			want: true,
@@ -163,22 +144,18 @@ func TestReconcileApplyOnceScopeNeedsApply(t *testing.T) {
 		{
 			name: "applied ResourceBinding",
 			scope: &reconcileApplyOnceScope{
-				baseResourceReconcileScope: baseResourceReconcileScope{
-					resourceSetBinding: &addonsv1.ResourceSetBinding{
-						Resources: []addonsv1.ResourceBinding{
-							{
-								ResourceRef: addonsv1.ResourceRef{
-									Name: "cp",
-									Kind: "ConfigMap",
-								},
-								Applied: new(true),
-							},
+				resourceSetBinding: &addonsv1.ResourceSetBinding{
+					Resources: []addonsv1.ResourceBinding{
+						{
+							Name:    "cp",
+							Kind:    "ConfigMap",
+							Applied: new(true),
 						},
 					},
-					resourceRef: addonsv1.ResourceRef{
-						Name: "cp",
-						Kind: "ConfigMap",
-					},
+				},
+				resourceRef: addonsv1.ResourceRef{
+					Name: "cp",
+					Kind: "ConfigMap",
 				},
 			},
 			want: false,
@@ -216,10 +193,8 @@ func TestReconcileApplyOnceScopeApplyObj(t *testing.T) {
 			name: "object exists",
 			existingObjs: []client.Object{
 				&corev1.ConfigMap{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "my-cm",
-						Namespace: "that-ns",
-					},
+					Name:      "my-cm",
+					Namespace: "that-ns",
 				},
 			},
 			obj: &unstructured.Unstructured{

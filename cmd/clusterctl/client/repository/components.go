@@ -28,7 +28,6 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apiextensionsv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
@@ -123,15 +122,11 @@ func (c *components) InventoryObject() clusterctlv1.Provider {
 	labels[clusterctlv1.ClusterctlCoreLabel] = clusterctlv1.ClusterctlCoreLabelInventoryValue
 
 	return clusterctlv1.Provider{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: clusterctlv1.GroupVersion.String(),
-			Kind:       "Provider",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: c.targetNamespace,
-			Name:      c.ManifestLabel(),
-			Labels:    labels,
-		},
+		APIVersion:   clusterctlv1.GroupVersion.String(),
+		Kind:         "Provider",
+		Namespace:    c.targetNamespace,
+		Name:         c.ManifestLabel(),
+		Labels:       labels,
 		ProviderName: c.Name(),
 		Type:         string(c.Type()),
 		Version:      c.version,

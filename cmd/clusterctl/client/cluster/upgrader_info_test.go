@@ -21,7 +21,6 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/version"
 
@@ -66,10 +65,8 @@ func Test_providerUpgrader_getUpgradeInfo(t *testing.T) {
 			},
 			want: &upgradeInfo{
 				metadata: &clusterctlv1.Metadata{
-					TypeMeta: metav1.TypeMeta{
-						APIVersion: clusterctlv1.GroupVersion.String(),
-						Kind:       "Metadata",
-					},
+					APIVersion: clusterctlv1.GroupVersion.String(),
+					Kind:       "Metadata",
 					ReleaseSeries: []clusterctlv1.ReleaseSeries{
 						{Major: 1, Minor: 0, Contract: currentContractVersion},
 						{Major: 1, Minor: 1, Contract: currentContractVersion},
@@ -104,10 +101,8 @@ func Test_providerUpgrader_getUpgradeInfo(t *testing.T) {
 			},
 			want: &upgradeInfo{
 				metadata: &clusterctlv1.Metadata{
-					TypeMeta: metav1.TypeMeta{
-						APIVersion: clusterctlv1.GroupVersion.String(),
-						Kind:       "Metadata",
-					},
+					APIVersion: clusterctlv1.GroupVersion.String(),
+					Kind:       "Metadata",
 					ReleaseSeries: []clusterctlv1.ReleaseSeries{
 						{Major: 1, Minor: 0, Contract: oldContractVersionNotSupportedAnymore},
 						{Major: 1, Minor: 1, Contract: currentContractVersion},
@@ -142,10 +137,8 @@ func Test_providerUpgrader_getUpgradeInfo(t *testing.T) {
 			},
 			want: &upgradeInfo{
 				metadata: &clusterctlv1.Metadata{
-					TypeMeta: metav1.TypeMeta{
-						APIVersion: clusterctlv1.GroupVersion.String(),
-						Kind:       "Metadata",
-					},
+					APIVersion: clusterctlv1.GroupVersion.String(),
+					Kind:       "Metadata",
 					ReleaseSeries: []clusterctlv1.ReleaseSeries{
 						{Major: 1, Minor: 0, Contract: currentContractVersion},
 						{Major: 1, Minor: 1, Contract: nextContractVersionNotSupportedYet},
@@ -491,15 +484,13 @@ func toSemanticVersions(versions []string) []version.Version {
 
 func fakeProvider(name string, providerType clusterctlv1.ProviderType, version, targetNamespace string) clusterctlv1.Provider {
 	return clusterctlv1.Provider{
-		ObjectMeta: metav1.ObjectMeta{
-			ResourceVersion: "999",
-			Namespace:       targetNamespace,
-			Name:            clusterctlv1.ManifestLabel(name, providerType),
-			Labels: map[string]string{
-				clusterctlv1.ClusterctlLabel:     "",
-				clusterv1.ProviderNameLabel:      clusterctlv1.ManifestLabel(name, providerType),
-				clusterctlv1.ClusterctlCoreLabel: clusterctlv1.ClusterctlCoreLabelInventoryValue,
-			},
+		ResourceVersion: "999",
+		Namespace:       targetNamespace,
+		Name:            clusterctlv1.ManifestLabel(name, providerType),
+		Labels: map[string]string{
+			clusterctlv1.ClusterctlLabel:     "",
+			clusterv1.ProviderNameLabel:      clusterctlv1.ManifestLabel(name, providerType),
+			clusterctlv1.ClusterctlCoreLabel: clusterctlv1.ClusterctlCoreLabelInventoryValue,
 		},
 		ProviderName: name,
 		Type:         string(providerType),

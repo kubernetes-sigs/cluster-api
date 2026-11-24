@@ -20,7 +20,6 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
@@ -40,10 +39,8 @@ func TestNew(t *testing.T) {
 			{
 				name: "if the cluster has the annotation it should set the upgrade concurrency value",
 				cluster: &clusterv1.Cluster{
-					ObjectMeta: metav1.ObjectMeta{
-						Annotations: map[string]string{
-							clusterv1.ClusterTopologyUpgradeConcurrencyAnnotation: "2",
-						},
+					Annotations: map[string]string{
+						clusterv1.ClusterTopologyUpgradeConcurrencyAnnotation: "2",
 					},
 				},
 				want: 2,

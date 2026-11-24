@@ -22,7 +22,6 @@ import (
 
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -48,13 +47,9 @@ func Test_ObjectPauser(t *testing.T) {
 			fields: fields{
 				objs: []client.Object{
 					&clusterv1.MachineDeployment{
-						TypeMeta: metav1.TypeMeta{
-							Kind: "MachineDeployment",
-						},
-						ObjectMeta: metav1.ObjectMeta{
-							Namespace: "default",
-							Name:      "md-1",
-						},
+						Kind:      "MachineDeployment",
+						Namespace: "default",
+						Name:      "md-1",
 					},
 				},
 				ref: corev1.ObjectReference{
@@ -71,13 +66,9 @@ func Test_ObjectPauser(t *testing.T) {
 			fields: fields{
 				objs: []client.Object{
 					&clusterv1.MachineDeployment{
-						TypeMeta: metav1.TypeMeta{
-							Kind: "MachineDeployment",
-						},
-						ObjectMeta: metav1.ObjectMeta{
-							Namespace: "default",
-							Name:      "md-1",
-						},
+						Kind:      "MachineDeployment",
+						Namespace: "default",
+						Name:      "md-1",
 						Spec: clusterv1.MachineDeploymentSpec{
 							Paused: new(true),
 						},
@@ -97,13 +88,9 @@ func Test_ObjectPauser(t *testing.T) {
 			fields: fields{
 				objs: []client.Object{
 					&controlplanev1.KubeadmControlPlane{
-						TypeMeta: metav1.TypeMeta{
-							Kind: "KubeadmControlPlane",
-						},
-						ObjectMeta: metav1.ObjectMeta{
-							Namespace: "default",
-							Name:      "kcp",
-						},
+						Kind:      "KubeadmControlPlane",
+						Namespace: "default",
+						Name:      "kcp",
 					},
 				},
 				ref: corev1.ObjectReference{
@@ -120,15 +107,11 @@ func Test_ObjectPauser(t *testing.T) {
 			fields: fields{
 				objs: []client.Object{
 					&controlplanev1.KubeadmControlPlane{
-						TypeMeta: metav1.TypeMeta{
-							Kind: "KubeadmControlPlane",
-						},
-						ObjectMeta: metav1.ObjectMeta{
-							Namespace: "default",
-							Name:      "kcp",
-							Annotations: map[string]string{
-								clusterv1.PausedAnnotation: "true",
-							},
+						Kind:      "KubeadmControlPlane",
+						Namespace: "default",
+						Name:      "kcp",
+						Annotations: map[string]string{
+							clusterv1.PausedAnnotation: "true",
 						},
 					},
 				},

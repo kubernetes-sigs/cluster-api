@@ -1018,10 +1018,8 @@ func (g *generator) computeMachineDeployment(ctx context.Context, s *scope.Scope
 	}
 
 	desiredMachineDeploymentObj := &clusterv1.MachineDeployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: s.Current.Cluster.Namespace,
-		},
+		Name:      name,
+		Namespace: s.Current.Cluster.Namespace,
 		Spec: clusterv1.MachineDeploymentSpec{
 			ClusterName: s.Current.Cluster.Name,
 			Rollout:     rollout,
@@ -1383,10 +1381,8 @@ func (g *generator) computeMachinePool(ctx context.Context, s *scope.Scope, mach
 	}
 
 	desiredMachinePoolObj := &clusterv1.MachinePool{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: s.Current.Cluster.Namespace,
-		},
+		Name:      name,
+		Namespace: s.Current.Cluster.Namespace,
 		Spec: clusterv1.MachinePoolSpec{
 			ClusterName:    s.Current.Cluster.Name,
 			FailureDomains: failureDomains,
@@ -1686,17 +1682,15 @@ func templateToTemplate(in templateToInput) (*unstructured.Unstructured, error) 
 func computeMachineHealthCheck(ctx context.Context, healthCheckTarget client.Object, selector *metav1.LabelSelector, cluster *clusterv1.Cluster, mhcChecks clusterv1.MachineHealthCheckChecks, mhcRemediation clusterv1.MachineHealthCheckRemediation) *clusterv1.MachineHealthCheck {
 	// Create a MachineHealthCheck with the spec given in the ClusterClass.
 	mhc := &clusterv1.MachineHealthCheck{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      healthCheckTarget.GetName(),
-			Namespace: healthCheckTarget.GetNamespace(),
-			Labels: map[string]string{
-				clusterv1.ClusterTopologyOwnedLabel: "",
-			},
-			// Note: we are adding an ownerRef to Cluster so the MHC will be automatically garbage collected
-			// in case deletion is triggered before an object reconcile happens.
-			OwnerReferences: []metav1.OwnerReference{
-				*ownerrefs.OwnerReferenceTo(cluster, clusterv1.GroupVersion.WithKind("Cluster")),
-			},
+		Name:      healthCheckTarget.GetName(),
+		Namespace: healthCheckTarget.GetNamespace(),
+		Labels: map[string]string{
+			clusterv1.ClusterTopologyOwnedLabel: "",
+		},
+		// Note: we are adding an ownerRef to Cluster so the MHC will be automatically garbage collected
+		// in case deletion is triggered before an object reconcile happens.
+		OwnerReferences: []metav1.OwnerReference{
+			*ownerrefs.OwnerReferenceTo(cluster, clusterv1.GroupVersion.WithKind("Cluster")),
 		},
 		Spec: clusterv1.MachineHealthCheckSpec{
 			ClusterName: cluster.Name,

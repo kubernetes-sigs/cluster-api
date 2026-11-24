@@ -49,9 +49,7 @@ func Test_cache_client(t *testing.T) {
 			g := NewWithT(t)
 
 			obj := &cloudv1.CloudMachine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "foo",
-				},
+				Name: "foo",
 			}
 			err := c.Create("", obj)
 			g.Expect(err).To(HaveOccurred())
@@ -74,9 +72,7 @@ func Test_cache_client(t *testing.T) {
 			g := NewWithT(t)
 
 			obj := &cloudv1.CloudMachine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "foo",
-				},
+				Name: "foo",
 			}
 			err := c.Create("bar", obj)
 			g.Expect(err).To(HaveOccurred())
@@ -115,9 +111,7 @@ func Test_cache_client(t *testing.T) {
 			createMachine(t, c, "foo", "bazzz")
 
 			obj := &cloudv1.CloudMachine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "bazzz",
-				},
+				Name: "bazzz",
 			}
 			err := c.Create("foo", obj)
 			g.Expect(err).To(HaveOccurred())
@@ -129,14 +123,12 @@ func Test_cache_client(t *testing.T) {
 				g := NewWithT(t)
 
 				obj := &cloudv1.CloudMachine{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "child",
-						OwnerReferences: []metav1.OwnerReference{
-							{
-								APIVersion: "something/not/valid",
-								Kind:       "ParentKind",
-								Name:       "parent",
-							},
+					Name: "child",
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							APIVersion: "something/not/valid",
+							Kind:       "ParentKind",
+							Name:       "parent",
 						},
 					},
 				}
@@ -148,14 +140,12 @@ func Test_cache_client(t *testing.T) {
 				g := NewWithT(t)
 
 				obj := &cloudv1.CloudMachine{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "child",
-						OwnerReferences: []metav1.OwnerReference{
-							{
-								APIVersion: cloudv1.GroupVersion.String(),
-								Kind:       "CloudMachine",
-								Name:       "parentx",
-							},
+					Name: "child",
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							APIVersion: cloudv1.GroupVersion.String(),
+							Kind:       "CloudMachine",
+							Name:       "parentx",
 						},
 					},
 				}
@@ -168,14 +158,12 @@ func Test_cache_client(t *testing.T) {
 
 				createMachine(t, c, "foo", "parent")
 				obj := &cloudv1.CloudMachine{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "child",
-						OwnerReferences: []metav1.OwnerReference{
-							{
-								APIVersion: cloudv1.GroupVersion.String(),
-								Kind:       "CloudMachine",
-								Name:       "parent",
-							},
+					Name: "child",
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							APIVersion: cloudv1.GroupVersion.String(),
+							Kind:       "CloudMachine",
+							Name:       "parent",
 						},
 					},
 				}
@@ -419,9 +407,7 @@ func Test_cache_client(t *testing.T) {
 			g := NewWithT(t)
 
 			obj := &cloudv1.CloudMachine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "bar",
-				},
+				Name: "bar",
 			}
 			err := c.Update("bar", obj)
 			g.Expect(err).To(HaveOccurred())
@@ -432,9 +418,7 @@ func Test_cache_client(t *testing.T) {
 			g := NewWithT(t)
 
 			obj := &cloudv1.CloudMachine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "bar",
-				},
+				Name: "bar",
 			}
 			err := c.Update("foo", obj)
 			g.Expect(err).To(HaveOccurred())
@@ -505,14 +489,12 @@ func Test_cache_client(t *testing.T) {
 				g := NewWithT(t)
 
 				obj := &cloudv1.CloudMachine{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "child",
-						OwnerReferences: []metav1.OwnerReference{
-							{
-								APIVersion: "something/not/valid",
-								Kind:       "ParentKind",
-								Name:       "parent",
-							},
+					Name: "child",
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							APIVersion: "something/not/valid",
+							Kind:       "ParentKind",
+							Name:       "parent",
 						},
 					},
 				}
@@ -544,14 +526,12 @@ func Test_cache_client(t *testing.T) {
 				createMachine(t, c, "foo", "parent2")
 
 				objBefore := &cloudv1.CloudMachine{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "child2",
-						OwnerReferences: []metav1.OwnerReference{
-							{
-								APIVersion: cloudv1.GroupVersion.String(),
-								Kind:       "CloudMachine",
-								Name:       "parent1",
-							},
+					Name: "child2",
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							APIVersion: cloudv1.GroupVersion.String(),
+							Kind:       "CloudMachine",
+							Name:       "parent1",
 						},
 					},
 				}
@@ -630,9 +610,7 @@ func Test_cache_client(t *testing.T) {
 			g := NewWithT(t)
 
 			obj := &cloudv1.CloudMachine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "bar",
-				},
+				Name: "bar",
 			}
 			err := c.Delete("foo", obj)
 			g.Expect(err).To(HaveOccurred())
@@ -645,9 +623,7 @@ func Test_cache_client(t *testing.T) {
 			createMachine(t, c, "foo", "barz")
 
 			obj := &cloudv1.CloudMachine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "bar",
-				},
+				Name: "bar",
 			}
 			err := c.Delete("foo", obj)
 			g.Expect(err).To(HaveOccurred())
@@ -684,10 +660,8 @@ func Test_cache_client(t *testing.T) {
 			}()
 
 			objBefore := &cloudv1.CloudMachine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:       "baz",
-					Finalizers: []string{"foo"},
-				},
+				Name:       "baz",
+				Finalizers: []string{"foo"},
 			}
 			err := c.Create("foo", objBefore)
 			g.Expect(err).ToNot(HaveOccurred())
@@ -723,14 +697,12 @@ func Test_cache_client(t *testing.T) {
 			createMachine(t, c, "foo", "parent3")
 
 			obj := &cloudv1.CloudMachine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "child3",
-					OwnerReferences: []metav1.OwnerReference{
-						{
-							APIVersion: cloudv1.GroupVersion.String(),
-							Kind:       "CloudMachine",
-							Name:       "parent3",
-						},
+				Name: "child3",
+				OwnerReferences: []metav1.OwnerReference{
+					{
+						APIVersion: cloudv1.GroupVersion.String(),
+						Kind:       "CloudMachine",
+						Name:       "parent3",
 					},
 				},
 			}
@@ -738,14 +710,12 @@ func Test_cache_client(t *testing.T) {
 			g.Expect(err).ToNot(HaveOccurred())
 
 			obj = &cloudv1.CloudMachine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "grandchild3",
-					OwnerReferences: []metav1.OwnerReference{
-						{
-							APIVersion: cloudv1.GroupVersion.String(),
-							Kind:       "CloudMachine",
-							Name:       "child3",
-						},
+				Name: "grandchild3",
+				OwnerReferences: []metav1.OwnerReference{
+					{
+						APIVersion: cloudv1.GroupVersion.String(),
+						Kind:       "CloudMachine",
+						Name:       "child3",
 					},
 				},
 			}
@@ -753,9 +723,7 @@ func Test_cache_client(t *testing.T) {
 			g.Expect(err).ToNot(HaveOccurred())
 
 			obj = &cloudv1.CloudMachine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "parent3",
-				},
+				Name: "parent3",
 			}
 			err = c.Delete("foo", obj)
 			g.Expect(err).ToNot(HaveOccurred())
@@ -779,9 +747,7 @@ func createMachine(t *testing.T, c *cache, resourceGroup, name string) *cloudv1.
 	g := NewWithT(t)
 
 	obj := &cloudv1.CloudMachine{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: name,
-		},
+		Name: name,
 	}
 	err := c.Create(resourceGroup, obj)
 	g.Expect(err).ToNot(HaveOccurred())

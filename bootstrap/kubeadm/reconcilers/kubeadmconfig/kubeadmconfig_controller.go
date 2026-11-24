@@ -603,28 +603,26 @@ func (r *Reconciler) handleClusterNotInitialized(ctx context.Context, scope *Sco
 	}
 
 	controlPlaneInput := &cloudinit.ControlPlaneInput{
-		BaseUserData: cloudinit.BaseUserData{
-			AdditionalFiles: files,
-			NTP: func() *bootstrapv1.NTP {
-				if scope.Config.Spec.NTP.IsDefined() {
-					return &scope.Config.Spec.NTP
-				}
-				return nil
-			}(),
-			BootCommands:        scope.Config.Spec.BootCommands,
-			PreKubeadmCommands:  scope.Config.Spec.PreKubeadmCommands,
-			PostKubeadmCommands: scope.Config.Spec.PostKubeadmCommands,
-			Users:               users,
-			Mounts:              scope.Config.Spec.Mounts,
-			DiskSetup: func() *bootstrapv1.DiskSetup {
-				if scope.Config.Spec.DiskSetup.IsDefined() {
-					return &scope.Config.Spec.DiskSetup
-				}
-				return nil
-			}(),
-			KubeadmVerbosity:  verbosityFlag,
-			KubernetesVersion: parsedVersion,
-		},
+		AdditionalFiles: files,
+		NTP: func() *bootstrapv1.NTP {
+			if scope.Config.Spec.NTP.IsDefined() {
+				return &scope.Config.Spec.NTP
+			}
+			return nil
+		}(),
+		BootCommands:        scope.Config.Spec.BootCommands,
+		PreKubeadmCommands:  scope.Config.Spec.PreKubeadmCommands,
+		PostKubeadmCommands: scope.Config.Spec.PostKubeadmCommands,
+		Users:               users,
+		Mounts:              scope.Config.Spec.Mounts,
+		DiskSetup: func() *bootstrapv1.DiskSetup {
+			if scope.Config.Spec.DiskSetup.IsDefined() {
+				return &scope.Config.Spec.DiskSetup
+			}
+			return nil
+		}(),
+		KubeadmVerbosity:     verbosityFlag,
+		KubernetesVersion:    parsedVersion,
 		InitConfiguration:    initdata,
 		ClusterConfiguration: clusterdata,
 		Certificates:         certificates,
@@ -774,28 +772,26 @@ func (r *Reconciler) joinWorker(ctx context.Context, scope *Scope) (ctrl.Result,
 	}
 
 	nodeInput := &cloudinit.NodeInput{
-		BaseUserData: cloudinit.BaseUserData{
-			AdditionalFiles: files,
-			NTP: func() *bootstrapv1.NTP {
-				if scope.Config.Spec.NTP.IsDefined() {
-					return &scope.Config.Spec.NTP
-				}
-				return nil
-			}(),
-			BootCommands:        scope.Config.Spec.BootCommands,
-			PreKubeadmCommands:  scope.Config.Spec.PreKubeadmCommands,
-			PostKubeadmCommands: scope.Config.Spec.PostKubeadmCommands,
-			Users:               users,
-			Mounts:              scope.Config.Spec.Mounts,
-			DiskSetup: func() *bootstrapv1.DiskSetup {
-				if scope.Config.Spec.DiskSetup.IsDefined() {
-					return &scope.Config.Spec.DiskSetup
-				}
-				return nil
-			}(),
-			KubeadmVerbosity:  verbosityFlag,
-			KubernetesVersion: parsedVersion,
-		},
+		AdditionalFiles: files,
+		NTP: func() *bootstrapv1.NTP {
+			if scope.Config.Spec.NTP.IsDefined() {
+				return &scope.Config.Spec.NTP
+			}
+			return nil
+		}(),
+		BootCommands:        scope.Config.Spec.BootCommands,
+		PreKubeadmCommands:  scope.Config.Spec.PreKubeadmCommands,
+		PostKubeadmCommands: scope.Config.Spec.PostKubeadmCommands,
+		Users:               users,
+		Mounts:              scope.Config.Spec.Mounts,
+		DiskSetup: func() *bootstrapv1.DiskSetup {
+			if scope.Config.Spec.DiskSetup.IsDefined() {
+				return &scope.Config.Spec.DiskSetup
+			}
+			return nil
+		}(),
+		KubeadmVerbosity:  verbosityFlag,
+		KubernetesVersion: parsedVersion,
 		JoinConfiguration: joinData,
 	}
 
@@ -965,28 +961,26 @@ func (r *Reconciler) joinControlplane(ctx context.Context, scope *Scope) (ctrl.R
 	controlPlaneJoinInput := &cloudinit.ControlPlaneJoinInput{
 		JoinConfiguration: joinData,
 		Certificates:      certificates,
-		BaseUserData: cloudinit.BaseUserData{
-			AdditionalFiles: files,
-			NTP: func() *bootstrapv1.NTP {
-				if scope.Config.Spec.NTP.IsDefined() {
-					return &scope.Config.Spec.NTP
-				}
-				return nil
-			}(),
-			BootCommands:        scope.Config.Spec.BootCommands,
-			PreKubeadmCommands:  scope.Config.Spec.PreKubeadmCommands,
-			PostKubeadmCommands: scope.Config.Spec.PostKubeadmCommands,
-			Users:               users,
-			Mounts:              scope.Config.Spec.Mounts,
-			DiskSetup: func() *bootstrapv1.DiskSetup {
-				if scope.Config.Spec.DiskSetup.IsDefined() {
-					return &scope.Config.Spec.DiskSetup
-				}
-				return nil
-			}(),
-			KubeadmVerbosity:  verbosityFlag,
-			KubernetesVersion: parsedVersion,
-		},
+		AdditionalFiles:   files,
+		NTP: func() *bootstrapv1.NTP {
+			if scope.Config.Spec.NTP.IsDefined() {
+				return &scope.Config.Spec.NTP
+			}
+			return nil
+		}(),
+		BootCommands:        scope.Config.Spec.BootCommands,
+		PreKubeadmCommands:  scope.Config.Spec.PreKubeadmCommands,
+		PostKubeadmCommands: scope.Config.Spec.PostKubeadmCommands,
+		Users:               users,
+		Mounts:              scope.Config.Spec.Mounts,
+		DiskSetup: func() *bootstrapv1.DiskSetup {
+			if scope.Config.Spec.DiskSetup.IsDefined() {
+				return &scope.Config.Spec.DiskSetup
+			}
+			return nil
+		}(),
+		KubeadmVerbosity:  verbosityFlag,
+		KubernetesVersion: parsedVersion,
 	}
 
 	var bootstrapJoinData []byte
@@ -1452,20 +1446,18 @@ func (r *Reconciler) storeBootstrapData(ctx context.Context, scope *Scope, data 
 	}
 
 	secret := &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      scope.Config.Name,
-			Namespace: scope.Config.Namespace,
-			Labels: map[string]string{
-				clusterv1.ClusterNameLabel: scope.Cluster.Name,
-			},
-			OwnerReferences: []metav1.OwnerReference{
-				{
-					APIVersion: bootstrapv1.GroupVersion.String(),
-					Kind:       "KubeadmConfig",
-					Name:       scope.Config.Name,
-					UID:        scope.Config.UID,
-					Controller: new(true),
-				},
+		Name:      scope.Config.Name,
+		Namespace: scope.Config.Namespace,
+		Labels: map[string]string{
+			clusterv1.ClusterNameLabel: scope.Cluster.Name,
+		},
+		OwnerReferences: []metav1.OwnerReference{
+			{
+				APIVersion: bootstrapv1.GroupVersion.String(),
+				Kind:       "KubeadmConfig",
+				Name:       scope.Config.Name,
+				UID:        scope.Config.UID,
+				Controller: new(true),
 			},
 		},
 		Data: map[string][]byte{

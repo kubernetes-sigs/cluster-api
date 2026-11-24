@@ -30,7 +30,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
@@ -792,10 +791,8 @@ func (r *Reconciler) machineDeploymentToCluster(_ context.Context, o client.Obje
 	}
 
 	return []ctrl.Request{{
-		NamespacedName: types.NamespacedName{
-			Namespace: md.Namespace,
-			Name:      md.Spec.ClusterName,
-		},
+		Namespace: md.Namespace,
+		Name:      md.Spec.ClusterName,
 	}}
 }
 
@@ -811,9 +808,7 @@ func (r *Reconciler) machinePoolToCluster(_ context.Context, o client.Object) []
 	}
 
 	return []ctrl.Request{{
-		NamespacedName: types.NamespacedName{
-			Namespace: mp.Namespace,
-			Name:      mp.Spec.ClusterName,
-		},
+		Namespace: mp.Namespace,
+		Name:      mp.Spec.ClusterName,
 	}}
 }

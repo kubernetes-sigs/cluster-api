@@ -368,10 +368,8 @@ func TestSummary(t *testing.T) {
 			g := NewWithT(t)
 
 			obj := &builder.Phase3Obj{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: metav1.NamespaceDefault,
-					Name:      "SourceObject",
-				},
+				Namespace: metav1.NamespaceDefault,
+				Name:      "SourceObject",
 				Status: builder.Phase3ObjStatus{
 					Conditions: tt.conditions,
 				},

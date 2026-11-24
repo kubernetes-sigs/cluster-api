@@ -22,7 +22,6 @@ import (
 	"time"
 
 	. "github.com/onsi/gomega"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
@@ -129,15 +128,13 @@ func TestPatch(t *testing.T) {
 	t.Run("Test patch with Machine", func(*testing.T) {
 		// Build the test object to work with.
 		initialObject := &clusterv1.Machine{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "machine-1",
-				Namespace: ns.Name,
-				Labels: map[string]string{
-					"label": "labelValue",
-				},
-				Annotations: map[string]string{
-					"annotation": "annotationValue",
-				},
+			Name:      "machine-1",
+			Namespace: ns.Name,
+			Labels: map[string]string{
+				"label": "labelValue",
+			},
+			Annotations: map[string]string{
+				"annotation": "annotationValue",
 			},
 			Spec: clusterv1.MachineSpec{
 				ClusterName: "cluster-1",

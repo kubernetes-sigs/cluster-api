@@ -41,10 +41,8 @@ func Test_AddObjectHierarchy(t *testing.T) {
 	g.Expect(clusterv1.AddToScheme(scheme)).To(Succeed())
 
 	md := &clusterv1.MachineDeployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: metav1.NamespaceDefault,
-			Name:      "development-3961-md-0-l4zn6",
-		},
+		Namespace: metav1.NamespaceDefault,
+		Name:      "development-3961-md-0-l4zn6",
 	}
 	mdOwnerRef := metav1.OwnerReference{
 		APIVersion: clusterv1.GroupVersion.String(),
@@ -53,11 +51,9 @@ func Test_AddObjectHierarchy(t *testing.T) {
 	}
 
 	ms := &clusterv1.MachineSet{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace:       metav1.NamespaceDefault,
-			Name:            "development-3961-md-0-l4zn6-758c9b7677",
-			OwnerReferences: []metav1.OwnerReference{mdOwnerRef},
-		},
+		Namespace:       metav1.NamespaceDefault,
+		Name:            "development-3961-md-0-l4zn6-758c9b7677",
+		OwnerReferences: []metav1.OwnerReference{mdOwnerRef},
 	}
 	msOwnerRef := metav1.OwnerReference{
 		APIVersion: clusterv1.GroupVersion.String(),
@@ -76,10 +72,8 @@ func Test_AddObjectHierarchy(t *testing.T) {
 			// MachineSet does not exist in Kubernetes so only MachineSet is added
 			// and MachineDeployment is not.
 			obj: &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					OwnerReferences: []metav1.OwnerReference{msOwnerRef},
-					Namespace:       metav1.NamespaceDefault,
-				},
+				OwnerReferences: []metav1.OwnerReference{msOwnerRef},
+				Namespace:       metav1.NamespaceDefault,
 			},
 			expectedKeysAndValues: []any{
 				"MachineSet",
@@ -89,10 +83,8 @@ func Test_AddObjectHierarchy(t *testing.T) {
 		{
 			name: "MachineDeployment and MachineSet owning Machine is added",
 			obj: &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					OwnerReferences: []metav1.OwnerReference{msOwnerRef},
-					Namespace:       metav1.NamespaceDefault,
-				},
+				OwnerReferences: []metav1.OwnerReference{msOwnerRef},
+				Namespace:       metav1.NamespaceDefault,
 			},
 			objects: []client.Object{ms},
 			expectedKeysAndValues: []any{
@@ -105,10 +97,8 @@ func Test_AddObjectHierarchy(t *testing.T) {
 		{
 			name: "MachineDeployment owning MachineSet is added",
 			obj: &clusterv1.MachineSet{
-				ObjectMeta: metav1.ObjectMeta{
-					OwnerReferences: []metav1.OwnerReference{mdOwnerRef},
-					Namespace:       metav1.NamespaceDefault,
-				},
+				OwnerReferences: []metav1.OwnerReference{mdOwnerRef},
+				Namespace:       metav1.NamespaceDefault,
 			},
 			expectedKeysAndValues: []any{
 				"MachineDeployment",

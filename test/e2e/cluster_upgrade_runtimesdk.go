@@ -540,7 +540,7 @@ func ClusterUpgradeWithRuntimeSDKSpec(ctx context.Context, inputGetter func() Cl
 		if !input.SkipCleanup {
 			// Delete the extensionConfig first to ensure the BeforeDeleteCluster hook doesn't block deletion.
 			Eventually(func() error {
-				return input.BootstrapClusterProxy.GetClient().Delete(ctx, &runtimev1.ExtensionConfig{ObjectMeta: metav1.ObjectMeta{Name: input.ExtensionConfigName}})
+				return input.BootstrapClusterProxy.GetClient().Delete(ctx, &runtimev1.ExtensionConfig{Name: input.ExtensionConfigName})
 			}, 10*time.Second, 1*time.Second).Should(Succeed(), "Deleting ExtensionConfig failed")
 
 			Byf("Deleting cluster %s", klog.KObj(clusterResources.Cluster))
@@ -677,14 +677,12 @@ func machineSetPreflightChecksTest(ctx context.Context, c client.Client, cluster
 // Thus, this object is "namespaced" to the current test even though it's a cluster-wide object.
 func extensionConfig(name, extensionServiceNamespace, extensionServiceName string, disableInPlaceUpdates, defaultAllHandlersToBlocking bool, namespaces ...string) *runtimev1.ExtensionConfig {
 	cfg := &runtimev1.ExtensionConfig{
-		ObjectMeta: metav1.ObjectMeta{
-			// Note: We have to use a constant name here as we have to be able to reference it in the ClusterClass
-			// when configuring external patches.
-			Name: name,
-			Annotations: map[string]string{
-				// Note: this assumes the test extension gets deployed in the default namespace defined in its own runtime-extensions-components.yaml
-				runtimev1.InjectCAFromSecretAnnotation: fmt.Sprintf("%s/%s-cert", extensionServiceNamespace, extensionServiceName),
-			},
+		// Note: We have to use a constant name here as we have to be able to reference it in the ClusterClass
+		// when configuring external patches.
+		Name: name,
+		Annotations: map[string]string{
+			// Note: this assumes the test extension gets deployed in the default namespace defined in its own runtime-extensions-components.yaml
+			runtimev1.InjectCAFromSecretAnnotation: fmt.Sprintf("%s/%s-cert", extensionServiceNamespace, extensionServiceName),
 		},
 		Spec: runtimev1.ExtensionConfigSpec{
 			ClientConfig: runtimev1.ClientConfig{
@@ -1194,7 +1192,7 @@ func runtimeHookTestHandler(ctx context.Context, c client.Client, cluster *clust
 	// Patch the ConfigMap to set the hook response to "Success".
 	Byf("Setting %s response to Status:Success to unblock the upgrade", hookName)
 
-	configMap := &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: hookResponsesConfigMapName(cluster.Name, extensionConfigName), Namespace: cluster.Namespace}}
+	configMap := &corev1.ConfigMap{Name: hookResponsesConfigMapName(cluster.Name, extensionConfigName), Namespace: cluster.Namespace}
 	Eventually(func() error {
 		return c.Get(ctx, util.ObjectKey(configMap), configMap)
 	}).Should(Succeed(), "Failed to get ConfigMap %s", klog.KObj(configMap))

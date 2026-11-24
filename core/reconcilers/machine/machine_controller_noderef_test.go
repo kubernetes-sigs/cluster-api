@@ -47,12 +47,10 @@ import (
 
 func TestReconcileNode(t *testing.T) {
 	defaultMachine := clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "machine-test",
-			Namespace: metav1.NamespaceDefault,
-			Labels: map[string]string{
-				clusterv1.ClusterNameLabel: "test-cluster",
-			},
+		Name:      "machine-test",
+		Namespace: metav1.NamespaceDefault,
+		Labels: map[string]string{
+			clusterv1.ClusterNameLabel: "test-cluster",
 		},
 		Spec: clusterv1.MachineSpec{
 			ProviderID: "aws://us-east-1/test-node-1",
@@ -76,10 +74,8 @@ func TestReconcileNode(t *testing.T) {
 	}
 
 	defaultCluster := &clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test-cluster",
-			Namespace: metav1.NamespaceDefault,
-		},
+		Name:      "test-cluster",
+		Namespace: metav1.NamespaceDefault,
 	}
 
 	testCases := []struct {
@@ -137,9 +133,7 @@ func TestReconcileNode(t *testing.T) {
 			name:    "node found, should surface info",
 			machine: defaultMachine.DeepCopy(),
 			node: &corev1.Node{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "test-node-1",
-				},
+				Name: "test-node-1",
 				Spec: corev1.NodeSpec{
 					ProviderID: "aws://us-east-1/test-node-1",
 				},
@@ -174,12 +168,10 @@ func TestReconcileNode(t *testing.T) {
 		{
 			name: "node not found when already seen, should error",
 			machine: &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "machine-test",
-					Namespace: metav1.NamespaceDefault,
-					Labels: map[string]string{
-						clusterv1.ClusterNameLabel: "test-cluster",
-					},
+				Name:      "machine-test",
+				Namespace: metav1.NamespaceDefault,
+				Labels: map[string]string{
+					clusterv1.ClusterNameLabel: "test-cluster",
 				},
 				Spec: clusterv1.MachineSpec{
 					ProviderID: "aws://us-east-1/test-node-1",
@@ -199,15 +191,13 @@ func TestReconcileNode(t *testing.T) {
 		{
 			name: "node not found is tolerated when machine is deleting",
 			machine: &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "machine-test",
-					Namespace: metav1.NamespaceDefault,
-					Labels: map[string]string{
-						clusterv1.ClusterNameLabel: "test-cluster",
-					},
-					DeletionTimestamp: new(metav1.Now()),
-					Finalizers:        []string{"foo"},
+				Name:      "machine-test",
+				Namespace: metav1.NamespaceDefault,
+				Labels: map[string]string{
+					clusterv1.ClusterNameLabel: "test-cluster",
 				},
+				DeletionTimestamp: new(metav1.Now()),
+				Finalizers:        []string{"foo"},
 				Spec: clusterv1.MachineSpec{
 					ProviderID: "aws://us-east-1/test-node-1",
 				},
@@ -227,9 +217,7 @@ func TestReconcileNode(t *testing.T) {
 			name:    "node found, should propagate taints",
 			machine: defaultMachineWithTaints.DeepCopy(),
 			node: &corev1.Node{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "test-node-1",
-				},
+				Name: "test-node-1",
 				Spec: corev1.NodeSpec{
 					ProviderID: "aws://us-east-1/test-node-1",
 				},
@@ -269,9 +257,7 @@ func TestReconcileNode(t *testing.T) {
 			name:    "node found, should not add taints annotation if taints feature gate is disabled",
 			machine: defaultMachineWithTaints.DeepCopy(),
 			node: &corev1.Node{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "test-node-1",
-				},
+				Name: "test-node-1",
 				Spec: corev1.NodeSpec{
 					ProviderID: "aws://us-east-1/test-node-1",
 				},
@@ -366,9 +352,7 @@ func TestGetNode(t *testing.T) {
 		{
 			name: "providerID matches",
 			node: &corev1.Node{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "test-get-node-node-1",
-				},
+				Name: "test-get-node-node-1",
 				Spec: corev1.NodeSpec{
 					ProviderID: "aws://us-east-1/test-get-node-1",
 				},
@@ -378,9 +362,7 @@ func TestGetNode(t *testing.T) {
 		{
 			name: "Node is not found, providerID does not match",
 			node: &corev1.Node{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "test-get-node-not-found",
-				},
+				Name: "test-get-node-not-found",
 				Spec: corev1.NodeSpec{
 					ProviderID: "gce://us-central1/anything",
 				},
@@ -409,10 +391,8 @@ func TestGetNode(t *testing.T) {
 
 func TestNodeLabelSync(t *testing.T) {
 	defaultCluster := &clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test-cluster",
-			Namespace: metav1.NamespaceDefault,
-		},
+		Name:      "test-cluster",
+		Namespace: metav1.NamespaceDefault,
 		Spec: clusterv1.ClusterSpec{
 			ControlPlaneRef: clusterv1.ContractVersionedObjectReference{
 				APIGroup: builder.ControlPlaneGroupVersion.Group,
@@ -434,12 +414,10 @@ func TestNodeLabelSync(t *testing.T) {
 	}
 
 	defaultMachine := clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "machine-test",
-			Namespace: metav1.NamespaceDefault,
-			Labels: map[string]string{
-				clusterv1.MachineControlPlaneLabel: "",
-			},
+		Name:      "machine-test",
+		Namespace: metav1.NamespaceDefault,
+		Labels: map[string]string{
+			clusterv1.MachineControlPlaneLabel: "",
 		},
 		Spec: clusterv1.MachineSpec{
 			ClusterName: defaultCluster.Name,
@@ -518,10 +496,8 @@ func TestNodeLabelSync(t *testing.T) {
 
 		// Create Node.
 		node := &corev1.Node{
-			ObjectMeta: metav1.ObjectMeta{
-				GenerateName: "machine-test-node-",
-			},
-			Spec: corev1.NodeSpec{ProviderID: nodeProviderID},
+			GenerateName: "machine-test-node-",
+			Spec:         corev1.NodeSpec{ProviderID: nodeProviderID},
 			Status: corev1.NodeStatus{
 				Addresses: []corev1.NodeAddress{
 					{
@@ -710,9 +686,7 @@ func TestSummarizeNodeConditions(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			g := NewWithT(t)
 			node := &corev1.Node{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "node-1",
-				},
+				Name: "node-1",
 				Status: corev1.NodeStatus{
 					Conditions: test.conditions,
 				},
@@ -741,9 +715,7 @@ func TestPatchNode(t *testing.T) {
 		{
 			name: "Check that patch works even if there are Status.Addresses with the same key",
 			oldNode: &corev1.Node{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: fmt.Sprintf("node-%s", util.RandomString(6)),
-				},
+				Name: fmt.Sprintf("node-%s", util.RandomString(6)),
 				Status: corev1.NodeStatus{
 					Addresses: []corev1.NodeAddress{
 						{
@@ -775,11 +747,9 @@ func TestPatchNode(t *testing.T) {
 		{
 			name: "Existing labels should be preserved if there are no labels from machines",
 			oldNode: &corev1.Node{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: fmt.Sprintf("node-%s", util.RandomString(6)),
-					Labels: map[string]string{
-						"not-managed-by-capi": "foo",
-					},
+				Name: fmt.Sprintf("node-%s", util.RandomString(6)),
+				Labels: map[string]string{
+					"not-managed-by-capi": "foo",
 				},
 			},
 			expectedAnnotations: map[string]string{
@@ -800,11 +770,9 @@ func TestPatchNode(t *testing.T) {
 		{
 			name: "Add label must preserve existing labels",
 			oldNode: &corev1.Node{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: fmt.Sprintf("node-%s", util.RandomString(6)),
-					Labels: map[string]string{
-						"not-managed-by-capi": "foo",
-					},
+				Name: fmt.Sprintf("node-%s", util.RandomString(6)),
+				Labels: map[string]string{
+					"not-managed-by-capi": "foo",
 				},
 			},
 			newLabels: map[string]string{
@@ -829,11 +797,9 @@ func TestPatchNode(t *testing.T) {
 		{
 			name: "Add annotation must preserve existing annotations",
 			oldNode: &corev1.Node{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: fmt.Sprintf("node-%s", util.RandomString(6)),
-					Annotations: map[string]string{
-						"not-managed-by-capi": "foo",
-					},
+				Name: fmt.Sprintf("node-%s", util.RandomString(6)),
+				Annotations: map[string]string{
+					"not-managed-by-capi": "foo",
 				},
 			},
 			newAnnotations: map[string]string{
@@ -856,11 +822,9 @@ func TestPatchNode(t *testing.T) {
 		{
 			name: "CAPI takes ownership of existing labels if they are set from machines",
 			oldNode: &corev1.Node{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: fmt.Sprintf("node-%s", util.RandomString(6)),
-					Labels: map[string]string{
-						clusterv1.NodeRoleLabelPrefix: "foo",
-					},
+				Name: fmt.Sprintf("node-%s", util.RandomString(6)),
+				Labels: map[string]string{
+					clusterv1.NodeRoleLabelPrefix: "foo",
 				},
 			},
 			newLabels: map[string]string{
@@ -884,14 +848,12 @@ func TestPatchNode(t *testing.T) {
 		{
 			name: "change a label previously set from machines",
 			oldNode: &corev1.Node{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: fmt.Sprintf("node-%s", util.RandomString(6)),
-					Labels: map[string]string{
-						clusterv1.NodeRoleLabelPrefix: "foo",
-					},
-					Annotations: map[string]string{
-						clusterv1.LabelsFromMachineAnnotation: clusterv1.NodeRoleLabelPrefix,
-					},
+				Name: fmt.Sprintf("node-%s", util.RandomString(6)),
+				Labels: map[string]string{
+					clusterv1.NodeRoleLabelPrefix: "foo",
+				},
+				Annotations: map[string]string{
+					clusterv1.LabelsFromMachineAnnotation: clusterv1.NodeRoleLabelPrefix,
 				},
 			},
 			newLabels: map[string]string{
@@ -915,15 +877,13 @@ func TestPatchNode(t *testing.T) {
 		{
 			name: "Delete a label previously set from machines",
 			oldNode: &corev1.Node{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: fmt.Sprintf("node-%s", util.RandomString(6)),
-					Labels: map[string]string{
-						clusterv1.NodeRoleLabelPrefix: "foo",
-						"not-managed-by-capi":         "foo",
-					},
-					Annotations: map[string]string{
-						clusterv1.LabelsFromMachineAnnotation: clusterv1.NodeRoleLabelPrefix,
-					},
+				Name: fmt.Sprintf("node-%s", util.RandomString(6)),
+				Labels: map[string]string{
+					clusterv1.NodeRoleLabelPrefix: "foo",
+					"not-managed-by-capi":         "foo",
+				},
+				Annotations: map[string]string{
+					clusterv1.LabelsFromMachineAnnotation: clusterv1.NodeRoleLabelPrefix,
 				},
 			},
 			expectedLabels: map[string]string{
@@ -944,11 +904,9 @@ func TestPatchNode(t *testing.T) {
 		{
 			name: "Label previously set from machine, already removed out of band, annotation should be cleaned up",
 			oldNode: &corev1.Node{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: fmt.Sprintf("node-%s", util.RandomString(6)),
-					Annotations: map[string]string{
-						clusterv1.LabelsFromMachineAnnotation: clusterv1.NodeRoleLabelPrefix,
-					},
+				Name: fmt.Sprintf("node-%s", util.RandomString(6)),
+				Annotations: map[string]string{
+					clusterv1.LabelsFromMachineAnnotation: clusterv1.NodeRoleLabelPrefix,
 				},
 			},
 			expectedAnnotations: map[string]string{
@@ -967,11 +925,9 @@ func TestPatchNode(t *testing.T) {
 		{
 			name: "Add CAPI annotations",
 			oldNode: &corev1.Node{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: fmt.Sprintf("node-%s", util.RandomString(6)),
-					Annotations: map[string]string{
-						"not-managed-by-capi": "foo",
-					},
+				Name: fmt.Sprintf("node-%s", util.RandomString(6)),
+				Annotations: map[string]string{
+					"not-managed-by-capi": "foo",
 				},
 			},
 			newAnnotations: map[string]string{
@@ -999,9 +955,7 @@ func TestPatchNode(t *testing.T) {
 		{
 			name: "Removes NodeUninitializedTaint if present",
 			oldNode: &corev1.Node{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: fmt.Sprintf("node-%s", util.RandomString(6)),
-				},
+				Name: fmt.Sprintf("node-%s", util.RandomString(6)),
 				Spec: corev1.NodeSpec{
 					Taints: []corev1.Taint{
 						{
@@ -1031,9 +985,7 @@ func TestPatchNode(t *testing.T) {
 		{
 			name: "Ensure Labels and Annotations still get patched if MachineSet and Machinedeployment cannot be found",
 			oldNode: &corev1.Node{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: fmt.Sprintf("node-%s", util.RandomString(6)),
-				},
+				Name: fmt.Sprintf("node-%s", util.RandomString(6)),
 			},
 			newLabels: map[string]string{
 				"label-from-machine": "foo",
@@ -1054,20 +1006,18 @@ func TestPatchNode(t *testing.T) {
 				{Key: "node.kubernetes.io/not-ready", Effect: "NoSchedule"}, // Added by the API server
 			},
 			machine: &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      fmt.Sprintf("ma-%s", util.RandomString(6)),
-					Namespace: metav1.NamespaceDefault,
-					Labels: map[string]string{
-						clusterv1.MachineSetNameLabel:        "test-ms-missing",
-						clusterv1.MachineDeploymentNameLabel: "test-md",
-					},
-					OwnerReferences: []metav1.OwnerReference{{
-						Kind:       "MachineSet",
-						Name:       "test-ms-missing",
-						APIVersion: clusterv1.GroupVersion.String(),
-						UID:        "uid",
-					}},
+				Name:      fmt.Sprintf("ma-%s", util.RandomString(6)),
+				Namespace: metav1.NamespaceDefault,
+				Labels: map[string]string{
+					clusterv1.MachineSetNameLabel:        "test-ms-missing",
+					clusterv1.MachineDeploymentNameLabel: "test-md",
 				},
+				OwnerReferences: []metav1.OwnerReference{{
+					Kind:       "MachineSet",
+					Name:       "test-ms-missing",
+					APIVersion: clusterv1.GroupVersion.String(),
+					UID:        "uid",
+				}},
 				Spec: newFakeMachineSpec(clusterName),
 			},
 			ms: nil,
@@ -1076,9 +1026,7 @@ func TestPatchNode(t *testing.T) {
 		{
 			name: "Ensure NodeOutdatedRevisionTaint to be set if a node is associated to an outdated machineset",
 			oldNode: &corev1.Node{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: fmt.Sprintf("node-%s", util.RandomString(6)),
-				},
+				Name: fmt.Sprintf("node-%s", util.RandomString(6)),
 			},
 			expectedAnnotations: map[string]string{
 				clusterv1.AnnotationsFromMachineAnnotation: "",
@@ -1090,29 +1038,25 @@ func TestPatchNode(t *testing.T) {
 				clusterv1.NodeOutdatedRevisionTaint,
 			},
 			machine: &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      fmt.Sprintf("ma-%s", util.RandomString(6)),
-					Namespace: metav1.NamespaceDefault,
-					Labels: map[string]string{
-						clusterv1.MachineSetNameLabel:        "test-ms-outdated",
-						clusterv1.MachineDeploymentNameLabel: "test-md-outdated",
-					},
-					OwnerReferences: []metav1.OwnerReference{{
-						Kind:       "MachineSet",
-						Name:       "test-ms-outdated",
-						APIVersion: clusterv1.GroupVersion.String(),
-						UID:        "uid",
-					}},
+				Name:      fmt.Sprintf("ma-%s", util.RandomString(6)),
+				Namespace: metav1.NamespaceDefault,
+				Labels: map[string]string{
+					clusterv1.MachineSetNameLabel:        "test-ms-outdated",
+					clusterv1.MachineDeploymentNameLabel: "test-md-outdated",
 				},
+				OwnerReferences: []metav1.OwnerReference{{
+					Kind:       "MachineSet",
+					Name:       "test-ms-outdated",
+					APIVersion: clusterv1.GroupVersion.String(),
+					UID:        "uid",
+				}},
 				Spec: newFakeMachineSpec(clusterName),
 			},
 			ms: &clusterv1.MachineSet{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-ms-outdated",
-					Namespace: metav1.NamespaceDefault,
-					Annotations: map[string]string{
-						clusterv1.RevisionAnnotation: "1",
-					},
+				Name:      "test-ms-outdated",
+				Namespace: metav1.NamespaceDefault,
+				Annotations: map[string]string{
+					clusterv1.RevisionAnnotation: "1",
 				},
 				Spec: clusterv1.MachineSetSpec{
 					ClusterName: clusterName,
@@ -1122,12 +1066,10 @@ func TestPatchNode(t *testing.T) {
 				},
 			},
 			md: &clusterv1.MachineDeployment{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-md-outdated",
-					Namespace: metav1.NamespaceDefault,
-					Annotations: map[string]string{
-						clusterv1.RevisionAnnotation: "2",
-					},
+				Name:      "test-md-outdated",
+				Namespace: metav1.NamespaceDefault,
+				Annotations: map[string]string{
+					clusterv1.RevisionAnnotation: "2",
 				},
 				Spec: clusterv1.MachineDeploymentSpec{
 					ClusterName: clusterName,
@@ -1140,9 +1082,7 @@ func TestPatchNode(t *testing.T) {
 		{
 			name: "Removes NodeOutdatedRevisionTaint if a node is associated to a non-outdated machineset",
 			oldNode: &corev1.Node{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: fmt.Sprintf("node-%s", util.RandomString(6)),
-				},
+				Name: fmt.Sprintf("node-%s", util.RandomString(6)),
 				Spec: corev1.NodeSpec{
 					Taints: []corev1.Taint{
 						clusterv1.NodeOutdatedRevisionTaint,
@@ -1158,29 +1098,25 @@ func TestPatchNode(t *testing.T) {
 				{Key: "node.kubernetes.io/not-ready", Effect: "NoSchedule"}, // Added by the API server
 			},
 			machine: &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      fmt.Sprintf("ma-%s", util.RandomString(6)),
-					Namespace: metav1.NamespaceDefault,
-					Labels: map[string]string{
-						clusterv1.MachineSetNameLabel:        "test-ms-not-outdated",
-						clusterv1.MachineDeploymentNameLabel: "test-md-not-outdated",
-					},
-					OwnerReferences: []metav1.OwnerReference{{
-						Kind:       "MachineSet",
-						Name:       "test-ms-not-outdated",
-						APIVersion: clusterv1.GroupVersion.String(),
-						UID:        "uid",
-					}},
+				Name:      fmt.Sprintf("ma-%s", util.RandomString(6)),
+				Namespace: metav1.NamespaceDefault,
+				Labels: map[string]string{
+					clusterv1.MachineSetNameLabel:        "test-ms-not-outdated",
+					clusterv1.MachineDeploymentNameLabel: "test-md-not-outdated",
 				},
+				OwnerReferences: []metav1.OwnerReference{{
+					Kind:       "MachineSet",
+					Name:       "test-ms-not-outdated",
+					APIVersion: clusterv1.GroupVersion.String(),
+					UID:        "uid",
+				}},
 				Spec: newFakeMachineSpec(clusterName),
 			},
 			ms: &clusterv1.MachineSet{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-ms-not-outdated",
-					Namespace: metav1.NamespaceDefault,
-					Annotations: map[string]string{
-						clusterv1.RevisionAnnotation: "3",
-					},
+				Name:      "test-ms-not-outdated",
+				Namespace: metav1.NamespaceDefault,
+				Annotations: map[string]string{
+					clusterv1.RevisionAnnotation: "3",
 				},
 				Spec: clusterv1.MachineSetSpec{
 					ClusterName: clusterName,
@@ -1190,12 +1126,10 @@ func TestPatchNode(t *testing.T) {
 				},
 			},
 			md: &clusterv1.MachineDeployment{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-md-not-outdated",
-					Namespace: metav1.NamespaceDefault,
-					Annotations: map[string]string{
-						clusterv1.RevisionAnnotation: "2",
-					},
+				Name:      "test-md-not-outdated",
+				Namespace: metav1.NamespaceDefault,
+				Annotations: map[string]string{
+					clusterv1.RevisionAnnotation: "2",
 				},
 				Spec: clusterv1.MachineDeploymentSpec{
 					ClusterName: clusterName,
@@ -1262,10 +1196,8 @@ func TestMultiplePatchNode(t *testing.T) {
 		{
 			name: "Managed annotations should not be in the tracking annotation when machine is synced to node multiple times",
 			oldNode: &corev1.Node{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:        fmt.Sprintf("node-%s", util.RandomString(6)),
-					Annotations: map[string]string{},
-				},
+				Name:        fmt.Sprintf("node-%s", util.RandomString(6)),
+				Annotations: map[string]string{},
 			},
 			newAnnotations: map[string]string{
 				clusterv1.ClusterNameAnnotation:      "foo",
@@ -1292,10 +1224,8 @@ func TestMultiplePatchNode(t *testing.T) {
 		{
 			name: "User-managed annotations should be tracked through reconciles",
 			oldNode: &corev1.Node{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:        fmt.Sprintf("node-%s", util.RandomString(6)),
-					Annotations: map[string]string{},
-				},
+				Name:        fmt.Sprintf("node-%s", util.RandomString(6)),
+				Annotations: map[string]string{},
 			},
 			newAnnotations: map[string]string{
 				clusterv1.ClusterNameAnnotation:      "foo",
@@ -1386,20 +1316,16 @@ func newFakeMachineSpec(clusterName string) clusterv1.MachineSpec {
 
 func newFakeMachine(namespace, clusterName string) *clusterv1.Machine {
 	return &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      fmt.Sprintf("ma-%s", util.RandomString(6)),
-			Namespace: namespace,
-		},
-		Spec: newFakeMachineSpec(clusterName),
+		Name:      fmt.Sprintf("ma-%s", util.RandomString(6)),
+		Namespace: namespace,
+		Spec:      newFakeMachineSpec(clusterName),
 	}
 }
 
 func newFakeMachineSet(namespace, clusterName string) *clusterv1.MachineSet {
 	return &clusterv1.MachineSet{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      fmt.Sprintf("ms-%s", util.RandomString(6)),
-			Namespace: namespace,
-		},
+		Name:      fmt.Sprintf("ms-%s", util.RandomString(6)),
+		Namespace: namespace,
 		Spec: clusterv1.MachineSetSpec{
 			ClusterName: clusterName,
 			Template: clusterv1.MachineTemplateSpec{
@@ -1411,10 +1337,8 @@ func newFakeMachineSet(namespace, clusterName string) *clusterv1.MachineSet {
 
 func newFakeMachineDeployment(namespace, clusterName string) *clusterv1.MachineDeployment {
 	return &clusterv1.MachineDeployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      fmt.Sprintf("md-%s", util.RandomString(6)),
-			Namespace: namespace,
-		},
+		Name:      fmt.Sprintf("md-%s", util.RandomString(6)),
+		Namespace: namespace,
 		Spec: clusterv1.MachineDeploymentSpec{
 			ClusterName: clusterName,
 			Template: clusterv1.MachineTemplateSpec{

@@ -21,8 +21,6 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
-	admissionv1 "k8s.io/api/admission/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
@@ -35,9 +33,7 @@ func TestKubeadmConfigTemplateDefault(t *testing.T) {
 	g := NewWithT(t)
 
 	kubeadmConfigTemplate := &bootstrapv1.KubeadmConfigTemplate{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "foo",
-		},
+		Namespace: "foo",
 	}
 	updateDefaultingKubeadmConfigTemplate := kubeadmConfigTemplate.DeepCopy()
 	updateDefaultingKubeadmConfigTemplate.Spec.Template.Spec.Verbosity = ptr.To[int32](4)
@@ -51,9 +47,7 @@ func TestKubeadmConfigTemplateDefault(t *testing.T) {
 
 	// Expect defaulting for dry-run request.
 	dryRunCtx := admission.NewContextWithRequest(ctx, admission.Request{
-		AdmissionRequest: admissionv1.AdmissionRequest{
-			DryRun: new(true),
-		},
+		DryRun: new(true),
 	})
 	kubeadmConfigTemplate.Annotations = map[string]string{
 		clusterv1.TopologyDryRunAnnotation: "",
@@ -69,10 +63,8 @@ func TestKubeadmConfigTemplateValidation(t *testing.T) {
 	}{
 		"valid configuration": {
 			in: &bootstrapv1.KubeadmConfigTemplate{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "baz",
-					Namespace: "default",
-				},
+				Name:      "baz",
+				Namespace: "default",
 				Spec: bootstrapv1.KubeadmConfigTemplateSpec{
 					Template: bootstrapv1.KubeadmConfigTemplateResource{
 						Spec: bootstrapv1.KubeadmConfigSpec{},

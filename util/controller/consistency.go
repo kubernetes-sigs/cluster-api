@@ -186,12 +186,10 @@ type GroupVersionKindType struct {
 // StructuredObject is a util that allows to create a GroupVersionKindType for a structured object.
 func StructuredObject(gv schema.GroupVersion, kind string) GroupVersionKindType {
 	return GroupVersionKindType{
-		GroupVersionKind: schema.GroupVersionKind{
-			Group:   gv.Group,
-			Version: gv.Version,
-			Kind:    kind,
-		},
-		Type: ObjectTypeStructured,
+		Group:   gv.Group,
+		Version: gv.Version,
+		Kind:    kind,
+		Type:    ObjectTypeStructured,
 	}
 }
 

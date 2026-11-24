@@ -88,11 +88,11 @@ func (r *Reconciler) preflightChecks(ctx context.Context, controlPlane *pkg.Cont
 			// Slow down reconcile frequency, as deferring a version upgrade waits for slow processes,
 			// e.g. workers are completing a previous upgrade step.
 			return preflightChecksResult{
-				succeeded:             false,
-				PreflightCheckResults: pkg.PreflightCheckResults{TopologyVersionMismatch: true},
-				requeueAfter:          preflightFailedRequeueAfter,
-				deferNextReconcile:    5 * time.Second,
-				logStr:                fmt.Sprintf("Waiting for a version upgrade to %s to be propagated", v),
+				succeeded:               false,
+				TopologyVersionMismatch: true,
+				requeueAfter:            preflightFailedRequeueAfter,
+				deferNextReconcile:      5 * time.Second,
+				logStr:                  fmt.Sprintf("Waiting for a version upgrade to %s to be propagated", v),
 			}
 		}
 	}
@@ -101,12 +101,12 @@ func (r *Reconciler) preflightChecks(ctx context.Context, controlPlane *pkg.Cont
 	if controlPlane.HasDeletingMachine() {
 		// Slow down reconcile frequency, deletion is a slow process.
 		return preflightChecksResult{
-			succeeded:             false,
-			PreflightCheckResults: pkg.PreflightCheckResults{HasDeletingMachine: true},
-			requeueAfter:          deleteRequeueAfter,
-			deferNextReconcile:    5 * time.Second,
-			logStr:                "Waiting for machines to be deleted",
-			logKV:                 []string{"machines", strings.Join(controlPlane.Machines.Filter(collections.HasDeletionTimestamp).Names(), ", ")},
+			succeeded:          false,
+			HasDeletingMachine: true,
+			requeueAfter:       deleteRequeueAfter,
+			deferNextReconcile: 5 * time.Second,
+			logStr:             "Waiting for machines to be deleted",
+			logKV:              []string{"machines", strings.Join(controlPlane.Machines.Filter(collections.HasDeletionTimestamp).Names(), ", ")},
 		}
 	}
 
@@ -134,16 +134,14 @@ func (r *Reconciler) preflightChecks(ctx context.Context, controlPlane *pkg.Cont
 		// after a new Machine is created. Similarly, if there are issues on running Machines, it
 		// usually takes some time to get back to normal state.
 		return preflightChecksResult{
-			succeeded: false,
-			PreflightCheckResults: pkg.PreflightCheckResults{
-				ControlPlaneComponentsNotHealthy: controlPlaneComponentsNotHealthy,
-				EtcdClusterNotHealthy:            etcdClusterNotHealthy,
-			},
-			requeueAfter:       preflightFailedRequeueAfter,
-			deferNextReconcile: 5 * time.Second,
-			logStr:             "Waiting for control plane to pass preflight checks",
-			logKV:              []string{"failures", err.Error()},
-			eventStr:           fmt.Sprintf("Waiting for control plane to pass preflight checks to continue reconciliation: %v", err),
+			succeeded:                        false,
+			ControlPlaneComponentsNotHealthy: controlPlaneComponentsNotHealthy,
+			EtcdClusterNotHealthy:            etcdClusterNotHealthy,
+			requeueAfter:                     preflightFailedRequeueAfter,
+			deferNextReconcile:               5 * time.Second,
+			logStr:                           "Waiting for control plane to pass preflight checks",
+			logKV:                            []string{"failures", err.Error()},
+			eventStr:                         fmt.Sprintf("Waiting for control plane to pass preflight checks to continue reconciliation: %v", err),
 		}
 	}
 

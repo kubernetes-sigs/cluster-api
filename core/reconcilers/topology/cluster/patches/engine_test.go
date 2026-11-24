@@ -621,9 +621,7 @@ func TestApply(t *testing.T) {
 			},
 			externalPatchResponses: map[string]runtimehooksv1.ResponseObject{
 				"patch-infrastructureCluster": &runtimehooksv1.GeneratePatchesResponse{
-					CommonResponse: runtimehooksv1.CommonResponse{
-						Status: runtimehooksv1.ResponseStatusSuccess,
-					},
+					Status: runtimehooksv1.ResponseStatusSuccess,
 					Items: []runtimehooksv1.GeneratePatchesResponseItem{
 						{
 							UID:       "1",
@@ -655,9 +653,7 @@ func TestApply(t *testing.T) {
 					},
 				},
 				"validate-infrastructureCluster": &runtimehooksv1.ValidateTopologyResponse{
-					CommonResponse: runtimehooksv1.CommonResponse{
-						Status: runtimehooksv1.ResponseStatusSuccess,
-					},
+					Status: runtimehooksv1.ResponseStatusSuccess,
 				},
 			},
 			expectedFields: expectedFields{
@@ -681,9 +677,7 @@ func TestApply(t *testing.T) {
 			},
 			externalPatchResponses: map[string]runtimehooksv1.ResponseObject{
 				"patch-infrastructureCluster": &runtimehooksv1.GeneratePatchesResponse{
-					CommonResponse: runtimehooksv1.CommonResponse{
-						Status: runtimehooksv1.ResponseStatusSuccess,
-					},
+					Status: runtimehooksv1.ResponseStatusSuccess,
 					Items: []runtimehooksv1.GeneratePatchesResponseItem{
 						{
 							UID:       "1",
@@ -697,10 +691,8 @@ func TestApply(t *testing.T) {
 					},
 				},
 				"validate-infrastructureCluster": &runtimehooksv1.ValidateTopologyResponse{
-					CommonResponse: runtimehooksv1.CommonResponse{
-						Status:  runtimehooksv1.ResponseStatusFailure,
-						Message: "not a valid infrastructureCluster",
-					},
+					Status:  runtimehooksv1.ResponseStatusFailure,
+					Message: "not a valid infrastructureCluster",
 				},
 			},
 			wantErr: true,
@@ -724,9 +716,7 @@ func TestApply(t *testing.T) {
 
 			externalPatchResponses: map[string]runtimehooksv1.ResponseObject{
 				"patch-infrastructureCluster": &runtimehooksv1.GeneratePatchesResponse{
-					CommonResponse: runtimehooksv1.CommonResponse{
-						Status: runtimehooksv1.ResponseStatusSuccess,
-					},
+					Status: runtimehooksv1.ResponseStatusSuccess,
 					Items: []runtimehooksv1.GeneratePatchesResponseItem{
 						{
 							UID:       "1",
@@ -749,9 +739,7 @@ func TestApply(t *testing.T) {
 					},
 				},
 				"patch-controlPlane": &runtimehooksv1.GeneratePatchesResponse{
-					CommonResponse: runtimehooksv1.CommonResponse{
-						Status: runtimehooksv1.ResponseStatusSuccess,
-					},
+					Status: runtimehooksv1.ResponseStatusSuccess,
 					Items: []runtimehooksv1.GeneratePatchesResponseItem{
 						{
 							UID:       "2",
@@ -1345,13 +1333,11 @@ func setupTestObjects() (*scope.ClusterBlueprint, *scope.ClusterState) {
 	// Note: we depend on TypeMeta being set to calculate HolderReferences correctly.
 	// We also set TypeMeta explicitly in the topology/cluster/cluster_controller.go.
 	cluster := &clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:        "cluster1",
-			Namespace:   metav1.NamespaceDefault,
-			UID:         uuid.NewUUID(),
-			Labels:      map[string]string{"foo": "bar"},
-			Annotations: map[string]string{"fizz": "buzz"},
-		},
+		Name:        "cluster1",
+		Namespace:   metav1.NamespaceDefault,
+		UID:         uuid.NewUUID(),
+		Labels:      map[string]string{"foo": "bar"},
+		Annotations: map[string]string{"fizz": "buzz"},
 		Spec: clusterv1.ClusterSpec{
 			Paused: new(false),
 			ClusterNetwork: clusterv1.ClusterNetwork{

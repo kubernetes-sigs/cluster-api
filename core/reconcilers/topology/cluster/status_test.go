@@ -102,10 +102,8 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 			s: &scope.Scope{
 				Current: &scope.ClusterState{
 					Cluster: &clusterv1.Cluster{
-						ObjectMeta: metav1.ObjectMeta{
-							Annotations: map[string]string{
-								clusterv1.PausedAnnotation: "",
-							},
+						Annotations: map[string]string{
+							clusterv1.PausedAnnotation: "",
 						},
 					},
 				},
@@ -122,10 +120,8 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 			s: &scope.Scope{
 				Current: &scope.ClusterState{
 					Cluster: &clusterv1.Cluster{
-						ObjectMeta: metav1.ObjectMeta{
-							Annotations: map[string]string{
-								clusterv1.PausedAnnotation: "",
-							},
+						Annotations: map[string]string{
+							clusterv1.PausedAnnotation: "",
 						},
 						Spec: clusterv1.ClusterSpec{
 							Paused: new(true),
@@ -147,20 +143,14 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 			s: &scope.Scope{
 				Current: &scope.ClusterState{
 					Cluster: &clusterv1.Cluster{
-						ObjectMeta: metav1.ObjectMeta{
-							DeletionTimestamp: &deletionTime,
-						},
+						DeletionTimestamp: &deletionTime,
 					},
 				},
 				HookResponseTracker: func() *scope.HookResponseTracker {
 					hrt := scope.NewHookResponseTracker()
 					hrt.Add(runtimehooksv1.BeforeClusterDelete, &runtimehooksv1.BeforeClusterDeleteResponse{
-						CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
-							CommonResponse: runtimehooksv1.CommonResponse{
-								Message: "msg",
-							},
-							RetryAfterSeconds: 10,
-						},
+						Message:           "msg",
+						RetryAfterSeconds: 10,
 					})
 					return hrt
 				}(),
@@ -177,17 +167,13 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 			s: &scope.Scope{
 				Current: &scope.ClusterState{
 					Cluster: &clusterv1.Cluster{
-						ObjectMeta: metav1.ObjectMeta{
-							DeletionTimestamp: &deletionTime,
-						},
+						DeletionTimestamp: &deletionTime,
 					},
 				},
 				HookResponseTracker: func() *scope.HookResponseTracker {
 					hrt := scope.NewHookResponseTracker()
 					hrt.Add(runtimehooksv1.BeforeClusterDelete, &runtimehooksv1.BeforeClusterDeleteResponse{
-						CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
-							CommonResponse: runtimehooksv1.CommonResponse{},
-						},
+						CommonResponse: runtimehooksv1.CommonResponse{},
 					})
 					return hrt
 				}(),
@@ -210,10 +196,8 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 				},
 				Blueprint: &scope.ClusterBlueprint{
 					ClusterClass: &clusterv1.ClusterClass{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:       "class1",
-							Generation: 10,
-						},
+						Name:       "class1",
+						Generation: 10,
 						Status: clusterv1.ClusterClassStatus{
 							ObservedGeneration: 999,
 						},
@@ -250,12 +234,8 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 				HookResponseTracker: func() *scope.HookResponseTracker {
 					hrt := scope.NewHookResponseTracker()
 					hrt.Add(runtimehooksv1.BeforeClusterCreate, &runtimehooksv1.BeforeClusterCreateResponse{
-						CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
-							CommonResponse: runtimehooksv1.CommonResponse{
-								Message: "msg",
-							},
-							RetryAfterSeconds: 10,
-						},
+						Message:           "msg",
+						RetryAfterSeconds: 10,
 					})
 					return hrt
 				}(),
@@ -277,10 +257,8 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 			s: &scope.Scope{
 				Current: &scope.ClusterState{
 					Cluster: &clusterv1.Cluster{
-						ObjectMeta: metav1.ObjectMeta{
-							Annotations: map[string]string{
-								clusterv1.BeforeClusterUpgradeHookAnnotationPrefix + "/test": "true",
-							},
+						Annotations: map[string]string{
+							clusterv1.BeforeClusterUpgradeHookAnnotationPrefix + "/test": "true",
 						},
 						Spec: clusterv1.ClusterSpec{
 							ControlPlaneRef:   clusterv1.ContractVersionedObjectReference{Name: "controlplane1"},
@@ -308,12 +286,8 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 				HookResponseTracker: func() *scope.HookResponseTracker {
 					hrt := scope.NewHookResponseTracker()
 					hrt.Add(runtimehooksv1.BeforeClusterUpgrade, &runtimehooksv1.BeforeClusterUpgradeResponse{
-						CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
-							CommonResponse: runtimehooksv1.CommonResponse{
-								Message: fmt.Sprintf("annotation %s is set", clusterv1.BeforeClusterUpgradeHookAnnotationPrefix+"/test"),
-							},
-							RetryAfterSeconds: int32(20 * 60),
-						},
+						Message:           fmt.Sprintf("annotation %s is set", clusterv1.BeforeClusterUpgradeHookAnnotationPrefix+"/test"),
+						RetryAfterSeconds: int32(20 * 60),
 					})
 					return hrt
 				}(),
@@ -363,12 +337,8 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 				HookResponseTracker: func() *scope.HookResponseTracker {
 					hrt := scope.NewHookResponseTracker()
 					hrt.Add(runtimehooksv1.BeforeClusterUpgrade, &runtimehooksv1.BeforeClusterUpgradeResponse{
-						CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
-							CommonResponse: runtimehooksv1.CommonResponse{
-								Message: "msg",
-							},
-							RetryAfterSeconds: 10,
-						},
+						Message:           "msg",
+						RetryAfterSeconds: 10,
 					})
 					return hrt
 				}(),
@@ -418,12 +388,8 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 				HookResponseTracker: func() *scope.HookResponseTracker {
 					hrt := scope.NewHookResponseTracker()
 					hrt.Add(runtimehooksv1.BeforeControlPlaneUpgrade, &runtimehooksv1.BeforeClusterUpgradeResponse{
-						CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
-							CommonResponse: runtimehooksv1.CommonResponse{
-								Message: "msg",
-							},
-							RetryAfterSeconds: 10,
-						},
+						Message:           "msg",
+						RetryAfterSeconds: 10,
 					})
 					return hrt
 				}(),
@@ -559,12 +525,8 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 				HookResponseTracker: func() *scope.HookResponseTracker {
 					hrt := scope.NewHookResponseTracker()
 					hrt.Add(runtimehooksv1.AfterControlPlaneUpgrade, &runtimehooksv1.AfterControlPlaneUpgradeResponse{
-						CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
-							CommonResponse: runtimehooksv1.CommonResponse{
-								Message: "msg",
-							},
-							RetryAfterSeconds: 10,
-						},
+						Message:           "msg",
+						RetryAfterSeconds: 10,
 					})
 					return hrt
 				}(),
@@ -615,12 +577,8 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 				HookResponseTracker: func() *scope.HookResponseTracker {
 					hrt := scope.NewHookResponseTracker()
 					hrt.Add(runtimehooksv1.BeforeControlPlaneUpgrade, &runtimehooksv1.BeforeClusterUpgradeResponse{
-						CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
-							CommonResponse: runtimehooksv1.CommonResponse{
-								Message: "msg",
-							},
-							RetryAfterSeconds: 10,
-						},
+						Message:           "msg",
+						RetryAfterSeconds: 10,
 					})
 					return hrt
 				}(),
@@ -753,12 +711,8 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 				HookResponseTracker: func() *scope.HookResponseTracker {
 					hrt := scope.NewHookResponseTracker()
 					hrt.Add(runtimehooksv1.AfterControlPlaneUpgrade, &runtimehooksv1.AfterControlPlaneUpgradeResponse{
-						CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
-							CommonResponse: runtimehooksv1.CommonResponse{
-								Message: "msg",
-							},
-							RetryAfterSeconds: 10,
-						},
+						Message:           "msg",
+						RetryAfterSeconds: 10,
 					})
 					return hrt
 				}(),
@@ -805,12 +759,8 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 				HookResponseTracker: func() *scope.HookResponseTracker {
 					hrt := scope.NewHookResponseTracker()
 					hrt.Add(runtimehooksv1.BeforeWorkersUpgrade, &runtimehooksv1.BeforeWorkersUpgradeResponse{
-						CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
-							CommonResponse: runtimehooksv1.CommonResponse{
-								Message: "msg",
-							},
-							RetryAfterSeconds: 10,
-						},
+						Message:           "msg",
+						RetryAfterSeconds: 10,
 					})
 					return hrt
 				}(),
@@ -873,10 +823,8 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 			s: &scope.Scope{
 				Current: &scope.ClusterState{
 					Cluster: &clusterv1.Cluster{
-						ObjectMeta: metav1.ObjectMeta{
-							Annotations: map[string]string{
-								runtimev1.PendingHooksAnnotation: "AfterClusterUpgrade",
-							},
+						Annotations: map[string]string{
+							runtimev1.PendingHooksAnnotation: "AfterClusterUpgrade",
 						},
 						Spec: clusterv1.ClusterSpec{
 							ControlPlaneRef:   clusterv1.ContractVersionedObjectReference{Name: "controlplane1"},
@@ -899,12 +847,8 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 				HookResponseTracker: func() *scope.HookResponseTracker {
 					hrt := scope.NewHookResponseTracker()
 					hrt.Add(runtimehooksv1.AfterWorkersUpgrade, &runtimehooksv1.AfterWorkersUpgradeResponse{
-						CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
-							CommonResponse: runtimehooksv1.CommonResponse{
-								Message: "msg",
-							},
-							RetryAfterSeconds: 10,
-						},
+						Message:           "msg",
+						RetryAfterSeconds: 10,
 					})
 					return hrt
 				}(),
@@ -924,10 +868,8 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 			s: &scope.Scope{
 				Current: &scope.ClusterState{
 					Cluster: &clusterv1.Cluster{
-						ObjectMeta: metav1.ObjectMeta{
-							Annotations: map[string]string{
-								runtimev1.PendingHooksAnnotation: "AfterClusterUpgrade",
-							},
+						Annotations: map[string]string{
+							runtimev1.PendingHooksAnnotation: "AfterClusterUpgrade",
 						},
 						Spec: clusterv1.ClusterSpec{
 							ControlPlaneRef:   clusterv1.ContractVersionedObjectReference{Name: "controlplane1"},
@@ -945,12 +887,8 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 				HookResponseTracker: func() *scope.HookResponseTracker {
 					hrt := scope.NewHookResponseTracker()
 					hrt.Add(runtimehooksv1.AfterClusterUpgrade, &runtimehooksv1.AfterClusterUpgradeResponse{
-						CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
-							CommonResponse: runtimehooksv1.CommonResponse{
-								Message: "msg",
-							},
-							RetryAfterSeconds: 10,
-						},
+						Message:           "msg",
+						RetryAfterSeconds: 10,
 					})
 					return hrt
 				}(),

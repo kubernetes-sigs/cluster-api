@@ -76,9 +76,7 @@ func TestCalculateV1Beta1Status(t *testing.T) {
 				},
 			},
 			deployment: &clusterv1.MachineDeployment{
-				ObjectMeta: metav1.ObjectMeta{
-					Generation: 2,
-				},
+				Generation: 2,
 				Spec: clusterv1.MachineDeploymentSpec{
 					Replicas: ptr.To[int32](2),
 				},
@@ -128,9 +126,7 @@ func TestCalculateV1Beta1Status(t *testing.T) {
 				},
 			},
 			deployment: &clusterv1.MachineDeployment{
-				ObjectMeta: metav1.ObjectMeta{
-					Generation: 2,
-				},
+				Generation: 2,
 				Spec: clusterv1.MachineDeploymentSpec{
 					Replicas: ptr.To[int32](2),
 				},
@@ -180,9 +176,7 @@ func TestCalculateV1Beta1Status(t *testing.T) {
 				},
 			},
 			deployment: &clusterv1.MachineDeployment{
-				ObjectMeta: metav1.ObjectMeta{
-					Generation: 2,
-				},
+				Generation: 2,
 				Spec: clusterv1.MachineDeploymentSpec{
 					Replicas: ptr.To[int32](2),
 				},
@@ -226,27 +220,21 @@ func TestScaleMachineSet(t *testing.T) {
 				},
 			},
 			machineSet: &clusterv1.MachineSet{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "foo",
-					Name:      "bar",
-				},
+				Namespace: "foo",
+				Name:      "bar",
 			},
 			error: pkgerrors.Errorf("spec.replicas for MachineSet foo/bar is nil, this is unexpected"),
 		},
 		{
 			name: "It fails when new MachineDeployment has no replicas",
 			machineDeployment: &clusterv1.MachineDeployment{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "foo",
-					Name:      "bar",
-				},
-				Spec: clusterv1.MachineDeploymentSpec{},
+				Namespace: "foo",
+				Name:      "bar",
+				Spec:      clusterv1.MachineDeploymentSpec{},
 			},
 			machineSet: &clusterv1.MachineSet{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "foo",
-					Name:      "bar",
-				},
+				Namespace: "foo",
+				Name:      "bar",
 				Spec: clusterv1.MachineSetSpec{
 					Replicas: ptr.To[int32](2),
 				},
@@ -256,10 +244,8 @@ func TestScaleMachineSet(t *testing.T) {
 		{
 			name: "Scale up",
 			machineDeployment: &clusterv1.MachineDeployment{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "foo",
-					Name:      "bar",
-				},
+				Namespace: "foo",
+				Name:      "bar",
 				Spec: clusterv1.MachineDeploymentSpec{
 					Rollout: clusterv1.MachineDeploymentRolloutSpec{
 						Strategy: clusterv1.MachineDeploymentRolloutStrategy{
@@ -274,10 +260,8 @@ func TestScaleMachineSet(t *testing.T) {
 				},
 			},
 			machineSet: &clusterv1.MachineSet{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "foo",
-					Name:      "bar",
-				},
+				Namespace: "foo",
+				Name:      "bar",
 				Spec: clusterv1.MachineSetSpec{
 					Replicas: ptr.To[int32](0),
 				},
@@ -287,10 +271,8 @@ func TestScaleMachineSet(t *testing.T) {
 		{
 			name: "Scale down",
 			machineDeployment: &clusterv1.MachineDeployment{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "foo",
-					Name:      "bar",
-				},
+				Namespace: "foo",
+				Name:      "bar",
 				Spec: clusterv1.MachineDeploymentSpec{
 					Rollout: clusterv1.MachineDeploymentRolloutSpec{
 						Strategy: clusterv1.MachineDeploymentRolloutStrategy{
@@ -305,10 +287,8 @@ func TestScaleMachineSet(t *testing.T) {
 				},
 			},
 			machineSet: &clusterv1.MachineSet{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "foo",
-					Name:      "bar",
-				},
+				Namespace: "foo",
+				Name:      "bar",
 				Spec: clusterv1.MachineSetSpec{
 					Replicas: ptr.To[int32](4),
 				},
@@ -318,10 +298,8 @@ func TestScaleMachineSet(t *testing.T) {
 		{
 			name: "Same replicas does not scale",
 			machineDeployment: &clusterv1.MachineDeployment{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "foo",
-					Name:      "bar",
-				},
+				Namespace: "foo",
+				Name:      "bar",
 				Spec: clusterv1.MachineDeploymentSpec{
 					Rollout: clusterv1.MachineDeploymentRolloutSpec{
 						Strategy: clusterv1.MachineDeploymentRolloutStrategy{
@@ -336,10 +314,8 @@ func TestScaleMachineSet(t *testing.T) {
 				},
 			},
 			machineSet: &clusterv1.MachineSet{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "foo",
-					Name:      "bar",
-				},
+				Namespace: "foo",
+				Name:      "bar",
 				Spec: clusterv1.MachineSetSpec{
 					Replicas: ptr.To[int32](2),
 				},
@@ -380,9 +356,7 @@ func TestScaleMachineSet(t *testing.T) {
 
 func newTestMachineDeployment(replicas, statusReplicas, upToDateReplicas, availableReplicas int32) *clusterv1.MachineDeployment {
 	d := &clusterv1.MachineDeployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "progress-test",
-		},
+		Name: "progress-test",
 		Spec: clusterv1.MachineDeploymentSpec{
 			Replicas: &replicas,
 			Rollout: clusterv1.MachineDeploymentRolloutSpec{
@@ -410,11 +384,9 @@ func newTestMachineDeployment(replicas, statusReplicas, upToDateReplicas, availa
 // helper to create MS with given availableReplicas.
 func newTestMachinesetWithReplicas(name string, specReplicas, statusReplicas, availableReplicas int32, v1Beta1Conditions clusterv1.Conditions) *clusterv1.MachineSet {
 	return &clusterv1.MachineSet{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:              name,
-			CreationTimestamp: metav1.Time{},
-			Namespace:         metav1.NamespaceDefault,
-		},
+		Name:              name,
+		CreationTimestamp: metav1.Time{},
+		Namespace:         metav1.NamespaceDefault,
 		Spec: clusterv1.MachineSetSpec{
 			Replicas: new(specReplicas),
 		},
@@ -554,11 +526,9 @@ func TestCreateOrUpdateMachineSetsNilNewMS(t *testing.T) {
 	g := NewWithT(t)
 
 	md := &clusterv1.MachineDeployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:        "test-md",
-			Namespace:   metav1.NamespaceDefault,
-			Annotations: map[string]string{},
-		},
+		Name:        "test-md",
+		Namespace:   metav1.NamespaceDefault,
+		Annotations: map[string]string{},
 		Spec: clusterv1.MachineDeploymentSpec{
 			Paused: new(true),
 		},

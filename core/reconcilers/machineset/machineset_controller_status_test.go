@@ -179,10 +179,8 @@ func Test_setReplicas(t *testing.T) {
 			name: "In-place updating machines should not be counted if update affects availability",
 			machines: []*clusterv1.Machine{
 				{
-					ObjectMeta: metav1.ObjectMeta{
-						Annotations: map[string]string{
-							clusterv1.UpdateInProgressAnnotation: "{\"affectsAvailability\":true}",
-						},
+					Annotations: map[string]string{
+						clusterv1.UpdateInProgressAnnotation: "{\"affectsAvailability\":true}",
 					},
 					Status: clusterv1.MachineStatus{
 						Conditions: []metav1.Condition{
@@ -202,11 +200,9 @@ func Test_setReplicas(t *testing.T) {
 					},
 				},
 				{
-					ObjectMeta: metav1.ObjectMeta{
-						Annotations: map[string]string{
-							clusterv1.UpdateInProgressAnnotation: "{\"affectsAvailability\":true}",
-							runtimev1.PendingHooksAnnotation:     "UpdateMachine",
-						},
+					Annotations: map[string]string{
+						clusterv1.UpdateInProgressAnnotation: "{\"affectsAvailability\":true}",
+						runtimev1.PendingHooksAnnotation:     "UpdateMachine",
 					},
 					Status: clusterv1.MachineStatus{
 						Conditions: []metav1.Condition{
@@ -226,10 +222,8 @@ func Test_setReplicas(t *testing.T) {
 					},
 				},
 				{
-					ObjectMeta: metav1.ObjectMeta{
-						Annotations: map[string]string{
-							runtimev1.PendingHooksAnnotation: "UpdateMachine",
-						},
+					Annotations: map[string]string{
+						runtimev1.PendingHooksAnnotation: "UpdateMachine",
 					},
 					Status: clusterv1.MachineStatus{
 						Conditions: []metav1.Condition{
@@ -249,10 +243,8 @@ func Test_setReplicas(t *testing.T) {
 					},
 				},
 				{
-					ObjectMeta: metav1.ObjectMeta{
-						Annotations: map[string]string{
-							clusterv1.UpdateInProgressAnnotation: "{\"affectsAvailability\":false}",
-						},
+					Annotations: map[string]string{
+						clusterv1.UpdateInProgressAnnotation: "{\"affectsAvailability\":false}",
 					},
 					Status: clusterv1.MachineStatus{
 						Conditions: []metav1.Condition{
@@ -1104,7 +1096,7 @@ func Test_setDeletingCondition(t *testing.T) {
 		},
 		{
 			name:       "Deleting with still some machine",
-			machineSet: &clusterv1.MachineSet{ObjectMeta: metav1.ObjectMeta{DeletionTimestamp: &metav1.Time{Time: time.Now()}}},
+			machineSet: &clusterv1.MachineSet{DeletionTimestamp: &metav1.Time{Time: time.Now()}},
 			getAndAdoptMachinesForMachineSetSucceeded: true,
 			machines: []*clusterv1.Machine{
 				fakeMachine("m1"),
@@ -1118,7 +1110,7 @@ func Test_setDeletingCondition(t *testing.T) {
 		},
 		{
 			name:       "Deleting with still some stale machine",
-			machineSet: &clusterv1.MachineSet{ObjectMeta: metav1.ObjectMeta{DeletionTimestamp: &metav1.Time{Time: time.Now()}}},
+			machineSet: &clusterv1.MachineSet{DeletionTimestamp: &metav1.Time{Time: time.Now()}},
 			getAndAdoptMachinesForMachineSetSucceeded: true,
 			machines: []*clusterv1.Machine{
 				fakeMachine("m1", withStaleDeletionTimestamp()),
@@ -1259,9 +1251,7 @@ type fakeMachinesOption func(m *clusterv1.Machine)
 
 func fakeMachine(name string, options ...fakeMachinesOption) *clusterv1.Machine {
 	p := &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: name,
-		},
+		Name: name,
 	}
 	for _, opt := range options {
 		opt(p)

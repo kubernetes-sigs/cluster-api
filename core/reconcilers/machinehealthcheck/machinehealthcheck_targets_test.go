@@ -44,23 +44,19 @@ func TestGetTargetsFromMHC(t *testing.T) {
 	clusterName := "test-cluster"
 
 	cluster := &clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: namespace,
-			Name:      clusterName,
-		},
+		Namespace: namespace,
+		Name:      clusterName,
 	}
 
 	mhcSelector := map[string]string{"cluster": clusterName, "machine-group": "foo"}
 
 	// Create a namespace for the tests
-	testNS := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "mhc-test"}}
+	testNS := &corev1.Namespace{Name: "mhc-test"}
 
 	// Create a test MHC
 	testMHC := &clusterv1.MachineHealthCheck{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test-mhc",
-			Namespace: namespace,
-		},
+		Name:      "test-mhc",
+		Namespace: namespace,
 		Spec: clusterv1.MachineHealthCheckSpec{
 			ClusterName: clusterName,
 			Selector: metav1.LabelSelector{
@@ -203,10 +199,8 @@ func TestHealthCheckTargets(t *testing.T) {
 	clusterName := "test-cluster"
 
 	cluster := &clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: namespace,
-			Name:      clusterName,
-		},
+		Namespace: namespace,
+		Name:      clusterName,
 	}
 	conditions.Set(cluster, metav1.Condition{Type: clusterv1.ClusterInfrastructureReadyCondition, Status: metav1.ConditionTrue})
 	conditions.Set(cluster, metav1.Condition{Type: clusterv1.ClusterControlPlaneInitializedCondition, Status: metav1.ConditionTrue})
@@ -229,10 +223,8 @@ func TestHealthCheckTargets(t *testing.T) {
 
 	// Create a test MHC
 	testMHC := &clusterv1.MachineHealthCheck{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test-mhc",
-			Namespace: namespace,
-		},
+		Name:      "test-mhc",
+		Namespace: namespace,
 		Spec: clusterv1.MachineHealthCheckSpec{
 			Selector: metav1.LabelSelector{
 				MatchLabels: mhcSelector,
@@ -321,10 +313,8 @@ func TestHealthCheckTargets(t *testing.T) {
 
 	// Create a test MHC without conditions
 	testMHCEmptyConditions := &clusterv1.MachineHealthCheck{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test-mhc",
-			Namespace: namespace,
-		},
+		Name:      "test-mhc",
+		Namespace: namespace,
 		Spec: clusterv1.MachineHealthCheckSpec{
 			Selector: metav1.LabelSelector{
 				MatchLabels: mhcSelector,
@@ -856,11 +846,9 @@ func newTestMachine(name, namespace, clusterName, nodeName string, labels map[st
 
 	bootstrap := "bootstrap"
 	return &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: namespace,
-			Labels:    l,
-		},
+		Name:      name,
+		Namespace: namespace,
+		Labels:    l,
 		Spec: clusterv1.MachineSpec{
 			ClusterName: clusterName,
 			Bootstrap: clusterv1.Bootstrap{
@@ -882,18 +870,14 @@ func newTestMachine(name, namespace, clusterName, nodeName string, labels map[st
 
 func newTestNode(name string) *corev1.Node {
 	return &corev1.Node{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: name,
-		},
+		Name: name,
 	}
 }
 
 func newTestUnhealthyNode(name string, condition corev1.NodeConditionType, status corev1.ConditionStatus, reason string, now time.Time, unhealthyDuration time.Duration) *corev1.Node {
 	return &corev1.Node{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: name,
-			UID:  "12345",
-		},
+		Name: name,
+		UID:  "12345",
 		Status: corev1.NodeStatus{
 			Conditions: []corev1.NodeCondition{
 				{
@@ -915,11 +899,9 @@ func newTestUnhealthyMachine(name, namespace, clusterName, nodeName string, labe
 
 	bootstrap := "bootstrap"
 	return &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: namespace,
-			Labels:    l,
-		},
+		Name:      name,
+		Namespace: namespace,
+		Labels:    l,
 		Spec: clusterv1.MachineSpec{
 			ClusterName: clusterName,
 			Bootstrap: clusterv1.Bootstrap{

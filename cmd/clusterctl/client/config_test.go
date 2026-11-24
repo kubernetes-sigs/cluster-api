@@ -27,7 +27,6 @@ import (
 	. "github.com/onsi/gomega"
 	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
 
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
@@ -551,14 +550,10 @@ func Test_clusterctlClient_GetClusterTemplate(t *testing.T) {
 
 	// Template on a repository & in a ConfigMap
 	configMap := &corev1.ConfigMap{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "ConfigMap",
-			APIVersion: "v1",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "ns1",
-			Name:      "my-template",
-		},
+		Kind:       "ConfigMap",
+		APIVersion: "v1",
+		Namespace:  "ns1",
+		Name:       "my-template",
 		Data: map[string]string{
 			"prod": string(rawTemplate),
 		},
@@ -768,14 +763,10 @@ func Test_clusterctlClient_GetClusterTemplate_onEmptyCluster(t *testing.T) {
 
 	// Template in a ConfigMap in a cluster not initialized
 	configMap := &corev1.ConfigMap{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "ConfigMap",
-			APIVersion: "v1",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "ns1",
-			Name:      "my-template",
-		},
+		Kind:       "ConfigMap",
+		APIVersion: "v1",
+		Namespace:  "ns1",
+		Name:       "my-template",
 		Data: map[string]string{
 			"prod": string(rawTemplate),
 		},

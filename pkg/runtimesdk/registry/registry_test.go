@@ -23,7 +23,6 @@ import (
 	"github.com/onsi/gomega/format"
 	"github.com/onsi/gomega/types"
 	pkgerrors "github.com/pkg/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	runtimecatalog "sigs.k8s.io/cluster-api/api/runtime/catalog"
 	runtimev1 "sigs.k8s.io/cluster-api/api/runtime/v1beta2"
@@ -50,9 +49,7 @@ func TestWarmUpRegistry(t *testing.T) {
 	extensionConfigList := &runtimev1.ExtensionConfigList{
 		Items: []runtimev1.ExtensionConfig{
 			{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "test-extension",
-				},
+				Name: "test-extension",
 				Status: runtimev1.ExtensionConfigStatus{
 					Handlers: []runtimev1.ExtensionHandler{
 						{
@@ -95,9 +92,7 @@ func TestRegistry(t *testing.T) {
 	g := NewWithT(t)
 
 	extension1 := &runtimev1.ExtensionConfig{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "extension1",
-		},
+		Name: "extension1",
 		Spec: runtimev1.ExtensionConfigSpec{
 			ClientConfig: runtimev1.ClientConfig{
 				URL: "https://extesions1.com/",
@@ -131,9 +126,7 @@ func TestRegistry(t *testing.T) {
 	}
 
 	extension2 := &runtimev1.ExtensionConfig{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "extension2",
-		},
+		Name: "extension2",
 		Spec: runtimev1.ExtensionConfigSpec{
 			ClientConfig: runtimev1.ClientConfig{
 				URL: "https://extesions2.com/",

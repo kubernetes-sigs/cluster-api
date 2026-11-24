@@ -49,11 +49,9 @@ func AggregateStatusVersions(versions []clusterv1.StatusVersion) []clusterv1.Sta
 		}
 		versionIndexes[statusVersion.Version] = len(aggregatedVersions)
 		aggregatedVersions = append(aggregatedVersions, orderedStatusVersion{
-			StatusVersion: clusterv1.StatusVersion{
-				Version:  statusVersion.Version,
-				Replicas: statusVersion.Replicas,
-			},
-			order: len(aggregatedVersions),
+			Version:  statusVersion.Version,
+			Replicas: statusVersion.Replicas,
+			order:    len(aggregatedVersions),
 		})
 	}
 
@@ -103,11 +101,9 @@ func VersionsFromMachines(machines []*clusterv1.Machine) []clusterv1.StatusVersi
 		}
 		versionIndexes[version] = len(versions)
 		versions = append(versions, orderedStatusVersion{
-			StatusVersion: clusterv1.StatusVersion{
-				Version:  version,
-				Replicas: 1,
-			},
-			order: len(versions),
+			Version:  version,
+			Replicas: 1,
+			order:    len(versions),
 		})
 	}
 

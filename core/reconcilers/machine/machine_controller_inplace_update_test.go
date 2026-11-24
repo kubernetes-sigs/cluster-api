@@ -25,7 +25,6 @@ import (
 	"github.com/google/go-cmp/cmp"
 	. "github.com/onsi/gomega"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -153,12 +152,10 @@ func TestReconcileInPlaceUpdate(t *testing.T) {
 			wantReason:            clusterv1.MachineInPlaceUpdatingReason,
 			wantMessage:           "In-place update in progress (affects availability): processing",
 			wantCacheEntry: &UpdateMachineCacheEntry{
-				Machine: machineKey,
-				updateMachineResult: updateMachineResult{
-					retryAfter:   now.Add(30 * time.Second),
-					updateStatus: runtimehooksv1.MachineUpdateStatusInProgress,
-					messages:     []string{"processing"},
-				},
+				Machine:      machineKey,
+				retryAfter:   now.Add(30 * time.Second),
+				updateStatus: runtimehooksv1.MachineUpdateStatusInProgress,
+				messages:     []string{"processing"},
 			},
 			verify: verifyInPlaceUpdateNotCompleted,
 		},
@@ -172,12 +169,10 @@ func TestReconcileInPlaceUpdate(t *testing.T) {
 			wantReason:            clusterv1.MachineInPlaceUpdatingReason,
 			wantMessage:           "In-place update in progress (does not affect availability): processing",
 			wantCacheEntry: &UpdateMachineCacheEntry{
-				Machine: machineKey,
-				updateMachineResult: updateMachineResult{
-					retryAfter:   now.Add(30 * time.Second),
-					updateStatus: runtimehooksv1.MachineUpdateStatusInProgress,
-					messages:     []string{"processing"},
-				},
+				Machine:      machineKey,
+				retryAfter:   now.Add(30 * time.Second),
+				updateStatus: runtimehooksv1.MachineUpdateStatusInProgress,
+				messages:     []string{"processing"},
 			},
 			verify: verifyInPlaceUpdateNotCompleted,
 		},
@@ -202,12 +197,10 @@ func TestReconcileInPlaceUpdate(t *testing.T) {
 			wantReason:            clusterv1.MachineInPlaceUpdatingReason,
 			wantMessage:           "In-place update in progress (affects availability): processing",
 			wantCacheEntry: &UpdateMachineCacheEntry{
-				Machine: machineKey,
-				updateMachineResult: updateMachineResult{
-					retryAfter:   now.Add(updateMachineCacheDuration),
-					updateStatus: runtimehooksv1.MachineUpdateStatusInProgress,
-					messages:     []string{"processing"},
-				},
+				Machine:      machineKey,
+				retryAfter:   now.Add(updateMachineCacheDuration),
+				updateStatus: runtimehooksv1.MachineUpdateStatusInProgress,
+				messages:     []string{"processing"},
 			},
 			verify: verifyInPlaceUpdateNotCompleted,
 		},
@@ -221,12 +214,10 @@ func TestReconcileInPlaceUpdate(t *testing.T) {
 			wantReason:            clusterv1.MachineInPlaceUpdateFailedReason,
 			wantMessage:           "In-place update failed: something failed",
 			wantCacheEntry: &UpdateMachineCacheEntry{
-				Machine: machineKey,
-				updateMachineResult: updateMachineResult{
-					retryAfter:   now.Add(15 * time.Second),
-					updateStatus: runtimehooksv1.MachineUpdateStatusFailed,
-					messages:     []string{"something failed"},
-				},
+				Machine:      machineKey,
+				retryAfter:   now.Add(15 * time.Second),
+				updateStatus: runtimehooksv1.MachineUpdateStatusFailed,
+				messages:     []string{"something failed"},
 			},
 			verify: verifyInPlaceUpdateNotCompleted,
 		},
@@ -240,12 +231,10 @@ func TestReconcileInPlaceUpdate(t *testing.T) {
 			wantReason:            clusterv1.MachineInPlaceUpdateFailedReason,
 			wantMessage:           "In-place update failed: something failed",
 			wantCacheEntry: &UpdateMachineCacheEntry{
-				Machine: machineKey,
-				updateMachineResult: updateMachineResult{
-					retryAfter:   now.Add(updateMachineCacheDuration),
-					updateStatus: runtimehooksv1.MachineUpdateStatusFailed,
-					messages:     []string{"something failed"},
-				},
+				Machine:      machineKey,
+				retryAfter:   now.Add(updateMachineCacheDuration),
+				updateStatus: runtimehooksv1.MachineUpdateStatusFailed,
+				messages:     []string{"something failed"},
 			},
 			verify: verifyInPlaceUpdateNotCompleted,
 		},
@@ -259,12 +248,10 @@ func TestReconcileInPlaceUpdate(t *testing.T) {
 			wantReason:            clusterv1.MachineInPlaceUpdateBlockedReason,
 			wantMessage:           "In-place update blocked: waiting for something",
 			wantCacheEntry: &UpdateMachineCacheEntry{
-				Machine: machineKey,
-				updateMachineResult: updateMachineResult{
-					retryAfter:   now.Add(20 * time.Second),
-					updateStatus: runtimehooksv1.MachineUpdateStatusBlocked,
-					messages:     []string{"waiting for something"},
-				},
+				Machine:      machineKey,
+				retryAfter:   now.Add(20 * time.Second),
+				updateStatus: runtimehooksv1.MachineUpdateStatusBlocked,
+				messages:     []string{"waiting for something"},
 			},
 			verify: verifyInPlaceUpdateNotCompleted,
 		},
@@ -278,12 +265,10 @@ func TestReconcileInPlaceUpdate(t *testing.T) {
 			wantReason:            clusterv1.MachineInPlaceUpdateBlockedReason,
 			wantMessage:           "In-place update blocked: waiting for something",
 			wantCacheEntry: &UpdateMachineCacheEntry{
-				Machine: machineKey,
-				updateMachineResult: updateMachineResult{
-					retryAfter:   now.Add(updateMachineCacheDuration),
-					updateStatus: runtimehooksv1.MachineUpdateStatusBlocked,
-					messages:     []string{"waiting for something"},
-				},
+				Machine:      machineKey,
+				retryAfter:   now.Add(updateMachineCacheDuration),
+				updateStatus: runtimehooksv1.MachineUpdateStatusBlocked,
+				messages:     []string{"waiting for something"},
 			},
 			verify: verifyInPlaceUpdateNotCompleted,
 		},
@@ -460,14 +445,10 @@ func newInPlaceUpdatingTestBootstrapConfig() contractapi.BootstrapConfig {
 
 func newUpdateMachineResponse(status runtimehooksv1.ResponseStatus, updateStatus runtimehooksv1.MachineUpdateStatus, message string, retryAfterSeconds int32) *runtimehooksv1.UpdateMachineResponse {
 	return &runtimehooksv1.UpdateMachineResponse{
-		CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
-			CommonResponse: runtimehooksv1.CommonResponse{
-				Status:  status,
-				Message: message,
-			},
-			RetryAfterSeconds: retryAfterSeconds,
-		},
-		UpdateStatus: updateStatus,
+		Status:            status,
+		Message:           message,
+		RetryAfterSeconds: retryAfterSeconds,
+		UpdateStatus:      updateStatus,
 	}
 }
 
@@ -583,12 +564,10 @@ func TestUpdateMachine(t *testing.T) {
 				messages:     []string{"processing"},
 			},
 			wantCacheEntry: &UpdateMachineCacheEntry{
-				Machine: machineKey,
-				updateMachineResult: updateMachineResult{
-					retryAfter:   now.Add(45 * time.Second),
-					updateStatus: runtimehooksv1.MachineUpdateStatusInProgress,
-					messages:     []string{"processing"},
-				},
+				Machine:      machineKey,
+				retryAfter:   now.Add(45 * time.Second),
+				updateStatus: runtimehooksv1.MachineUpdateStatusInProgress,
+				messages:     []string{"processing"},
 			},
 		},
 		{
@@ -605,12 +584,10 @@ func TestUpdateMachine(t *testing.T) {
 				messages:     []string{"done"},
 			},
 			wantCacheEntry: &UpdateMachineCacheEntry{
-				Machine: machineKey,
-				updateMachineResult: updateMachineResult{
-					retryAfter:   now.Add(updateMachineCacheDuration),
-					updateStatus: runtimehooksv1.MachineUpdateStatusCompleted,
-					messages:     []string{"done"},
-				},
+				Machine:      machineKey,
+				retryAfter:   now.Add(updateMachineCacheDuration),
+				updateStatus: runtimehooksv1.MachineUpdateStatusCompleted,
+				messages:     []string{"done"},
 			},
 		},
 		// Test cases with updateStatus set.
@@ -628,12 +605,10 @@ func TestUpdateMachine(t *testing.T) {
 				messages:     []string{"processing"},
 			},
 			wantCacheEntry: &UpdateMachineCacheEntry{
-				Machine: machineKey,
-				updateMachineResult: updateMachineResult{
-					retryAfter:   now.Add(15 * time.Second),
-					updateStatus: runtimehooksv1.MachineUpdateStatusInProgress,
-					messages:     []string{"processing"},
-				},
+				Machine:      machineKey,
+				retryAfter:   now.Add(15 * time.Second),
+				updateStatus: runtimehooksv1.MachineUpdateStatusInProgress,
+				messages:     []string{"processing"},
 			},
 		},
 		{
@@ -650,12 +625,10 @@ func TestUpdateMachine(t *testing.T) {
 				messages:     []string{"failed"},
 			},
 			wantCacheEntry: &UpdateMachineCacheEntry{
-				Machine: machineKey,
-				updateMachineResult: updateMachineResult{
-					retryAfter:   now.Add(15 * time.Second),
-					updateStatus: runtimehooksv1.MachineUpdateStatusFailed,
-					messages:     []string{"failed"},
-				},
+				Machine:      machineKey,
+				retryAfter:   now.Add(15 * time.Second),
+				updateStatus: runtimehooksv1.MachineUpdateStatusFailed,
+				messages:     []string{"failed"},
 			},
 		},
 		{
@@ -672,12 +645,10 @@ func TestUpdateMachine(t *testing.T) {
 				messages:     []string{"blocked"},
 			},
 			wantCacheEntry: &UpdateMachineCacheEntry{
-				Machine: machineKey,
-				updateMachineResult: updateMachineResult{
-					retryAfter:   now.Add(20 * time.Second),
-					updateStatus: runtimehooksv1.MachineUpdateStatusBlocked,
-					messages:     []string{"blocked"},
-				},
+				Machine:      machineKey,
+				retryAfter:   now.Add(20 * time.Second),
+				updateStatus: runtimehooksv1.MachineUpdateStatusBlocked,
+				messages:     []string{"blocked"},
 			},
 		},
 		{
@@ -694,12 +665,10 @@ func TestUpdateMachine(t *testing.T) {
 				messages:     []string{"done"},
 			},
 			wantCacheEntry: &UpdateMachineCacheEntry{
-				Machine: machineKey,
-				updateMachineResult: updateMachineResult{
-					retryAfter:   now.Add(updateMachineCacheDuration),
-					updateStatus: runtimehooksv1.MachineUpdateStatusCompleted,
-					messages:     []string{"done"},
-				},
+				Machine:      machineKey,
+				retryAfter:   now.Add(updateMachineCacheDuration),
+				updateStatus: runtimehooksv1.MachineUpdateStatusCompleted,
+				messages:     []string{"done"},
 			},
 		},
 		{
@@ -716,12 +685,10 @@ func TestUpdateMachine(t *testing.T) {
 				messages:     []string{"dirty"},
 			},
 			wantCacheEntry: &UpdateMachineCacheEntry{
-				Machine: machineKey,
-				updateMachineResult: updateMachineResult{
-					retryAfter:   now.Add(updateMachineCacheDuration),
-					updateStatus: runtimehooksv1.MachineUpdateStatusCompletedButDirty,
-					messages:     []string{"dirty"},
-				},
+				Machine:      machineKey,
+				retryAfter:   now.Add(updateMachineCacheDuration),
+				updateStatus: runtimehooksv1.MachineUpdateStatusCompletedButDirty,
+				messages:     []string{"dirty"},
 			},
 		},
 	}
@@ -834,11 +801,9 @@ func TestRemoveInPlaceUpdateAnnotation(t *testing.T) {
 			g.Expect(clusterv1.AddToScheme(scheme)).To(Succeed())
 
 			machine := &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:        "machine",
-					Namespace:   "default",
-					Annotations: tt.annotations,
-				},
+				Name:        "machine",
+				Namespace:   "default",
+				Annotations: tt.annotations,
 			}
 			client := fake.NewClientBuilder().WithScheme(scheme).WithObjects(machine).Build()
 
@@ -861,11 +826,9 @@ func TestCompleteInPlaceUpdate_MissingInfra(t *testing.T) {
 	}
 
 	machine := &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:        "machine",
-			Namespace:   "default",
-			Annotations: map[string]string{},
-		},
+		Name:        "machine",
+		Namespace:   "default",
+		Annotations: map[string]string{},
 	}
 	client := fake.NewClientBuilder().WithScheme(scheme).WithObjects(machine).Build()
 
@@ -883,12 +846,10 @@ func TestCleanupMachine(t *testing.T) {
 	g := NewWithT(t)
 
 	original := &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:        "machine",
-			Namespace:   "default",
-			Labels:      map[string]string{"key": "value"},
-			Annotations: map[string]string{"anno": "value"},
-		},
+		Name:        "machine",
+		Namespace:   "default",
+		Labels:      map[string]string{"key": "value"},
+		Annotations: map[string]string{"anno": "value"},
 	}
 	original.Status.Phase = "Running"
 
@@ -937,23 +898,19 @@ func TestCleanupUnstructured(t *testing.T) {
 
 func newTestMachine() *clusterv1.Machine {
 	return &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:        "machine",
-			Namespace:   "default",
-			Labels:      map[string]string{},
-			Annotations: map[string]string{},
-		},
-		Spec: clusterv1.MachineSpec{},
+		Name:        "machine",
+		Namespace:   "default",
+		Labels:      map[string]string{},
+		Annotations: map[string]string{},
+		Spec:        clusterv1.MachineSpec{},
 	}
 }
 
 func newTestInfraMachine(name string) contractapi.InfraMachine {
 	return &contractv1.InfraMachine{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace:       "default",
-			Name:            name,
-			ResourceVersion: "2",
-		},
+		Namespace:       "default",
+		Name:            name,
+		ResourceVersion: "2",
 		Spec: contractv1.InfraMachineSpec{
 			ProviderID: "provider-id",
 		},
@@ -962,11 +919,9 @@ func newTestInfraMachine(name string) contractapi.InfraMachine {
 
 func newTestBootstrapConfig(name string) contractapi.BootstrapConfig {
 	return &contractv1.BootstrapConfig{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace:       "default",
-			Name:            name,
-			ResourceVersion: "3",
-		},
+		Namespace:       "default",
+		Name:            name,
+		ResourceVersion: "3",
 		Status: contractv1.BootstrapConfigStatus{
 			DataSecretName: "data-secret-name",
 		},

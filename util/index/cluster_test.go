@@ -20,7 +20,6 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
@@ -40,10 +39,8 @@ func TestClusterByClusterClassRef(t *testing.T) {
 		{
 			name: "when cluster has a valid Topology",
 			object: &clusterv1.Cluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "cluster",
-					Namespace: "default",
-				},
+				Name:      "cluster",
+				Namespace: "default",
 				Spec: clusterv1.ClusterSpec{
 					Topology: clusterv1.Topology{
 						ClassRef: clusterv1.ClusterClassRef{
@@ -57,10 +54,8 @@ func TestClusterByClusterClassRef(t *testing.T) {
 		{
 			name: "when cluster has a valid Topology with namespace specified",
 			object: &clusterv1.Cluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "cluster",
-					Namespace: "default",
-				},
+				Name:      "cluster",
+				Namespace: "default",
 				Spec: clusterv1.ClusterSpec{
 					Topology: clusterv1.Topology{
 						ClassRef: clusterv1.ClusterClassRef{

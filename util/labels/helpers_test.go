@@ -42,10 +42,8 @@ func TestAddLabels(t *testing.T) {
 		{
 			name: "should return false if no changes are made",
 			obj: &corev1.Node{
-				ObjectMeta: metav1.ObjectMeta{
-					Labels: map[string]string{
-						"foo": "bar",
-					},
+				Labels: map[string]string{
+					"foo": "bar",
 				},
 				Spec:   corev1.NodeSpec{},
 				Status: corev1.NodeStatus{},
@@ -61,10 +59,8 @@ func TestAddLabels(t *testing.T) {
 		{
 			name: "should do nothing if no labels are provided",
 			obj: &corev1.Node{
-				ObjectMeta: metav1.ObjectMeta{
-					Labels: map[string]string{
-						"foo": "bar",
-					},
+				Labels: map[string]string{
+					"foo": "bar",
 				},
 				Spec:   corev1.NodeSpec{},
 				Status: corev1.NodeStatus{},
@@ -78,9 +74,7 @@ func TestAddLabels(t *testing.T) {
 		{
 			name: "should do nothing if no labels are provided and have been nil before",
 			obj: &corev1.Node{
-				ObjectMeta: metav1.ObjectMeta{
-					Labels: nil,
-				},
+				Labels: nil,
 				Spec:   corev1.NodeSpec{},
 				Status: corev1.NodeStatus{},
 			},
@@ -91,10 +85,8 @@ func TestAddLabels(t *testing.T) {
 		{
 			name: "should return true if labels are added",
 			obj: &corev1.Node{
-				ObjectMeta: metav1.ObjectMeta{
-					Labels: map[string]string{
-						"foo": "bar",
-					},
+				Labels: map[string]string{
+					"foo": "bar",
 				},
 				Spec:   corev1.NodeSpec{},
 				Status: corev1.NodeStatus{},
@@ -113,10 +105,8 @@ func TestAddLabels(t *testing.T) {
 		{
 			name: "should return true if labels are changed",
 			obj: &corev1.Node{
-				ObjectMeta: metav1.ObjectMeta{
-					Labels: map[string]string{
-						"foo": "bar",
-					},
+				Labels: map[string]string{
+					"foo": "bar",
 				},
 				Spec:   corev1.NodeSpec{},
 				Status: corev1.NodeStatus{},
@@ -132,9 +122,7 @@ func TestAddLabels(t *testing.T) {
 		{
 			name: "should return true if labels are changed and have been nil before",
 			obj: &corev1.Node{
-				ObjectMeta: metav1.ObjectMeta{
-					Labels: nil,
-				},
+				Labels: nil,
 				Spec:   corev1.NodeSpec{},
 				Status: corev1.NodeStatus{},
 			},
@@ -202,10 +190,8 @@ func TestHasWatchLabel(t *testing.T) {
 		{
 			name: "should handle empty input",
 			obj: &corev1.Node{
-				ObjectMeta: metav1.ObjectMeta{
-					Labels: map[string]string{
-						"foo": "bar",
-					},
+				Labels: map[string]string{
+					"foo": "bar",
 				},
 				Spec:   corev1.NodeSpec{},
 				Status: corev1.NodeStatus{},
@@ -216,10 +202,8 @@ func TestHasWatchLabel(t *testing.T) {
 		{
 			name: "should return false if no input string is give",
 			obj: &corev1.Node{
-				ObjectMeta: metav1.ObjectMeta{
-					Labels: map[string]string{
-						clusterv1.WatchLabel: "bar",
-					},
+				Labels: map[string]string{
+					clusterv1.WatchLabel: "bar",
 				},
 			},
 			input:    "",
@@ -228,10 +212,8 @@ func TestHasWatchLabel(t *testing.T) {
 		{
 			name: "should return true if label matches",
 			obj: &corev1.Node{
-				ObjectMeta: metav1.ObjectMeta{
-					Labels: map[string]string{
-						clusterv1.WatchLabel: "bar",
-					},
+				Labels: map[string]string{
+					clusterv1.WatchLabel: "bar",
 				},
 				Spec:   corev1.NodeSpec{},
 				Status: corev1.NodeStatus{},
@@ -258,10 +240,8 @@ func TestIsMachinePoolOwned(t *testing.T) {
 		{
 			name: "machine is a MachinePoolMachine",
 			object: &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Labels: map[string]string{
-						clusterv1.MachinePoolNameLabel: "foo",
-					},
+				Labels: map[string]string{
+					clusterv1.MachinePoolNameLabel: "foo",
 				},
 			},
 			expected: true,
@@ -269,10 +249,8 @@ func TestIsMachinePoolOwned(t *testing.T) {
 		{
 			name: "random type is machinepool owned",
 			object: &corev1.Node{
-				ObjectMeta: metav1.ObjectMeta{
-					Labels: map[string]string{
-						clusterv1.MachinePoolNameLabel: "foo",
-					},
+				Labels: map[string]string{
+					clusterv1.MachinePoolNameLabel: "foo",
 				},
 			},
 			expected: true,
@@ -280,10 +258,8 @@ func TestIsMachinePoolOwned(t *testing.T) {
 		{
 			name: "machine not a MachinePoolMachine with random labels",
 			object: &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Labels: map[string]string{
-						"foo": "bar",
-					},
+				Labels: map[string]string{
+					"foo": "bar",
 				},
 			},
 			expected: false,

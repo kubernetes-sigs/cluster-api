@@ -49,10 +49,8 @@ func TestConnect(t *testing.T) {
 	g := NewWithT(t)
 
 	testCluster := &clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test-cluster",
-			Namespace: metav1.NamespaceDefault,
-		},
+		Name:      "test-cluster",
+		Namespace: metav1.NamespaceDefault,
 		Spec: clusterv1.ClusterSpec{
 			ControlPlaneRef: clusterv1.ContractVersionedObjectReference{
 				APIGroup: builder.ControlPlaneGroupVersion.Group,
@@ -175,10 +173,8 @@ func TestDisconnect(t *testing.T) {
 	g := NewWithT(t)
 
 	testCluster := &clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test-cluster",
-			Namespace: metav1.NamespaceDefault,
-		},
+		Name:      "test-cluster",
+		Namespace: metav1.NamespaceDefault,
 		Spec: clusterv1.ClusterSpec{
 			ControlPlaneRef: clusterv1.ContractVersionedObjectReference{
 				APIGroup: builder.ControlPlaneGroupVersion.Group,
@@ -228,10 +224,8 @@ func TestDisconnect(t *testing.T) {
 
 func TestHealthCheck(t *testing.T) {
 	testCluster := &clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test-cluster",
-			Namespace: metav1.NamespaceDefault,
-		},
+		Name:      "test-cluster",
+		Namespace: metav1.NamespaceDefault,
 		Spec: clusterv1.ClusterSpec{
 			ControlPlaneRef: clusterv1.ContractVersionedObjectReference{
 				APIGroup: builder.ControlPlaneGroupVersion.Group,
@@ -346,10 +340,8 @@ func TestWatch(t *testing.T) {
 	g := NewWithT(t)
 
 	testCluster := &clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test-cluster",
-			Namespace: metav1.NamespaceDefault,
-		},
+		Name:      "test-cluster",
+		Namespace: metav1.NamespaceDefault,
 		Spec: clusterv1.ClusterSpec{
 			ControlPlaneRef: clusterv1.ContractVersionedObjectReference{
 				APIGroup: builder.ControlPlaneGroupVersion.Group,
@@ -414,10 +406,8 @@ func TestConnectWithDefaultTransform(t *testing.T) {
 	g := NewWithT(t)
 
 	testCluster := &clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test-cluster-transform",
-			Namespace: metav1.NamespaceDefault,
-		},
+		Name:      "test-cluster-transform",
+		Namespace: metav1.NamespaceDefault,
 		Spec: clusterv1.ClusterSpec{
 			ControlPlaneRef: clusterv1.ContractVersionedObjectReference{
 				APIGroup: builder.ControlPlaneGroupVersion.Group,

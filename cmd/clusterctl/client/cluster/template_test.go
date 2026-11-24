@@ -31,7 +31,6 @@ import (
 	. "github.com/onsi/gomega"
 	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/repository"
@@ -52,14 +51,10 @@ func Test_templateClient_GetFromConfigMap(t *testing.T) {
 	g.Expect(err).ToNot(HaveOccurred())
 
 	configMap := &corev1.ConfigMap{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "ConfigMap",
-			APIVersion: "v1",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "ns1",
-			Name:      "my-template",
-		},
+		Kind:       "ConfigMap",
+		APIVersion: "v1",
+		Namespace:  "ns1",
+		Name:       "my-template",
 		Data: map[string]string{
 			"prod": template,
 		},

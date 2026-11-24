@@ -21,7 +21,6 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
@@ -222,19 +221,19 @@ func TestPickFewestNew(t *testing.T) {
 
 	fds0 := []clusterv1.FailureDomain{}
 
-	machineA1 := &clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "a1"}, Spec: clusterv1.MachineSpec{FailureDomain: a}}
-	machineA2 := &clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "a2"}, Spec: clusterv1.MachineSpec{FailureDomain: a}}
-	machineB1 := &clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "b1"}, Spec: clusterv1.MachineSpec{FailureDomain: b}}
-	machineC1 := &clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "c1"}, Spec: clusterv1.MachineSpec{FailureDomain: c}}
-	machineA1Old := &clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "a1-old"}, Spec: clusterv1.MachineSpec{FailureDomain: a}}
-	machineA2Old := &clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "a2-old"}, Spec: clusterv1.MachineSpec{FailureDomain: a}}
-	machineB1Old := &clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "b1-old"}, Spec: clusterv1.MachineSpec{FailureDomain: b}}
-	machineB2Old := &clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "b2-old"}, Spec: clusterv1.MachineSpec{FailureDomain: b}}
-	machineC1Old := &clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "c1-old"}, Spec: clusterv1.MachineSpec{FailureDomain: c}}
-	machineA1New := &clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "a1-new"}, Spec: clusterv1.MachineSpec{FailureDomain: a}}
-	machineA2New := &clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "a2-new"}, Spec: clusterv1.MachineSpec{FailureDomain: a}}
-	machineB1New := &clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "b1-new"}, Spec: clusterv1.MachineSpec{FailureDomain: b}}
-	machineC1New := &clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "c1-new"}, Spec: clusterv1.MachineSpec{FailureDomain: c}}
+	machineA1 := &clusterv1.Machine{Name: "a1", Spec: clusterv1.MachineSpec{FailureDomain: a}}
+	machineA2 := &clusterv1.Machine{Name: "a2", Spec: clusterv1.MachineSpec{FailureDomain: a}}
+	machineB1 := &clusterv1.Machine{Name: "b1", Spec: clusterv1.MachineSpec{FailureDomain: b}}
+	machineC1 := &clusterv1.Machine{Name: "c1", Spec: clusterv1.MachineSpec{FailureDomain: c}}
+	machineA1Old := &clusterv1.Machine{Name: "a1-old", Spec: clusterv1.MachineSpec{FailureDomain: a}}
+	machineA2Old := &clusterv1.Machine{Name: "a2-old", Spec: clusterv1.MachineSpec{FailureDomain: a}}
+	machineB1Old := &clusterv1.Machine{Name: "b1-old", Spec: clusterv1.MachineSpec{FailureDomain: b}}
+	machineB2Old := &clusterv1.Machine{Name: "b2-old", Spec: clusterv1.MachineSpec{FailureDomain: b}}
+	machineC1Old := &clusterv1.Machine{Name: "c1-old", Spec: clusterv1.MachineSpec{FailureDomain: c}}
+	machineA1New := &clusterv1.Machine{Name: "a1-new", Spec: clusterv1.MachineSpec{FailureDomain: a}}
+	machineA2New := &clusterv1.Machine{Name: "a2-new", Spec: clusterv1.MachineSpec{FailureDomain: a}}
+	machineB1New := &clusterv1.Machine{Name: "b1-new", Spec: clusterv1.MachineSpec{FailureDomain: b}}
+	machineC1New := &clusterv1.Machine{Name: "c1-new", Spec: clusterv1.MachineSpec{FailureDomain: c}}
 
 	testcases := []struct {
 		name             string
@@ -512,21 +511,21 @@ func TestPickMostNew(t *testing.T) {
 
 	fds0 := []clusterv1.FailureDomain{}
 
-	machineA1 := &clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "a1"}, Spec: clusterv1.MachineSpec{FailureDomain: a}}
-	machineA2 := &clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "a2"}, Spec: clusterv1.MachineSpec{FailureDomain: a}}
-	machineB1 := &clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "b1"}, Spec: clusterv1.MachineSpec{FailureDomain: b}}
-	machineB2 := &clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "b2"}, Spec: clusterv1.MachineSpec{FailureDomain: b}}
-	machineC1 := &clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "c1"}, Spec: clusterv1.MachineSpec{FailureDomain: c}}
-	machineA1Old := &clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "a1-old"}, Spec: clusterv1.MachineSpec{FailureDomain: a}}
-	machineA2Old := &clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "a2-old"}, Spec: clusterv1.MachineSpec{FailureDomain: a}}
-	machineB1Old := &clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "b1-old"}, Spec: clusterv1.MachineSpec{FailureDomain: b}}
-	machineB2Old := &clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "b2-old"}, Spec: clusterv1.MachineSpec{FailureDomain: b}}
-	machineC1Old := &clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "c1-old"}, Spec: clusterv1.MachineSpec{FailureDomain: c}}
-	machineA1New := &clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "a1-new"}, Spec: clusterv1.MachineSpec{FailureDomain: a}}
-	machineA2New := &clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "a2-new"}, Spec: clusterv1.MachineSpec{FailureDomain: a}}
-	machineB1New := &clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "b1-new"}, Spec: clusterv1.MachineSpec{FailureDomain: b}}
-	machineB2New := &clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "b2-new"}, Spec: clusterv1.MachineSpec{FailureDomain: b}}
-	machineC1New := &clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "c1-new"}, Spec: clusterv1.MachineSpec{FailureDomain: c}}
+	machineA1 := &clusterv1.Machine{Name: "a1", Spec: clusterv1.MachineSpec{FailureDomain: a}}
+	machineA2 := &clusterv1.Machine{Name: "a2", Spec: clusterv1.MachineSpec{FailureDomain: a}}
+	machineB1 := &clusterv1.Machine{Name: "b1", Spec: clusterv1.MachineSpec{FailureDomain: b}}
+	machineB2 := &clusterv1.Machine{Name: "b2", Spec: clusterv1.MachineSpec{FailureDomain: b}}
+	machineC1 := &clusterv1.Machine{Name: "c1", Spec: clusterv1.MachineSpec{FailureDomain: c}}
+	machineA1Old := &clusterv1.Machine{Name: "a1-old", Spec: clusterv1.MachineSpec{FailureDomain: a}}
+	machineA2Old := &clusterv1.Machine{Name: "a2-old", Spec: clusterv1.MachineSpec{FailureDomain: a}}
+	machineB1Old := &clusterv1.Machine{Name: "b1-old", Spec: clusterv1.MachineSpec{FailureDomain: b}}
+	machineB2Old := &clusterv1.Machine{Name: "b2-old", Spec: clusterv1.MachineSpec{FailureDomain: b}}
+	machineC1Old := &clusterv1.Machine{Name: "c1-old", Spec: clusterv1.MachineSpec{FailureDomain: c}}
+	machineA1New := &clusterv1.Machine{Name: "a1-new", Spec: clusterv1.MachineSpec{FailureDomain: a}}
+	machineA2New := &clusterv1.Machine{Name: "a2-new", Spec: clusterv1.MachineSpec{FailureDomain: a}}
+	machineB1New := &clusterv1.Machine{Name: "b1-new", Spec: clusterv1.MachineSpec{FailureDomain: b}}
+	machineB2New := &clusterv1.Machine{Name: "b2-new", Spec: clusterv1.MachineSpec{FailureDomain: b}}
+	machineC1New := &clusterv1.Machine{Name: "c1-new", Spec: clusterv1.MachineSpec{FailureDomain: c}}
 
 	testcases := []struct {
 		name             string
@@ -845,10 +844,10 @@ func TestCountByFailureDomain(t *testing.T) {
 		{Name: a, ControlPlane: new(true)},
 		{Name: b, ControlPlane: new(true)},
 	}
-	machinea1 := &clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "a1"}, Spec: clusterv1.MachineSpec{FailureDomain: a}}
-	machinea2 := &clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "a2"}, Spec: clusterv1.MachineSpec{FailureDomain: a}}
-	machineb1 := &clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "b1"}, Spec: clusterv1.MachineSpec{FailureDomain: b}}
-	machinenil := &clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "nil"}, Spec: clusterv1.MachineSpec{FailureDomain: ""}}
+	machinea1 := &clusterv1.Machine{Name: "a1", Spec: clusterv1.MachineSpec{FailureDomain: a}}
+	machinea2 := &clusterv1.Machine{Name: "a2", Spec: clusterv1.MachineSpec{FailureDomain: a}}
+	machineb1 := &clusterv1.Machine{Name: "b1", Spec: clusterv1.MachineSpec{FailureDomain: b}}
+	machinenil := &clusterv1.Machine{Name: "nil", Spec: clusterv1.MachineSpec{FailureDomain: ""}}
 
 	allMachines := collections.FromMachines(machinea1, machinea2, machineb1, machinenil)
 	priorityMachines := collections.FromMachines(machinea1)

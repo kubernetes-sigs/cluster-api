@@ -383,10 +383,8 @@ func TestGetFilteredMachinesForCluster(t *testing.T) {
 	g := NewWithT(t)
 
 	cluster := &clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "my-namespace",
-			Name:      "my-cluster",
-		},
+		Namespace: "my-namespace",
+		Name:      "my-cluster",
 	}
 
 	scheme := runtime.NewScheme()
@@ -546,12 +544,10 @@ func testControlPlaneMachine(name string) *clusterv1.Machine {
 
 func testMachine(name string) *clusterv1.Machine {
 	return &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: "my-namespace",
-			Labels: map[string]string{
-				clusterv1.ClusterNameLabel: "my-cluster",
-			},
+		Name:      name,
+		Namespace: "my-namespace",
+		Labels: map[string]string{
+			clusterv1.ClusterNameLabel: "my-cluster",
 		},
 	}
 }

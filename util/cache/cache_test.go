@@ -22,7 +22,6 @@ import (
 	"time"
 
 	. "github.com/onsi/gomega"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
@@ -34,10 +33,8 @@ func TestCache(t *testing.T) {
 	c := New[HookEntry](t.Context(), DefaultTTL)
 
 	machine := &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "default",
-			Name:      "test-machine",
-		},
+		Namespace: "default",
+		Name:      "test-machine",
 	}
 	entry := NewHookEntry(machine, runtimehooksv1.UpdateMachine, time.Now(), "response message")
 	_, ok := c.Has(entry.Key())
@@ -95,13 +92,9 @@ func TestCache(t *testing.T) {
 
 			g.Expect(entryFromCache.ToResponse(&runtimehooksv1.UpdateMachineResponse{}, tt.requeueAfter)).To(Equal(
 				&runtimehooksv1.UpdateMachineResponse{
-					CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
-						CommonResponse: runtimehooksv1.CommonResponse{
-							Status:  runtimehooksv1.ResponseStatusSuccess,
-							Message: entry.ResponseMessage,
-						},
-						RetryAfterSeconds: tt.expectedRetryAfterSeconds,
-					},
+					Status:            runtimehooksv1.ResponseStatusSuccess,
+					Message:           entry.ResponseMessage,
+					RetryAfterSeconds: tt.expectedRetryAfterSeconds,
 				},
 			))
 		})

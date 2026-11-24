@@ -148,10 +148,8 @@ func (c *controllerWrapper) DeferNextReconcile(req reconcile.Request, reconcileA
 
 func (c *controllerWrapper) DeferNextReconcileForObject(obj metav1.Object, reconcileAfter time.Time) {
 	c.DeferNextReconcile(reconcile.Request{
-		NamespacedName: types.NamespacedName{
-			Namespace: obj.GetNamespace(),
-			Name:      obj.GetName(),
-		}}, reconcileAfter)
+		Namespace: obj.GetNamespace(),
+		Name:      obj.GetName()}, reconcileAfter)
 }
 
 // reconcileCacheEntry is an Entry for the Cache that stores the

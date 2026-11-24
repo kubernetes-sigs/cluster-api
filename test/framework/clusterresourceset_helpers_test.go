@@ -20,7 +20,6 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	addonsv1 "sigs.k8s.io/cluster-api/api/addons/v1beta2"
 )
@@ -56,7 +55,7 @@ func Test_getResourceSetBindingForClusterResourceSet(t *testing.T) {
 				},
 			},
 		},
-		inputCRS: &addonsv1.ClusterResourceSet{ObjectMeta: metav1.ObjectMeta{Name: "foo"}},
+		inputCRS: &addonsv1.ClusterResourceSet{Name: "foo"},
 		want:     nil,
 	}, {
 		name: "CRSB with single matching bindings",
@@ -67,7 +66,7 @@ func Test_getResourceSetBindingForClusterResourceSet(t *testing.T) {
 				},
 			},
 		},
-		inputCRS: &addonsv1.ClusterResourceSet{ObjectMeta: metav1.ObjectMeta{Name: "foo"}},
+		inputCRS: &addonsv1.ClusterResourceSet{Name: "foo"},
 		want:     &addonsv1.ResourceSetBinding{ClusterResourceSetName: "foo"},
 	}, {
 		name: "CRSB with multiple bindings with match at index 0",
@@ -79,7 +78,7 @@ func Test_getResourceSetBindingForClusterResourceSet(t *testing.T) {
 				},
 			},
 		},
-		inputCRS: &addonsv1.ClusterResourceSet{ObjectMeta: metav1.ObjectMeta{Name: "foo"}},
+		inputCRS: &addonsv1.ClusterResourceSet{Name: "foo"},
 		want:     &addonsv1.ResourceSetBinding{ClusterResourceSetName: "foo"},
 	}, {
 		name: "CRSB with multiple bindings with match at index 1",
@@ -91,7 +90,7 @@ func Test_getResourceSetBindingForClusterResourceSet(t *testing.T) {
 				},
 			},
 		},
-		inputCRS: &addonsv1.ClusterResourceSet{ObjectMeta: metav1.ObjectMeta{Name: "foo"}},
+		inputCRS: &addonsv1.ClusterResourceSet{Name: "foo"},
 		want:     &addonsv1.ResourceSetBinding{ClusterResourceSetName: "foo"},
 	}, {
 		name: "CRSB with multiple bindings with match at middle index",
@@ -104,7 +103,7 @@ func Test_getResourceSetBindingForClusterResourceSet(t *testing.T) {
 				},
 			},
 		},
-		inputCRS: &addonsv1.ClusterResourceSet{ObjectMeta: metav1.ObjectMeta{Name: "foo"}},
+		inputCRS: &addonsv1.ClusterResourceSet{Name: "foo"},
 		want:     &addonsv1.ResourceSetBinding{ClusterResourceSetName: "foo"},
 	}, {
 		name: "CRSB with multiple bindings with match at last index",
@@ -117,7 +116,7 @@ func Test_getResourceSetBindingForClusterResourceSet(t *testing.T) {
 				},
 			},
 		},
-		inputCRS: &addonsv1.ClusterResourceSet{ObjectMeta: metav1.ObjectMeta{Name: "foo"}},
+		inputCRS: &addonsv1.ClusterResourceSet{Name: "foo"},
 		want:     &addonsv1.ResourceSetBinding{ClusterResourceSetName: "foo"},
 	}}
 	for _, tt := range tests {

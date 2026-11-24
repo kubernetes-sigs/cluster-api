@@ -305,9 +305,7 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 			Expect(managementClusterProxy).ToNot(BeNil(), "Failed to get a kind cluster proxy")
 
 			managementClusterResources.Cluster = &clusterv1.Cluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: managementClusterName,
-				},
+				Name: managementClusterName,
 			}
 		} else {
 			By("Creating a workload cluster to be used as a new management cluster")
@@ -796,10 +794,8 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 			// Dump all the logs from the workload cluster before deleting them.
 			framework.DumpAllResourcesAndLogs(ctx, managementClusterProxy, input.ClusterctlConfigPath, input.ArtifactFolder, testNamespace, &clusterv1.Cluster{
 				// DumpAllResourcesAndLogs only uses Namespace + Name from the Cluster object.
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: testNamespace.Name,
-					Name:      workloadClusterName,
-				},
+				Namespace: testNamespace.Name,
+				Name:      workloadClusterName,
 			})
 
 			if !input.SkipCleanup {

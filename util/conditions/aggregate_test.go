@@ -431,10 +431,8 @@ func TestAggregate(t *testing.T) {
 			objs := make([]Getter, 0, len(tt.conditions))
 			for i := range tt.conditions {
 				objs = append(objs, &builder.Phase3Obj{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: metav1.NamespaceDefault,
-						Name:      fmt.Sprintf("obj%d", i),
-					},
+					Namespace: metav1.NamespaceDefault,
+					Name:      fmt.Sprintf("obj%d", i),
 					Status: builder.Phase3ObjStatus{
 						Conditions: tt.conditions[i],
 					},

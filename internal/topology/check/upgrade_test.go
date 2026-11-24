@@ -22,7 +22,6 @@ import (
 
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -165,13 +164,13 @@ func TestIsMachinePoolUpgrading(t *testing.T) {
 				Build(),
 			nodes: []*corev1.Node{
 				{
-					ObjectMeta: metav1.ObjectMeta{Name: "node1"},
+					Name: "node1",
 					Status: corev1.NodeStatus{
 						NodeInfo: corev1.NodeSystemInfo{KubeletVersion: "v1.2.3"},
 					},
 				},
 				{
-					ObjectMeta: metav1.ObjectMeta{Name: "node2"},
+					Name: "node2",
 					Status: corev1.NodeStatus{
 						NodeInfo: corev1.NodeSystemInfo{KubeletVersion: "v1.2.3"},
 					},
@@ -194,13 +193,13 @@ func TestIsMachinePoolUpgrading(t *testing.T) {
 				Build(),
 			nodes: []*corev1.Node{
 				{
-					ObjectMeta: metav1.ObjectMeta{Name: "node1"},
+					Name: "node1",
 					Status: corev1.NodeStatus{
 						NodeInfo: corev1.NodeSystemInfo{KubeletVersion: "v1.2.3"},
 					},
 				},
 				{
-					ObjectMeta: metav1.ObjectMeta{Name: "node2"},
+					Name: "node2",
 					Status: corev1.NodeStatus{
 						NodeInfo: corev1.NodeSystemInfo{KubeletVersion: "v1.2.2"},
 					},

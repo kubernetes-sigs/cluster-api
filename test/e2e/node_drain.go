@@ -491,10 +491,10 @@ func NodeDrainTimeoutSpec(ctx context.Context, inputGetter func() NodeDrainTimeo
 
 		By("Force deleting the WaitCompleted Pods")
 		forceDeleteOpts := &client.DeleteOptions{GracePeriodSeconds: ptr.To[int64](0)}
-		waitDeploy := &appsv1.Deployment{ObjectMeta: metav1.ObjectMeta{Namespace: "unevictable-workload", Name: cpDeploymentName("wait-completed")}}
+		waitDeploy := &appsv1.Deployment{Namespace: "unevictable-workload", Name: cpDeploymentName("wait-completed")}
 		Expect(workloadClusterProxy.GetClient().Delete(ctx, waitDeploy, forceDeleteOpts)).To(Succeed())
 		for _, md := range machineDeployments {
-			waitDeploy := &appsv1.Deployment{ObjectMeta: metav1.ObjectMeta{Namespace: "unevictable-workload", Name: mdDeploymentName("wait-completed", md.Name)}}
+			waitDeploy := &appsv1.Deployment{Namespace: "unevictable-workload", Name: mdDeploymentName("wait-completed", md.Name)}
 			Expect(workloadClusterProxy.GetClient().Delete(ctx, waitDeploy, forceDeleteOpts)).To(Succeed())
 		}
 
@@ -636,10 +636,8 @@ func NodeDrainTimeoutSpec(ctx context.Context, inputGetter func() NodeDrainTimeo
 
 func generateMachineDrainRule(clusterNamespace, clusterName, mdrName string, order int32) *clusterv1.MachineDrainRule {
 	return &clusterv1.MachineDrainRule{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      mdrName,
-			Namespace: clusterNamespace,
-		},
+		Name:      mdrName,
+		Namespace: clusterNamespace,
 		Spec: clusterv1.MachineDrainRuleSpec{
 			Drain: clusterv1.MachineDrainRuleDrainConfig{
 				Behavior: clusterv1.MachineDrainRuleDrainBehaviorDrain,

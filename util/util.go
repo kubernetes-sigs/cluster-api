@@ -232,10 +232,8 @@ func ClusterToInfrastructureMapFunc(ctx context.Context, gvk schema.GroupVersion
 
 		return []reconcile.Request{
 			{
-				NamespacedName: client.ObjectKey{
-					Namespace: cluster.Namespace,
-					Name:      cluster.Spec.InfrastructureRef.Name,
-				},
+				Namespace: cluster.Namespace,
+				Name:      cluster.Spec.InfrastructureRef.Name,
 			},
 		}
 	}
@@ -256,7 +254,7 @@ func ClusterToControlPlaneMapFunc(gk schema.GroupKind) handler.MapFunc {
 		}
 
 		return []reconcile.Request{{
-			NamespacedName: client.ObjectKey{Namespace: cluster.Namespace, Name: ref.Name},
+			Namespace: cluster.Namespace, Name: ref.Name,
 		}}
 	}
 }
@@ -303,10 +301,8 @@ func MachineToInfrastructureMapFunc(gvk schema.GroupVersionKind) handler.MapFunc
 
 		return []reconcile.Request{
 			{
-				NamespacedName: client.ObjectKey{
-					Namespace: m.Namespace,
-					Name:      m.Spec.InfrastructureRef.Name,
-				},
+				Namespace: m.Namespace,
+				Name:      m.Spec.InfrastructureRef.Name,
 			},
 		}
 	}
@@ -538,7 +534,7 @@ func ClusterToTypedObjectsMapper(c client.Client, ro client.ObjectList, scheme *
 			// are client.Objects.
 			o := obj.(client.Object)
 			results = append(results, ctrl.Request{
-				NamespacedName: client.ObjectKey{Namespace: o.GetNamespace(), Name: o.GetName()},
+				Namespace: o.GetNamespace(), Name: o.GetName(),
 			})
 		}
 		return results
@@ -602,7 +598,7 @@ func MachineDeploymentToObjectsMapper(c client.Client, ro client.ObjectList, sch
 			// are client.Objects.
 			o := obj.(client.Object)
 			results = append(results, ctrl.Request{
-				NamespacedName: client.ObjectKey{Namespace: o.GetNamespace(), Name: o.GetName()},
+				Namespace: o.GetNamespace(), Name: o.GetName(),
 			})
 		}
 		return results
@@ -666,7 +662,7 @@ func MachineSetToObjectsMapper(c client.Client, ro client.ObjectList, scheme *ru
 			// are client.Objects.
 			o := obj.(client.Object)
 			results = append(results, ctrl.Request{
-				NamespacedName: client.ObjectKey{Namespace: o.GetNamespace(), Name: o.GetName()},
+				Namespace: o.GetNamespace(), Name: o.GetName(),
 			})
 		}
 		return results
@@ -852,10 +848,8 @@ func MachinePoolToInfrastructureMapFunc(ctx context.Context, gvk schema.GroupVer
 		log.V(4).Info("Projecting object")
 		return []reconcile.Request{
 			{
-				NamespacedName: client.ObjectKey{
-					Namespace: m.Namespace,
-					Name:      ref.Name,
-				},
+				Namespace: m.Namespace,
+				Name:      ref.Name,
 			},
 		}
 	}

@@ -55,10 +55,8 @@ func TestMachineToInfrastructureMapFunc(t *testing.T) {
 				Kind:    "TestMachine",
 			},
 			request: &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: metav1.NamespaceDefault,
-					Name:      "test-1",
-				},
+				Namespace: metav1.NamespaceDefault,
+				Name:      "test-1",
 				Spec: clusterv1.MachineSpec{
 					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
 						APIGroup: "foo.cluster.x-k8s.io",
@@ -69,10 +67,8 @@ func TestMachineToInfrastructureMapFunc(t *testing.T) {
 			},
 			output: []reconcile.Request{
 				{
-					NamespacedName: client.ObjectKey{
-						Namespace: metav1.NamespaceDefault,
-						Name:      "infra-1",
-					},
+					Namespace: metav1.NamespaceDefault,
+					Name:      "infra-1",
 				},
 			},
 		},
@@ -84,10 +80,8 @@ func TestMachineToInfrastructureMapFunc(t *testing.T) {
 				Kind:    "TestMachine",
 			},
 			request: &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: metav1.NamespaceDefault,
-					Name:      "test-1",
-				},
+				Namespace: metav1.NamespaceDefault,
+				Name:      "test-1",
 				Spec: clusterv1.MachineSpec{
 					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
 						APIGroup: "bar.cluster.x-k8s.io",
@@ -125,10 +119,8 @@ func TestClusterToInfrastructureMapFunc(t *testing.T) {
 				Kind:    "TestCluster",
 			},
 			request: &clusterv1.Cluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: metav1.NamespaceDefault,
-					Name:      "test-1",
-				},
+				Namespace: metav1.NamespaceDefault,
+				Name:      "test-1",
 				Spec: clusterv1.ClusterSpec{
 					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
 						APIGroup: "foo.cluster.x-k8s.io",
@@ -147,10 +139,8 @@ func TestClusterToInfrastructureMapFunc(t *testing.T) {
 			}},
 			output: []reconcile.Request{
 				{
-					NamespacedName: client.ObjectKey{
-						Namespace: metav1.NamespaceDefault,
-						Name:      "infra-1",
-					},
+					Namespace: metav1.NamespaceDefault,
+					Name:      "infra-1",
 				},
 			},
 		},
@@ -162,10 +152,8 @@ func TestClusterToInfrastructureMapFunc(t *testing.T) {
 				Kind:    "TestCluster",
 			},
 			request: &clusterv1.Cluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: metav1.NamespaceDefault,
-					Name:      "test-1",
-				},
+				Namespace: metav1.NamespaceDefault,
+				Name:      "test-1",
 				Spec: clusterv1.ClusterSpec{
 					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
 						APIGroup: "bar.cluster.x-k8s.io",
@@ -184,10 +172,8 @@ func TestClusterToInfrastructureMapFunc(t *testing.T) {
 				Kind:    "TestCluster",
 			},
 			request: &clusterv1.Cluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: metav1.NamespaceDefault,
-					Name:      "test-1",
-				},
+				Namespace: metav1.NamespaceDefault,
+				Name:      "test-1",
 				Spec: clusterv1.ClusterSpec{
 					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
 						APIGroup: "foo.cluster.x-k8s.io",
@@ -241,7 +227,7 @@ func TestClusterToControlPlaneMapFunc(t *testing.T) {
 		{
 			name: "should reconcile the control plane",
 			object: &clusterv1.Cluster{
-				ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Name: "test-1"},
+				Namespace: metav1.NamespaceDefault, Name: "test-1",
 				Spec: clusterv1.ClusterSpec{
 					ControlPlaneRef: clusterv1.ContractVersionedObjectReference{
 						APIGroup: "controlplane.cluster.x-k8s.io",
@@ -251,20 +237,20 @@ func TestClusterToControlPlaneMapFunc(t *testing.T) {
 				},
 			},
 			output: []reconcile.Request{
-				{NamespacedName: client.ObjectKey{Namespace: metav1.NamespaceDefault, Name: "cp-1"}},
+				{Namespace: metav1.NamespaceDefault, Name: "cp-1"},
 			},
 		},
 		{
 			name: "should return nil if controlPlaneRef is not defined",
 			object: &clusterv1.Cluster{
-				ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Name: "test-1"},
+				Namespace: metav1.NamespaceDefault, Name: "test-1",
 			},
 			output: nil,
 		},
 		{
 			name: "should return nil if controlPlaneRef has a different kind",
 			object: &clusterv1.Cluster{
-				ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Name: "test-1"},
+				Namespace: metav1.NamespaceDefault, Name: "test-1",
 				Spec: clusterv1.ClusterSpec{
 					ControlPlaneRef: clusterv1.ContractVersionedObjectReference{
 						APIGroup: "controlplane.cluster.x-k8s.io",
@@ -278,7 +264,7 @@ func TestClusterToControlPlaneMapFunc(t *testing.T) {
 		{
 			name: "should return nil if controlPlaneRef has a different group",
 			object: &clusterv1.Cluster{
-				ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Name: "test-1"},
+				Namespace: metav1.NamespaceDefault, Name: "test-1",
 				Spec: clusterv1.ClusterSpec{
 					ControlPlaneRef: clusterv1.ContractVersionedObjectReference{
 						APIGroup: "other.cluster.x-k8s.io",
@@ -291,7 +277,7 @@ func TestClusterToControlPlaneMapFunc(t *testing.T) {
 		},
 		{
 			name:   "should return nil if the object is not a Cluster",
-			object: &clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Name: "test-1"}},
+			object: &clusterv1.Machine{Namespace: metav1.NamespaceDefault, Name: "test-1"},
 			output: nil,
 		},
 	}
@@ -421,9 +407,7 @@ func TestIsOwnedByObject(t *testing.T) {
 	targetName := "fri3ndsh1p"
 
 	meta := fakeMeta{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: targetName,
-		},
+		Name: targetName,
 	}
 
 	tests := []struct {
@@ -518,10 +502,8 @@ func TestGetOwnerClusterSuccessByName(t *testing.T) {
 	g := NewWithT(t)
 
 	myCluster := &clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "my-cluster",
-			Namespace: metav1.NamespaceDefault,
-		},
+		Name:      "my-cluster",
+		Namespace: metav1.NamespaceDefault,
 	}
 
 	c := fake.NewClientBuilder().
@@ -554,10 +536,8 @@ func TestGetOwnerMachineSuccessByName(t *testing.T) {
 	g := NewWithT(t)
 
 	myMachine := &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "my-machine",
-			Namespace: metav1.NamespaceDefault,
-		},
+		Name:      "my-machine",
+		Namespace: metav1.NamespaceDefault,
 	}
 
 	c := fake.NewClientBuilder().
@@ -584,10 +564,8 @@ func TestGetOwnerMachineSuccessByNameFromDifferentVersion(t *testing.T) {
 	g := NewWithT(t)
 
 	myMachine := &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "my-machine",
-			Namespace: metav1.NamespaceDefault,
-		},
+		Name:      "my-machine",
+		Namespace: metav1.NamespaceDefault,
 	}
 
 	c := fake.NewClientBuilder().
@@ -666,13 +644,11 @@ func TestEnsureOwnerRef(t *testing.T) {
 
 	t.Run("should not duplicate owner references", func(*testing.T) {
 		obj := &clusterv1.Machine{
-			ObjectMeta: metav1.ObjectMeta{
-				OwnerReferences: []metav1.OwnerReference{
-					{
-						APIVersion: clusterv1.GroupVersion.String(),
-						Kind:       "Cluster",
-						Name:       "test-cluster",
-					},
+			OwnerReferences: []metav1.OwnerReference{
+				{
+					APIVersion: clusterv1.GroupVersion.String(),
+					Kind:       "Cluster",
+					Name:       "test-cluster",
 				},
 			},
 		}
@@ -692,13 +668,11 @@ func TestEnsureOwnerRef(t *testing.T) {
 			Version: "v1alpha2",
 		}
 		obj := &clusterv1.Machine{
-			ObjectMeta: metav1.ObjectMeta{
-				OwnerReferences: []metav1.OwnerReference{
-					{
-						APIVersion: oldgvk.String(),
-						Kind:       "Cluster",
-						Name:       "test-cluster",
-					},
+			OwnerReferences: []metav1.OwnerReference{
+				{
+					APIVersion: oldgvk.String(),
+					Kind:       "Cluster",
+					Name:       "test-cluster",
 				},
 			},
 		}
@@ -717,9 +691,7 @@ func TestClusterToObjectsMapper(t *testing.T) {
 	g := NewWithT(t)
 
 	cluster := &clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "test1",
-		},
+		Name: "test1",
 	}
 
 	table := []struct {
@@ -734,25 +706,21 @@ func TestClusterToObjectsMapper(t *testing.T) {
 			input: &clusterv1.MachineList{},
 			objects: []client.Object{
 				&clusterv1.Machine{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "machine1",
-						Labels: map[string]string{
-							clusterv1.ClusterNameLabel: "test1",
-						},
+					Name: "machine1",
+					Labels: map[string]string{
+						clusterv1.ClusterNameLabel: "test1",
 					},
 				},
 				&clusterv1.Machine{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "machine2",
-						Labels: map[string]string{
-							clusterv1.ClusterNameLabel: "test1",
-						},
+					Name: "machine2",
+					Labels: map[string]string{
+						clusterv1.ClusterNameLabel: "test1",
 					},
 				},
 			},
 			output: []ctrl.Request{
-				{NamespacedName: client.ObjectKey{Name: "machine1"}},
-				{NamespacedName: client.ObjectKey{Name: "machine2"}},
+				{Name: "machine1"},
+				{Name: "machine2"},
 			},
 		},
 		{
@@ -760,38 +728,30 @@ func TestClusterToObjectsMapper(t *testing.T) {
 			input: &clusterv1.MachineDeploymentList{},
 			objects: []client.Object{
 				&clusterv1.MachineDeployment{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "md1",
-						Labels: map[string]string{
-							clusterv1.ClusterNameLabel: "test1",
-						},
+					Name: "md1",
+					Labels: map[string]string{
+						clusterv1.ClusterNameLabel: "test1",
 					},
 				},
 				&clusterv1.MachineDeployment{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "md2",
-						Labels: map[string]string{
-							clusterv1.ClusterNameLabel: "test2",
-						},
+					Name: "md2",
+					Labels: map[string]string{
+						clusterv1.ClusterNameLabel: "test2",
 					},
 				},
 				&clusterv1.MachineDeployment{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "md3",
-						Labels: map[string]string{
-							clusterv1.ClusterNameLabel: "test1",
-						},
+					Name: "md3",
+					Labels: map[string]string{
+						clusterv1.ClusterNameLabel: "test1",
 					},
 				},
 				&clusterv1.MachineDeployment{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "md4",
-					},
+					Name: "md4",
 				},
 			},
 			output: []ctrl.Request{
-				{NamespacedName: client.ObjectKey{Name: "md1"}},
-				{NamespacedName: client.ObjectKey{Name: "md3"}},
+				{Name: "md1"},
+				{Name: "md3"},
 			},
 		},
 	}
@@ -820,9 +780,7 @@ func TestMachineDeploymentToObjectsMapper(t *testing.T) {
 	g := NewWithT(t)
 
 	machineDeployment := &clusterv1.MachineDeployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "cluster-md-0",
-		},
+		Name: "cluster-md-0",
 	}
 
 	table := []struct {
@@ -835,25 +793,21 @@ func TestMachineDeploymentToObjectsMapper(t *testing.T) {
 			name: "should return a list of requests with labelled machines",
 			objects: []client.Object{
 				&clusterv1.Machine{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "machine1",
-						Labels: map[string]string{
-							clusterv1.MachineDeploymentNameLabel: machineDeployment.GetName(),
-						},
+					Name: "machine1",
+					Labels: map[string]string{
+						clusterv1.MachineDeploymentNameLabel: machineDeployment.GetName(),
 					},
 				},
 				&clusterv1.Machine{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "machine2",
-						Labels: map[string]string{
-							clusterv1.MachineDeploymentNameLabel: machineDeployment.GetName(),
-						},
+					Name: "machine2",
+					Labels: map[string]string{
+						clusterv1.MachineDeploymentNameLabel: machineDeployment.GetName(),
 					},
 				},
 			},
 			output: []ctrl.Request{
-				{NamespacedName: client.ObjectKey{Name: "machine1"}},
-				{NamespacedName: client.ObjectKey{Name: "machine2"}},
+				{Name: "machine1"},
+				{Name: "machine2"},
 			},
 		},
 	}
@@ -890,58 +844,48 @@ func TestMachineSetToObjectsMapper(t *testing.T) {
 	}{
 		{
 			name: "should return a list of requests with labelled machines",
-			machineSet: &clusterv1.MachineSet{ObjectMeta: metav1.ObjectMeta{
-				Name: "cluster-ms-0",
-			}},
+			machineSet: &clusterv1.MachineSet{
+				Name: "cluster-ms-0"},
 			objects: []client.Object{
 				&clusterv1.Machine{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "machine1",
-						Labels: map[string]string{
-							clusterv1.MachineSetNameLabel: format.MustFormatValue("cluster-ms-0"),
-						},
+					Name: "machine1",
+					Labels: map[string]string{
+						clusterv1.MachineSetNameLabel: format.MustFormatValue("cluster-ms-0"),
 					},
 				},
 				&clusterv1.Machine{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "machine2",
-						Labels: map[string]string{
-							clusterv1.MachineSetNameLabel: format.MustFormatValue("cluster-ms-0"),
-						},
+					Name: "machine2",
+					Labels: map[string]string{
+						clusterv1.MachineSetNameLabel: format.MustFormatValue("cluster-ms-0"),
 					},
 				},
 			},
 			output: []ctrl.Request{
-				{NamespacedName: client.ObjectKey{Name: "machine1"}},
-				{NamespacedName: client.ObjectKey{Name: "machine2"}},
+				{Name: "machine1"},
+				{Name: "machine2"},
 			},
 		},
 		{
 			name: "should return a list of requests with labelled machines when the machineset name is hashed in the label",
-			machineSet: &clusterv1.MachineSet{ObjectMeta: metav1.ObjectMeta{
-				Name: "cluster-ms-0-looooooooooooooooooooooooooooooooooooooooooooong-name",
-			}},
+			machineSet: &clusterv1.MachineSet{
+				Name: "cluster-ms-0-looooooooooooooooooooooooooooooooooooooooooooong-name"},
 			objects: []client.Object{
 				&clusterv1.Machine{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "machine1",
-						Labels: map[string]string{
-							clusterv1.MachineSetNameLabel: format.MustFormatValue("cluster-ms-0-looooooooooooooooooooooooooooooooooooooooooooong-name"),
-						},
+					Name: "machine1",
+					Labels: map[string]string{
+						clusterv1.MachineSetNameLabel: format.MustFormatValue("cluster-ms-0-looooooooooooooooooooooooooooooooooooooooooooong-name"),
 					},
 				},
 				&clusterv1.Machine{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "machine2",
-						Labels: map[string]string{
-							clusterv1.MachineSetNameLabel: format.MustFormatValue("cluster-ms-0-looooooooooooooooooooooooooooooooooooooooooooong-name"),
-						},
+					Name: "machine2",
+					Labels: map[string]string{
+						clusterv1.MachineSetNameLabel: format.MustFormatValue("cluster-ms-0-looooooooooooooooooooooooooooooooooooooooooooong-name"),
 					},
 				},
 			},
 			output: []ctrl.Request{
-				{NamespacedName: client.ObjectKey{Name: "machine1"}},
-				{NamespacedName: client.ObjectKey{Name: "machine2"}},
+				{Name: "machine1"},
+				{Name: "machine2"},
 			},
 		},
 	}
@@ -1152,16 +1096,12 @@ func TestGetMachinePoolByLabels(t *testing.T) {
 			},
 			machinePools: []client.Object{
 				&clusterv1.MachinePool{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "test-pool",
-						Namespace: "default",
-					},
+					Name:      "test-pool",
+					Namespace: "default",
 				},
 				&clusterv1.MachinePool{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "other-pool",
-						Namespace: "default",
-					},
+					Name:      "other-pool",
+					Namespace: "default",
 				},
 			},
 			expectedMachinePoolName: "test-pool",
@@ -1174,21 +1114,17 @@ func TestGetMachinePoolByLabels(t *testing.T) {
 			},
 			machinePools: []client.Object{
 				&clusterv1.MachinePool{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "test-pool",
-						Namespace: "default",
-						Labels: map[string]string{
-							clusterv1.ClusterNameLabel: "test-cluster",
-						},
+					Name:      "test-pool",
+					Namespace: "default",
+					Labels: map[string]string{
+						clusterv1.ClusterNameLabel: "test-cluster",
 					},
 				},
 				&clusterv1.MachinePool{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "other-pool",
-						Namespace: "default",
-						Labels: map[string]string{
-							clusterv1.ClusterNameLabel: "test-cluster",
-						},
+					Name:      "other-pool",
+					Namespace: "default",
+					Labels: map[string]string{
+						clusterv1.ClusterNameLabel: "test-cluster",
 					},
 				},
 			},
@@ -1201,16 +1137,12 @@ func TestGetMachinePoolByLabels(t *testing.T) {
 			},
 			machinePools: []client.Object{
 				&clusterv1.MachinePool{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      longMachinePoolName,
-						Namespace: "default",
-					},
+					Name:      longMachinePoolName,
+					Namespace: "default",
 				},
 				&clusterv1.MachinePool{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "other-pool",
-						Namespace: "default",
-					},
+					Name:      "other-pool",
+					Namespace: "default",
 				},
 			},
 			expectedMachinePoolName: longMachinePoolName,

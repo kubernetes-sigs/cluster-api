@@ -36,9 +36,7 @@ func init() {
 
 func TestExtensionConfigValidationFeatureGated(t *testing.T) {
 	extension := &runtimev1.ExtensionConfig{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "test-extension",
-		},
+		Name: "test-extension",
 		Spec: runtimev1.ExtensionConfigSpec{
 			ClientConfig: runtimev1.ClientConfig{
 				URL: "https://extension-address.com",
@@ -105,9 +103,7 @@ func TestExtensionConfigDefault(t *testing.T) {
 	utilfeature.SetFeatureGateDuringTest(t, features.Gates, features.RuntimeSDK, true)
 
 	extensionConfig := &runtimev1.ExtensionConfig{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "test-extension",
-		},
+		Name: "test-extension",
 		Spec: runtimev1.ExtensionConfigSpec{
 			ClientConfig: runtimev1.ClientConfig{
 				Service: runtimev1.ServiceReference{
@@ -128,9 +124,7 @@ func TestExtensionConfigDefault(t *testing.T) {
 
 func TestExtensionConfigValidate(t *testing.T) {
 	extensionWithURL := &runtimev1.ExtensionConfig{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "test-extension",
-		},
+		Name: "test-extension",
 		Spec: runtimev1.ExtensionConfigSpec{
 			ClientConfig: runtimev1.ClientConfig{
 				URL: "https://extension-address.com",
@@ -139,9 +133,7 @@ func TestExtensionConfigValidate(t *testing.T) {
 	}
 
 	extensionWithService := &runtimev1.ExtensionConfig{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "test-extension",
-		},
+		Name: "test-extension",
 		Spec: runtimev1.ExtensionConfigSpec{
 			ClientConfig: runtimev1.ClientConfig{
 				Service: runtimev1.ServiceReference{

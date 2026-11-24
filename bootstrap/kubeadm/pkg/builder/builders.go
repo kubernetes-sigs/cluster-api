@@ -75,10 +75,8 @@ func (k *KubeadmConfigBuilder) Unstructured() *unstructured.Unstructured {
 // Build produces a KubeadmConfig from the variable in the KubeadmConfigBuilder.
 func (k *KubeadmConfigBuilder) Build() *bootstrapv1.KubeadmConfig {
 	config := &bootstrapv1.KubeadmConfig{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: k.namespace,
-			Name:      k.name,
-		},
+		Namespace: k.namespace,
+		Name:      k.name,
 		Status: bootstrapv1.KubeadmConfigStatus{
 			Conditions: []metav1.Condition{{
 				Type:   clusterv1.PausedCondition,

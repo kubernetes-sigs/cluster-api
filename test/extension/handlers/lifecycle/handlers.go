@@ -29,7 +29,6 @@ import (
 	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -286,10 +285,8 @@ func (m *ExtensionHandlers) readResponseFromConfigMap(ctx context.Context, clust
 		if apierrors.IsNotFound(err) {
 			// A ConfigMap of responses does not exist. Create one now.
 			configMap = &corev1.ConfigMap{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      configMapName,
-					Namespace: cluster.Namespace,
-				},
+				Name:      configMapName,
+				Namespace: cluster.Namespace,
 			}
 			if err := m.client.Create(ctx, configMap); err != nil {
 				return pkgerrors.Wrapf(err, "failed to create the ConfigMap %s", klog.KRef(cluster.Namespace, configMapName))

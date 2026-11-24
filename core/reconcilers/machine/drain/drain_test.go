@@ -46,9 +46,7 @@ func TestRunCordonOrUncordon(t *testing.T) {
 		{
 			name: "Uncordoned Node should be cordoned",
 			node: &corev1.Node{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "node-1",
-				},
+				Name: "node-1",
 				Spec: corev1.NodeSpec{
 					Unschedulable: false,
 				},
@@ -57,9 +55,7 @@ func TestRunCordonOrUncordon(t *testing.T) {
 		{
 			name: "Cordoned Node should stay cordoned",
 			node: &corev1.Node{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "node-1",
-				},
+				Name: "node-1",
 				Spec: corev1.NodeSpec{
 					Unschedulable: true,
 				},
@@ -88,10 +84,8 @@ func TestRunCordonOrUncordon(t *testing.T) {
 
 func TestGetPodsForEviction(t *testing.T) {
 	mdrBehaviorDrain := &clusterv1.MachineDrainRule{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "mdr-behavior-drain",
-			Namespace: "test-namespace",
-		},
+		Name:      "mdr-behavior-drain",
+		Namespace: "test-namespace",
 		Spec: clusterv1.MachineDrainRuleSpec{
 			Drain: clusterv1.MachineDrainRuleDrainConfig{
 				Behavior: clusterv1.MachineDrainRuleDrainBehaviorDrain,
@@ -115,10 +109,8 @@ func TestGetPodsForEviction(t *testing.T) {
 		},
 	}
 	mdrBehaviorSkip := &clusterv1.MachineDrainRule{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "mdr-behavior-skip",
-			Namespace: "test-namespace",
-		},
+		Name:      "mdr-behavior-skip",
+		Namespace: "test-namespace",
 		Spec: clusterv1.MachineDrainRuleSpec{
 			Drain: clusterv1.MachineDrainRuleDrainConfig{
 				Behavior: clusterv1.MachineDrainRuleDrainBehaviorSkip,
@@ -141,10 +133,8 @@ func TestGetPodsForEviction(t *testing.T) {
 		},
 	}
 	mdrBehaviorWaitCompleted := &clusterv1.MachineDrainRule{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "mdr-behavior-wait-completed",
-			Namespace: "test-namespace",
-		},
+		Name:      "mdr-behavior-wait-completed",
+		Namespace: "test-namespace",
 		Spec: clusterv1.MachineDrainRuleSpec{
 			Drain: clusterv1.MachineDrainRuleDrainConfig{
 				Behavior: clusterv1.MachineDrainRuleDrainBehaviorWaitCompleted,
@@ -167,10 +157,8 @@ func TestGetPodsForEviction(t *testing.T) {
 		},
 	}
 	mdrBehaviorUnknown := &clusterv1.MachineDrainRule{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "mdr-behavior-unknown",
-			Namespace: "test-namespace",
-		},
+		Name:      "mdr-behavior-unknown",
+		Namespace: "test-namespace",
 		Spec: clusterv1.MachineDrainRuleSpec{
 			Drain: clusterv1.MachineDrainRuleDrainConfig{
 				Behavior: "Unknown",
@@ -204,29 +192,23 @@ func TestGetPodsForEviction(t *testing.T) {
 			name: "skipDeletedFilter",
 			pods: []*corev1.Pod{
 				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:              "pod-1-skip-pod-old-deletionTimestamp",
-						Namespace:         metav1.NamespaceDefault,
-						DeletionTimestamp: &metav1.Time{Time: time.Now().Add(time.Duration(1) * time.Minute * -1)},
-						Finalizers:        []string{"block-deletion"},
-					},
+					Name:              "pod-1-skip-pod-old-deletionTimestamp",
+					Namespace:         metav1.NamespaceDefault,
+					DeletionTimestamp: &metav1.Time{Time: time.Now().Add(time.Duration(1) * time.Minute * -1)},
+					Finalizers:        []string{"block-deletion"},
 				},
 				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:              "pod-2-delete-pod-new-deletionTimestamp",
-						Namespace:         metav1.NamespaceDefault,
-						DeletionTimestamp: &metav1.Time{Time: time.Now()},
-						Finalizers:        []string{"block-deletion"},
-					},
+					Name:              "pod-2-delete-pod-new-deletionTimestamp",
+					Namespace:         metav1.NamespaceDefault,
+					DeletionTimestamp: &metav1.Time{Time: time.Now()},
+					Finalizers:        []string{"block-deletion"},
 				},
 			},
 			wantPodDeleteList: PodDeleteList{items: []PodDelete{
 				{
 					Pod: &corev1.Pod{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      "pod-1-skip-pod-old-deletionTimestamp",
-							Namespace: metav1.NamespaceDefault,
-						},
+						Name:      "pod-1-skip-pod-old-deletionTimestamp",
+						Namespace: metav1.NamespaceDefault,
 					},
 					// Skip this Pod because deletionTimestamp is > SkipWaitForDeleteTimeoutSeconds (=10s) ago.
 					Status: PodDeleteStatus{
@@ -236,10 +218,8 @@ func TestGetPodsForEviction(t *testing.T) {
 				},
 				{
 					Pod: &corev1.Pod{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      "pod-2-delete-pod-new-deletionTimestamp",
-							Namespace: metav1.NamespaceDefault,
-						},
+						Name:      "pod-2-delete-pod-new-deletionTimestamp",
+						Namespace: metav1.NamespaceDefault,
 					},
 					// Delete this Pod because deletionTimestamp is < SkipWaitForDeleteTimeoutSeconds (=10s) ago.
 					Status: PodDeleteStatus{
@@ -255,26 +235,22 @@ func TestGetPodsForEviction(t *testing.T) {
 			name: "daemonSetFilter",
 			pods: []*corev1.Pod{
 				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "pod-1-delete-pod-with-different-controller",
-						Namespace: metav1.NamespaceDefault,
-						OwnerReferences: []metav1.OwnerReference{
-							{
-								Kind:       "Deployment",
-								Controller: new(true),
-							},
+					Name:      "pod-1-delete-pod-with-different-controller",
+					Namespace: metav1.NamespaceDefault,
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							Kind:       "Deployment",
+							Controller: new(true),
 						},
 					},
 				},
 				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "pod-2-delete-succeeded-daemonset-pod",
-						Namespace: metav1.NamespaceDefault,
-						OwnerReferences: []metav1.OwnerReference{
-							{
-								Kind:       "DaemonSet",
-								Controller: new(true),
-							},
+					Name:      "pod-2-delete-succeeded-daemonset-pod",
+					Namespace: metav1.NamespaceDefault,
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							Kind:       "DaemonSet",
+							Controller: new(true),
 						},
 					},
 					Status: corev1.PodStatus{
@@ -282,15 +258,13 @@ func TestGetPodsForEviction(t *testing.T) {
 					},
 				},
 				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "pod-3-delete-orphaned-daemonset-pod",
-						Namespace: metav1.NamespaceDefault,
-						OwnerReferences: []metav1.OwnerReference{
-							{
-								Kind:       "DaemonSet",
-								Name:       "daemonset-does-not-exist",
-								Controller: new(true),
-							},
+					Name:      "pod-3-delete-orphaned-daemonset-pod",
+					Namespace: metav1.NamespaceDefault,
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							Kind:       "DaemonSet",
+							Name:       "daemonset-does-not-exist",
+							Controller: new(true),
 						},
 					},
 					Status: corev1.PodStatus{
@@ -298,15 +272,13 @@ func TestGetPodsForEviction(t *testing.T) {
 					},
 				},
 				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "pod-4-skip-daemonset-pod",
-						Namespace: metav1.NamespaceDefault,
-						OwnerReferences: []metav1.OwnerReference{
-							{
-								Kind:       "DaemonSet",
-								Name:       "daemonset-does-exist",
-								Controller: new(true),
-							},
+					Name:      "pod-4-skip-daemonset-pod",
+					Namespace: metav1.NamespaceDefault,
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							Kind:       "DaemonSet",
+							Name:       "daemonset-does-exist",
+							Controller: new(true),
 						},
 					},
 					Status: corev1.PodStatus{
@@ -317,10 +289,8 @@ func TestGetPodsForEviction(t *testing.T) {
 			wantPodDeleteList: PodDeleteList{items: []PodDelete{
 				{
 					Pod: &corev1.Pod{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      "pod-1-delete-pod-with-different-controller",
-							Namespace: metav1.NamespaceDefault,
-						},
+						Name:      "pod-1-delete-pod-with-different-controller",
+						Namespace: metav1.NamespaceDefault,
 					},
 					// Delete this Pod because the controller is not a DaemonSet
 					Status: PodDeleteStatus{
@@ -331,10 +301,8 @@ func TestGetPodsForEviction(t *testing.T) {
 				},
 				{
 					Pod: &corev1.Pod{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      "pod-2-delete-succeeded-daemonset-pod",
-							Namespace: metav1.NamespaceDefault,
-						},
+						Name:      "pod-2-delete-succeeded-daemonset-pod",
+						Namespace: metav1.NamespaceDefault,
 					},
 					// Delete this DaemonSet Pod because it is succeeded.
 					Status: PodDeleteStatus{
@@ -345,10 +313,8 @@ func TestGetPodsForEviction(t *testing.T) {
 				},
 				{
 					Pod: &corev1.Pod{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      "pod-3-delete-orphaned-daemonset-pod",
-							Namespace: metav1.NamespaceDefault,
-						},
+						Name:      "pod-3-delete-orphaned-daemonset-pod",
+						Namespace: metav1.NamespaceDefault,
 					},
 					// Delete this DaemonSet Pod because it is orphaned.
 					Status: PodDeleteStatus{
@@ -360,10 +326,8 @@ func TestGetPodsForEviction(t *testing.T) {
 				},
 				{
 					Pod: &corev1.Pod{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      "pod-4-skip-daemonset-pod",
-							Namespace: metav1.NamespaceDefault,
-						},
+						Name:      "pod-4-skip-daemonset-pod",
+						Namespace: metav1.NamespaceDefault,
 					},
 					// Skip this DaemonSet Pod.
 					Status: PodDeleteStatus{
@@ -378,22 +342,18 @@ func TestGetPodsForEviction(t *testing.T) {
 			name: "mirrorPodFilter",
 			pods: []*corev1.Pod{
 				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "pod-1-skip-mirror-pod",
-						Namespace: metav1.NamespaceDefault,
-						Annotations: map[string]string{
-							corev1.MirrorPodAnnotationKey: "some-value",
-						},
+					Name:      "pod-1-skip-mirror-pod",
+					Namespace: metav1.NamespaceDefault,
+					Annotations: map[string]string{
+						corev1.MirrorPodAnnotationKey: "some-value",
 					},
 				},
 			},
 			wantPodDeleteList: PodDeleteList{items: []PodDelete{
 				{
 					Pod: &corev1.Pod{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      "pod-1-skip-mirror-pod",
-							Namespace: metav1.NamespaceDefault,
-						},
+						Name:      "pod-1-skip-mirror-pod",
+						Namespace: metav1.NamespaceDefault,
 					},
 					// Skip this Pod because it is a mirror pod.
 					Status: PodDeleteStatus{
@@ -407,35 +367,29 @@ func TestGetPodsForEviction(t *testing.T) {
 			name: "localStorageFilter",
 			pods: []*corev1.Pod{
 				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "pod-1-delete-pod-without-local-storage",
-						Namespace: metav1.NamespaceDefault,
-						OwnerReferences: []metav1.OwnerReference{
-							{
-								Kind:       "Deployment",
-								Controller: new(true),
-							},
+					Name:      "pod-1-delete-pod-without-local-storage",
+					Namespace: metav1.NamespaceDefault,
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							Kind:       "Deployment",
+							Controller: new(true),
 						},
 					},
 				},
 				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "pod-2-delete-succeeded-pod-with-local-storage",
-						Namespace: metav1.NamespaceDefault,
-						OwnerReferences: []metav1.OwnerReference{
-							{
-								Kind:       "Deployment",
-								Controller: new(true),
-							},
+					Name:      "pod-2-delete-succeeded-pod-with-local-storage",
+					Namespace: metav1.NamespaceDefault,
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							Kind:       "Deployment",
+							Controller: new(true),
 						},
 					},
 					Spec: corev1.PodSpec{
 						Volumes: []corev1.Volume{
 							{
-								Name: "empty-dir",
-								VolumeSource: corev1.VolumeSource{
-									EmptyDir: &corev1.EmptyDirVolumeSource{},
-								},
+								Name:     "empty-dir",
+								EmptyDir: &corev1.EmptyDirVolumeSource{},
 							},
 						},
 					},
@@ -444,23 +398,19 @@ func TestGetPodsForEviction(t *testing.T) {
 					},
 				},
 				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "pod-3-delete-running-pod-with-local-storage",
-						Namespace: metav1.NamespaceDefault,
-						OwnerReferences: []metav1.OwnerReference{
-							{
-								Kind:       "Deployment",
-								Controller: new(true),
-							},
+					Name:      "pod-3-delete-running-pod-with-local-storage",
+					Namespace: metav1.NamespaceDefault,
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							Kind:       "Deployment",
+							Controller: new(true),
 						},
 					},
 					Spec: corev1.PodSpec{
 						Volumes: []corev1.Volume{
 							{
-								Name: "empty-dir",
-								VolumeSource: corev1.VolumeSource{
-									EmptyDir: &corev1.EmptyDirVolumeSource{},
-								},
+								Name:     "empty-dir",
+								EmptyDir: &corev1.EmptyDirVolumeSource{},
 							},
 						},
 					},
@@ -472,10 +422,8 @@ func TestGetPodsForEviction(t *testing.T) {
 			wantPodDeleteList: PodDeleteList{items: []PodDelete{
 				{
 					Pod: &corev1.Pod{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      "pod-1-delete-pod-without-local-storage",
-							Namespace: metav1.NamespaceDefault,
-						},
+						Name:      "pod-1-delete-pod-without-local-storage",
+						Namespace: metav1.NamespaceDefault,
 					},
 					// Delete regular Pod without local storage.
 					Status: PodDeleteStatus{
@@ -486,10 +434,8 @@ func TestGetPodsForEviction(t *testing.T) {
 				},
 				{
 					Pod: &corev1.Pod{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      "pod-2-delete-succeeded-pod-with-local-storage",
-							Namespace: metav1.NamespaceDefault,
-						},
+						Name:      "pod-2-delete-succeeded-pod-with-local-storage",
+						Namespace: metav1.NamespaceDefault,
 					},
 					// Delete succeeded Pod with local storage.
 					Status: PodDeleteStatus{
@@ -500,10 +446,8 @@ func TestGetPodsForEviction(t *testing.T) {
 				},
 				{
 					Pod: &corev1.Pod{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      "pod-3-delete-running-pod-with-local-storage",
-							Namespace: metav1.NamespaceDefault,
-						},
+						Name:      "pod-3-delete-running-pod-with-local-storage",
+						Namespace: metav1.NamespaceDefault,
 					},
 					// Delete running Pod with local storage.
 					Status: PodDeleteStatus{
@@ -519,23 +463,19 @@ func TestGetPodsForEviction(t *testing.T) {
 			name: "unreplicatedFilter",
 			pods: []*corev1.Pod{
 				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "pod-1-delete-succeeded-pod",
-						Namespace: metav1.NamespaceDefault,
-					},
+					Name:      "pod-1-delete-succeeded-pod",
+					Namespace: metav1.NamespaceDefault,
 					Status: corev1.PodStatus{
 						Phase: corev1.PodSucceeded,
 					},
 				},
 				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "pod-2-delete-running-deployment-pod",
-						Namespace: metav1.NamespaceDefault,
-						OwnerReferences: []metav1.OwnerReference{
-							{
-								Kind:       "Deployment",
-								Controller: new(true),
-							},
+					Name:      "pod-2-delete-running-deployment-pod",
+					Namespace: metav1.NamespaceDefault,
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							Kind:       "Deployment",
+							Controller: new(true),
 						},
 					},
 					Status: corev1.PodStatus{
@@ -543,10 +483,8 @@ func TestGetPodsForEviction(t *testing.T) {
 					},
 				},
 				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "pod-3-delete-running-standalone-pod",
-						Namespace: metav1.NamespaceDefault,
-					},
+					Name:      "pod-3-delete-running-standalone-pod",
+					Namespace: metav1.NamespaceDefault,
 					Status: corev1.PodStatus{
 						Phase: corev1.PodRunning,
 					},
@@ -555,10 +493,8 @@ func TestGetPodsForEviction(t *testing.T) {
 			wantPodDeleteList: PodDeleteList{items: []PodDelete{
 				{
 					Pod: &corev1.Pod{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      "pod-1-delete-succeeded-pod",
-							Namespace: metav1.NamespaceDefault,
-						},
+						Name:      "pod-1-delete-succeeded-pod",
+						Namespace: metav1.NamespaceDefault,
 					},
 					Status: PodDeleteStatus{
 						DrainBehavior: clusterv1.MachineDrainRuleDrainBehaviorDrain,
@@ -568,10 +504,8 @@ func TestGetPodsForEviction(t *testing.T) {
 				},
 				{
 					Pod: &corev1.Pod{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      "pod-2-delete-running-deployment-pod",
-							Namespace: metav1.NamespaceDefault,
-						},
+						Name:      "pod-2-delete-running-deployment-pod",
+						Namespace: metav1.NamespaceDefault,
 					},
 					Status: PodDeleteStatus{
 						DrainBehavior: clusterv1.MachineDrainRuleDrainBehaviorDrain,
@@ -581,10 +515,8 @@ func TestGetPodsForEviction(t *testing.T) {
 				},
 				{
 					Pod: &corev1.Pod{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      "pod-3-delete-running-standalone-pod",
-							Namespace: metav1.NamespaceDefault,
-						},
+						Name:      "pod-3-delete-running-standalone-pod",
+						Namespace: metav1.NamespaceDefault,
 					},
 					Status: PodDeleteStatus{
 						DrainBehavior: clusterv1.MachineDrainRuleDrainBehaviorDrain,
@@ -599,24 +531,20 @@ func TestGetPodsForEviction(t *testing.T) {
 			name: "warnings from multiple filters",
 			pods: []*corev1.Pod{
 				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "pod-1-delete-multiple-warnings",
-						Namespace: metav1.NamespaceDefault,
-						OwnerReferences: []metav1.OwnerReference{
-							{
-								Kind:       "DaemonSet",
-								Name:       "daemonset-does-not-exist",
-								Controller: new(true),
-							},
+					Name:      "pod-1-delete-multiple-warnings",
+					Namespace: metav1.NamespaceDefault,
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							Kind:       "DaemonSet",
+							Name:       "daemonset-does-not-exist",
+							Controller: new(true),
 						},
 					},
 					Spec: corev1.PodSpec{
 						Volumes: []corev1.Volume{
 							{
-								Name: "empty-dir",
-								VolumeSource: corev1.VolumeSource{
-									EmptyDir: &corev1.EmptyDirVolumeSource{},
-								},
+								Name:     "empty-dir",
+								EmptyDir: &corev1.EmptyDirVolumeSource{},
 							},
 						},
 					},
@@ -628,10 +556,8 @@ func TestGetPodsForEviction(t *testing.T) {
 			wantPodDeleteList: PodDeleteList{items: []PodDelete{
 				{
 					Pod: &corev1.Pod{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      "pod-1-delete-multiple-warnings",
-							Namespace: metav1.NamespaceDefault,
-						},
+						Name:      "pod-1-delete-multiple-warnings",
+						Namespace: metav1.NamespaceDefault,
 					},
 					Status: PodDeleteStatus{
 						DrainBehavior: clusterv1.MachineDrainRuleDrainBehaviorDrain,
@@ -646,39 +572,31 @@ func TestGetPodsForEviction(t *testing.T) {
 			name: "drainLabelFilter",
 			pods: []*corev1.Pod{
 				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "pod-1-skip-pod-with-drain-label",
-						Namespace: metav1.NamespaceDefault,
-						Labels: map[string]string{
-							clusterv1.PodDrainLabel: "skip",
-						},
+					Name:      "pod-1-skip-pod-with-drain-label",
+					Namespace: metav1.NamespaceDefault,
+					Labels: map[string]string{
+						clusterv1.PodDrainLabel: "skip",
 					},
 				},
 				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "pod-2-skip-pod-with-drain-label",
-						Namespace: metav1.NamespaceDefault,
-						Labels: map[string]string{
-							clusterv1.PodDrainLabel: "Skip",
-						},
+					Name:      "pod-2-skip-pod-with-drain-label",
+					Namespace: metav1.NamespaceDefault,
+					Labels: map[string]string{
+						clusterv1.PodDrainLabel: "Skip",
 					},
 				},
 				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "pod-3-skip-pod-with-drain-label-wait-completed",
-						Namespace: metav1.NamespaceDefault,
-						Labels: map[string]string{
-							clusterv1.PodDrainLabel: "wait-completed",
-						},
+					Name:      "pod-3-skip-pod-with-drain-label-wait-completed",
+					Namespace: metav1.NamespaceDefault,
+					Labels: map[string]string{
+						clusterv1.PodDrainLabel: "wait-completed",
 					},
 				},
 				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "pod-4-skip-pod-with-drain-label-wait-completed-succeeded",
-						Namespace: metav1.NamespaceDefault,
-						Labels: map[string]string{
-							clusterv1.PodDrainLabel: "wait-completed",
-						},
+					Name:      "pod-4-skip-pod-with-drain-label-wait-completed-succeeded",
+					Namespace: metav1.NamespaceDefault,
+					Labels: map[string]string{
+						clusterv1.PodDrainLabel: "wait-completed",
 					},
 					Status: corev1.PodStatus{
 						Phase: corev1.PodSucceeded,
@@ -688,10 +606,8 @@ func TestGetPodsForEviction(t *testing.T) {
 			wantPodDeleteList: PodDeleteList{items: []PodDelete{
 				{
 					Pod: &corev1.Pod{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      "pod-1-skip-pod-with-drain-label",
-							Namespace: metav1.NamespaceDefault,
-						},
+						Name:      "pod-1-skip-pod-with-drain-label",
+						Namespace: metav1.NamespaceDefault,
 					},
 					Status: PodDeleteStatus{
 						DrainBehavior: clusterv1.MachineDrainRuleDrainBehaviorSkip,
@@ -700,10 +616,8 @@ func TestGetPodsForEviction(t *testing.T) {
 				},
 				{
 					Pod: &corev1.Pod{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      "pod-2-skip-pod-with-drain-label",
-							Namespace: metav1.NamespaceDefault,
-						},
+						Name:      "pod-2-skip-pod-with-drain-label",
+						Namespace: metav1.NamespaceDefault,
 					},
 					Status: PodDeleteStatus{
 						DrainBehavior: clusterv1.MachineDrainRuleDrainBehaviorSkip,
@@ -712,10 +626,8 @@ func TestGetPodsForEviction(t *testing.T) {
 				},
 				{
 					Pod: &corev1.Pod{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      "pod-3-skip-pod-with-drain-label-wait-completed",
-							Namespace: metav1.NamespaceDefault,
-						},
+						Name:      "pod-3-skip-pod-with-drain-label-wait-completed",
+						Namespace: metav1.NamespaceDefault,
 					},
 					Status: PodDeleteStatus{
 						DrainBehavior: clusterv1.MachineDrainRuleDrainBehaviorWaitCompleted,
@@ -725,10 +637,8 @@ func TestGetPodsForEviction(t *testing.T) {
 				},
 				{
 					Pod: &corev1.Pod{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      "pod-4-skip-pod-with-drain-label-wait-completed-succeeded",
-							Namespace: metav1.NamespaceDefault,
-						},
+						Name:      "pod-4-skip-pod-with-drain-label-wait-completed-succeeded",
+						Namespace: metav1.NamespaceDefault,
 					},
 					Status: PodDeleteStatus{
 						DrainBehavior: clusterv1.MachineDrainRuleDrainBehaviorSkip,
@@ -741,10 +651,8 @@ func TestGetPodsForEviction(t *testing.T) {
 			name: "machineDrainRulesFilter - error: Namespace does not exist",
 			pods: []*corev1.Pod{
 				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "pod-1-non-existing-namespace",
-						Namespace: "non-existing-namespace",
-					},
+					Name:      "pod-1-non-existing-namespace",
+					Namespace: "non-existing-namespace",
 				},
 			},
 			wantErr: "failed to get Pods for eviction: Pods with error \"Pod Namespace does not exist\": non-existing-namespace/pod-1-non-existing-namespace",
@@ -753,12 +661,10 @@ func TestGetPodsForEviction(t *testing.T) {
 			name: "machineDrainRulesFilter - error: unknown spec.drain.behavior",
 			pods: []*corev1.Pod{
 				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "pod-1-behavior-unknown",
-						Namespace: "test-namespace", // matches the Namespace of the selector in mdrBehaviorUnknown.
-						Labels: map[string]string{
-							"app": "behavior-unknown", // matches mdrBehaviorUnknown.
-						},
+					Name:      "pod-1-behavior-unknown",
+					Namespace: "test-namespace", // matches the Namespace of the selector in mdrBehaviorUnknown.
+					Labels: map[string]string{
+						"app": "behavior-unknown", // matches mdrBehaviorUnknown.
 					},
 				},
 			},
@@ -769,51 +675,41 @@ func TestGetPodsForEviction(t *testing.T) {
 			name: "machineDrainRulesFilter",
 			pods: []*corev1.Pod{
 				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "pod-1-behavior-drain",
-						Namespace: "test-namespace", // matches the Namespace of the selector in mdrBehaviorDrain.
-						Labels: map[string]string{
-							"app": "behavior-drain", // matches mdrBehaviorDrain.
-						},
+					Name:      "pod-1-behavior-drain",
+					Namespace: "test-namespace", // matches the Namespace of the selector in mdrBehaviorDrain.
+					Labels: map[string]string{
+						"app": "behavior-drain", // matches mdrBehaviorDrain.
 					},
 				},
 				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "pod-2-behavior-skip",
-						Namespace: "test-namespace", // matches the Namespace of the selector in mdrBehaviorSkip.
-						Labels: map[string]string{
-							"app": "behavior-skip", // matches mdrBehaviorSkip.
-						},
+					Name:      "pod-2-behavior-skip",
+					Namespace: "test-namespace", // matches the Namespace of the selector in mdrBehaviorSkip.
+					Labels: map[string]string{
+						"app": "behavior-skip", // matches mdrBehaviorSkip.
 					},
 				},
 				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "pod-3-behavior-wait-completed",
-						Namespace: "test-namespace", // matches the Namespace of the selector in mdrBehaviorWaitCompleted.
-						Labels: map[string]string{
-							"app": "behavior-wait-completed", // matches mdrBehaviorWaitCompleted.
-						},
+					Name:      "pod-3-behavior-wait-completed",
+					Namespace: "test-namespace", // matches the Namespace of the selector in mdrBehaviorWaitCompleted.
+					Labels: map[string]string{
+						"app": "behavior-wait-completed", // matches mdrBehaviorWaitCompleted.
 					},
 				},
 				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "pod-4-behavior-wait-completed-succeeded",
-						Namespace: "test-namespace", // matches the Namespace of the selector in mdrBehaviorWaitCompleted.
-						Labels: map[string]string{
-							"app": "behavior-wait-completed", // matches mdrBehaviorWaitCompleted.
-						},
+					Name:      "pod-4-behavior-wait-completed-succeeded",
+					Namespace: "test-namespace", // matches the Namespace of the selector in mdrBehaviorWaitCompleted.
+					Labels: map[string]string{
+						"app": "behavior-wait-completed", // matches mdrBehaviorWaitCompleted.
 					},
 					Status: corev1.PodStatus{
 						Phase: corev1.PodSucceeded,
 					},
 				},
 				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "pod-5-behavior-wait-completed-failed",
-						Namespace: "test-namespace", // matches the Namespace of the selector in mdrBehaviorWaitCompleted.
-						Labels: map[string]string{
-							"app": "behavior-wait-completed", // matches mdrBehaviorWaitCompleted.
-						},
+					Name:      "pod-5-behavior-wait-completed-failed",
+					Namespace: "test-namespace", // matches the Namespace of the selector in mdrBehaviorWaitCompleted.
+					Labels: map[string]string{
+						"app": "behavior-wait-completed", // matches mdrBehaviorWaitCompleted.
 					},
 					Status: corev1.PodStatus{
 						Phase: corev1.PodFailed,
@@ -824,10 +720,8 @@ func TestGetPodsForEviction(t *testing.T) {
 			wantPodDeleteList: PodDeleteList{items: []PodDelete{
 				{
 					Pod: &corev1.Pod{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      "pod-1-behavior-drain",
-							Namespace: "test-namespace",
-						},
+						Name:      "pod-1-behavior-drain",
+						Namespace: "test-namespace",
 					},
 					Status: PodDeleteStatus{
 						DrainBehavior: clusterv1.MachineDrainRuleDrainBehaviorDrain,
@@ -839,10 +733,8 @@ func TestGetPodsForEviction(t *testing.T) {
 				},
 				{
 					Pod: &corev1.Pod{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      "pod-2-behavior-skip",
-							Namespace: "test-namespace",
-						},
+						Name:      "pod-2-behavior-skip",
+						Namespace: "test-namespace",
 					},
 					Status: PodDeleteStatus{
 						DrainBehavior: clusterv1.MachineDrainRuleDrainBehaviorSkip,
@@ -851,10 +743,8 @@ func TestGetPodsForEviction(t *testing.T) {
 				},
 				{
 					Pod: &corev1.Pod{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      "pod-3-behavior-wait-completed",
-							Namespace: "test-namespace",
-						},
+						Name:      "pod-3-behavior-wait-completed",
+						Namespace: "test-namespace",
 					},
 					Status: PodDeleteStatus{
 						DrainBehavior: clusterv1.MachineDrainRuleDrainBehaviorWaitCompleted,
@@ -864,10 +754,8 @@ func TestGetPodsForEviction(t *testing.T) {
 				},
 				{
 					Pod: &corev1.Pod{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      "pod-4-behavior-wait-completed-succeeded",
-							Namespace: "test-namespace",
-						},
+						Name:      "pod-4-behavior-wait-completed-succeeded",
+						Namespace: "test-namespace",
 					},
 					Status: PodDeleteStatus{
 						DrainBehavior: clusterv1.MachineDrainRuleDrainBehaviorSkip,
@@ -876,10 +764,8 @@ func TestGetPodsForEviction(t *testing.T) {
 				},
 				{
 					Pod: &corev1.Pod{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      "pod-5-behavior-wait-completed-failed",
-							Namespace: "test-namespace",
-						},
+						Name:      "pod-5-behavior-wait-completed-failed",
+						Namespace: "test-namespace",
 					},
 					Status: PodDeleteStatus{
 						DrainBehavior: clusterv1.MachineDrainRuleDrainBehaviorSkip,
@@ -904,23 +790,17 @@ func TestGetPodsForEviction(t *testing.T) {
 				remoteObjects = append(remoteObjects, o)
 			}
 			remoteObjects = append(remoteObjects, &appsv1.DaemonSet{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "daemonset-does-exist",
-					Namespace: metav1.NamespaceDefault,
+				Name:      "daemonset-does-exist",
+				Namespace: metav1.NamespaceDefault,
+			}, &corev1.Namespace{
+				Name: metav1.NamespaceDefault,
+				Labels: map[string]string{
+					"kubernetes.io/metadata.name": metav1.NamespaceDefault,
 				},
 			}, &corev1.Namespace{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: metav1.NamespaceDefault,
-					Labels: map[string]string{
-						"kubernetes.io/metadata.name": metav1.NamespaceDefault,
-					},
-				},
-			}, &corev1.Namespace{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "test-namespace",
-					Labels: map[string]string{
-						"kubernetes.io/metadata.name": "test-namespace",
-					},
+				Name: "test-namespace",
+				Labels: map[string]string{
+					"kubernetes.io/metadata.name": "test-namespace",
 				},
 			})
 
@@ -930,17 +810,13 @@ func TestGetPodsForEviction(t *testing.T) {
 				Build()
 
 			cluster := &clusterv1.Cluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-cluster",
-					Namespace: "test-namespace",
-				},
+				Name:      "test-cluster",
+				Namespace: "test-namespace",
 			}
 
 			machine := &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-machine",
-					Namespace: "test-namespace",
-				},
+				Name:      "test-machine",
+				Namespace: "test-namespace",
 			}
 
 			var objects []client.Object
@@ -971,10 +847,8 @@ func TestGetPodsForEviction(t *testing.T) {
 			// Cleanup for easier diff.
 			for i, pd := range gotPodDeleteList.items {
 				gotPodDeleteList.items[i].Pod = &corev1.Pod{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      pd.Pod.Name,
-						Namespace: pd.Pod.Namespace,
-					},
+					Name:      pd.Pod.Name,
+					Namespace: pd.Pod.Namespace,
 				}
 			}
 			g.Expect(gotPodDeleteList.items).To(BeComparableTo(tt.wantPodDeleteList.items))
@@ -984,23 +858,17 @@ func TestGetPodsForEviction(t *testing.T) {
 
 func Test_getMatchingMachineDrainRules(t *testing.T) {
 	cluster := &clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test-cluster",
-			Namespace: "test-namespace",
-		},
+		Name:      "test-cluster",
+		Namespace: "test-namespace",
 	}
 	machine := &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test-machine",
-			Namespace: "test-namespace",
-		},
+		Name:      "test-machine",
+		Namespace: "test-namespace",
 	}
 
 	mdrInvalidSelector := &clusterv1.MachineDrainRule{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "mdr-invalid-selector",
-			Namespace: "test-namespace",
-		},
+		Name:      "mdr-invalid-selector",
+		Namespace: "test-namespace",
 		Spec: clusterv1.MachineDrainRuleSpec{
 			Drain: clusterv1.MachineDrainRuleDrainConfig{
 				Behavior: clusterv1.MachineDrainRuleDrainBehaviorSkip,
@@ -1020,10 +888,8 @@ func Test_getMatchingMachineDrainRules(t *testing.T) {
 		},
 	}
 	matchingMDRBehaviorDrainA := &clusterv1.MachineDrainRule{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "mdr-behavior-drain-a",
-			Namespace: "test-namespace",
-		},
+		Name:      "mdr-behavior-drain-a",
+		Namespace: "test-namespace",
 		Spec: clusterv1.MachineDrainRuleSpec{
 			Drain: clusterv1.MachineDrainRuleDrainConfig{
 				Behavior: clusterv1.MachineDrainRuleDrainBehaviorDrain,
@@ -1034,10 +900,8 @@ func Test_getMatchingMachineDrainRules(t *testing.T) {
 		},
 	}
 	matchingMDRBehaviorDrainB := &clusterv1.MachineDrainRule{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "mdr-behavior-drain-b",
-			Namespace: "test-namespace",
-		},
+		Name:      "mdr-behavior-drain-b",
+		Namespace: "test-namespace",
 		Spec: clusterv1.MachineDrainRuleSpec{
 			Drain: clusterv1.MachineDrainRuleDrainConfig{
 				Behavior: clusterv1.MachineDrainRuleDrainBehaviorDrain,
@@ -1048,10 +912,8 @@ func Test_getMatchingMachineDrainRules(t *testing.T) {
 		},
 	}
 	matchingMDRBehaviorSkip := &clusterv1.MachineDrainRule{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "mdr-behavior-skip",
-			Namespace: "test-namespace",
-		},
+		Name:      "mdr-behavior-skip",
+		Namespace: "test-namespace",
 		Spec: clusterv1.MachineDrainRuleSpec{
 			Drain: clusterv1.MachineDrainRuleDrainConfig{
 				Behavior: clusterv1.MachineDrainRuleDrainBehaviorSkip,
@@ -1061,10 +923,8 @@ func Test_getMatchingMachineDrainRules(t *testing.T) {
 		},
 	}
 	matchingMDRBehaviorWaitCompleted := &clusterv1.MachineDrainRule{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "mdr-behavior-wait-completed",
-			Namespace: "test-namespace",
-		},
+		Name:      "mdr-behavior-wait-completed",
+		Namespace: "test-namespace",
 		Spec: clusterv1.MachineDrainRuleSpec{
 			Drain: clusterv1.MachineDrainRuleDrainConfig{
 				Behavior: clusterv1.MachineDrainRuleDrainBehaviorWaitCompleted,
@@ -1074,10 +934,8 @@ func Test_getMatchingMachineDrainRules(t *testing.T) {
 		},
 	}
 	matchingMDRBehaviorUnknown := &clusterv1.MachineDrainRule{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "mdr-behavior-unknown",
-			Namespace: "test-namespace",
-		},
+		Name:      "mdr-behavior-unknown",
+		Namespace: "test-namespace",
 		Spec: clusterv1.MachineDrainRuleSpec{
 			Drain: clusterv1.MachineDrainRuleDrainConfig{
 				Behavior: "Unknown",
@@ -1087,10 +945,8 @@ func Test_getMatchingMachineDrainRules(t *testing.T) {
 		},
 	}
 	notMatchingMDRDifferentNamespace := &clusterv1.MachineDrainRule{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "mdr-not-matching-different-namespace",
-			Namespace: "different-namespace",
-		},
+		Name:      "mdr-not-matching-different-namespace",
+		Namespace: "different-namespace",
 		Spec: clusterv1.MachineDrainRuleSpec{
 			Drain: clusterv1.MachineDrainRuleDrainConfig{
 				Behavior: clusterv1.MachineDrainRuleDrainBehaviorSkip,
@@ -1100,10 +956,8 @@ func Test_getMatchingMachineDrainRules(t *testing.T) {
 		},
 	}
 	notMatchingMDRNotMatchingSelector := &clusterv1.MachineDrainRule{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "mdr-not-matching-not-matching-selector",
-			Namespace: "test-namespace",
-		},
+		Name:      "mdr-not-matching-not-matching-selector",
+		Namespace: "test-namespace",
 		Spec: clusterv1.MachineDrainRuleSpec{
 			Drain: clusterv1.MachineDrainRuleDrainConfig{
 				Behavior: clusterv1.MachineDrainRuleDrainBehaviorSkip,
@@ -1235,17 +1089,13 @@ func Test_machineDrainRuleAppliesToMachine(t *testing.T) {
 				},
 			},
 			machine: &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Labels: map[string]string{
-						"os": "linux",
-					},
+				Labels: map[string]string{
+					"os": "linux",
 				},
 			},
 			cluster: &clusterv1.Cluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Labels: map[string]string{
-						"stage": "production",
-					},
+				Labels: map[string]string{
+					"stage": "production",
 				},
 			},
 			matches: true,
@@ -1267,17 +1117,13 @@ func Test_machineDrainRuleAppliesToMachine(t *testing.T) {
 				},
 			},
 			machine: &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Labels: map[string]string{
-						"os": "linux",
-					},
+				Labels: map[string]string{
+					"os": "linux",
 				},
 			},
 			cluster: &clusterv1.Cluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Labels: map[string]string{
-						"stage": "production",
-					},
+				Labels: map[string]string{
+					"stage": "production",
 				},
 			},
 			matches: false,
@@ -1299,17 +1145,13 @@ func Test_machineDrainRuleAppliesToMachine(t *testing.T) {
 				},
 			},
 			machine: &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Labels: map[string]string{
-						"os": "linux",
-					},
+				Labels: map[string]string{
+					"os": "linux",
 				},
 			},
 			cluster: &clusterv1.Cluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Labels: map[string]string{
-						"stage": "production",
-					},
+				Labels: map[string]string{
+					"stage": "production",
 				},
 			},
 			matches: false,
@@ -1341,9 +1183,7 @@ func TestEvictPods(t *testing.T) {
 			podDeleteList: &PodDeleteList{items: []PodDelete{
 				{
 					Pod: &corev1.Pod{
-						ObjectMeta: metav1.ObjectMeta{
-							Name: "pod-1-ignored",
-						},
+						Name: "pod-1-ignored",
 					},
 					Status: PodDeleteStatus{
 						DrainBehavior: clusterv1.MachineDrainRuleDrainBehaviorSkip, // Will be skipped because DrainBehavior is set to Skip
@@ -1353,10 +1193,8 @@ func TestEvictPods(t *testing.T) {
 				},
 				{
 					Pod: &corev1.Pod{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:              "pod-2-deletionTimestamp-set",
-							DeletionTimestamp: &metav1.Time{Time: time.Now()},
-						},
+						Name:              "pod-2-deletionTimestamp-set",
+						DeletionTimestamp: &metav1.Time{Time: time.Now()},
 					},
 					Status: PodDeleteStatus{
 						DrainBehavior: clusterv1.MachineDrainRuleDrainBehaviorDrain,
@@ -1366,9 +1204,7 @@ func TestEvictPods(t *testing.T) {
 				},
 				{
 					Pod: &corev1.Pod{
-						ObjectMeta: metav1.ObjectMeta{
-							Name: "pod-3-to-trigger-eviction-successfully",
-						},
+						Name: "pod-3-to-trigger-eviction-successfully",
 					},
 					Status: PodDeleteStatus{
 						DrainBehavior: clusterv1.MachineDrainRuleDrainBehaviorDrain,
@@ -1378,9 +1214,7 @@ func TestEvictPods(t *testing.T) {
 				},
 				{
 					Pod: &corev1.Pod{
-						ObjectMeta: metav1.ObjectMeta{
-							Name: "pod-4-to-trigger-eviction-pod-not-found",
-						},
+						Name: "pod-4-to-trigger-eviction-pod-not-found",
 					},
 					Status: PodDeleteStatus{
 						DrainBehavior: clusterv1.MachineDrainRuleDrainBehaviorDrain,
@@ -1390,9 +1224,7 @@ func TestEvictPods(t *testing.T) {
 				},
 				{
 					Pod: &corev1.Pod{
-						ObjectMeta: metav1.ObjectMeta{
-							Name: "pod-5-to-trigger-eviction-pdb-violated-2",
-						},
+						Name: "pod-5-to-trigger-eviction-pdb-violated-2",
 					},
 					Status: PodDeleteStatus{
 						DrainBehavior: clusterv1.MachineDrainRuleDrainBehaviorDrain,
@@ -1402,9 +1234,7 @@ func TestEvictPods(t *testing.T) {
 				},
 				{
 					Pod: &corev1.Pod{
-						ObjectMeta: metav1.ObjectMeta{
-							Name: "pod-5-to-trigger-eviction-pdb-violated-1",
-						},
+						Name: "pod-5-to-trigger-eviction-pdb-violated-1",
 					},
 					Status: PodDeleteStatus{
 						DrainBehavior: clusterv1.MachineDrainRuleDrainBehaviorDrain,
@@ -1414,9 +1244,7 @@ func TestEvictPods(t *testing.T) {
 				},
 				{
 					Pod: &corev1.Pod{
-						ObjectMeta: metav1.ObjectMeta{
-							Name: "pod-6-to-trigger-eviction-namespace-terminating",
-						},
+						Name: "pod-6-to-trigger-eviction-namespace-terminating",
 					},
 					Status: PodDeleteStatus{
 						DrainBehavior: clusterv1.MachineDrainRuleDrainBehaviorDrain,
@@ -1426,9 +1254,7 @@ func TestEvictPods(t *testing.T) {
 				},
 				{
 					Pod: &corev1.Pod{
-						ObjectMeta: metav1.ObjectMeta{
-							Name: "pod-7-to-trigger-eviction-some-other-error",
-						},
+						Name: "pod-7-to-trigger-eviction-some-other-error",
 					},
 					Status: PodDeleteStatus{
 						DrainBehavior: clusterv1.MachineDrainRuleDrainBehaviorDrain,
@@ -1438,9 +1264,7 @@ func TestEvictPods(t *testing.T) {
 				},
 				{
 					Pod: &corev1.Pod{
-						ObjectMeta: metav1.ObjectMeta{
-							Name: "pod-8-to-trigger-eviction-later",
-						},
+						Name: "pod-8-to-trigger-eviction-later",
 					},
 					Status: PodDeleteStatus{
 						DrainBehavior: clusterv1.MachineDrainRuleDrainBehaviorDrain,
@@ -1452,63 +1276,45 @@ func TestEvictPods(t *testing.T) {
 			wantEvictionResult: EvictionResult{
 				PodsIgnored: []*corev1.Pod{
 					{
-						ObjectMeta: metav1.ObjectMeta{
-							Name: "pod-1-ignored",
-						},
+						Name: "pod-1-ignored",
 					},
 				},
 				PodsDeletionTimestampSet: []*corev1.Pod{
 					{
-						ObjectMeta: metav1.ObjectMeta{
-							Name: "pod-2-deletionTimestamp-set",
-						},
+						Name: "pod-2-deletionTimestamp-set",
 					},
 					{
-						ObjectMeta: metav1.ObjectMeta{
-							Name: "pod-3-to-trigger-eviction-successfully",
-						},
+						Name: "pod-3-to-trigger-eviction-successfully",
 					},
 				},
 				PodsNotFound: []*corev1.Pod{
 					{
-						ObjectMeta: metav1.ObjectMeta{
-							Name: "pod-4-to-trigger-eviction-pod-not-found",
-						},
+						Name: "pod-4-to-trigger-eviction-pod-not-found",
 					},
 				},
 				PodsFailedEviction: map[string][]*corev1.Pod{
 					"Cannot evict pod as it would violate the pod's disruption budget. The disruption budget pod-5-pdb needs 3 healthy pods and has 2 currently": {
 						{
-							ObjectMeta: metav1.ObjectMeta{
-								Name: "pod-5-to-trigger-eviction-pdb-violated-1",
-							},
+							Name: "pod-5-to-trigger-eviction-pdb-violated-1",
 						},
 						{
-							ObjectMeta: metav1.ObjectMeta{
-								Name: "pod-5-to-trigger-eviction-pdb-violated-2",
-							},
+							Name: "pod-5-to-trigger-eviction-pdb-violated-2",
 						},
 					},
 					"Cannot evict pod from terminating namespace: unable to create eviction (kube-controller-manager should set deletionTimestamp)": {
 						{
-							ObjectMeta: metav1.ObjectMeta{
-								Name: "pod-6-to-trigger-eviction-namespace-terminating",
-							},
+							Name: "pod-6-to-trigger-eviction-namespace-terminating",
 						},
 					},
 					"some other error": {
 						{
-							ObjectMeta: metav1.ObjectMeta{
-								Name: "pod-7-to-trigger-eviction-some-other-error",
-							},
+							Name: "pod-7-to-trigger-eviction-some-other-error",
 						},
 					},
 				},
 				PodsToTriggerEvictionLater: []*corev1.Pod{
 					{
-						ObjectMeta: metav1.ObjectMeta{
-							Name: "pod-8-to-trigger-eviction-later",
-						},
+						Name: "pod-8-to-trigger-eviction-later",
 					},
 				},
 			},
@@ -1518,9 +1324,7 @@ func TestEvictPods(t *testing.T) {
 			podDeleteList: &PodDeleteList{items: []PodDelete{
 				{
 					Pod: &corev1.Pod{
-						ObjectMeta: metav1.ObjectMeta{
-							Name: "pod-1-ignored",
-						},
+						Name: "pod-1-ignored",
 					},
 					Status: PodDeleteStatus{
 						DrainBehavior: clusterv1.MachineDrainRuleDrainBehaviorSkip, // Will be skipped because DrainBehavior is set to Skip
@@ -1530,10 +1334,8 @@ func TestEvictPods(t *testing.T) {
 				},
 				{
 					Pod: &corev1.Pod{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:              "pod-2-deletionTimestamp-set",
-							DeletionTimestamp: &metav1.Time{Time: time.Now()},
-						},
+						Name:              "pod-2-deletionTimestamp-set",
+						DeletionTimestamp: &metav1.Time{Time: time.Now()},
 					},
 					Status: PodDeleteStatus{
 						DrainBehavior: clusterv1.MachineDrainRuleDrainBehaviorDrain,
@@ -1543,9 +1345,7 @@ func TestEvictPods(t *testing.T) {
 				},
 				{
 					Pod: &corev1.Pod{
-						ObjectMeta: metav1.ObjectMeta{
-							Name: "pod-3-to-trigger-eviction-successfully",
-						},
+						Name: "pod-3-to-trigger-eviction-successfully",
 					},
 					Status: PodDeleteStatus{
 						DrainBehavior: clusterv1.MachineDrainRuleDrainBehaviorDrain,
@@ -1555,9 +1355,7 @@ func TestEvictPods(t *testing.T) {
 				},
 				{
 					Pod: &corev1.Pod{
-						ObjectMeta: metav1.ObjectMeta{
-							Name: "pod-4-to-trigger-eviction-pod-not-found",
-						},
+						Name: "pod-4-to-trigger-eviction-pod-not-found",
 					},
 					Status: PodDeleteStatus{
 						DrainBehavior: clusterv1.MachineDrainRuleDrainBehaviorDrain,
@@ -1567,9 +1365,7 @@ func TestEvictPods(t *testing.T) {
 				},
 				{
 					Pod: &corev1.Pod{
-						ObjectMeta: metav1.ObjectMeta{
-							Name: "pod-5-to-trigger-eviction-pdb-violated-2",
-						},
+						Name: "pod-5-to-trigger-eviction-pdb-violated-2",
 					},
 					Status: PodDeleteStatus{
 						DrainBehavior: clusterv1.MachineDrainRuleDrainBehaviorDrain,
@@ -1579,9 +1375,7 @@ func TestEvictPods(t *testing.T) {
 				},
 				{
 					Pod: &corev1.Pod{
-						ObjectMeta: metav1.ObjectMeta{
-							Name: "pod-5-to-trigger-eviction-pdb-violated-1",
-						},
+						Name: "pod-5-to-trigger-eviction-pdb-violated-1",
 					},
 					Status: PodDeleteStatus{
 						DrainBehavior: clusterv1.MachineDrainRuleDrainBehaviorDrain,
@@ -1591,9 +1385,7 @@ func TestEvictPods(t *testing.T) {
 				},
 				{
 					Pod: &corev1.Pod{
-						ObjectMeta: metav1.ObjectMeta{
-							Name: "pod-6-to-trigger-eviction-namespace-terminating",
-						},
+						Name: "pod-6-to-trigger-eviction-namespace-terminating",
 					},
 					Status: PodDeleteStatus{
 						DrainBehavior: clusterv1.MachineDrainRuleDrainBehaviorDrain,
@@ -1603,9 +1395,7 @@ func TestEvictPods(t *testing.T) {
 				},
 				{
 					Pod: &corev1.Pod{
-						ObjectMeta: metav1.ObjectMeta{
-							Name: "pod-7-to-trigger-eviction-some-other-error",
-						},
+						Name: "pod-7-to-trigger-eviction-some-other-error",
 					},
 					Status: PodDeleteStatus{
 						DrainBehavior: clusterv1.MachineDrainRuleDrainBehaviorDrain,
@@ -1615,9 +1405,7 @@ func TestEvictPods(t *testing.T) {
 				},
 				{
 					Pod: &corev1.Pod{
-						ObjectMeta: metav1.ObjectMeta{
-							Name: "pod-8-to-trigger-eviction-later",
-						},
+						Name: "pod-8-to-trigger-eviction-later",
 					},
 					Status: PodDeleteStatus{
 						DrainBehavior: clusterv1.MachineDrainRuleDrainBehaviorDrain,
@@ -1627,9 +1415,7 @@ func TestEvictPods(t *testing.T) {
 				},
 				{
 					Pod: &corev1.Pod{
-						ObjectMeta: metav1.ObjectMeta{
-							Name: "pod-9-wait-completed",
-						},
+						Name: "pod-9-wait-completed",
 					},
 					Status: PodDeleteStatus{
 						DrainBehavior: clusterv1.MachineDrainRuleDrainBehaviorWaitCompleted,
@@ -1641,70 +1427,50 @@ func TestEvictPods(t *testing.T) {
 			wantEvictionResult: EvictionResult{
 				PodsIgnored: []*corev1.Pod{
 					{
-						ObjectMeta: metav1.ObjectMeta{
-							Name: "pod-1-ignored",
-						},
+						Name: "pod-1-ignored",
 					},
 				},
 				PodsDeletionTimestampSet: []*corev1.Pod{
 					{
-						ObjectMeta: metav1.ObjectMeta{
-							Name: "pod-2-deletionTimestamp-set",
-						},
+						Name: "pod-2-deletionTimestamp-set",
 					},
 					{
-						ObjectMeta: metav1.ObjectMeta{
-							Name: "pod-3-to-trigger-eviction-successfully",
-						},
+						Name: "pod-3-to-trigger-eviction-successfully",
 					},
 				},
 				PodsNotFound: []*corev1.Pod{
 					{
-						ObjectMeta: metav1.ObjectMeta{
-							Name: "pod-4-to-trigger-eviction-pod-not-found",
-						},
+						Name: "pod-4-to-trigger-eviction-pod-not-found",
 					},
 				},
 				PodsFailedEviction: map[string][]*corev1.Pod{
 					"Cannot evict pod as it would violate the pod's disruption budget. The disruption budget pod-5-pdb needs 3 healthy pods and has 2 currently": {
 						{
-							ObjectMeta: metav1.ObjectMeta{
-								Name: "pod-5-to-trigger-eviction-pdb-violated-1",
-							},
+							Name: "pod-5-to-trigger-eviction-pdb-violated-1",
 						},
 						{
-							ObjectMeta: metav1.ObjectMeta{
-								Name: "pod-5-to-trigger-eviction-pdb-violated-2",
-							},
+							Name: "pod-5-to-trigger-eviction-pdb-violated-2",
 						},
 					},
 					"Cannot evict pod from terminating namespace: unable to create eviction (kube-controller-manager should set deletionTimestamp)": {
 						{
-							ObjectMeta: metav1.ObjectMeta{
-								Name: "pod-6-to-trigger-eviction-namespace-terminating",
-							},
+							Name: "pod-6-to-trigger-eviction-namespace-terminating",
 						},
 					},
 					"some other error": {
 						{
-							ObjectMeta: metav1.ObjectMeta{
-								Name: "pod-7-to-trigger-eviction-some-other-error",
-							},
+							Name: "pod-7-to-trigger-eviction-some-other-error",
 						},
 					},
 				},
 				PodsToTriggerEvictionLater: []*corev1.Pod{
 					{
-						ObjectMeta: metav1.ObjectMeta{
-							Name: "pod-8-to-trigger-eviction-later",
-						},
+						Name: "pod-8-to-trigger-eviction-later",
 					},
 				},
 				PodsToWaitCompletedLater: []*corev1.Pod{
 					{
-						ObjectMeta: metav1.ObjectMeta{
-							Name: "pod-9-wait-completed",
-						},
+						Name: "pod-9-wait-completed",
 					},
 				},
 			},
@@ -1781,9 +1547,7 @@ func TestEvictPods(t *testing.T) {
 			// Cleanup for easier diff.
 			for i, pod := range gotEvictionResult.PodsDeletionTimestampSet {
 				gotEvictionResult.PodsDeletionTimestampSet[i] = &corev1.Pod{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: pod.Name,
-					},
+					Name: pod.Name,
 				}
 			}
 			g.Expect(gotEvictionResult).To(BeComparableTo(tt.wantEvictionResult))
@@ -1809,42 +1573,30 @@ func TestEvictionResult_ConditionMessage(t *testing.T) {
 			evictionResult: EvictionResult{
 				PodsDeletionTimestampSet: []*corev1.Pod{
 					{
-						ObjectMeta: metav1.ObjectMeta{
-							Name: "pod-2-deletionTimestamp-set-1",
-						},
+						Name: "pod-2-deletionTimestamp-set-1",
 					},
 					{
-						ObjectMeta: metav1.ObjectMeta{
-							Name: "pod-3-to-trigger-eviction-successfully-1",
-						},
+						Name: "pod-3-to-trigger-eviction-successfully-1",
 					},
 				},
 				PodsFailedEviction: map[string][]*corev1.Pod{
 					"Cannot evict pod as it would violate the pod's disruption budget. The disruption budget pod-5-pdb needs 20 healthy pods and has 20 currently": {
 						{
-							ObjectMeta: metav1.ObjectMeta{
-								Name: "pod-5-to-trigger-eviction-pdb-violated-1",
-							},
+							Name: "pod-5-to-trigger-eviction-pdb-violated-1",
 						},
 					},
 					"some other error 1": {
 						{
-							ObjectMeta: metav1.ObjectMeta{
-								Name: "pod-6-to-trigger-eviction-some-other-error",
-							},
+							Name: "pod-6-to-trigger-eviction-some-other-error",
 						},
 					},
 				},
 				PodsToTriggerEvictionLater: []*corev1.Pod{
 					{
-						ObjectMeta: metav1.ObjectMeta{
-							Name: "pod-7-eviction-later",
-						},
+						Name: "pod-7-eviction-later",
 					},
 					{
-						ObjectMeta: metav1.ObjectMeta{
-							Name: "pod-8-eviction-later",
-						},
+						Name: "pod-8-eviction-later",
 					},
 				},
 			},
@@ -1859,26 +1611,18 @@ After above Pods have been removed from the Node, the following Pods will be evi
 			evictionResult: EvictionResult{
 				PodsIgnored: []*corev1.Pod{
 					{
-						ObjectMeta: metav1.ObjectMeta{
-							Name: "pod-1-ignored-should-not-be-included",
-						},
+						Name: "pod-1-ignored-should-not-be-included",
 					},
 				},
 				PodsDeletionTimestampSet: []*corev1.Pod{
 					{
-						ObjectMeta: metav1.ObjectMeta{
-							Name: "pod-2-deletionTimestamp-set-1",
-						},
+						Name: "pod-2-deletionTimestamp-set-1",
 					},
 					{
-						ObjectMeta: metav1.ObjectMeta{
-							Name: "pod-2-deletionTimestamp-set-2",
-						},
+						Name: "pod-2-deletionTimestamp-set-2",
 					},
 					{
-						ObjectMeta: metav1.ObjectMeta{
-							Name: "pod-2-deletionTimestamp-set-3",
-						},
+						Name: "pod-2-deletionTimestamp-set-3",
 					},
 					{
 						ObjectMeta: metav1.ObjectMeta{
@@ -1903,27 +1647,19 @@ After above Pods have been removed from the Node, the following Pods will be evi
 				},
 				PodsNotFound: []*corev1.Pod{
 					{
-						ObjectMeta: metav1.ObjectMeta{
-							Name: "pod-4-to-trigger-eviction-pod-not-found-should-not-be-included",
-						},
+						Name: "pod-4-to-trigger-eviction-pod-not-found-should-not-be-included",
 					},
 				},
 				PodsFailedEviction: map[string][]*corev1.Pod{
 					"Cannot evict pod as it would violate the pod's disruption budget. The disruption budget pod-5-pdb needs 20 healthy pods and has 20 currently": {
 						{
-							ObjectMeta: metav1.ObjectMeta{
-								Name: "pod-5-to-trigger-eviction-pdb-violated-1",
-							},
+							Name: "pod-5-to-trigger-eviction-pdb-violated-1",
 						},
 						{
-							ObjectMeta: metav1.ObjectMeta{
-								Name: "pod-5-to-trigger-eviction-pdb-violated-2",
-							},
+							Name: "pod-5-to-trigger-eviction-pdb-violated-2",
 						},
 						{
-							ObjectMeta: metav1.ObjectMeta{
-								Name: "pod-5-to-trigger-eviction-pdb-violated-3",
-							},
+							Name: "pod-5-to-trigger-eviction-pdb-violated-3",
 						},
 						{
 							ObjectMeta: metav1.ObjectMeta{
@@ -1943,55 +1679,39 @@ After above Pods have been removed from the Node, the following Pods will be evi
 					},
 					"some other error 1": {
 						{
-							ObjectMeta: metav1.ObjectMeta{
-								Name: "pod-6-to-trigger-eviction-some-other-error",
-							},
+							Name: "pod-6-to-trigger-eviction-some-other-error",
 						},
 					},
 					"some other error 2": {
 						{
-							ObjectMeta: metav1.ObjectMeta{
-								Name: "pod-7-to-trigger-eviction-some-other-error",
-							},
+							Name: "pod-7-to-trigger-eviction-some-other-error",
 						},
 					},
 					"some other error 3": {
 						{
-							ObjectMeta: metav1.ObjectMeta{
-								Name: "pod-8-to-trigger-eviction-some-other-error",
-							},
+							Name: "pod-8-to-trigger-eviction-some-other-error",
 						},
 					},
 					"some other error 4": {
 						{
-							ObjectMeta: metav1.ObjectMeta{
-								Name: "pod-9-to-trigger-eviction-some-other-error",
-							},
+							Name: "pod-9-to-trigger-eviction-some-other-error",
 						},
 					},
 					"some other error 5 should not be included": { // only first 5
 						{
-							ObjectMeta: metav1.ObjectMeta{
-								Name: "pod-10-to-trigger-eviction-some-other-error",
-							},
+							Name: "pod-10-to-trigger-eviction-some-other-error",
 						},
 					},
 				},
 				PodsToTriggerEvictionLater: []*corev1.Pod{
 					{
-						ObjectMeta: metav1.ObjectMeta{
-							Name: "pod-11-eviction-later",
-						},
+						Name: "pod-11-eviction-later",
 					},
 					{
-						ObjectMeta: metav1.ObjectMeta{
-							Name: "pod-12-eviction-later",
-						},
+						Name: "pod-12-eviction-later",
 					},
 					{
-						ObjectMeta: metav1.ObjectMeta{
-							Name: "pod-13-eviction-later",
-						},
+						Name: "pod-13-eviction-later",
 					},
 					{
 						ObjectMeta: metav1.ObjectMeta{
@@ -2006,16 +1726,12 @@ After above Pods have been removed from the Node, the following Pods will be evi
 				},
 				PodsToWaitCompletedNow: []*corev1.Pod{
 					{
-						ObjectMeta: metav1.ObjectMeta{
-							Name: "pod-16-wait-completed",
-						},
+						Name: "pod-16-wait-completed",
 					},
 				},
 				PodsToWaitCompletedLater: []*corev1.Pod{
 					{
-						ObjectMeta: metav1.ObjectMeta{
-							Name: "pod-17-wait-completed",
-						},
+						Name: "pod-17-wait-completed",
 					},
 				},
 			},
@@ -2037,61 +1753,43 @@ After above Pods have been removed from the Node, waiting for the following Pods
 				PodsFailedEviction: map[string][]*corev1.Pod{
 					"some other error 1": {
 						{
-							ObjectMeta: metav1.ObjectMeta{
-								Name: "pod-1-to-trigger-eviction-some-other-error",
-							},
+							Name: "pod-1-to-trigger-eviction-some-other-error",
 						},
 					},
 					"some other error 2": {
 						{
-							ObjectMeta: metav1.ObjectMeta{
-								Name: "pod-2-to-trigger-eviction-some-other-error",
-							},
+							Name: "pod-2-to-trigger-eviction-some-other-error",
 						},
 					},
 					"some other error 3": {
 						{
-							ObjectMeta: metav1.ObjectMeta{
-								Name: "pod-3-to-trigger-eviction-some-other-error",
-							},
+							Name: "pod-3-to-trigger-eviction-some-other-error",
 						},
 					},
 					"some other error 4": {
 						{
-							ObjectMeta: metav1.ObjectMeta{
-								Name: "pod-4-to-trigger-eviction-some-other-error",
-							},
+							Name: "pod-4-to-trigger-eviction-some-other-error",
 						},
 					},
 					"some other error 5": {
 						{
-							ObjectMeta: metav1.ObjectMeta{
-								Name: "pod-5-to-trigger-eviction-some-other-error",
-							},
+							Name: "pod-5-to-trigger-eviction-some-other-error",
 						},
 					},
 					"some other error 6 should not be included": { // only first 5
 						{
-							ObjectMeta: metav1.ObjectMeta{
-								Name: "pod-6-to-trigger-eviction-some-other-error-1",
-							},
+							Name: "pod-6-to-trigger-eviction-some-other-error-1",
 						},
 						{
-							ObjectMeta: metav1.ObjectMeta{
-								Name: "pod-6-to-trigger-eviction-some-other-error-2",
-							},
+							Name: "pod-6-to-trigger-eviction-some-other-error-2",
 						},
 						{
-							ObjectMeta: metav1.ObjectMeta{
-								Name: "pod-6-to-trigger-eviction-some-other-error-3",
-							},
+							Name: "pod-6-to-trigger-eviction-some-other-error-3",
 						},
 					},
 					"some other error 7 should not be included": { // only first 5
 						{
-							ObjectMeta: metav1.ObjectMeta{
-								Name: "pod-7-to-trigger-eviction-some-other-error",
-							},
+							Name: "pod-7-to-trigger-eviction-some-other-error",
 						},
 					},
 				},

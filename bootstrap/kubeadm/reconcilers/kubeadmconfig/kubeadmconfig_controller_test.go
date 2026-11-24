@@ -125,10 +125,8 @@ func TestKubeadmConfigReconciler_Reconcile_ReturnEarlyIfKubeadmConfigIsReady(t *
 	}
 
 	request := ctrl.Request{
-		NamespacedName: client.ObjectKey{
-			Namespace: metav1.NamespaceDefault,
-			Name:      "cfg",
-		},
+		Namespace: metav1.NamespaceDefault,
+		Name:      "cfg",
 	}
 	result, err := k.Reconcile(ctx, request)
 	g.Expect(err).ToNot(HaveOccurred())
@@ -156,11 +154,9 @@ func TestKubeadmConfigReconciler_TestSecretOwnerReferenceReconciliation(t *testi
 		UID:        machine.UID,
 	}))
 	secret := &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      config.Name,
-			Namespace: config.Namespace,
-		},
-		Type: corev1.SecretTypeBootstrapToken,
+		Name:      config.Name,
+		Namespace: config.Namespace,
+		Type:      corev1.SecretTypeBootstrapToken,
 	}
 	config.Status.Initialization.DataSecretCreated = new(true)
 
@@ -178,10 +174,8 @@ func TestKubeadmConfigReconciler_TestSecretOwnerReferenceReconciliation(t *testi
 	}
 
 	request := ctrl.Request{
-		NamespacedName: client.ObjectKey{
-			Namespace: metav1.NamespaceDefault,
-			Name:      "cfg",
-		},
+		Namespace: metav1.NamespaceDefault,
+		Name:      "cfg",
 	}
 	var err error
 	key := client.ObjectKeyFromObject(config)
@@ -258,10 +252,8 @@ func TestKubeadmConfigReconciler_Reconcile_ReturnNilIfReferencedMachineIsNotFoun
 	}
 
 	request := ctrl.Request{
-		NamespacedName: client.ObjectKey{
-			Namespace: metav1.NamespaceDefault,
-			Name:      "cfg",
-		},
+		Namespace: metav1.NamespaceDefault,
+		Name:      "cfg",
 	}
 	_, err := k.Reconcile(ctx, request)
 	g.Expect(err).ToNot(HaveOccurred())
@@ -295,10 +287,8 @@ func TestKubeadmConfigReconciler_Reconcile_ReturnEarlyIfMachineHasDataSecretName
 	}
 
 	request := ctrl.Request{
-		NamespacedName: client.ObjectKey{
-			Namespace: metav1.NamespaceDefault,
-			Name:      "cfg",
-		},
+		Namespace: metav1.NamespaceDefault,
+		Name:      "cfg",
 	}
 	result, err := k.Reconcile(ctx, request)
 	actual := &bootstrapv1.KubeadmConfig{}
@@ -336,10 +326,8 @@ func TestKubeadmConfigReconciler_ReturnEarlyIfClusterInfraNotReady(t *testing.T)
 	}
 
 	request := ctrl.Request{
-		NamespacedName: client.ObjectKey{
-			Namespace: metav1.NamespaceDefault,
-			Name:      "cfg",
-		},
+		Namespace: metav1.NamespaceDefault,
+		Name:      "cfg",
 	}
 
 	expectedResult := reconcile.Result{}
@@ -371,10 +359,8 @@ func TestKubeadmConfigReconciler_Reconcile_ReturnEarlyIfMachineHasNoCluster(t *t
 	}
 
 	request := ctrl.Request{
-		NamespacedName: client.ObjectKey{
-			Namespace: metav1.NamespaceDefault,
-			Name:      "cfg",
-		},
+		Namespace: metav1.NamespaceDefault,
+		Name:      "cfg",
 	}
 	_, err := k.Reconcile(ctx, request)
 	g.Expect(err).ToNot(HaveOccurred())
@@ -406,10 +392,8 @@ func TestKubeadmConfigReconciler_Reconcile_ReturnNilIfAssociatedClusterIsNotFoun
 	}
 
 	request := ctrl.Request{
-		NamespacedName: client.ObjectKey{
-			Namespace: metav1.NamespaceDefault,
-			Name:      "cfg",
-		},
+		Namespace: metav1.NamespaceDefault,
+		Name:      "cfg",
 	}
 	_, err := k.Reconcile(ctx, request)
 	g.Expect(err).ToNot(HaveOccurred())
@@ -524,10 +508,8 @@ func TestKubeadmConfigReconciler_Reconcile_GenerateCloudConfigData(t *testing.T)
 	}
 
 	request := ctrl.Request{
-		NamespacedName: client.ObjectKey{
-			Namespace: metav1.NamespaceDefault,
-			Name:      "control-plane-init-cfg",
-		},
+		Namespace: metav1.NamespaceDefault,
+		Name:      "control-plane-init-cfg",
 	}
 	s := &corev1.Secret{}
 	g.Expect(myclient.Get(ctx, client.ObjectKey{Namespace: metav1.NamespaceDefault, Name: configName}, s)).ToNot(Succeed())
@@ -587,10 +569,8 @@ func TestKubeadmConfigReconciler_Reconcile_NoErrorIfJoiningControlPlaneHasInvali
 	}
 
 	request := ctrl.Request{
-		NamespacedName: client.ObjectKey{
-			Namespace: metav1.NamespaceDefault,
-			Name:      controlPlaneJoinConfig.Name,
-		},
+		Namespace: metav1.NamespaceDefault,
+		Name:      controlPlaneJoinConfig.Name,
 	}
 	// First reconcile only sets discovery.
 	_, err := k.Reconcile(ctx, request)
@@ -636,10 +616,8 @@ func TestKubeadmConfigReconciler_Reconcile_RequeueIfControlPlaneIsMissingAPIEndp
 	}
 
 	request := ctrl.Request{
-		NamespacedName: client.ObjectKey{
-			Namespace: metav1.NamespaceDefault,
-			Name:      "worker-join-cfg",
-		},
+		Namespace: metav1.NamespaceDefault,
+		Name:      "worker-join-cfg",
 	}
 	result, err := k.Reconcile(ctx, request)
 	g.Expect(err).ToNot(HaveOccurred())
@@ -726,10 +704,8 @@ func TestReconcileIfJoinCertificatesAvailableConditionInNodesAndControlPlaneIsRe
 			}
 
 			request := ctrl.Request{
-				NamespacedName: client.ObjectKey{
-					Namespace: config.GetNamespace(),
-					Name:      rt.configName,
-				},
+				Namespace: config.GetNamespace(),
+				Name:      rt.configName,
 			}
 			triggerAndVerifyFirstReconcileToSetDiscovery(g, k, myclient, request, rt.configName)
 			result, err := k.Reconcile(ctx, request)
@@ -804,10 +780,8 @@ func TestReconcileIfJoinNodePoolsAndControlPlaneIsReady(t *testing.T) {
 			}
 
 			request := ctrl.Request{
-				NamespacedName: client.ObjectKey{
-					Namespace: config.GetNamespace(),
-					Name:      rt.configName,
-				},
+				Namespace: config.GetNamespace(),
+				Name:      rt.configName,
 			}
 			triggerAndVerifyFirstReconcileToSetDiscovery(g, k, myclient, request, rt.configName)
 			result, err := k.Reconcile(ctx, request)
@@ -906,10 +880,8 @@ func TestBootstrapDataFormat(t *testing.T) {
 				controller:          capicontrollerutil.NewFakeController(),
 			}
 			request := ctrl.Request{
-				NamespacedName: client.ObjectKey{
-					Namespace: metav1.NamespaceDefault,
-					Name:      configName,
-				},
+				Namespace: metav1.NamespaceDefault,
+				Name:      configName,
 			}
 
 			if tc.clusterInitialized {
@@ -993,26 +965,22 @@ func TestKubeadmConfigSecretCreatedStatusNotPatched(t *testing.T) {
 		controller:          capicontrollerutil.NewFakeController(),
 	}
 	request := ctrl.Request{
-		NamespacedName: client.ObjectKey{
-			Namespace: metav1.NamespaceDefault,
-			Name:      "worker-join-cfg",
-		},
+		Namespace: metav1.NamespaceDefault,
+		Name:      "worker-join-cfg",
 	}
 	secret := &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      workerJoinConfig.Name,
-			Namespace: workerJoinConfig.Namespace,
-			Labels: map[string]string{
-				clusterv1.ClusterNameLabel: cluster.Name,
-			},
-			OwnerReferences: []metav1.OwnerReference{
-				{
-					APIVersion: bootstrapv1.GroupVersion.String(),
-					Kind:       "KubeadmConfig",
-					Name:       workerJoinConfig.Name,
-					UID:        workerJoinConfig.UID,
-					Controller: new(true),
-				},
+		Name:      workerJoinConfig.Name,
+		Namespace: workerJoinConfig.Namespace,
+		Labels: map[string]string{
+			clusterv1.ClusterNameLabel: cluster.Name,
+		},
+		OwnerReferences: []metav1.OwnerReference{
+			{
+				APIVersion: bootstrapv1.GroupVersion.String(),
+				Kind:       "KubeadmConfig",
+				Name:       workerJoinConfig.Name,
+				UID:        workerJoinConfig.UID,
+				Controller: new(true),
 			},
 		},
 		Data: map[string][]byte{
@@ -1074,10 +1042,8 @@ func TestBootstrapTokenTTLExtension(t *testing.T) {
 		controller:          capicontrollerutil.NewFakeController(),
 	}
 	request := ctrl.Request{
-		NamespacedName: client.ObjectKey{
-			Namespace: metav1.NamespaceDefault,
-			Name:      "worker-join-cfg",
-		},
+		Namespace: metav1.NamespaceDefault,
+		Name:      "worker-join-cfg",
 	}
 	triggerAndVerifyFirstReconcileToSetDiscovery(g, k, myclient, request, "worker-join-cfg")
 	result, err := k.Reconcile(ctx, request)
@@ -1091,10 +1057,8 @@ func TestBootstrapTokenTTLExtension(t *testing.T) {
 	g.Expect(cfg.Status.ObservedGeneration).NotTo(BeNil())
 
 	request = ctrl.Request{
-		NamespacedName: client.ObjectKey{
-			Namespace: metav1.NamespaceDefault,
-			Name:      "control-plane-join-cfg",
-		},
+		Namespace: metav1.NamespaceDefault,
+		Name:      "control-plane-join-cfg",
 	}
 	triggerAndVerifyFirstReconcileToSetDiscovery(g, k, myclient, request, "control-plane-join-cfg")
 	result, err = k.Reconcile(ctx, request)
@@ -1120,16 +1084,12 @@ func TestBootstrapTokenTTLExtension(t *testing.T) {
 
 	for _, req := range []ctrl.Request{
 		{
-			NamespacedName: client.ObjectKey{
-				Namespace: metav1.NamespaceDefault,
-				Name:      "worker-join-cfg",
-			},
+			Namespace: metav1.NamespaceDefault,
+			Name:      "worker-join-cfg",
 		},
 		{
-			NamespacedName: client.ObjectKey{
-				Namespace: metav1.NamespaceDefault,
-				Name:      "control-plane-join-cfg",
-			},
+			Namespace: metav1.NamespaceDefault,
+			Name:      "control-plane-join-cfg",
 		},
 	} {
 		result, err := k.Reconcile(ctx, req)
@@ -1157,16 +1117,12 @@ func TestBootstrapTokenTTLExtension(t *testing.T) {
 
 	for _, req := range []ctrl.Request{
 		{
-			NamespacedName: client.ObjectKey{
-				Namespace: metav1.NamespaceDefault,
-				Name:      "worker-join-cfg",
-			},
+			Namespace: metav1.NamespaceDefault,
+			Name:      "worker-join-cfg",
 		},
 		{
-			NamespacedName: client.ObjectKey{
-				Namespace: metav1.NamespaceDefault,
-				Name:      "control-plane-join-cfg",
-			},
+			Namespace: metav1.NamespaceDefault,
+			Name:      "control-plane-join-cfg",
 		},
 	} {
 		result, err := k.Reconcile(ctx, req)
@@ -1205,16 +1161,12 @@ func TestBootstrapTokenTTLExtension(t *testing.T) {
 
 	for _, req := range []ctrl.Request{
 		{
-			NamespacedName: client.ObjectKey{
-				Namespace: metav1.NamespaceDefault,
-				Name:      "worker-join-cfg",
-			},
+			Namespace: metav1.NamespaceDefault,
+			Name:      "worker-join-cfg",
 		},
 		{
-			NamespacedName: client.ObjectKey{
-				Namespace: metav1.NamespaceDefault,
-				Name:      "control-plane-join-cfg",
-			},
+			Namespace: metav1.NamespaceDefault,
+			Name:      "control-plane-join-cfg",
 		},
 	} {
 		result, err := k.Reconcile(ctx, req)
@@ -1257,16 +1209,12 @@ func TestBootstrapTokenTTLExtension(t *testing.T) {
 
 	for _, req := range []ctrl.Request{
 		{
-			NamespacedName: client.ObjectKey{
-				Namespace: metav1.NamespaceDefault,
-				Name:      "worker-join-cfg",
-			},
+			Namespace: metav1.NamespaceDefault,
+			Name:      "worker-join-cfg",
 		},
 		{
-			NamespacedName: client.ObjectKey{
-				Namespace: metav1.NamespaceDefault,
-				Name:      "control-plane-join-cfg",
-			},
+			Namespace: metav1.NamespaceDefault,
+			Name:      "control-plane-join-cfg",
 		},
 	} {
 		result, err := k.Reconcile(ctx, req)
@@ -1318,10 +1266,8 @@ func TestBootstrapTokenRotationMachinePool(t *testing.T) {
 		controller:          capicontrollerutil.NewFakeController(),
 	}
 	request := ctrl.Request{
-		NamespacedName: client.ObjectKey{
-			Namespace: metav1.NamespaceDefault,
-			Name:      "workerpool-join-cfg",
-		},
+		Namespace: metav1.NamespaceDefault,
+		Name:      "workerpool-join-cfg",
 	}
 	triggerAndVerifyFirstReconcileToSetDiscovery(g, k, myclient, request, "workerpool-join-cfg")
 	result, err := k.Reconcile(ctx, request)
@@ -1449,10 +1395,8 @@ func TestBootstrapTokenRotationMachinePool(t *testing.T) {
 	}
 
 	request = ctrl.Request{
-		NamespacedName: client.ObjectKey{
-			Namespace: metav1.NamespaceDefault,
-			Name:      "workerpool-join-cfg",
-		},
+		Namespace: metav1.NamespaceDefault,
+		Name:      "workerpool-join-cfg",
 	}
 	result, err = k.Reconcile(ctx, request)
 	g.Expect(err).ToNot(HaveOccurred())
@@ -1512,10 +1456,8 @@ func TestBootstrapTokenRefreshIfTokenSecretCleaned(t *testing.T) {
 			controller:          capicontrollerutil.NewFakeController(),
 		}
 		request := ctrl.Request{
-			NamespacedName: client.ObjectKey{
-				Namespace: metav1.NamespaceDefault,
-				Name:      "worker-join-cfg",
-			},
+			Namespace: metav1.NamespaceDefault,
+			Name:      "worker-join-cfg",
 		}
 		triggerAndVerifyFirstReconcileToSetDiscovery(g, k, myclient, request, "worker-join-cfg")
 		result, err := k.Reconcile(ctx, request)
@@ -1587,10 +1529,8 @@ func TestBootstrapTokenRefreshIfTokenSecretCleaned(t *testing.T) {
 			controller:          capicontrollerutil.NewFakeController(),
 		}
 		request := ctrl.Request{
-			NamespacedName: client.ObjectKey{
-				Namespace: metav1.NamespaceDefault,
-				Name:      "workerpool-join-cfg",
-			},
+			Namespace: metav1.NamespaceDefault,
+			Name:      "workerpool-join-cfg",
 		}
 		triggerAndVerifyFirstReconcileToSetDiscovery(g, k, myclient, request, "workerpool-join-cfg")
 		result, err := k.Reconcile(ctx, request)
@@ -1658,10 +1598,8 @@ func TestKubeadmConfigReconciler_Reconcile_DiscoveryReconcileBehaviors(t *testin
 			name:    "Automatically generate token if discovery not specified",
 			cluster: goodcluster,
 			config: &bootstrapv1.KubeadmConfig{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: metav1.NamespaceDefault,
-					Name:      "config1",
-				},
+				Namespace: metav1.NamespaceDefault,
+				Name:      "config1",
 				Spec: bootstrapv1.KubeadmConfigSpec{
 					JoinConfiguration: bootstrapv1.JoinConfiguration{
 						Discovery: bootstrapToken,
@@ -1681,10 +1619,8 @@ func TestKubeadmConfigReconciler_Reconcile_DiscoveryReconcileBehaviors(t *testin
 			name:    "Respect discoveryConfiguration.File",
 			cluster: goodcluster,
 			config: &bootstrapv1.KubeadmConfig{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: metav1.NamespaceDefault,
-					Name:      "config1",
-				},
+				Namespace: metav1.NamespaceDefault,
+				Name:      "config1",
 				Spec: bootstrapv1.KubeadmConfigSpec{
 					JoinConfiguration: bootstrapv1.JoinConfiguration{
 						Discovery: bootstrapv1.Discovery{
@@ -1706,10 +1642,8 @@ func TestKubeadmConfigReconciler_Reconcile_DiscoveryReconcileBehaviors(t *testin
 			name:    "Respect discoveryConfiguration.File.KubeConfig",
 			cluster: goodcluster,
 			config: &bootstrapv1.KubeadmConfig{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: metav1.NamespaceDefault,
-					Name:      "config1",
-				},
+				Namespace: metav1.NamespaceDefault,
+				Name:      "config1",
 				Spec: bootstrapv1.KubeadmConfigSpec{
 					JoinConfiguration: bootstrapv1.JoinConfiguration{
 						Discovery: bootstrapv1.Discovery{
@@ -1743,10 +1677,8 @@ func TestKubeadmConfigReconciler_Reconcile_DiscoveryReconcileBehaviors(t *testin
 			name:    "Respect discoveryConfiguration.BootstrapToken.APIServerEndpoint",
 			cluster: goodcluster,
 			config: &bootstrapv1.KubeadmConfig{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: metav1.NamespaceDefault,
-					Name:      "config1",
-				},
+				Namespace: metav1.NamespaceDefault,
+				Name:      "config1",
 				Spec: bootstrapv1.KubeadmConfigSpec{
 					JoinConfiguration: bootstrapv1.JoinConfiguration{
 						Discovery: bootstrapv1.Discovery{
@@ -1769,10 +1701,8 @@ func TestKubeadmConfigReconciler_Reconcile_DiscoveryReconcileBehaviors(t *testin
 			name:    "Respect discoveryConfiguration.BootstrapToken.Token",
 			cluster: goodcluster,
 			config: &bootstrapv1.KubeadmConfig{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: metav1.NamespaceDefault,
-					Name:      "config1",
-				},
+				Namespace: metav1.NamespaceDefault,
+				Name:      "config1",
 				Spec: bootstrapv1.KubeadmConfigSpec{
 					JoinConfiguration: bootstrapv1.JoinConfiguration{
 						Discovery: bootstrapv1.Discovery{
@@ -1795,10 +1725,8 @@ func TestKubeadmConfigReconciler_Reconcile_DiscoveryReconcileBehaviors(t *testin
 			name:    "Respect discoveryConfiguration.BootstrapToken.CACertHashes",
 			cluster: goodcluster,
 			config: &bootstrapv1.KubeadmConfig{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: metav1.NamespaceDefault,
-					Name:      "config1",
-				},
+				Namespace: metav1.NamespaceDefault,
+				Name:      "config1",
 				Spec: bootstrapv1.KubeadmConfigSpec{
 					JoinConfiguration: bootstrapv1.JoinConfiguration{
 						Discovery: bootstrapv1.Discovery{
@@ -1915,9 +1843,7 @@ func TestKubeadmConfigReconciler_computeClusterConfigurationAndAdditionalData(t 
 		{
 			name: "Propagate fields from Cluster & Machine & initConfiguration",
 			cluster: &clusterv1.Cluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "mycluster",
-				},
+				Name: "mycluster",
 				Spec: clusterv1.ClusterSpec{
 					ClusterNetwork: clusterv1.ClusterNetwork{
 						Services:      clusterv1.NetworkRanges{CIDRBlocks: []string{"myServiceSubnet"}},
@@ -2108,10 +2034,8 @@ func TestKubeadmConfigReconciler_Reconcile_DoesNotFailIfCASecretsAlreadyExist(t 
 	configName := "my-config"
 	c := newControlPlaneInitKubeadmConfig(m.Namespace, configName)
 	scrt := &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      fmt.Sprintf("%s-%s", cluster.Name, secret.EtcdCA),
-			Namespace: metav1.NamespaceDefault,
-		},
+		Name:      fmt.Sprintf("%s-%s", cluster.Name, secret.EtcdCA),
+		Namespace: metav1.NamespaceDefault,
 		Data: map[string][]byte{
 			"tls.crt": []byte("hello world"),
 			"tls.key": []byte("hello world"),
@@ -2124,7 +2048,7 @@ func TestKubeadmConfigReconciler_Reconcile_DoesNotFailIfCASecretsAlreadyExist(t 
 		KubeadmInitLock:     &myInitLocker{},
 	}
 	req := ctrl.Request{
-		NamespacedName: client.ObjectKey{Namespace: metav1.NamespaceDefault, Name: configName},
+		Namespace: metav1.NamespaceDefault, Name: configName,
 	}
 	_, err := reconciler.Reconcile(ctx, req)
 	g.Expect(err).ToNot(HaveOccurred())
@@ -2160,20 +2084,16 @@ func TestKubeadmConfigReconciler_Reconcile_ExactlyOneControlPlaneMachineInitiali
 	}
 
 	request := ctrl.Request{
-		NamespacedName: client.ObjectKey{
-			Namespace: metav1.NamespaceDefault,
-			Name:      "control-plane-init-cfg-first",
-		},
+		Namespace: metav1.NamespaceDefault,
+		Name:      "control-plane-init-cfg-first",
 	}
 	result, err := k.Reconcile(ctx, request)
 	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(result.RequeueAfter).To(Equal(time.Duration(0)))
 
 	request = ctrl.Request{
-		NamespacedName: client.ObjectKey{
-			Namespace: metav1.NamespaceDefault,
-			Name:      "control-plane-init-cfg-second",
-		},
+		Namespace: metav1.NamespaceDefault,
+		Name:      "control-plane-init-cfg-second",
 	}
 	result, err = k.Reconcile(ctx, request)
 	g.Expect(err).ToNot(HaveOccurred())
@@ -2223,10 +2143,8 @@ func TestKubeadmConfigReconciler_Reconcile_PatchWhenErrorOccurred(t *testing.T) 
 	}
 
 	request := ctrl.Request{
-		NamespacedName: client.ObjectKey{
-			Namespace: metav1.NamespaceDefault,
-			Name:      "control-plane-init-cfg",
-		},
+		Namespace: metav1.NamespaceDefault,
+		Name:      "control-plane-init-cfg",
 	}
 
 	result, err := k.Reconcile(ctx, request)
@@ -2242,9 +2160,7 @@ func TestKubeadmConfigReconciler_Reconcile_PatchWhenErrorOccurred(t *testing.T) 
 
 func TestKubeadmConfigReconciler_ResolveFiles(t *testing.T) {
 	testSecret := &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "source",
-		},
+		Name: "source",
 		Data: map[string][]byte{
 			"key": []byte("foo"),
 		},
@@ -2539,9 +2455,7 @@ users:
 func TestKubeadmConfigReconciler_ResolveUsers(t *testing.T) {
 	fakePasswd := "bar"
 	testSecret := &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "source",
-		},
+		Name: "source",
 		Data: map[string][]byte{
 			"key": []byte(fakePasswd),
 		},
@@ -2886,10 +2800,8 @@ func (m *myInitLocker) Unlock(_ context.Context, _ *clusterv1.Cluster) bool {
 
 func assertHasFalseCondition(g *WithT, myclient client.Client, req ctrl.Request, conditionType string, reason string) {
 	config := &bootstrapv1.KubeadmConfig{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      req.Name,
-			Namespace: req.Namespace,
-		},
+		Name:      req.Name,
+		Namespace: req.Namespace,
 	}
 
 	configKey := client.ObjectKeyFromObject(config)
@@ -2902,10 +2814,8 @@ func assertHasFalseCondition(g *WithT, myclient client.Client, req ctrl.Request,
 
 func assertHasTrueCondition(g *WithT, myclient client.Client, req ctrl.Request, conditionType string) {
 	config := &bootstrapv1.KubeadmConfig{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      req.Name,
-			Namespace: req.Namespace,
-		},
+		Name:      req.Name,
+		Namespace: req.Namespace,
 	}
 	configKey := client.ObjectKeyFromObject(config)
 	g.Expect(myclient.Get(ctx, configKey, config)).To(Succeed())

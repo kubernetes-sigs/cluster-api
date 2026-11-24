@@ -334,7 +334,7 @@ func ClusterInPlaceUpdateSpec(ctx context.Context, inputGetter func() ClusterInP
 		if !input.SkipCleanup {
 			if input.ExtensionServiceNamespace != "" && input.ExtensionServiceName != "" {
 				Eventually(func() error {
-					return input.BootstrapClusterProxy.GetClient().Delete(ctx, &runtimev1.ExtensionConfig{ObjectMeta: metav1.ObjectMeta{Name: input.ExtensionConfigName}})
+					return input.BootstrapClusterProxy.GetClient().Delete(ctx, &runtimev1.ExtensionConfig{Name: input.ExtensionConfigName})
 				}, 10*time.Second, 1*time.Second).Should(Succeed(), "Deleting ExtensionConfig failed")
 			}
 		}
@@ -559,10 +559,8 @@ func setPreloadedCanUpdateHookResponses(ctx context.Context, c client.Client, cl
 // If response is empty the preloaded response is removed, so the extension falls back to its default behavior.
 func setPreloadedHookResponse(ctx context.Context, c client.Client, cluster *clusterv1.Cluster, extensionConfigName, hookName, response string) {
 	configMap := &corev1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: cluster.Namespace,
-			Name:      hookResponsesConfigMapName(cluster.Name, extensionConfigName),
-		},
+		Namespace: cluster.Namespace,
+		Name:      hookResponsesConfigMapName(cluster.Name, extensionConfigName),
 	}
 	key := hookName + "-preloadedResponse"
 	// Note: Using Eventually to handle conflicts, e.g. with the test extension recording hook calls in the same ConfigMap.

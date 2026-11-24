@@ -58,10 +58,8 @@ func TestGetMachinesForCluster(t *testing.T) {
 		list: machineListForTestGetMachinesForCluster(),
 	}}
 	cluster := &clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: metav1.NamespaceDefault,
-			Name:      "my-cluster",
-		},
+		Namespace: metav1.NamespaceDefault,
+		Name:      "my-cluster",
 	}
 	machines, err := m.GetMachinesForCluster(ctx, cluster)
 	g.Expect(err).ToNot(HaveOccurred())
@@ -96,12 +94,10 @@ func TestGetWorkloadCluster(t *testing.T) {
 	cert, err := getTestCACert(key)
 	g.Expect(err).ToNot(HaveOccurred())
 	etcdSecret := &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "my-cluster-etcd",
-			Namespace: ns.Name,
-			Labels: map[string]string{
-				clusterv1.ClusterNameLabel: "my-cluster",
-			},
+		Name:      "my-cluster-etcd",
+		Namespace: ns.Name,
+		Labels: map[string]string{
+			clusterv1.ClusterNameLabel: "my-cluster",
 		},
 		Data: map[string][]byte{
 			secret.TLSCrtDataName: certs.EncodeCertPEM(cert),
@@ -117,10 +113,8 @@ func TestGetWorkloadCluster(t *testing.T) {
 
 	// Create Cluster
 	cluster := &clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "my-cluster",
-			Namespace: ns.Name,
-		},
+		Name:      "my-cluster",
+		Namespace: ns.Name,
 		Spec: clusterv1.ClusterSpec{
 			InfrastructureRef: clusterv1.ContractVersionedObjectReference{
 				APIGroup: builder.InfrastructureGroupVersion.Group,
@@ -144,18 +138,14 @@ func TestGetWorkloadCluster(t *testing.T) {
 	// This way we are using the envtest environment as both the
 	// management and the workload cluster.
 	testEnvKubeconfig := kubeconfig.FromEnvTestConfig(env.GetConfig(), &clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "my-cluster",
-			Namespace: ns.Name,
-		},
+		Name:      "my-cluster",
+		Namespace: ns.Name,
 	})
 	kubeconfigSecret := &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "my-cluster-kubeconfig",
-			Namespace: ns.Name,
-			Labels: map[string]string{
-				clusterv1.ClusterNameLabel: "my-cluster",
-			},
+		Name:      "my-cluster-kubeconfig",
+		Namespace: ns.Name,
+		Labels: map[string]string{
+			clusterv1.ClusterNameLabel: "my-cluster",
 		},
 		Data: map[string][]byte{
 			secret.KubeconfigDataName: testEnvKubeconfig,
@@ -289,12 +279,10 @@ func machineListForTestGetMachinesForCluster() *clusterv1.MachineList {
 	}
 	machine := func(name string) clusterv1.Machine {
 		return clusterv1.Machine{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      name,
-				Namespace: metav1.NamespaceDefault,
-				Labels: map[string]string{
-					clusterv1.ClusterNameLabel: "my-cluster",
-				},
+			Name:      name,
+			Namespace: metav1.NamespaceDefault,
+			Labels: map[string]string{
+				clusterv1.ClusterNameLabel: "my-cluster",
 			},
 		}
 	}

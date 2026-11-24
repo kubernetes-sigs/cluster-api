@@ -77,11 +77,9 @@ func (r *ClusterBackendReconciler) ReconcileNormal(ctx context.Context, cluster 
 	// Create default Namespaces.
 	for _, nsName := range []string{metav1.NamespaceDefault, metav1.NamespacePublic, metav1.NamespaceSystem} {
 		ns := &corev1.Namespace{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: nsName,
-				Labels: map[string]string{
-					"kubernetes.io/metadata.name": nsName,
-				},
+			Name: nsName,
+			Labels: map[string]string{
+				"kubernetes.io/metadata.name": nsName,
 			},
 		}
 

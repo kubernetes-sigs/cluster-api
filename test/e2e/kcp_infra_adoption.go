@@ -305,12 +305,10 @@ func KCPInfraAdoptionSpec(ctx context.Context, inputGetter func() KCPInfraAdopti
 			// Re-create a bootstrap data secret.
 			// Note: create an empty secret, machines are already bootstrapped.
 			newSecret := &corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      m.Spec.Bootstrap.ConfigRef.Name,
-					Namespace: m.Namespace,
-					Labels: map[string]string{
-						clusterv1.ClusterNameLabel: newCluster.Name,
-					},
+				Name:      m.Spec.Bootstrap.ConfigRef.Name,
+				Namespace: m.Namespace,
+				Labels: map[string]string{
+					clusterv1.ClusterNameLabel: newCluster.Name,
 				},
 				Type: clusterv1.ClusterSecretType,
 			}
@@ -320,13 +318,11 @@ func KCPInfraAdoptionSpec(ctx context.Context, inputGetter func() KCPInfraAdopti
 			// Re-create bootstrap config.
 			// Note: Start from KCP spec; fixup InitConfiguration and JoinConfiguration so the object is aligned to what we have for joined machines.
 			newBC := &bootstrapv1.KubeadmConfig{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      m.Spec.Bootstrap.ConfigRef.Name,
-					Namespace: m.Namespace,
-					Labels: map[string]string{
-						clusterv1.ClusterNameLabel:         newCluster.Name,
-						clusterv1.MachineControlPlaneLabel: "",
-					},
+				Name:      m.Spec.Bootstrap.ConfigRef.Name,
+				Namespace: m.Namespace,
+				Labels: map[string]string{
+					clusterv1.ClusterNameLabel:         newCluster.Name,
+					clusterv1.MachineControlPlaneLabel: "",
 				},
 				Spec: newKcp.Spec.KubeadmConfigSpec,
 			}
@@ -497,7 +493,7 @@ func KCPInfraAdoptionSpec(ctx context.Context, inputGetter func() KCPInfraAdopti
 		if !input.SkipCleanup {
 			if input.ExtensionServiceNamespace != "" && input.ExtensionServiceName != "" {
 				Eventually(func() error {
-					return input.BootstrapClusterProxy.GetClient().Delete(ctx, &runtimev1.ExtensionConfig{ObjectMeta: metav1.ObjectMeta{Name: input.ExtensionConfigName}})
+					return input.BootstrapClusterProxy.GetClient().Delete(ctx, &runtimev1.ExtensionConfig{Name: input.ExtensionConfigName})
 				}, 10*time.Second, 1*time.Second).Should(Succeed(), "Deleting ExtensionConfig failed")
 			}
 		}

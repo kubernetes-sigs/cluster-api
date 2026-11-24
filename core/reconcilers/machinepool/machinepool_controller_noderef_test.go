@@ -313,9 +313,7 @@ func TestMachinePoolPatchNodes(t *testing.T) {
 
 	nodeList := []client.Object{
 		&corev1.Node{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "node-1",
-			},
+			Name: "node-1",
 			Spec: corev1.NodeSpec{
 				ProviderID: "aws://us-east-1/id-node-1",
 				Taints: []corev1.Taint{
@@ -324,11 +322,9 @@ func TestMachinePoolPatchNodes(t *testing.T) {
 			},
 		},
 		&corev1.Node{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "node-2",
-				Annotations: map[string]string{
-					"foo": "bar",
-				},
+			Name: "node-2",
+			Annotations: map[string]string{
+				"foo": "bar",
 			},
 			Spec: corev1.NodeSpec{
 				ProviderID: "aws://us-west-2/id-node-2",
@@ -342,14 +338,12 @@ func TestMachinePoolPatchNodes(t *testing.T) {
 			},
 		},
 		&corev1.Node{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "node-3",
-				Annotations: map[string]string{
-					"cluster.x-k8s.io/cluster-name":      "cluster-1",
-					"cluster.x-k8s.io/cluster-namespace": "my-namespace",
-					"cluster.x-k8s.io/owner-kind":        "MachinePool",
-					"cluster.x-k8s.io/owner-name":        "machinepool-3",
-				},
+			Name: "node-3",
+			Annotations: map[string]string{
+				"cluster.x-k8s.io/cluster-name":      "cluster-1",
+				"cluster.x-k8s.io/cluster-namespace": "my-namespace",
+				"cluster.x-k8s.io/owner-kind":        "MachinePool",
+				"cluster.x-k8s.io/owner-name":        "machinepool-3",
 			},
 			Spec: corev1.NodeSpec{
 				ProviderID: "aws://us-west-2/id-node-3",
@@ -363,12 +357,10 @@ func TestMachinePoolPatchNodes(t *testing.T) {
 			},
 		},
 		&corev1.Node{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "node-4",
-				Annotations: map[string]string{
-					"cluster.x-k8s.io/cluster-name":      "cluster-1",
-					"cluster.x-k8s.io/cluster-namespace": "my-namespace",
-				},
+			Name: "node-4",
+			Annotations: map[string]string{
+				"cluster.x-k8s.io/cluster-name":      "cluster-1",
+				"cluster.x-k8s.io/cluster-namespace": "my-namespace",
 			},
 			Spec: corev1.NodeSpec{
 				ProviderID: "aws://us-west-2/id-node-4",
@@ -393,10 +385,8 @@ func TestMachinePoolPatchNodes(t *testing.T) {
 		{
 			name: "Node with uninitialized taint should be patched when MachinePool has no Machines",
 			machinePool: &clusterv1.MachinePool{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "machinepool-1",
-					Namespace: "my-namespace",
-				},
+				Name:      "machinepool-1",
+				Namespace: "my-namespace",
 				Spec: clusterv1.MachinePoolSpec{
 					ClusterName:    "cluster-1",
 					ProviderIDList: []string{"aws://us-east-1/id-node-1"},
@@ -410,14 +400,12 @@ func TestMachinePoolPatchNodes(t *testing.T) {
 			},
 			expectedNodes: []corev1.Node{
 				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "node-1",
-						Annotations: map[string]string{
-							"cluster.x-k8s.io/cluster-name":      "cluster-1",
-							"cluster.x-k8s.io/cluster-namespace": "my-namespace",
-							"cluster.x-k8s.io/owner-kind":        "MachinePool",
-							"cluster.x-k8s.io/owner-name":        "machinepool-1",
-						},
+					Name: "node-1",
+					Annotations: map[string]string{
+						"cluster.x-k8s.io/cluster-name":      "cluster-1",
+						"cluster.x-k8s.io/cluster-namespace": "my-namespace",
+						"cluster.x-k8s.io/owner-kind":        "MachinePool",
+						"cluster.x-k8s.io/owner-name":        "machinepool-1",
 					},
 					Spec: corev1.NodeSpec{
 						Taints: nil,
@@ -428,10 +416,8 @@ func TestMachinePoolPatchNodes(t *testing.T) {
 		{
 			name: "Node with uninitialized taint should not be patched when MachinePool has Machines",
 			machinePool: &clusterv1.MachinePool{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "machinepool-with-machines",
-					Namespace: "my-namespace",
-				},
+				Name:      "machinepool-with-machines",
+				Namespace: "my-namespace",
 				Spec: clusterv1.MachinePoolSpec{
 					ClusterName:    "cluster-1",
 					ProviderIDList: []string{"aws://us-east-1/id-node-1"},
@@ -449,14 +435,12 @@ func TestMachinePoolPatchNodes(t *testing.T) {
 			},
 			expectedNodes: []corev1.Node{
 				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "node-1",
-						Annotations: map[string]string{
-							"cluster.x-k8s.io/cluster-name":      "cluster-1",
-							"cluster.x-k8s.io/cluster-namespace": "my-namespace",
-							"cluster.x-k8s.io/owner-kind":        "MachinePool",
-							"cluster.x-k8s.io/owner-name":        "machinepool-with-machines",
-						},
+					Name: "node-1",
+					Annotations: map[string]string{
+						"cluster.x-k8s.io/cluster-name":      "cluster-1",
+						"cluster.x-k8s.io/cluster-namespace": "my-namespace",
+						"cluster.x-k8s.io/owner-kind":        "MachinePool",
+						"cluster.x-k8s.io/owner-name":        "machinepool-with-machines",
 					},
 					Spec: corev1.NodeSpec{
 						Taints: []corev1.Taint{
@@ -469,10 +453,8 @@ func TestMachinePoolPatchNodes(t *testing.T) {
 		{
 			name: "Node with existing annotations and taints should be patched",
 			machinePool: &clusterv1.MachinePool{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "machinepool-2",
-					Namespace: "my-namespace",
-				},
+				Name:      "machinepool-2",
+				Namespace: "my-namespace",
 				Spec: clusterv1.MachinePoolSpec{
 					ClusterName:    "cluster-1",
 					ProviderIDList: []string{"aws://us-west-2/id-node-2"},
@@ -485,15 +467,13 @@ func TestMachinePoolPatchNodes(t *testing.T) {
 			},
 			expectedNodes: []corev1.Node{
 				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "node-2",
-						Annotations: map[string]string{
-							"cluster.x-k8s.io/cluster-name":      "cluster-1",
-							"cluster.x-k8s.io/cluster-namespace": "my-namespace",
-							"cluster.x-k8s.io/owner-kind":        "MachinePool",
-							"cluster.x-k8s.io/owner-name":        "machinepool-2",
-							"foo":                                "bar",
-						},
+					Name: "node-2",
+					Annotations: map[string]string{
+						"cluster.x-k8s.io/cluster-name":      "cluster-1",
+						"cluster.x-k8s.io/cluster-namespace": "my-namespace",
+						"cluster.x-k8s.io/owner-kind":        "MachinePool",
+						"cluster.x-k8s.io/owner-name":        "machinepool-2",
+						"foo":                                "bar",
 					},
 					Spec: corev1.NodeSpec{
 						Taints: []corev1.Taint{
@@ -505,14 +485,12 @@ func TestMachinePoolPatchNodes(t *testing.T) {
 					},
 				},
 				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "node-3",
-						Annotations: map[string]string{
-							"cluster.x-k8s.io/cluster-name":      "cluster-1",
-							"cluster.x-k8s.io/cluster-namespace": "my-namespace",
-							"cluster.x-k8s.io/owner-kind":        "MachinePool",
-							"cluster.x-k8s.io/owner-name":        "machinepool-2",
-						},
+					Name: "node-3",
+					Annotations: map[string]string{
+						"cluster.x-k8s.io/cluster-name":      "cluster-1",
+						"cluster.x-k8s.io/cluster-namespace": "my-namespace",
+						"cluster.x-k8s.io/owner-kind":        "MachinePool",
+						"cluster.x-k8s.io/owner-name":        "machinepool-2",
 					},
 					Spec: corev1.NodeSpec{
 						Taints: []corev1.Taint{
@@ -524,14 +502,12 @@ func TestMachinePoolPatchNodes(t *testing.T) {
 					},
 				},
 				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "node-4",
-						Annotations: map[string]string{
-							"cluster.x-k8s.io/cluster-name":      "cluster-1",
-							"cluster.x-k8s.io/cluster-namespace": "my-namespace",
-							"cluster.x-k8s.io/owner-kind":        "MachinePool",
-							"cluster.x-k8s.io/owner-name":        "machinepool-2",
-						},
+					Name: "node-4",
+					Annotations: map[string]string{
+						"cluster.x-k8s.io/cluster-name":      "cluster-1",
+						"cluster.x-k8s.io/cluster-namespace": "my-namespace",
+						"cluster.x-k8s.io/owner-kind":        "MachinePool",
+						"cluster.x-k8s.io/owner-name":        "machinepool-2",
 					},
 					Spec: corev1.NodeSpec{
 						Taints: []corev1.Taint{

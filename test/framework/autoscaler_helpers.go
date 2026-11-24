@@ -117,10 +117,8 @@ func ApplyAutoscalerToWorkloadCluster(ctx context.Context, input ApplyAutoscaler
 
 	autoscalerProxy := input.WorkloadClusterProxy
 	deployment := &appsv1.Deployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "cluster-autoscaler",
-			Namespace: "cluster-autoscaler-system",
-		},
+		Name:      "cluster-autoscaler",
+		Namespace: "cluster-autoscaler-system",
 	}
 
 	if input.AutoscalerOnManagementCluster {
@@ -183,12 +181,10 @@ func AddScaleUpDeploymentAndWait(ctx context.Context, input AddScaleUpDeployment
 	podMemory := resource.NewQuantity(memoryRequired, resource.BinarySI)
 
 	scaleUpDeployment := &appsv1.Deployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "scale-up",
-			Namespace: metav1.NamespaceDefault,
-			Labels: map[string]string{
-				"app": "scale-up",
-			},
+		Name:      "scale-up",
+		Namespace: metav1.NamespaceDefault,
+		Labels: map[string]string{
+			"app": "scale-up",
 		},
 		Spec: appsv1.DeploymentSpec{
 			Replicas: new(int32(replicas)),
@@ -535,10 +531,8 @@ func EnableAutoscalerForMachinePoolTopologyAndWait(ctx context.Context, input En
 func getAuthenticationTokenForAutoscaler(ctx context.Context, managementClusterProxy ClusterProxy, namespace string, cluster string, infraAPIGroup, infraMachineTemplateKind, infraMachinePoolTemplateKind, infraMachinePoolKind string) string {
 	name := fmt.Sprintf("cluster-%s", cluster)
 	sa := &corev1.ServiceAccount{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: namespace,
-		},
+		Name:      name,
+		Namespace: namespace,
 	}
 	Expect(managementClusterProxy.GetClient().Create(ctx, sa)).To(Succeed(), fmt.Sprintf("failed to create %s service account", name))
 
@@ -553,10 +547,8 @@ func getAuthenticationTokenForAutoscaler(ctx context.Context, managementClusterP
 		resources = append(resources, infraMachinePoolKind)
 	}
 	role := &rbacv1.Role{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: namespace,
-		},
+		Name:      name,
+		Namespace: namespace,
 		Rules: []rbacv1.PolicyRule{
 			{
 				Verbs:     []string{"get", "list", "watch", "patch", "update"},
@@ -573,10 +565,8 @@ func getAuthenticationTokenForAutoscaler(ctx context.Context, managementClusterP
 	Expect(managementClusterProxy.GetClient().Create(ctx, role)).To(Succeed(), fmt.Sprintf("failed to create %s role", name))
 
 	roleBinding := &rbacv1.RoleBinding{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: namespace,
-		},
+		Name:      name,
+		Namespace: namespace,
 		Subjects: []rbacv1.Subject{
 			{
 				Kind:      "ServiceAccount",
@@ -611,10 +601,8 @@ func getServerAddrAndCA(ctx context.Context, clusterProxy ClusterProxy) (string,
 	// cluster (e.g. "https://test-z45p9k-control-plane:6443")
 	// Note: This has been tested with MacOS,Linux and Prow.
 	clusterInfoCM := &corev1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "cluster-info",
-			Namespace: metav1.NamespacePublic,
-		},
+		Name:      "cluster-info",
+		Namespace: metav1.NamespacePublic,
 	}
 	Expect(clusterProxy.GetClient().Get(ctx, client.ObjectKeyFromObject(clusterInfoCM), clusterInfoCM)).To(Succeed(), fmt.Sprintf("failed to get ConfigMap %s", klog.KObj(clusterInfoCM)))
 	Expect(clusterInfoCM.Data).To(HaveKey("kubeconfig"), fmt.Sprintf("ConfigMap %s data is missing \"kubeconfig\"", klog.KObj(clusterInfoCM)))

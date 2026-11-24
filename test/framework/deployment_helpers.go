@@ -641,10 +641,8 @@ func DeployUnevictablePod(ctx context.Context, input DeployPodAndWaitInput) {
 	DeployPodAndWait(ctx, input)
 
 	budget := &policyv1.PodDisruptionBudget{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      input.DeploymentName,
-			Namespace: input.Namespace,
-		},
+		Name:      input.DeploymentName,
+		Namespace: input.Namespace,
 		Spec: policyv1.PodDisruptionBudgetSpec{
 			Selector: &metav1.LabelSelector{
 				MatchLabels: map[string]string{
@@ -757,10 +755,8 @@ type generateDeploymentInput struct {
 
 func generateDeployment(input generateDeploymentInput) *appsv1.Deployment {
 	workloadDeployment := &appsv1.Deployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      input.Name,
-			Namespace: input.Namespace,
-		},
+		Name:      input.Name,
+		Namespace: input.Namespace,
 		Spec: appsv1.DeploymentSpec{
 			Selector: &metav1.LabelSelector{
 				MatchLabels: map[string]string{

@@ -666,10 +666,8 @@ func TestServerSideApplyWithDefaulting(t *testing.T) {
 
 	// Calculate KubeadmConfigTemplate.
 	kct := &bootstrapv1.KubeadmConfigTemplate{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "kct",
-			Namespace: ns.Name,
-		},
+		Name:      "kct",
+		Namespace: ns.Name,
 		Spec: bootstrapv1.KubeadmConfigTemplateSpec{
 			Template: bootstrapv1.KubeadmConfigTemplateResource{
 				Spec: bootstrapv1.KubeadmConfigSpec{
@@ -956,9 +954,7 @@ func setupWebhookWithManager(ns *corev1.Namespace) (*KubeadmConfigTemplateTestDe
 
 	sideEffectNone := admissionv1.SideEffectClassNone
 	webhookConfig := &admissionv1.MutatingWebhookConfiguration{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: ns.Name + "-webhook-config",
-		},
+		Name: ns.Name + "-webhook-config",
 		Webhooks: []admissionv1.MutatingWebhook{
 			{
 				Name: ns.Name + ".kubeadmconfigtemplate.bootstrap.cluster.x-k8s.io",
@@ -972,11 +968,9 @@ func setupWebhookWithManager(ns *corev1.Namespace) (*KubeadmConfigTemplateTestDe
 							admissionv1.Create,
 							admissionv1.Update,
 						},
-						Rule: admissionv1.Rule{
-							APIGroups:   []string{bootstrapv1.GroupVersion.Group},
-							APIVersions: []string{bootstrapv1.GroupVersion.Version},
-							Resources:   []string{"kubeadmconfigtemplates"},
-						},
+						APIGroups:   []string{bootstrapv1.GroupVersion.Group},
+						APIVersions: []string{bootstrapv1.GroupVersion.Version},
+						Resources:   []string{"kubeadmconfigtemplates"},
 					},
 				},
 				NamespaceSelector: &metav1.LabelSelector{

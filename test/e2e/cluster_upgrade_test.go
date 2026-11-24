@@ -88,10 +88,8 @@ var _ = Describe("When upgrading a workload cluster using ClusterClass with a HA
 				preDrainHook := "pre-drain.delete.hook.machine.cluster.x-k8s.io/kcp-ready-check"
 
 				cluster := &clusterv1.Cluster{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: workloadClusterNamespace,
-						Name:      workloadClusterName,
-					},
+					Namespace: workloadClusterNamespace,
+					Name:      workloadClusterName,
 				}
 				Expect(managementClusterProxy.GetClient().Get(ctx, client.ObjectKeyFromObject(cluster), cluster)).To(Succeed())
 

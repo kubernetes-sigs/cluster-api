@@ -23,7 +23,6 @@ import (
 
 	. "github.com/onsi/gomega"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
@@ -125,7 +124,7 @@ func Test_clusterctlClient_Delete(t *testing.T) {
 			name: "Refuse a management cluster with another contract",
 			fields: fields{
 				client: fakeClusterForDelete(&apiextensionsv1.CustomResourceDefinition{
-					ObjectMeta: metav1.ObjectMeta{Name: "clusters.cluster.x-k8s.io"},
+					Name: "clusters.cluster.x-k8s.io",
 					Spec: apiextensionsv1.CustomResourceDefinitionSpec{
 						Versions: []apiextensionsv1.CustomResourceDefinitionVersion{{Name: "v1alpha3", Storage: true}},
 					},
@@ -289,7 +288,7 @@ func Test_clusterctlClient_Delete(t *testing.T) {
 // inventoryCRD is the clusterctl inventory CRD as a management cluster has it.
 func inventoryCRD() client.Object {
 	return &apiextensionsv1.CustomResourceDefinition{
-		ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("providers.%s", clusterctlv1.GroupVersion.Group)},
+		Name: fmt.Sprintf("providers.%s", clusterctlv1.GroupVersion.Group),
 		Spec: apiextensionsv1.CustomResourceDefinitionSpec{
 			Versions: []apiextensionsv1.CustomResourceDefinitionVersion{{Name: clusterctlv1.GroupVersion.Version, Storage: true}},
 		},

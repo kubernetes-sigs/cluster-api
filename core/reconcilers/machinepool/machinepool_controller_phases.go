@@ -587,14 +587,12 @@ func (r *Reconciler) computeDesiredMachine(mp *clusterv1.MachinePool, infraMachi
 	}
 
 	machine := &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: infraMachineName,
-			// Note: by setting the ownerRef on creation we signal to the Machine controller that this is not a stand-alone Machine.
-			OwnerReferences: []metav1.OwnerReference{*metav1.NewControllerRef(mp, machinePoolKind)},
-			Namespace:       mp.Namespace,
-			Labels:          make(map[string]string),
-			Annotations:     make(map[string]string),
-		},
+		Name: infraMachineName,
+		// Note: by setting the ownerRef on creation we signal to the Machine controller that this is not a stand-alone Machine.
+		OwnerReferences: []metav1.OwnerReference{*metav1.NewControllerRef(mp, machinePoolKind)},
+		Namespace:       mp.Namespace,
+		Labels:          make(map[string]string),
+		Annotations:     make(map[string]string),
 		Spec: clusterv1.MachineSpec{
 			ClusterName: mp.Spec.ClusterName,
 			Bootstrap: clusterv1.Bootstrap{
@@ -642,10 +640,8 @@ func (r *Reconciler) infraMachineToMachinePoolMapper(ctx context.Context, o clie
 		if machinePool != nil {
 			return []ctrl.Request{
 				{
-					NamespacedName: client.ObjectKey{
-						Namespace: machinePool.Namespace,
-						Name:      machinePool.Name,
-					},
+					Namespace: machinePool.Namespace,
+					Name:      machinePool.Name,
 				},
 			}
 		}

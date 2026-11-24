@@ -37,11 +37,9 @@ const classicManager = "manager"
 func TestRemoveManagedFieldsForLabelsAndAnnotations(t *testing.T) {
 	testFieldManager := "ssa-manager"
 	kubeadmConfig := &bootstrapv1.KubeadmConfig{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:       "kubeadmconfig-1",
-			Namespace:  "default",
-			Finalizers: []string{"test.com/finalizer"},
-		},
+		Name:       "kubeadmconfig-1",
+		Namespace:  "default",
+		Finalizers: []string{"test.com/finalizer"},
 		Spec: bootstrapv1.KubeadmConfigSpec{
 			Format: bootstrapv1.CloudConfig,
 		},
@@ -282,11 +280,9 @@ func TestMigrateManagedFields(t *testing.T) {
 	testFieldManager := "ssa-manager"
 	testMetadataFieldManager := "ssa-manager-metadata"
 	kubeadmConfig := &bootstrapv1.KubeadmConfig{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:       "kubeadmconfig-1",
-			Namespace:  "default",
-			Finalizers: []string{"test.com/finalizer"},
-		},
+		Name:       "kubeadmconfig-1",
+		Namespace:  "default",
+		Finalizers: []string{"test.com/finalizer"},
 		Spec: bootstrapv1.KubeadmConfigSpec{
 			Format: bootstrapv1.CloudConfig,
 		},

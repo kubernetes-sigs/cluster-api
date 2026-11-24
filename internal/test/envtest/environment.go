@@ -38,7 +38,6 @@ import (
 	storagev1 "k8s.io/api/storage/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
@@ -209,7 +208,7 @@ func Run(ctx context.Context, input RunInput) int {
 	if kubeconfigPath := os.Getenv("CAPI_TEST_ENV_KUBECONFIG"); kubeconfigPath != "" {
 		klog.Infof("Writing test env kubeconfig to %q", kubeconfigPath)
 		config := kubeconfig.FromEnvTestConfig(env.Config, &clusterv1.Cluster{
-			ObjectMeta: metav1.ObjectMeta{Name: "test"},
+			Name: "test",
 		})
 		if err := os.WriteFile(kubeconfigPath, config, 0o600); err != nil { //nolint:gosec // G703: kubeconfigPath is constructed internally.
 			panic(pkgerrors.Wrapf(err, "failed to write the test env kubeconfig"))
@@ -738,11 +737,9 @@ func (e *Environment) PatchAndWait(ctx context.Context, obj client.Object, field
 // CreateNamespace creates a new namespace with a generated name.
 func (e *Environment) CreateNamespace(ctx context.Context, generateName string) (*corev1.Namespace, error) {
 	ns := &corev1.Namespace{
-		ObjectMeta: metav1.ObjectMeta{
-			GenerateName: fmt.Sprintf("%s-", generateName),
-			Labels: map[string]string{
-				"testenv/original-name": generateName,
-			},
+		GenerateName: fmt.Sprintf("%s-", generateName),
+		Labels: map[string]string{
+			"testenv/original-name": generateName,
 		},
 	}
 	if err := e.Create(ctx, ns); err != nil {

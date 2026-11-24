@@ -47,14 +47,10 @@ func Test_ObjectRestarter(t *testing.T) {
 			fields: fields{
 				objs: []client.Object{
 					&clusterv1.MachineDeployment{
-						TypeMeta: metav1.TypeMeta{
-							Kind:       "MachineDeployment",
-							APIVersion: clusterv1.GroupVersion.String(),
-						},
-						ObjectMeta: metav1.ObjectMeta{
-							Namespace: "default",
-							Name:      "md-1",
-						},
+						Kind:       "MachineDeployment",
+						APIVersion: clusterv1.GroupVersion.String(),
+						Namespace:  "default",
+						Name:       "md-1",
 					},
 				},
 				ref: corev1.ObjectReference{
@@ -71,14 +67,10 @@ func Test_ObjectRestarter(t *testing.T) {
 			fields: fields{
 				objs: []client.Object{
 					&clusterv1.MachineDeployment{
-						TypeMeta: metav1.TypeMeta{
-							Kind:       "MachineDeployment",
-							APIVersion: clusterv1.GroupVersion.String(),
-						},
-						ObjectMeta: metav1.ObjectMeta{
-							Namespace: "default",
-							Name:      "md-1",
-						},
+						Kind:       "MachineDeployment",
+						APIVersion: clusterv1.GroupVersion.String(),
+						Namespace:  "default",
+						Name:       "md-1",
 						Spec: clusterv1.MachineDeploymentSpec{
 							Paused: new(true),
 						},
@@ -98,14 +90,10 @@ func Test_ObjectRestarter(t *testing.T) {
 			fields: fields{
 				objs: []client.Object{
 					&clusterv1.MachineDeployment{
-						TypeMeta: metav1.TypeMeta{
-							Kind:       "MachineDeployment",
-							APIVersion: clusterv1.GroupVersion.String(),
-						},
-						ObjectMeta: metav1.ObjectMeta{
-							Namespace: "default",
-							Name:      "md-1",
-						},
+						Kind:       "MachineDeployment",
+						APIVersion: clusterv1.GroupVersion.String(),
+						Namespace:  "default",
+						Name:       "md-1",
 						Spec: clusterv1.MachineDeploymentSpec{
 							Rollout: clusterv1.MachineDeploymentRolloutSpec{
 								After: metav1.Time{Time: time.Now().Local().Add(time.Hour)},
@@ -127,14 +115,10 @@ func Test_ObjectRestarter(t *testing.T) {
 			fields: fields{
 				objs: []client.Object{
 					&controlplanev1.KubeadmControlPlane{
-						TypeMeta: metav1.TypeMeta{
-							Kind:       "KubeadmControlPlane",
-							APIVersion: clusterv1.GroupVersionControlPlane.String(),
-						},
-						ObjectMeta: metav1.ObjectMeta{
-							Namespace: "default",
-							Name:      "kcp",
-						},
+						Kind:       "KubeadmControlPlane",
+						APIVersion: clusterv1.GroupVersionControlPlane.String(),
+						Namespace:  "default",
+						Name:       "kcp",
 					},
 				},
 				ref: corev1.ObjectReference{
@@ -151,16 +135,12 @@ func Test_ObjectRestarter(t *testing.T) {
 			fields: fields{
 				objs: []client.Object{
 					&controlplanev1.KubeadmControlPlane{
-						TypeMeta: metav1.TypeMeta{
-							Kind:       "KubeadmControlPlane",
-							APIVersion: clusterv1.GroupVersionControlPlane.String(),
-						},
-						ObjectMeta: metav1.ObjectMeta{
-							Namespace: "default",
-							Name:      "kcp",
-							Annotations: map[string]string{
-								clusterv1.PausedAnnotation: "true",
-							},
+						Kind:       "KubeadmControlPlane",
+						APIVersion: clusterv1.GroupVersionControlPlane.String(),
+						Namespace:  "default",
+						Name:       "kcp",
+						Annotations: map[string]string{
+							clusterv1.PausedAnnotation: "true",
 						},
 					},
 				},
@@ -178,14 +158,10 @@ func Test_ObjectRestarter(t *testing.T) {
 			fields: fields{
 				objs: []client.Object{
 					&controlplanev1.KubeadmControlPlane{
-						TypeMeta: metav1.TypeMeta{
-							Kind:       "KubeadmControlPlane",
-							APIVersion: clusterv1.GroupVersionControlPlane.String(),
-						},
-						ObjectMeta: metav1.ObjectMeta{
-							Namespace: "default",
-							Name:      "kcp",
-						},
+						Kind:       "KubeadmControlPlane",
+						APIVersion: clusterv1.GroupVersionControlPlane.String(),
+						Namespace:  "default",
+						Name:       "kcp",
 						Spec: controlplanev1.KubeadmControlPlaneSpec{
 							Rollout: controlplanev1.KubeadmControlPlaneRolloutSpec{
 								After: metav1.Time{Time: time.Now().Local().Add(time.Hour)},

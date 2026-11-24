@@ -111,10 +111,8 @@ func TestComputeInfrastructureCluster(t *testing.T) {
 
 	// current cluster objects
 	cluster := &clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "cluster1",
-			Namespace: metav1.NamespaceDefault,
-		},
+		Name:      "cluster1",
+		Namespace: metav1.NamespaceDefault,
 	}
 
 	t.Run("Generates the infrastructureCluster from the template", func(t *testing.T) {
@@ -194,10 +192,8 @@ func TestComputeControlPlaneInfrastructureMachineTemplate(t *testing.T) {
 
 	// current cluster objects
 	cluster := &clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "cluster1",
-			Namespace: metav1.NamespaceDefault,
-		},
+		Name:      "cluster1",
+		Namespace: metav1.NamespaceDefault,
 		Spec: clusterv1.ClusterSpec{
 			Topology: clusterv1.Topology{
 				ControlPlane: clusterv1.ControlPlaneTopology{
@@ -412,10 +408,8 @@ func TestComputeControlPlane(t *testing.T) {
 		{Key: "bar", Effect: corev1.TaintEffectPreferNoSchedule, Propagation: clusterv1.MachineTaintPropagationAlways},
 	}
 	cluster := &clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "cluster1",
-			Namespace: metav1.NamespaceDefault,
-		},
+		Name:      "cluster1",
+		Namespace: metav1.NamespaceDefault,
 		Spec: clusterv1.ClusterSpec{
 			Topology: clusterv1.Topology{
 				Version: version,
@@ -562,10 +556,8 @@ func TestComputeControlPlane(t *testing.T) {
 		g := NewWithT(t)
 
 		cluster := &clusterv1.Cluster{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "cluster1",
-				Namespace: metav1.NamespaceDefault,
-			},
+			Name:      "cluster1",
+			Namespace: metav1.NamespaceDefault,
 			Spec: clusterv1.ClusterSpec{
 				Topology: clusterv1.Topology{
 					Version: version,
@@ -608,10 +600,8 @@ func TestComputeControlPlane(t *testing.T) {
 		g := NewWithT(t)
 
 		cluster := &clusterv1.Cluster{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "cluster1",
-				Namespace: metav1.NamespaceDefault,
-			},
+			Name:      "cluster1",
+			Namespace: metav1.NamespaceDefault,
 			Spec: clusterv1.ClusterSpec{
 				Topology: clusterv1.Topology{
 					Version: version,
@@ -1120,95 +1110,47 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 	afterWorkersUpgradeGVH, _ := catalog.GroupVersionHook(runtimehooksv1.AfterWorkersUpgrade)
 
 	nonBlockingBeforeClusterUpgradeResponse := &runtimehooksv1.BeforeClusterUpgradeResponse{
-		CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
-			CommonResponse: runtimehooksv1.CommonResponse{
-				Status: runtimehooksv1.ResponseStatusSuccess,
-			},
-		},
+		Status: runtimehooksv1.ResponseStatusSuccess,
 	}
 	blockingBeforeClusterUpgradeResponse := &runtimehooksv1.BeforeClusterUpgradeResponse{
-		CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
-			CommonResponse: runtimehooksv1.CommonResponse{
-				Status: runtimehooksv1.ResponseStatusSuccess,
-			},
-			RetryAfterSeconds: int32(10),
-		},
+		Status:            runtimehooksv1.ResponseStatusSuccess,
+		RetryAfterSeconds: int32(10),
 	}
 	failureBeforeClusterUpgradeResponse := &runtimehooksv1.BeforeClusterUpgradeResponse{
-		CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
-			CommonResponse: runtimehooksv1.CommonResponse{
-				Status: runtimehooksv1.ResponseStatusFailure,
-			},
-		},
+		Status: runtimehooksv1.ResponseStatusFailure,
 	}
 
 	nonBlockingBeforeControlPlaneUpgradeResponse := &runtimehooksv1.BeforeControlPlaneUpgradeResponse{
-		CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
-			CommonResponse: runtimehooksv1.CommonResponse{
-				Status: runtimehooksv1.ResponseStatusSuccess,
-			},
-		},
+		Status: runtimehooksv1.ResponseStatusSuccess,
 	}
 	blockingBeforeControlPlaneUpgradeResponse := &runtimehooksv1.BeforeControlPlaneUpgradeResponse{
-		CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
-			CommonResponse: runtimehooksv1.CommonResponse{
-				Status: runtimehooksv1.ResponseStatusSuccess,
-			},
-			RetryAfterSeconds: int32(10),
-		},
+		Status:            runtimehooksv1.ResponseStatusSuccess,
+		RetryAfterSeconds: int32(10),
 	}
 	failureBeforeControlPlaneUpgradeResponse := &runtimehooksv1.BeforeControlPlaneUpgradeResponse{
-		CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
-			CommonResponse: runtimehooksv1.CommonResponse{
-				Status: runtimehooksv1.ResponseStatusFailure,
-			},
-		},
+		Status: runtimehooksv1.ResponseStatusFailure,
 	}
 
 	nonBlockingBeforeWorkersUpgradeResponse := &runtimehooksv1.BeforeWorkersUpgradeResponse{
-		CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
-			CommonResponse: runtimehooksv1.CommonResponse{
-				Status: runtimehooksv1.ResponseStatusSuccess,
-			},
-		},
+		Status: runtimehooksv1.ResponseStatusSuccess,
 	}
 	blockingBeforeWorkersUpgradeResponse := &runtimehooksv1.BeforeWorkersUpgradeResponse{
-		CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
-			CommonResponse: runtimehooksv1.CommonResponse{
-				Status: runtimehooksv1.ResponseStatusSuccess,
-			},
-			RetryAfterSeconds: int32(10),
-		},
+		Status:            runtimehooksv1.ResponseStatusSuccess,
+		RetryAfterSeconds: int32(10),
 	}
 	failureBeforeWorkersUpgradeResponse := &runtimehooksv1.BeforeWorkersUpgradeResponse{
-		CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
-			CommonResponse: runtimehooksv1.CommonResponse{
-				Status: runtimehooksv1.ResponseStatusFailure,
-			},
-		},
+		Status: runtimehooksv1.ResponseStatusFailure,
 	}
 
 	nonBlockingAfterWorkersUpgradeResponse := &runtimehooksv1.AfterWorkersUpgradeResponse{
-		CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
-			CommonResponse: runtimehooksv1.CommonResponse{
-				Status: runtimehooksv1.ResponseStatusSuccess,
-			},
-		},
+		Status: runtimehooksv1.ResponseStatusSuccess,
 	}
 	blockingAfterWorkersUpgradeResponse := &runtimehooksv1.AfterWorkersUpgradeResponse{
-		CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
-			CommonResponse: runtimehooksv1.CommonResponse{
-				Status: runtimehooksv1.ResponseStatusSuccess,
-			},
-			RetryAfterSeconds: int32(10),
-		},
+		Status:            runtimehooksv1.ResponseStatusSuccess,
+		RetryAfterSeconds: int32(10),
 	}
 	failureAfterWorkersUpgradeResponse := &runtimehooksv1.AfterWorkersUpgradeResponse{
-		CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
-			CommonResponse: runtimehooksv1.CommonResponse{
-				Status: runtimehooksv1.ResponseStatusFailure,
-			},
-		},
+		Status: runtimehooksv1.ResponseStatusFailure,
 	}
 
 	tests := []struct {
@@ -1644,24 +1586,22 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 				}},
 				Current: &scope.ClusterState{
 					Cluster: &clusterv1.Cluster{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      "test-cluster",
-							Namespace: "test-ns",
-							// Add managedFields and annotations that should be cleaned up before the Cluster is sent to the RuntimeExtension.
-							ManagedFields: []metav1.ManagedFieldsEntry{
-								{
-									APIVersion: builder.InfrastructureGroupVersion.String(),
-									Manager:    "manager",
-									Operation:  "Apply",
-									Time:       new(metav1.Now()),
-									FieldsType: "FieldsV1",
-								},
+						Name:      "test-cluster",
+						Namespace: "test-ns",
+						// Add managedFields and annotations that should be cleaned up before the Cluster is sent to the RuntimeExtension.
+						ManagedFields: []metav1.ManagedFieldsEntry{
+							{
+								APIVersion: builder.InfrastructureGroupVersion.String(),
+								Manager:    "manager",
+								Operation:  "Apply",
+								Time:       new(metav1.Now()),
+								FieldsType: "FieldsV1",
 							},
-							Annotations: map[string]string{
-								"fizz":                             "buzz",
-								corev1.LastAppliedConfigAnnotation: "should be cleaned up",
-								conversionutil.DataAnnotation:      "should be cleaned up",
-							},
+						},
+						Annotations: map[string]string{
+							"fizz":                             "buzz",
+							corev1.LastAppliedConfigAnnotation: "should be cleaned up",
+							conversionutil.DataAnnotation:      "should be cleaned up",
 						},
 						// Add some more fields to check that conversion implemented when calling RuntimeExtension are properly handled.
 						Spec: clusterv1.ClusterSpec{
@@ -1746,10 +1686,8 @@ func TestComputeCluster(t *testing.T) {
 
 	// current cluster objects
 	cluster := &clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "cluster1",
-			Namespace: metav1.NamespaceDefault,
-		},
+		Name:      "cluster1",
+		Namespace: metav1.NamespaceDefault,
 	}
 
 	// aggregating current cluster objects into ClusterState (simulating getCurrentState)
@@ -1905,10 +1843,8 @@ func TestComputeMachineDeployment(t *testing.T) {
 
 	version := "v1.21.2"
 	cluster := &clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "cluster1",
-			Namespace: metav1.NamespaceDefault,
-		},
+		Name:      "cluster1",
+		Namespace: metav1.NamespaceDefault,
 		Spec: clusterv1.ClusterSpec{
 			Topology: clusterv1.Topology{
 				Version: version,
@@ -2228,9 +2164,7 @@ func TestComputeMachineDeployment(t *testing.T) {
 
 		currentReplicas := int32(3)
 		currentMd := &clusterv1.MachineDeployment{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "existing-deployment-1",
-			},
+			Name: "existing-deployment-1",
 			Spec: clusterv1.MachineDeploymentSpec{
 				Replicas: &currentReplicas,
 				Template: clusterv1.MachineTemplateSpec{
@@ -2498,10 +2432,8 @@ func TestComputeMachinePool(t *testing.T) {
 
 	version := "v1.21.3"
 	cluster := &clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "cluster1",
-			Namespace: metav1.NamespaceDefault,
-		},
+		Name:      "cluster1",
+		Namespace: metav1.NamespaceDefault,
 		Spec: clusterv1.ClusterSpec{
 			Topology: clusterv1.Topology{
 				Version: version,
@@ -2645,9 +2577,7 @@ func TestComputeMachinePool(t *testing.T) {
 
 		currentReplicas := int32(3)
 		currentMp := &clusterv1.MachinePool{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "existing-pool-1",
-			},
+			Name: "existing-pool-1",
 			Spec: clusterv1.MachinePoolSpec{
 				Replicas: &currentReplicas,
 				Template: clusterv1.MachineTemplateSpec{
@@ -3050,16 +2980,12 @@ func TestComputeMachineDeploymentVersion(t *testing.T) {
 			}
 			if tt.afterControlPlaneUpgradeHookBlocking {
 				s.HookResponseTracker.Add(runtimehooksv1.AfterControlPlaneUpgrade, &runtimehooksv1.AfterControlPlaneUpgradeResponse{
-					CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
-						RetryAfterSeconds: 10,
-					},
+					RetryAfterSeconds: 10,
 				})
 			}
 			if tt.beforeWorkersUpgradeHookBlocking {
 				s.HookResponseTracker.Add(runtimehooksv1.BeforeWorkersUpgrade, &runtimehooksv1.BeforeWorkersUpgradeResponse{
-					CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
-						RetryAfterSeconds: 10,
-					},
+					RetryAfterSeconds: 10,
 				})
 			}
 			s.UpgradeTracker.ControlPlane.IsStartingUpgrade = tt.controlPlaneStartingUpgrade
@@ -3292,16 +3218,12 @@ func TestComputeMachinePoolVersion(t *testing.T) {
 			}
 			if tt.afterControlPlaneUpgradeHookBlocking {
 				s.HookResponseTracker.Add(runtimehooksv1.AfterControlPlaneUpgrade, &runtimehooksv1.AfterControlPlaneUpgradeResponse{
-					CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
-						RetryAfterSeconds: 10,
-					},
+					RetryAfterSeconds: 10,
 				})
 			}
 			if tt.beforeWorkersUpgradeHookBlocking {
 				s.HookResponseTracker.Add(runtimehooksv1.BeforeWorkersUpgrade, &runtimehooksv1.BeforeWorkersUpgradeResponse{
-					CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
-						RetryAfterSeconds: 10,
-					},
+					RetryAfterSeconds: 10,
 				})
 			}
 			s.UpgradeTracker.ControlPlane.IsStartingUpgrade = tt.controlPlaneStartingUpgrade
@@ -3510,10 +3432,8 @@ func TestTemplateToObject(t *testing.T) {
 		WithSpecFields(map[string]any{"spec.template.spec.fakeSetting": true}).
 		Build()
 	cluster := &clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "cluster1",
-			Namespace: metav1.NamespaceDefault,
-		},
+		Name:      "cluster1",
+		Namespace: metav1.NamespaceDefault,
 	}
 
 	t.Run("Generates an object from a template", func(t *testing.T) {
@@ -3579,10 +3499,8 @@ func TestTemplateToTemplate(t *testing.T) {
 	template.SetAnnotations(annotations)
 
 	cluster := &clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "cluster1",
-			Namespace: metav1.NamespaceDefault,
-		},
+		Name:      "cluster1",
+		Namespace: metav1.NamespaceDefault,
 	}
 
 	t.Run("Generates a template from a template", func(t *testing.T) {
@@ -3806,17 +3724,15 @@ func Test_computeMachineHealthCheck(t *testing.T) {
 	healthCheckTarget := builder.MachineDeployment("ns1", "md1").Build()
 	cluster := builder.Cluster("ns1", "cluster1").Build()
 	want := &clusterv1.MachineHealthCheck{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "md1",
-			Namespace: "ns1",
-			// Label is added by defaulting values using MachineHealthCheck.Default()
-			Labels: map[string]string{
-				"cluster.x-k8s.io/cluster-name":     "cluster1",
-				clusterv1.ClusterTopologyOwnedLabel: "",
-			},
-			OwnerReferences: []metav1.OwnerReference{
-				*ownerrefs.OwnerReferenceTo(cluster, clusterv1.GroupVersion.WithKind("Cluster")),
-			},
+		Name:      "md1",
+		Namespace: "ns1",
+		// Label is added by defaulting values using MachineHealthCheck.Default()
+		Labels: map[string]string{
+			"cluster.x-k8s.io/cluster-name":     "cluster1",
+			clusterv1.ClusterTopologyOwnedLabel: "",
+		},
+		OwnerReferences: []metav1.OwnerReference{
+			*ownerrefs.OwnerReferenceTo(cluster, clusterv1.GroupVersion.WithKind("Cluster")),
 		},
 		Spec: clusterv1.MachineHealthCheckSpec{
 			ClusterName: cluster.Name,
@@ -4019,10 +3935,8 @@ func TestGenerate(t *testing.T) {
 
 	// current cluster objects
 	cluster := &clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "cluster1",
-			Namespace: metav1.NamespaceDefault,
-		},
+		Name:      "cluster1",
+		Namespace: metav1.NamespaceDefault,
 	}
 
 	version := "v1.33.0"
@@ -4032,9 +3946,7 @@ func TestGenerate(t *testing.T) {
 		Build()
 
 	node := &corev1.Node{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "node-0",
-		},
+		Name: "node-0",
 		Status: corev1.NodeStatus{
 			NodeInfo: corev1.NodeSystemInfo{
 				KubeletVersion: "v1.32.0", // Not yet upgraded to v1.33.0.

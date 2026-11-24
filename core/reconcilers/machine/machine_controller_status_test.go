@@ -47,10 +47,8 @@ import (
 
 func TestSetBootstrapReadyCondition(t *testing.T) {
 	defaultMachine := clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "machine-test",
-			Namespace: metav1.NamespaceDefault,
-		},
+		Name:      "machine-test",
+		Namespace: metav1.NamespaceDefault,
 		Spec: clusterv1.MachineSpec{
 			Bootstrap: clusterv1.Bootstrap{
 				ConfigRef: clusterv1.ContractVersionedObjectReference{
@@ -78,11 +76,9 @@ func TestSetBootstrapReadyCondition(t *testing.T) {
 				return m
 			}(),
 			bootstrapConfig: &contractv1.BootstrapConfig{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "bootstrap-config1",
-					Namespace: metav1.NamespaceDefault,
-				},
-				Status: contractv1.BootstrapConfigStatus{},
+				Name:      "bootstrap-config1",
+				Namespace: metav1.NamespaceDefault,
+				Status:    contractv1.BootstrapConfigStatus{},
 			},
 			bootstrapConfigIsNotFound: false,
 			expectCondition: metav1.Condition{
@@ -95,10 +91,8 @@ func TestSetBootstrapReadyCondition(t *testing.T) {
 			name:    "mirror Ready condition from bootstrap config (true)",
 			machine: defaultMachine.DeepCopy(),
 			bootstrapConfig: &contractv1.BootstrapConfig{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "bootstrap-config1",
-					Namespace: metav1.NamespaceDefault,
-				},
+				Name:      "bootstrap-config1",
+				Namespace: metav1.NamespaceDefault,
 				Status: contractv1.BootstrapConfigStatus{
 					Conditions: contractapi.Conditions{
 						{
@@ -122,10 +116,8 @@ func TestSetBootstrapReadyCondition(t *testing.T) {
 			name:    "mirror Ready condition from bootstrap config",
 			machine: defaultMachine.DeepCopy(),
 			bootstrapConfig: &contractv1.BootstrapConfig{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "bootstrap-config1",
-					Namespace: metav1.NamespaceDefault,
-				},
+				Name:      "bootstrap-config1",
+				Namespace: metav1.NamespaceDefault,
 				Status: contractv1.BootstrapConfigStatus{
 					Conditions: contractapi.Conditions{
 						{
@@ -149,11 +141,9 @@ func TestSetBootstrapReadyCondition(t *testing.T) {
 			name:    "Use status.BoostrapReady flag as a fallback Ready condition from bootstrap config is missing",
 			machine: defaultMachine.DeepCopy(),
 			bootstrapConfig: &contractv1.BootstrapConfig{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "bootstrap-config1",
-					Namespace: metav1.NamespaceDefault,
-				},
-				Status: contractv1.BootstrapConfigStatus{},
+				Name:      "bootstrap-config1",
+				Namespace: metav1.NamespaceDefault,
+				Status:    contractv1.BootstrapConfigStatus{},
 			},
 			bootstrapConfigIsNotFound: false,
 			expectCondition: metav1.Condition{
@@ -171,10 +161,8 @@ func TestSetBootstrapReadyCondition(t *testing.T) {
 				return m
 			}(),
 			bootstrapConfig: &contractv1beta1.BootstrapConfig{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "bootstrap-config1",
-					Namespace: metav1.NamespaceDefault,
-				},
+				Name:      "bootstrap-config1",
+				Namespace: metav1.NamespaceDefault,
 				Status: contractv1beta1.BootstrapConfigStatus{
 					Ready: true,
 				},
@@ -190,10 +178,8 @@ func TestSetBootstrapReadyCondition(t *testing.T) {
 			name:    "invalid Ready condition from bootstrap config",
 			machine: defaultMachine.DeepCopy(),
 			bootstrapConfig: &contractv1.BootstrapConfig{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "bootstrap-config1",
-					Namespace: metav1.NamespaceDefault,
-				},
+				Name:      "bootstrap-config1",
+				Namespace: metav1.NamespaceDefault,
 				Status: contractv1.BootstrapConfigStatus{
 					Conditions: contractapi.Conditions{
 						{
@@ -284,10 +270,8 @@ func TestSetBootstrapReadyCondition(t *testing.T) {
 
 func TestSetInfrastructureReadyCondition(t *testing.T) {
 	defaultMachine := clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "machine-test",
-			Namespace: metav1.NamespaceDefault,
-		},
+		Name:      "machine-test",
+		Namespace: metav1.NamespaceDefault,
 		Spec: clusterv1.MachineSpec{
 			InfrastructureRef: clusterv1.ContractVersionedObjectReference{
 				APIGroup: clusterv1.GroupVersionInfrastructure.Group,
@@ -308,10 +292,8 @@ func TestSetInfrastructureReadyCondition(t *testing.T) {
 			name:    "mirror Ready condition from infra machine (true)",
 			machine: defaultMachine.DeepCopy(),
 			infraMachine: &contractv1.InfraMachine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "infra-machine1",
-					Namespace: metav1.NamespaceDefault,
-				},
+				Name:      "infra-machine1",
+				Namespace: metav1.NamespaceDefault,
 				Status: contractv1.InfraMachineStatus{
 					Conditions: contractapi.Conditions{
 						{
@@ -335,10 +317,8 @@ func TestSetInfrastructureReadyCondition(t *testing.T) {
 			name:    "mirror Ready condition from infra machine",
 			machine: defaultMachine.DeepCopy(),
 			infraMachine: &contractv1.InfraMachine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "infra-machine1",
-					Namespace: metav1.NamespaceDefault,
-				},
+				Name:      "infra-machine1",
+				Namespace: metav1.NamespaceDefault,
 				Status: contractv1.InfraMachineStatus{
 					Conditions: contractapi.Conditions{
 						{
@@ -362,11 +342,9 @@ func TestSetInfrastructureReadyCondition(t *testing.T) {
 			name:    "Use status.InfrastructureReady flag as a fallback Ready condition from infra machine is missing",
 			machine: defaultMachine.DeepCopy(),
 			infraMachine: &contractv1.InfraMachine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "infra-machine1",
-					Namespace: metav1.NamespaceDefault,
-				},
-				Status: contractv1.InfraMachineStatus{},
+				Name:      "infra-machine1",
+				Namespace: metav1.NamespaceDefault,
+				Status:    contractv1.InfraMachineStatus{},
 			},
 			infraMachineIsNotFound: false,
 			expectCondition: metav1.Condition{
@@ -384,10 +362,8 @@ func TestSetInfrastructureReadyCondition(t *testing.T) {
 				return m
 			}(),
 			infraMachine: &contractv1beta1.InfraMachine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "infra-machine1",
-					Namespace: metav1.NamespaceDefault,
-				},
+				Name:      "infra-machine1",
+				Namespace: metav1.NamespaceDefault,
 				Status: contractv1beta1.InfraMachineStatus{
 					Ready: true,
 				},
@@ -403,10 +379,8 @@ func TestSetInfrastructureReadyCondition(t *testing.T) {
 			name:    "invalid Ready condition from infra machine",
 			machine: defaultMachine.DeepCopy(),
 			infraMachine: &contractv1.InfraMachine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "infra-machine1",
-					Namespace: metav1.NamespaceDefault,
-				},
+				Name:      "infra-machine1",
+				Namespace: metav1.NamespaceDefault,
 				Status: contractv1.InfraMachineStatus{
 					Conditions: contractapi.Conditions{
 						{
@@ -601,9 +575,7 @@ func TestSummarizeNodeV1Beta2Conditions(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			g := NewWithT(t)
 			node := &corev1.Node{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "node-1",
-				},
+				Name: "node-1",
 				Status: corev1.NodeStatus{
 					Conditions: test.conditions,
 				},
@@ -620,10 +592,8 @@ func TestSetNodeHealthyAndReadyConditions(t *testing.T) {
 	now := time.Now()
 
 	defaultMachine := clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "machine-test",
-			Namespace: metav1.NamespaceDefault,
-		},
+		Name:      "machine-test",
+		Namespace: metav1.NamespaceDefault,
 		Spec: clusterv1.MachineSpec{
 			InfrastructureRef: clusterv1.ContractVersionedObjectReference{
 				APIGroup: clusterv1.GroupVersionInfrastructure.Group,
@@ -634,10 +604,8 @@ func TestSetNodeHealthyAndReadyConditions(t *testing.T) {
 	}
 
 	defaultCluster := &clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "cluster-test",
-			Namespace: metav1.NamespaceDefault,
-		},
+		Name:      "cluster-test",
+		Namespace: metav1.NamespaceDefault,
 		Status: clusterv1.ClusterStatus{
 			Initialization: clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: new(true)},
 			Conditions: []metav1.Condition{
@@ -1160,10 +1128,8 @@ func TestDeletingCondition(t *testing.T) {
 		{
 			name: "deletionTimestamp not set",
 			machine: &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "machine-test",
-					Namespace: metav1.NamespaceDefault,
-				},
+				Name:      "machine-test",
+				Namespace: metav1.NamespaceDefault,
 			},
 			deletingReason:  "",
 			deletingMessage: "",
@@ -1176,11 +1142,9 @@ func TestDeletingCondition(t *testing.T) {
 		{
 			name: "deletionTimestamp set (waiting for pre-drain hooks)",
 			machine: &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:              "machine-test",
-					Namespace:         metav1.NamespaceDefault,
-					DeletionTimestamp: &metav1.Time{Time: time.Now()},
-				},
+				Name:              "machine-test",
+				Namespace:         metav1.NamespaceDefault,
+				DeletionTimestamp: &metav1.Time{Time: time.Now()},
 			},
 			deletingReason:  clusterv1.MachineDeletingWaitingForPreDrainHookReason,
 			deletingMessage: "Waiting for pre-drain hooks to succeed (hooks: test-hook)",
@@ -1194,11 +1158,9 @@ func TestDeletingCondition(t *testing.T) {
 		{
 			name: "deletionTimestamp set (waiting for Node drain)",
 			machine: &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:              "machine-test",
-					Namespace:         metav1.NamespaceDefault,
-					DeletionTimestamp: &metav1.Time{Time: time.Now()},
-				},
+				Name:              "machine-test",
+				Namespace:         metav1.NamespaceDefault,
+				DeletionTimestamp: &metav1.Time{Time: time.Now()},
 			},
 			deletingReason: clusterv1.MachineDeletingDrainingNodeReason,
 			deletingMessage: `Drain not completed yet (started at 2024-10-09T16:13:59Z):
@@ -1377,10 +1339,8 @@ func TestSetUpdatingCondition(t *testing.T) {
 		{
 			name: "A machine starting in-place update is updating (affects availability)",
 			machine: &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Annotations: map[string]string{
-						clusterv1.UpdateInProgressAnnotation: "{\"affectsAvailability\":true}",
-					},
+				Annotations: map[string]string{
+					clusterv1.UpdateInProgressAnnotation: "{\"affectsAvailability\":true}",
 				},
 			},
 			expectCondition: &metav1.Condition{
@@ -1393,10 +1353,8 @@ func TestSetUpdatingCondition(t *testing.T) {
 		{
 			name: "A machine starting in-place update is updating (does not affect availability)",
 			machine: &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Annotations: map[string]string{
-						clusterv1.UpdateInProgressAnnotation: "{\"affectsAvailability\":false}",
-					},
+				Annotations: map[string]string{
+					clusterv1.UpdateInProgressAnnotation: "{\"affectsAvailability\":false}",
 				},
 			},
 			expectCondition: &metav1.Condition{
@@ -1409,10 +1367,8 @@ func TestSetUpdatingCondition(t *testing.T) {
 		{
 			name: "A machine starting in-place update is updating",
 			machine: &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Annotations: map[string]string{
-						clusterv1.UpdateInProgressAnnotation: "",
-					},
+				Annotations: map[string]string{
+					clusterv1.UpdateInProgressAnnotation: "",
 				},
 			},
 			updatingReason:  "foo",
@@ -1427,11 +1383,9 @@ func TestSetUpdatingCondition(t *testing.T) {
 		{
 			name: "A machine in-place updating is updating",
 			machine: &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Annotations: map[string]string{
-						clusterv1.UpdateInProgressAnnotation: "",
-						runtimev1.PendingHooksAnnotation:     "UpdateMachine",
-					},
+				Annotations: map[string]string{
+					clusterv1.UpdateInProgressAnnotation: "",
+					runtimev1.PendingHooksAnnotation:     "UpdateMachine",
 				},
 			},
 			updatingReason:  "foo",
@@ -1446,10 +1400,8 @@ func TestSetUpdatingCondition(t *testing.T) {
 		{
 			name: "A machine stopping in-place updating is updating",
 			machine: &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Annotations: map[string]string{
-						runtimev1.PendingHooksAnnotation: "UpdateMachine",
-					},
+				Annotations: map[string]string{
+					runtimev1.PendingHooksAnnotation: "UpdateMachine",
 				},
 			},
 			updatingReason:  "foo",
@@ -1503,10 +1455,8 @@ func TestSetUpToDateCondition(t *testing.T) {
 			machineDeployment: nil,
 			machineSet:        &clusterv1.MachineSet{},
 			machine: &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Labels: map[string]string{
-						clusterv1.MachineDeploymentNameLabel: "deleted-machinedeployment",
-					},
+				Labels: map[string]string{
+					clusterv1.MachineDeploymentNameLabel: "deleted-machinedeployment",
 				},
 				Status: clusterv1.MachineStatus{
 					Conditions: []metav1.Condition{
@@ -1526,10 +1476,8 @@ func TestSetUpToDateCondition(t *testing.T) {
 			machineDeployment: nil,
 			machineSet:        nil,
 			machine: &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Labels: map[string]string{
-						clusterv1.MachineDeploymentNameLabel: "deleted-machinedeployment",
-					},
+				Labels: map[string]string{
+					clusterv1.MachineDeploymentNameLabel: "deleted-machinedeployment",
 				},
 				Status: clusterv1.MachineStatus{
 					Conditions: []metav1.Condition{
@@ -1614,9 +1562,7 @@ func TestSetUpToDateCondition(t *testing.T) {
 				},
 			},
 			machine: &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Annotations: map[string]string{clusterv1.UpdateDirtyAnnotation: ""},
-				},
+				Annotations: map[string]string{clusterv1.UpdateDirtyAnnotation: ""},
 				Spec: clusterv1.MachineSpec{
 					Version: "v1.31.0",
 				},
@@ -1978,10 +1924,8 @@ func TestSetReadyCondition(t *testing.T) {
 		{
 			name: "Accepts HealthCheckSucceeded to be missing",
 			machine: &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "machine-test",
-					Namespace: metav1.NamespaceDefault,
-				},
+				Name:      "machine-test",
+				Namespace: metav1.NamespaceDefault,
 				Status: clusterv1.MachineStatus{
 					Conditions: []metav1.Condition{
 						{
@@ -2021,11 +1965,9 @@ func TestSetReadyCondition(t *testing.T) {
 		{
 			name: "Tolerates BootstrapConfig, InfraMachine and Node do not exists while the machine is deleting (waiting for pre-drain hooks)",
 			machine: &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:              "machine-test",
-					Namespace:         metav1.NamespaceDefault,
-					DeletionTimestamp: &metav1.Time{Time: time.Now()},
-				},
+				Name:              "machine-test",
+				Namespace:         metav1.NamespaceDefault,
+				DeletionTimestamp: &metav1.Time{Time: time.Now()},
 				Status: clusterv1.MachineStatus{
 					Conditions: []metav1.Condition{
 						{
@@ -2067,12 +2009,10 @@ func TestSetReadyCondition(t *testing.T) {
 		{
 			name: "Aggregates Ready condition correctly while the machine is updating",
 			machine: &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "machine-test",
-					Namespace: metav1.NamespaceDefault,
-					Annotations: map[string]string{
-						clusterv1.UpdateInProgressAnnotation: "",
-					},
+				Name:      "machine-test",
+				Namespace: metav1.NamespaceDefault,
+				Annotations: map[string]string{
+					clusterv1.UpdateInProgressAnnotation: "",
 				},
 				Status: clusterv1.MachineStatus{
 					Conditions: []metav1.Condition{
@@ -2115,12 +2055,10 @@ func TestSetReadyCondition(t *testing.T) {
 		{
 			name: "Aggregates Ready condition correctly while the machine is updating (when in-place update does not affect availability)",
 			machine: &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "machine-test",
-					Namespace: metav1.NamespaceDefault,
-					Annotations: map[string]string{
-						clusterv1.UpdateInProgressAnnotation: "{\"affectsAvailability\":false}",
-					},
+				Name:      "machine-test",
+				Namespace: metav1.NamespaceDefault,
+				Annotations: map[string]string{
+					clusterv1.UpdateInProgressAnnotation: "{\"affectsAvailability\":false}",
 				},
 				Status: clusterv1.MachineStatus{
 					Conditions: []metav1.Condition{
@@ -2162,11 +2100,9 @@ func TestSetReadyCondition(t *testing.T) {
 		{
 			name: "Aggregates Ready condition correctly while the machine is deleting (waiting for Node drain)",
 			machine: &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:              "machine-test",
-					Namespace:         metav1.NamespaceDefault,
-					DeletionTimestamp: &metav1.Time{Time: time.Now()},
-				},
+				Name:              "machine-test",
+				Namespace:         metav1.NamespaceDefault,
+				DeletionTimestamp: &metav1.Time{Time: time.Now()},
 				Status: clusterv1.MachineStatus{
 					Conditions: []metav1.Condition{
 						{
@@ -2216,10 +2152,8 @@ func TestSetReadyCondition(t *testing.T) {
 		{
 			name: "Takes into account HealthCheckSucceeded when it exists",
 			machine: &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "machine-test",
-					Namespace: metav1.NamespaceDefault,
-				},
+				Name:      "machine-test",
+				Namespace: metav1.NamespaceDefault,
 				Status: clusterv1.MachineStatus{
 					Conditions: []metav1.Condition{
 						{
@@ -2266,10 +2200,8 @@ func TestSetReadyCondition(t *testing.T) {
 		{
 			name: "Takes into account Readiness gates when defined",
 			machine: &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "machine-test",
-					Namespace: metav1.NamespaceDefault,
-				},
+				Name:      "machine-test",
+				Namespace: metav1.NamespaceDefault,
 				Spec: clusterv1.MachineSpec{
 					ReadinessGates: []clusterv1.MachineReadinessGate{
 						{
@@ -2339,10 +2271,8 @@ func TestSetReadyCondition(t *testing.T) {
 		{
 			name: "Groups readiness gates for control plane components and etcd member when possible and there is more than one condition for each category",
 			machine: &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "machine-test",
-					Namespace: metav1.NamespaceDefault,
-				},
+				Name:      "machine-test",
+				Namespace: metav1.NamespaceDefault,
 				Spec: clusterv1.MachineSpec{
 					ReadinessGates: []clusterv1.MachineReadinessGate{
 						{ConditionType: "APIServerSomething"},
@@ -2435,10 +2365,8 @@ func TestCalculateDeletingConditionForSummary(t *testing.T) {
 		{
 			name: "No Deleting condition",
 			machine: &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "machine-test",
-					Namespace: metav1.NamespaceDefault,
-				},
+				Name:      "machine-test",
+				Namespace: metav1.NamespaceDefault,
 				Status: clusterv1.MachineStatus{
 					Conditions: []metav1.Condition{},
 				},
@@ -2459,11 +2387,9 @@ func TestCalculateDeletingConditionForSummary(t *testing.T) {
 		{
 			name: "Deleting condition with DrainingNode since more than 15m",
 			machine: &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:              "machine-test",
-					Namespace:         metav1.NamespaceDefault,
-					DeletionTimestamp: &metav1.Time{Time: time.Now().Add(-16 * time.Minute)},
-				},
+				Name:              "machine-test",
+				Namespace:         metav1.NamespaceDefault,
+				DeletionTimestamp: &metav1.Time{Time: time.Now().Add(-16 * time.Minute)},
 				Status: clusterv1.MachineStatus{
 					Conditions: []metav1.Condition{
 						{
@@ -2499,11 +2425,9 @@ After above Pods have been removed from the Node, the following Pods will be evi
 		{
 			name: "Deleting condition with WaitingForVolumeDetach since more than 15m",
 			machine: &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:              "machine-test",
-					Namespace:         metav1.NamespaceDefault,
-					DeletionTimestamp: &metav1.Time{Time: time.Now().Add(-16 * time.Minute)},
-				},
+				Name:              "machine-test",
+				Namespace:         metav1.NamespaceDefault,
+				DeletionTimestamp: &metav1.Time{Time: time.Now().Add(-16 * time.Minute)},
 				Status: clusterv1.MachineStatus{
 					Conditions: []metav1.Condition{
 						{
@@ -2534,10 +2458,8 @@ After above Pods have been removed from the Node, the following Pods will be evi
 		{
 			name: "Deleting condition with WaitingForPreDrainHook",
 			machine: &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "machine-test",
-					Namespace: metav1.NamespaceDefault,
-				},
+				Name:      "machine-test",
+				Namespace: metav1.NamespaceDefault,
 				Status: clusterv1.MachineStatus{
 					Conditions: []metav1.Condition{
 						{
@@ -2583,10 +2505,8 @@ func TestAvailableCondition(t *testing.T) {
 		{
 			name: "Not Ready",
 			machine: &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "machine-test",
-					Namespace: metav1.NamespaceDefault,
-				},
+				Name:      "machine-test",
+				Namespace: metav1.NamespaceDefault,
 				Status: clusterv1.MachineStatus{
 					Conditions: []metav1.Condition{
 						{
@@ -2607,10 +2527,8 @@ func TestAvailableCondition(t *testing.T) {
 		{
 			name: "Ready but still waiting for MinReadySeconds",
 			machine: &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "machine-test",
-					Namespace: metav1.NamespaceDefault,
-				},
+				Name:      "machine-test",
+				Namespace: metav1.NamespaceDefault,
 				Status: clusterv1.MachineStatus{
 					Conditions: []metav1.Condition{
 						{
@@ -2632,10 +2550,8 @@ func TestAvailableCondition(t *testing.T) {
 		{
 			name: "Ready and available",
 			machine: &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "machine-test",
-					Namespace: metav1.NamespaceDefault,
-				},
+				Name:      "machine-test",
+				Namespace: metav1.NamespaceDefault,
 				Status: clusterv1.MachineStatus{
 					Conditions: []metav1.Condition{
 						{
@@ -2677,10 +2593,8 @@ func TestAvailableCondition(t *testing.T) {
 func TestReconcileMachinePhases(t *testing.T) {
 	var defaultKubeconfigSecret *corev1.Secret
 	defaultCluster := &clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test-cluster",
-			Namespace: metav1.NamespaceDefault,
-		},
+		Name:      "test-cluster",
+		Namespace: metav1.NamespaceDefault,
 		Spec: clusterv1.ClusterSpec{
 			ControlPlaneRef: clusterv1.ContractVersionedObjectReference{
 				APIGroup: builder.ControlPlaneGroupVersion.Group,
@@ -2691,12 +2605,10 @@ func TestReconcileMachinePhases(t *testing.T) {
 	}
 
 	defaultMachine := clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "machine-test",
-			Namespace: metav1.NamespaceDefault,
-			Labels: map[string]string{
-				clusterv1.MachineControlPlaneLabel: "",
-			},
+		Name:      "machine-test",
+		Namespace: metav1.NamespaceDefault,
+		Labels: map[string]string{
+			clusterv1.MachineControlPlaneLabel: "",
 		},
 		Spec: clusterv1.MachineSpec{
 			ClusterName: defaultCluster.Name,
@@ -2919,10 +2831,8 @@ func TestReconcileMachinePhases(t *testing.T) {
 
 		// Create Node.
 		node := &corev1.Node{
-			ObjectMeta: metav1.ObjectMeta{
-				GenerateName: "machine-test-node-",
-			},
-			Spec: corev1.NodeSpec{ProviderID: nodeProviderID},
+			GenerateName: "machine-test-node-",
+			Spec:         corev1.NodeSpec{ProviderID: nodeProviderID},
 		}
 		g.Expect(env.Create(ctx, node)).To(Succeed())
 		defer func() {
@@ -3010,10 +2920,8 @@ func TestReconcileMachinePhases(t *testing.T) {
 
 		// Create Node.
 		node := &corev1.Node{
-			ObjectMeta: metav1.ObjectMeta{
-				GenerateName: "machine-test-node-",
-			},
-			Spec: corev1.NodeSpec{ProviderID: nodeProviderID},
+			GenerateName: "machine-test-node-",
+			Spec:         corev1.NodeSpec{ProviderID: nodeProviderID},
 		}
 		g.Expect(env.Create(ctx, node)).To(Succeed())
 		defer func() {
@@ -3089,10 +2997,8 @@ func TestReconcileMachinePhases(t *testing.T) {
 
 		// Create Node.
 		node := &corev1.Node{
-			ObjectMeta: metav1.ObjectMeta{
-				GenerateName: "machine-test-node-",
-			},
-			Spec: corev1.NodeSpec{ProviderID: nodeProviderID},
+			GenerateName: "machine-test-node-",
+			Spec:         corev1.NodeSpec{ProviderID: nodeProviderID},
 		}
 		g.Expect(env.Create(ctx, node)).To(Succeed())
 		defer func() {
@@ -3169,10 +3075,8 @@ func TestReconcileMachinePhases(t *testing.T) {
 
 		// Create Node.
 		node := &corev1.Node{
-			ObjectMeta: metav1.ObjectMeta{
-				GenerateName: "machine-test-node-",
-			},
-			Spec: corev1.NodeSpec{ProviderID: nodeProviderID},
+			GenerateName: "machine-test-node-",
+			Spec:         corev1.NodeSpec{ProviderID: nodeProviderID},
 		}
 		g.Expect(env.Create(ctx, node)).To(Succeed())
 		defer func() {
@@ -3328,10 +3232,8 @@ func TestReconcileMachinePhases(t *testing.T) {
 
 		// Create Node.
 		node := &corev1.Node{
-			ObjectMeta: metav1.ObjectMeta{
-				GenerateName: "machine-test-node-",
-			},
-			Spec: corev1.NodeSpec{ProviderID: nodeProviderID},
+			GenerateName: "machine-test-node-",
+			Spec:         corev1.NodeSpec{ProviderID: nodeProviderID},
 		}
 		g.Expect(env.CreateAndWait(ctx, node)).To(Succeed())
 		defer func() {

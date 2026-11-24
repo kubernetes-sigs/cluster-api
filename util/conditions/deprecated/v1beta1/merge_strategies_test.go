@@ -20,7 +20,6 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
@@ -47,12 +46,8 @@ func TestLocalizeReason(t *testing.T) {
 	g := NewWithT(t)
 
 	getter := &clusterv1.Cluster{
-		TypeMeta: metav1.TypeMeta{
-			Kind: "Cluster",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "test-cluster",
-		},
+		Kind: "Cluster",
+		Name: "test-cluster",
 	}
 
 	// localize should reason location
@@ -71,12 +66,8 @@ func TestGetFirstReasonAndMessage(t *testing.T) {
 	bar := FalseCondition("bar", "falseBar", clusterv1.ConditionSeverityInfo, "message falseBar")
 
 	getter := &clusterv1.Cluster{
-		TypeMeta: metav1.TypeMeta{
-			Kind: "Cluster",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "test-cluster",
-		},
+		Kind: "Cluster",
+		Name: "test-cluster",
 	}
 
 	groups := getConditionGroups(conditionsWithSource(getter, foo, bar))

@@ -155,10 +155,8 @@ func KCPRemediationSpec(ctx context.Context, inputGetter func() KCPRemediationSp
 		Expect(newMachines).To(HaveLen(1))
 		firstMachineName := newMachines[0]
 		firstMachine := &clusterv1.Machine{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      firstMachineName,
-				Namespace: namespace.Name,
-			},
+			Name:      firstMachineName,
+			Namespace: namespace.Name,
 		}
 		Expect(input.BootstrapClusterProxy.GetClient().Get(ctx, client.ObjectKeyFromObject(firstMachine), firstMachine)).To(Succeed(), "Failed to get machine %d", firstMachineName)
 		Expect(firstMachine.Status.NodeRef.IsDefined()).To(BeFalse())
@@ -187,10 +185,8 @@ func KCPRemediationSpec(ctx context.Context, inputGetter func() KCPRemediationSp
 		Expect(newMachines).To(HaveLen(1))
 		firstMachineReplacementName := newMachines[0]
 		firstMachineReplacement := &clusterv1.Machine{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      firstMachineReplacementName,
-				Namespace: namespace.Name,
-			},
+			Name:      firstMachineReplacementName,
+			Namespace: namespace.Name,
 		}
 		Expect(input.BootstrapClusterProxy.GetClient().Get(ctx, client.ObjectKeyFromObject(firstMachineReplacement), firstMachineReplacement)).To(Succeed(), "Failed to get machine %d", firstMachineReplacementName)
 		Expect(firstMachineReplacement.Status.NodeRef.IsDefined()).To(BeFalse())
@@ -235,10 +231,8 @@ func KCPRemediationSpec(ctx context.Context, inputGetter func() KCPRemediationSp
 		Expect(newMachines).To(HaveLen(1))
 		secondMachineName := newMachines[0]
 		secondMachine := &clusterv1.Machine{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      secondMachineName,
-				Namespace: namespace.Name,
-			},
+			Name:      secondMachineName,
+			Namespace: namespace.Name,
 		}
 		Expect(input.BootstrapClusterProxy.GetClient().Get(ctx, client.ObjectKeyFromObject(secondMachine), secondMachine)).To(Succeed(), "Failed to get machine %d", secondMachineName)
 		Expect(secondMachine.Status.NodeRef.IsDefined()).To(BeFalse())
@@ -268,10 +262,8 @@ func KCPRemediationSpec(ctx context.Context, inputGetter func() KCPRemediationSp
 		Expect(newMachines).To(HaveLen(1))
 		secondMachineReplacementName := newMachines[0]
 		secondMachineReplacement := &clusterv1.Machine{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      secondMachineReplacementName,
-				Namespace: namespace.Name,
-			},
+			Name:      secondMachineReplacementName,
+			Namespace: namespace.Name,
 		}
 		Expect(input.BootstrapClusterProxy.GetClient().Get(ctx, client.ObjectKeyFromObject(secondMachineReplacement), secondMachineReplacement)).To(Succeed(), "Failed to get machine %d", secondMachineReplacementName)
 		Expect(secondMachineReplacement.Status.NodeRef.IsDefined()).To(BeFalse())
@@ -316,10 +308,8 @@ func KCPRemediationSpec(ctx context.Context, inputGetter func() KCPRemediationSp
 		Expect(newMachines).To(HaveLen(1))
 		thirdMachineName := newMachines[0]
 		thirdMachine := &clusterv1.Machine{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      thirdMachineName,
-				Namespace: namespace.Name,
-			},
+			Name:      thirdMachineName,
+			Namespace: namespace.Name,
 		}
 		Expect(input.BootstrapClusterProxy.GetClient().Get(ctx, client.ObjectKeyFromObject(thirdMachine), thirdMachine)).To(Succeed(), "Failed to get machine %d", thirdMachineName)
 		Expect(thirdMachine.Status.NodeRef.IsDefined()).To(BeFalse())
@@ -381,10 +371,8 @@ func KCPRemediationSpec(ctx context.Context, inputGetter func() KCPRemediationSp
 		Expect(newMachines).To(HaveLen(1))
 		thirdMachineReplacementName := newMachines[0]
 		thirdMachineReplacement := &clusterv1.Machine{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      thirdMachineReplacementName,
-				Namespace: namespace.Name,
-			},
+			Name:      thirdMachineReplacementName,
+			Namespace: namespace.Name,
 		}
 		Expect(input.BootstrapClusterProxy.GetClient().Get(ctx, client.ObjectKeyFromObject(thirdMachineReplacement), thirdMachineReplacement)).To(Succeed(), "Failed to get machine %d", thirdMachineReplacementName)
 		Expect(thirdMachineReplacement.Status.NodeRef.IsDefined()).To(BeFalse())
@@ -438,10 +426,8 @@ func KCPRemediationSpec(ctx context.Context, inputGetter func() KCPRemediationSp
 
 func createConfigMapForMachinesBootstrapSignal(ctx context.Context, writer client.Writer, namespace string) {
 	cm := &corev1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      configMapName,
-			Namespace: namespace,
-		},
+		Name:      configMapName,
+		Namespace: namespace,
 		Data: map[string]string{
 			configMapDataKey: "hold",
 		},
@@ -527,10 +513,8 @@ type sendSignalToBootstrappingMachineInput struct {
 func sendSignalToBootstrappingMachine(ctx context.Context, input sendSignalToBootstrappingMachineInput) {
 	log.Logf("Sending bootstrap signal %s to Machine %s", input.Signal, input.Machine)
 	cm := &corev1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      configMapName,
-			Namespace: input.Namespace,
-		},
+		Name:      configMapName,
+		Namespace: input.Namespace,
 	}
 	Expect(input.Client.Get(ctx, client.ObjectKeyFromObject(cm), cm)).To(Succeed(), "failed to get mhc-test config map")
 
@@ -545,10 +529,8 @@ func sendSignalToBootstrappingMachine(ctx context.Context, input sendSignalToBoo
 	}, "1m", "10s").Should(Succeed(), "Failed to get ack signal from machine %s", input.Machine)
 
 	machine := &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      input.Machine,
-			Namespace: input.Namespace,
-		},
+		Name:      input.Machine,
+		Namespace: input.Namespace,
 	}
 	Expect(input.Client.Get(ctx, client.ObjectKeyFromObject(machine), machine)).To(Succeed())
 
@@ -643,10 +625,8 @@ func getServerAddr(ctx context.Context, clusterProxy framework.ClusterProxy) str
 	// cluster (e.g. "https://test-z45p9k-control-plane:6443")
 	// Note: This has been tested with MacOS,Linux and Prow.
 	clusterInfoCM := &corev1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "cluster-info",
-			Namespace: metav1.NamespacePublic,
-		},
+		Name:      "cluster-info",
+		Namespace: metav1.NamespacePublic,
 	}
 	Expect(clusterProxy.GetClient().Get(ctx, client.ObjectKeyFromObject(clusterInfoCM), clusterInfoCM)).To(Succeed())
 	Expect(clusterInfoCM.Data).To(HaveKey("kubeconfig"))
@@ -663,18 +643,14 @@ func getServerAddr(ctx context.Context, clusterProxy framework.ClusterProxy) str
 // to control machines bootstrap during the remediation tests.
 func getAuthenticationToken(ctx context.Context, managementClusterProxy framework.ClusterProxy, namespace string) string {
 	sa := &corev1.ServiceAccount{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "mhc-test",
-			Namespace: namespace,
-		},
+		Name:      "mhc-test",
+		Namespace: namespace,
 	}
 	Expect(managementClusterProxy.GetClient().Create(ctx, sa)).To(Succeed(), "failed to create mhc-test service account")
 
 	role := &rbacv1.Role{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "mhc-test",
-			Namespace: namespace,
-		},
+		Name:      "mhc-test",
+		Namespace: namespace,
 		Rules: []rbacv1.PolicyRule{
 			{
 				Verbs:         []string{"get", "list", "patch"},
@@ -687,10 +663,8 @@ func getAuthenticationToken(ctx context.Context, managementClusterProxy framewor
 	Expect(managementClusterProxy.GetClient().Create(ctx, role)).To(Succeed(), "failed to create mhc-test role")
 
 	roleBinding := &rbacv1.RoleBinding{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "mhc-test",
-			Namespace: namespace,
-		},
+		Name:      "mhc-test",
+		Namespace: namespace,
 		Subjects: []rbacv1.Subject{
 			{
 				Kind:      "ServiceAccount",

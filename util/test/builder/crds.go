@@ -21,7 +21,6 @@ import (
 
 	"github.com/gobuffalo/flect"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
@@ -43,11 +42,9 @@ func untypedCRD(gvk schema.GroupVersionKind) *apiextensionsv1.CustomResourceDefi
 
 func generateCRD(gvk schema.GroupVersionKind, properties map[string]apiextensionsv1.JSONSchemaProps) *apiextensionsv1.CustomResourceDefinition {
 	return &apiextensionsv1.CustomResourceDefinition{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: contract.CalculateCRDName(gvk.Group, gvk.Kind),
-			Labels: map[string]string{
-				clusterv1.GroupVersion.String(): gvk.Version,
-			},
+		Name: contract.CalculateCRDName(gvk.Group, gvk.Kind),
+		Labels: map[string]string{
+			clusterv1.GroupVersion.String(): gvk.Version,
 		},
 		Spec: apiextensionsv1.CustomResourceDefinitionSpec{
 			Group: gvk.Group,

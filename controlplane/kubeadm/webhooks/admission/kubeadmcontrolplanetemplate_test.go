@@ -21,7 +21,6 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	utilfeature "k8s.io/component-base/featuregate/testing"
 
@@ -36,10 +35,8 @@ func TestKubeadmControlPlaneTemplateValidationFeatureGateEnabled(t *testing.T) {
 		testnamespace := "test"
 		g := NewWithT(t)
 		kcpTemplate := &controlplanev1.KubeadmControlPlaneTemplate{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "kubeadmcontrolplanetemplate-test",
-				Namespace: testnamespace,
-			},
+			Name:      "kubeadmcontrolplanetemplate-test",
+			Namespace: testnamespace,
 			Spec: controlplanev1.KubeadmControlPlaneTemplateSpec{
 				Template: controlplanev1.KubeadmControlPlaneTemplateResource{
 					Spec: controlplanev1.KubeadmControlPlaneTemplateResourceSpec{
@@ -68,10 +65,8 @@ func TestKubeadmControlPlaneTemplateValidationFeatureGateDisabled(t *testing.T) 
 		testnamespace := "test"
 		g := NewWithT(t)
 		kcpTemplate := &controlplanev1.KubeadmControlPlaneTemplate{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "kubeadmcontrolplanetemplate-test",
-				Namespace: testnamespace,
-			},
+			Name:      "kubeadmcontrolplanetemplate-test",
+			Namespace: testnamespace,
 			Spec: controlplanev1.KubeadmControlPlaneTemplateSpec{
 				Template: controlplanev1.KubeadmControlPlaneTemplateResource{
 					Spec: controlplanev1.KubeadmControlPlaneTemplateResourceSpec{

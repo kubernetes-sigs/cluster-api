@@ -21,7 +21,6 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilfeature "k8s.io/component-base/featuregate/testing"
 	ctrl "sigs.k8s.io/controller-runtime"
 
@@ -36,10 +35,8 @@ func TestDevClusterTemplateValidationFeatureGateEnabled(t *testing.T) {
 	t.Run("create decclustertemplate should pass if gate enabled and valid dockerclustertemplate", func(t *testing.T) {
 		g := NewWithT(t)
 		dct := &infrav1.DevClusterTemplate{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "dockerclustertemplate-test",
-				Namespace: "test-namespace",
-			},
+			Name:      "dockerclustertemplate-test",
+			Namespace: "test-namespace",
 			Spec: infrav1.DevClusterTemplateSpec{
 				Template: infrav1.DevClusterTemplateResource{
 					Spec: infrav1.DevClusterSpec{},
@@ -59,10 +56,8 @@ func TestDevClusterTemplateValidationFeatureGateDisabled(t *testing.T) {
 	t.Run("create devclustertemplate should not pass if gate disabled and valid devclustertemplate", func(t *testing.T) {
 		g := NewWithT(t)
 		dct := &infrav1.DevClusterTemplate{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "dockerclustertemplate-test",
-				Namespace: "test-namespace",
-			},
+			Name:      "dockerclustertemplate-test",
+			Namespace: "test-namespace",
 			Spec: infrav1.DevClusterTemplateSpec{
 				Template: infrav1.DevClusterTemplateResource{
 					Spec: infrav1.DevClusterSpec{},
@@ -101,10 +96,8 @@ func TestDevClusterTemplateValidationMetadata(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 			dct := &infrav1.DevClusterTemplate{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "dockerclustertemplate-test",
-					Namespace: "test-namespace",
-				},
+				Name:      "dockerclustertemplate-test",
+				Namespace: "test-namespace",
 				Spec: infrav1.DevClusterTemplateSpec{
 					Template: infrav1.DevClusterTemplateResource{
 						ObjectMeta: clusterv1.ObjectMeta{

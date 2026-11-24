@@ -26,7 +26,6 @@ import (
 
 	. "github.com/onsi/gomega"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -89,9 +88,7 @@ func Test_cache_scale(t *testing.T) {
 					switch operation {
 					case 0: // create or get
 						machine := &cloudv1.CloudMachine{
-							ObjectMeta: metav1.ObjectMeta{
-								Name: machineName(item),
-							},
+							Name: machineName(item),
 						}
 						err := c.Create(resourceGroup, machine)
 						if apierrors.IsAlreadyExists(err) {
@@ -110,9 +107,7 @@ func Test_cache_scale(t *testing.T) {
 					case 2: // delete
 						g.Expect(err).ToNot(HaveOccurred())
 						machine := &cloudv1.CloudMachine{
-							ObjectMeta: metav1.ObjectMeta{
-								Name: machineName(item),
-							},
+							Name: machineName(item),
 						}
 						err := c.Delete(resourceGroup, machine)
 						if apierrors.IsNotFound(err) {

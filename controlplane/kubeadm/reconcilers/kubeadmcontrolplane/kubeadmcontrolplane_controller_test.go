@@ -178,10 +178,8 @@ func TestReconcileNoClusterOwnerRef(t *testing.T) {
 	g := NewWithT(t)
 
 	kcp := &controlplanev1.KubeadmControlPlane{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: metav1.NamespaceDefault,
-			Name:      "foo",
-		},
+		Namespace: metav1.NamespaceDefault,
+		Name:      "foo",
 		Spec: controlplanev1.KubeadmControlPlaneSpec{
 			Version: "v1.16.6",
 			MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
@@ -220,10 +218,8 @@ func TestReconcileNoKCP(t *testing.T) {
 	g := NewWithT(t)
 
 	kcp := &controlplanev1.KubeadmControlPlane{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: metav1.NamespaceDefault,
-			Name:      "foo",
-		},
+		Namespace: metav1.NamespaceDefault,
+		Name:      "foo",
 		Spec: controlplanev1.KubeadmControlPlaneSpec{
 			Version: "v1.16.6",
 			MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
@@ -254,19 +250,17 @@ func TestReconcileNoCluster(t *testing.T) {
 	g := NewWithT(t)
 
 	kcp := &controlplanev1.KubeadmControlPlane{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: metav1.NamespaceDefault,
-			Name:      "foo",
-			OwnerReferences: []metav1.OwnerReference{
-				{
-					Kind:       "Cluster",
-					APIVersion: clusterv1.GroupVersion.String(),
-					Name:       "foo",
-				},
+		Namespace: metav1.NamespaceDefault,
+		Name:      "foo",
+		OwnerReferences: []metav1.OwnerReference{
+			{
+				Kind:       "Cluster",
+				APIVersion: clusterv1.GroupVersion.String(),
+				Name:       "foo",
 			},
-			Finalizers: []string{
-				controlplanev1.KubeadmControlPlaneFinalizer,
-			},
+		},
+		Finalizers: []string{
+			controlplanev1.KubeadmControlPlaneFinalizer,
 		},
 		Spec: controlplanev1.KubeadmControlPlaneSpec{
 			Version: "v1.16.6",
@@ -310,15 +304,13 @@ func TestReconcilePaused(t *testing.T) {
 	cluster := newCluster(&types.NamespacedName{Namespace: metav1.NamespaceDefault, Name: clusterName})
 	cluster.Spec.Paused = new(true)
 	kcp := &controlplanev1.KubeadmControlPlane{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: metav1.NamespaceDefault,
-			Name:      clusterName,
-			OwnerReferences: []metav1.OwnerReference{
-				{
-					Kind:       "Cluster",
-					APIVersion: clusterv1.GroupVersion.String(),
-					Name:       clusterName,
-				},
+		Namespace: metav1.NamespaceDefault,
+		Name:      clusterName,
+		OwnerReferences: []metav1.OwnerReference{
+			{
+				Kind:       "Cluster",
+				APIVersion: clusterv1.GroupVersion.String(),
+				Name:       clusterName,
 			},
 		},
 		Spec: controlplanev1.KubeadmControlPlaneSpec{
@@ -367,15 +359,13 @@ func TestReconcileClusterNoEndpoints(t *testing.T) {
 	cluster.Status.Initialization.InfrastructureProvisioned = new(true)
 
 	kcp := &controlplanev1.KubeadmControlPlane{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: cluster.Namespace,
-			Name:      "foo",
-			OwnerReferences: []metav1.OwnerReference{
-				{
-					Kind:       "Cluster",
-					APIVersion: clusterv1.GroupVersion.String(),
-					Name:       cluster.Name,
-				},
+		Namespace: cluster.Namespace,
+		Name:      "foo",
+		OwnerReferences: []metav1.OwnerReference{
+			{
+				Kind:       "Cluster",
+				APIVersion: clusterv1.GroupVersion.String(),
+				Name:       cluster.Name,
 			},
 		},
 		Spec: controlplanev1.KubeadmControlPlaneSpec{
@@ -459,11 +449,9 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 		for i := range 3 {
 			name := fmt.Sprintf("test-%d", i)
 			m := &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: cluster.Namespace,
-					Name:      name,
-					Labels:    desiredstate.ControlPlaneMachineLabels(kcp, cluster.Name),
-				},
+				Namespace: cluster.Namespace,
+				Name:      name,
+				Labels:    desiredstate.ControlPlaneMachineLabels(kcp, cluster.Name),
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
 						ConfigRef: clusterv1.ContractVersionedObjectReference{
@@ -476,10 +464,8 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 				},
 			}
 			cfg := &bootstrapv1.KubeadmConfig{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: cluster.Namespace,
-					Name:      name,
-				},
+				Namespace: cluster.Namespace,
+				Name:      name,
 			}
 			objs = append(objs, m, cfg)
 			fmc.Machines.Insert(m)
@@ -527,11 +513,9 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 		for i := range 3 {
 			name := fmt.Sprintf("test-%d", i)
 			m := &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: cluster.Namespace,
-					Name:      name,
-					Labels:    desiredstate.ControlPlaneMachineLabels(kcp, cluster.Name),
-				},
+				Namespace: cluster.Namespace,
+				Name:      name,
+				Labels:    desiredstate.ControlPlaneMachineLabels(kcp, cluster.Name),
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
 						ConfigRef: clusterv1.ContractVersionedObjectReference{
@@ -544,32 +528,28 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 				},
 			}
 			cfg := &bootstrapv1.KubeadmConfig{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: cluster.Namespace,
-					Name:      name,
-					UID:       types.UID(fmt.Sprintf("my-uid-%d", i)),
-				},
+				Namespace: cluster.Namespace,
+				Name:      name,
+				UID:       types.UID(fmt.Sprintf("my-uid-%d", i)),
 			}
 
 			// A simulacrum of the various Certificate and kubeconfig secrets
 			// it's a little weird that this is one per KubeadmConfig rather than just whichever config was "first,"
 			// but the intent is to ensure that the owner is changed regardless of which Machine we start with
 			clusterSecret := &corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: cluster.Namespace,
-					Name:      fmt.Sprintf("important-cluster-secret-%d", i),
-					Labels: map[string]string{
-						"cluster.x-k8s.io/cluster-name": cluster.Name,
-						"previous-owner":                "kubeadmconfig",
-					},
-					// See: https://github.com/kubernetes-sigs/cluster-api-bootstrap-provider-kubeadm/blob/38af74d92056e64e571b9ea1d664311769779453/internal/cluster/certificates.go#L323-L330
-					OwnerReferences: []metav1.OwnerReference{
-						{
-							APIVersion: bootstrapv1.GroupVersion.String(),
-							Kind:       "KubeadmConfig",
-							Name:       cfg.Name,
-							UID:        cfg.UID,
-						},
+				Namespace: cluster.Namespace,
+				Name:      fmt.Sprintf("important-cluster-secret-%d", i),
+				Labels: map[string]string{
+					"cluster.x-k8s.io/cluster-name": cluster.Name,
+					"previous-owner":                "kubeadmconfig",
+				},
+				// See: https://github.com/kubernetes-sigs/cluster-api-bootstrap-provider-kubeadm/blob/38af74d92056e64e571b9ea1d664311769779453/internal/cluster/certificates.go#L323-L330
+				OwnerReferences: []metav1.OwnerReference{
+					{
+						APIVersion: bootstrapv1.GroupVersion.String(),
+						Kind:       "KubeadmConfig",
+						Name:       cfg.Name,
+						UID:        cfg.UID,
 					},
 				},
 			}
@@ -638,11 +618,9 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 		for i := range 3 {
 			name := fmt.Sprintf("test-%d", i)
 			m := &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: cluster.Namespace,
-					Name:      name,
-					Labels:    desiredstate.ControlPlaneMachineLabels(kcp, cluster.Name),
-				},
+				Namespace: cluster.Namespace,
+				Name:      name,
+				Labels:    desiredstate.ControlPlaneMachineLabels(kcp, cluster.Name),
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
 						ConfigRef: clusterv1.ContractVersionedObjectReference{
@@ -655,10 +633,8 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 				},
 			}
 			cfg := &bootstrapv1.KubeadmConfig{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: cluster.Namespace,
-					Name:      name,
-				},
+				Namespace: cluster.Namespace,
+				Name:      name,
 			}
 			objs = append(objs, m, cfg)
 			fmc.Machines.Insert(m)
@@ -696,11 +672,9 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 		fmc := &fakeManagementCluster{
 			Machines: collections.Machines{
 				"test0": &clusterv1.Machine{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: cluster.Namespace,
-						Name:      "test0",
-						Labels:    desiredstate.ControlPlaneMachineLabels(kcp, cluster.Name),
-					},
+					Namespace: cluster.Namespace,
+					Name:      "test0",
+					Labels:    desiredstate.ControlPlaneMachineLabels(kcp, cluster.Name),
 					Spec: clusterv1.MachineSpec{
 						Bootstrap: clusterv1.Bootstrap{
 							ConfigRef: clusterv1.ContractVersionedObjectReference{
@@ -758,13 +732,11 @@ func TestKubeadmControlPlaneReconciler_ensureOwnerReferences(t *testing.T) {
 	clusterSecret := &corev1.Secret{
 		// The Secret's Type is used by KCP to determine whether it is user-provided.
 		// clusterv1.ClusterSecretType signals that the Secret is CAPI-provided.
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: cluster.Namespace,
-			Name:      "",
-			Labels: map[string]string{
-				"cluster.x-k8s.io/cluster-name": cluster.Name,
-				"testing":                       "yes",
-			},
+		Namespace: cluster.Namespace,
+		Name:      "",
+		Labels: map[string]string{
+			"cluster.x-k8s.io/cluster-name": cluster.Name,
+			"testing":                       "yes",
 		},
 		Data: map[string][]byte{
 			secret.TLSCrtDataName: certs.EncodeCertPEM(crt),
@@ -931,9 +903,7 @@ func TestReconcileCertificateExpiries(t *testing.T) {
 		},
 	}
 	machineWithoutExpiryAnnotation := &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "machineWithoutExpiryAnnotation",
-		},
+		Name: "machineWithoutExpiryAnnotation",
 		Spec: clusterv1.MachineSpec{
 			InfrastructureRef: clusterv1.ContractVersionedObjectReference{
 				Kind:     builder.TestInfrastructureMachineKind,
@@ -955,14 +925,10 @@ func TestReconcileCertificateExpiries(t *testing.T) {
 		},
 	}
 	machineWithoutExpiryAnnotationKubeadmConfig := &bootstrapv1.KubeadmConfig{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "machineWithoutExpiryAnnotation-bootstrap",
-		},
+		Name: "machineWithoutExpiryAnnotation-bootstrap",
 	}
 	machineWithExpiryAnnotation := &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "machineWithExpiryAnnotation",
-		},
+		Name: "machineWithExpiryAnnotation",
 		Spec: clusterv1.MachineSpec{
 			InfrastructureRef: clusterv1.ContractVersionedObjectReference{
 				Kind:     builder.TestInfrastructureMachineKind,
@@ -984,18 +950,14 @@ func TestReconcileCertificateExpiries(t *testing.T) {
 		},
 	}
 	machineWithExpiryAnnotationKubeadmConfig := &bootstrapv1.KubeadmConfig{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "machineWithExpiryAnnotation-bootstrap",
-			Annotations: map[string]string{
-				clusterv1.MachineCertificatesExpiryDateAnnotation: preExistingExpiry.Format(time.RFC3339),
-			},
+		Name: "machineWithExpiryAnnotation-bootstrap",
+		Annotations: map[string]string{
+			clusterv1.MachineCertificatesExpiryDateAnnotation: preExistingExpiry.Format(time.RFC3339),
 		},
 	}
 	machineWithDeletionTimestamp := &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:              "machineWithDeletionTimestamp",
-			DeletionTimestamp: &metav1.Time{Time: time.Now()},
-		},
+		Name:              "machineWithDeletionTimestamp",
+		DeletionTimestamp: &metav1.Time{Time: time.Now()},
 		Spec: clusterv1.MachineSpec{
 			InfrastructureRef: clusterv1.ContractVersionedObjectReference{
 				Kind:     builder.TestInfrastructureMachineKind,
@@ -1017,14 +979,10 @@ func TestReconcileCertificateExpiries(t *testing.T) {
 		},
 	}
 	machineWithDeletionTimestampKubeadmConfig := &bootstrapv1.KubeadmConfig{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "machineWithDeletionTimestamp-bootstrap",
-		},
+		Name: "machineWithDeletionTimestamp-bootstrap",
 	}
 	machineWithoutNodeRef := &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "machineWithoutNodeRef",
-		},
+		Name: "machineWithoutNodeRef",
 		Spec: clusterv1.MachineSpec{
 			InfrastructureRef: clusterv1.ContractVersionedObjectReference{
 				Kind:     builder.TestInfrastructureMachineKind,
@@ -1041,14 +999,10 @@ func TestReconcileCertificateExpiries(t *testing.T) {
 		},
 	}
 	machineWithoutNodeRefKubeadmConfig := &bootstrapv1.KubeadmConfig{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "machineWithoutNodeRef-bootstrap",
-		},
+		Name: "machineWithoutNodeRef-bootstrap",
 	}
 	machineWithoutKubeadmConfig := &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "machineWithoutKubeadmConfig",
-		},
+		Name: "machineWithoutKubeadmConfig",
 		Spec: clusterv1.MachineSpec{
 			InfrastructureRef: clusterv1.ContractVersionedObjectReference{
 				Kind:     builder.TestInfrastructureMachineKind,
@@ -1196,16 +1150,14 @@ func TestReconcileInitializeControlPlane(t *testing.T) {
 	}).WithTimeout(5 * time.Second).To(Succeed())
 
 	kcp := &controlplanev1.KubeadmControlPlane{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: cluster.Namespace,
-			Name:      "foo",
-			OwnerReferences: []metav1.OwnerReference{
-				{
-					Kind:       "Cluster",
-					APIVersion: clusterv1.GroupVersion.String(),
-					Name:       cluster.Name,
-					UID:        cluster.UID,
-				},
+		Namespace: cluster.Namespace,
+		Name:      "foo",
+		OwnerReferences: []metav1.OwnerReference{
+			{
+				Kind:       "Cluster",
+				APIVersion: clusterv1.GroupVersion.String(),
+				Name:       cluster.Name,
+				UID:        cluster.UID,
 			},
 		},
 		Spec: controlplanev1.KubeadmControlPlaneSpec{
@@ -1226,10 +1178,8 @@ func TestReconcileInitializeControlPlane(t *testing.T) {
 	g.Expect(env.Create(ctx, kcp)).To(Succeed())
 
 	corednsCM := &corev1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "coredns",
-			Namespace: namespace.Name,
-		},
+		Name:      "coredns",
+		Namespace: namespace.Name,
 		Data: map[string]string{
 			"Corefile": "original-core-file",
 		},
@@ -1237,10 +1187,8 @@ func TestReconcileInitializeControlPlane(t *testing.T) {
 	g.Expect(env.Create(ctx, corednsCM)).To(Succeed())
 
 	kubeadmCM := &corev1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "kubeadm-config",
-			Namespace: namespace.Name,
-		},
+		Name:      "kubeadm-config",
+		Namespace: namespace.Name,
 		Data: map[string]string{
 			"ClusterConfiguration": `apiServer:
 dns:
@@ -1254,10 +1202,8 @@ kubernetesVersion: metav1.16.1
 	g.Expect(env.Create(ctx, kubeadmCM)).To(Succeed())
 
 	corednsDepl := &appsv1.Deployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "coredns",
-			Namespace: namespace.Name,
-		},
+		Name:      "coredns",
+		Namespace: namespace.Name,
 		Spec: appsv1.DeploymentSpec{
 			Selector: &metav1.LabelSelector{
 				MatchLabels: map[string]string{
@@ -1396,12 +1342,10 @@ func TestReconcileInitializeControlPlane_withUserCA(t *testing.T) {
 	// The certificate is user provided so no owner references should be added.
 	g.Expect(caCertificate.Generate()).To(Succeed())
 	certSecret := &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: namespace.Name,
-			Name:      cluster.Name + "-ca",
-			Labels: map[string]string{
-				clusterv1.ClusterNameLabel: cluster.Name,
-			},
+		Namespace: namespace.Name,
+		Name:      cluster.Name + "-ca",
+		Labels: map[string]string{
+			clusterv1.ClusterNameLabel: cluster.Name,
 		},
 		Data: map[string][]byte{
 			secret.TLSKeyDataName: caCertificate.KeyPair.Key,
@@ -1444,16 +1388,14 @@ func TestReconcileInitializeControlPlane_withUserCA(t *testing.T) {
 	}).WithTimeout(5 * time.Second).To(Succeed())
 
 	kcp := &controlplanev1.KubeadmControlPlane{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: cluster.Namespace,
-			Name:      "foo",
-			OwnerReferences: []metav1.OwnerReference{
-				{
-					Kind:       "Cluster",
-					APIVersion: clusterv1.GroupVersion.String(),
-					Name:       cluster.Name,
-					UID:        cluster.UID,
-				},
+		Namespace: cluster.Namespace,
+		Name:      "foo",
+		OwnerReferences: []metav1.OwnerReference{
+			{
+				Kind:       "Cluster",
+				APIVersion: clusterv1.GroupVersion.String(),
+				Name:       cluster.Name,
+				UID:        cluster.UID,
 			},
 		},
 		Spec: controlplanev1.KubeadmControlPlaneSpec{
@@ -1474,10 +1416,8 @@ func TestReconcileInitializeControlPlane_withUserCA(t *testing.T) {
 	g.Expect(env.CreateAndWait(ctx, kcp)).To(Succeed())
 
 	corednsCM := &corev1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "coredns",
-			Namespace: namespace.Name,
-		},
+		Name:      "coredns",
+		Namespace: namespace.Name,
 		Data: map[string]string{
 			"Corefile": "original-core-file",
 		},
@@ -1485,10 +1425,8 @@ func TestReconcileInitializeControlPlane_withUserCA(t *testing.T) {
 	g.Expect(env.Create(ctx, corednsCM)).To(Succeed())
 
 	kubeadmCM := &corev1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "kubeadm-config",
-			Namespace: namespace.Name,
-		},
+		Name:      "kubeadm-config",
+		Namespace: namespace.Name,
 		Data: map[string]string{
 			"ClusterConfiguration": `apiServer:
 dns:
@@ -1501,10 +1439,8 @@ kubernetesVersion: metav1.16.1`,
 	g.Expect(env.Create(ctx, kubeadmCM)).To(Succeed())
 
 	corednsDepl := &appsv1.Deployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "coredns",
-			Namespace: namespace.Name,
-		},
+		Name:      "coredns",
+		Namespace: namespace.Name,
 		Spec: appsv1.DeploymentSpec{
 			Selector: &metav1.LabelSelector{
 				MatchLabels: map[string]string{
@@ -1723,10 +1659,8 @@ func TestKubeadmControlPlaneReconciler_syncMachines(t *testing.T) {
 
 		t.Log("Creating the Cluster")
 		cluster := &clusterv1.Cluster{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: ns.Name,
-				Name:      "test-cluster",
-			},
+			Namespace: ns.Name,
+			Name:      "test-cluster",
 			Spec: clusterv1.ClusterSpec{
 				InfrastructureRef: clusterv1.ContractVersionedObjectReference{
 					APIGroup: builder.InfrastructureGroupVersion.Group,
@@ -1795,19 +1729,17 @@ func TestKubeadmControlPlaneReconciler_syncMachines(t *testing.T) {
 		Users: []bootstrapv1.User{{Name: "test-user"}},
 	}
 	existingKubeadmConfig := &bootstrapv1.KubeadmConfig{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "existing-kubeadmconfig",
-			Namespace: namespace.Name,
-			Labels: map[string]string{
-				"preserved-label": "preserved-value",
-				"dropped-label":   "dropped-value",
-				"modified-label":  "modified-value",
-			},
-			Annotations: map[string]string{
-				"preserved-annotation": "preserved-value",
-				"dropped-annotation":   "dropped-value",
-				"modified-annotation":  "modified-value",
-			},
+		Name:      "existing-kubeadmconfig",
+		Namespace: namespace.Name,
+		Labels: map[string]string{
+			"preserved-label": "preserved-value",
+			"dropped-label":   "dropped-value",
+			"modified-label":  "modified-value",
+		},
+		Annotations: map[string]string{
+			"preserved-annotation": "preserved-value",
+			"dropped-annotation":   "dropped-value",
+			"modified-annotation":  "modified-value",
 		},
 		Spec: *bootstrapSpec,
 	}
@@ -1820,20 +1752,18 @@ func TestKubeadmControlPlaneReconciler_syncMachines(t *testing.T) {
 	// Existing Machine to validate in-place mutation
 	fd := "fd1"
 	inPlaceMutatingMachine := &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "existing-machine",
-			Namespace: namespace.Name,
-			Labels: map[string]string{
-				clusterv1.MachineControlPlaneLabel: "",
-				"preserved-label":                  "preserved-value",
-				"dropped-label":                    "dropped-value",
-				"modified-label":                   "modified-value",
-			},
-			Annotations: map[string]string{
-				"preserved-annotation": "preserved-value",
-				"dropped-annotation":   "dropped-value",
-				"modified-annotation":  "modified-value",
-			},
+		Name:      "existing-machine",
+		Namespace: namespace.Name,
+		Labels: map[string]string{
+			clusterv1.MachineControlPlaneLabel: "",
+			"preserved-label":                  "preserved-value",
+			"dropped-label":                    "dropped-value",
+			"modified-label":                   "modified-value",
+		},
+		Annotations: map[string]string{
+			"preserved-annotation": "preserved-value",
+			"dropped-annotation":   "dropped-value",
+			"modified-annotation":  "modified-value",
 		},
 		Spec: clusterv1.MachineSpec{
 			ClusterName: testCluster.Name,
@@ -1854,15 +1784,13 @@ func TestKubeadmControlPlaneReconciler_syncMachines(t *testing.T) {
 
 	// Existing machine that is in deleting state
 	deletingMachine := &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "deleting-machine",
-			Namespace: namespace.Name,
-			Labels: map[string]string{
-				clusterv1.MachineControlPlaneLabel: "",
-			},
-			Annotations: map[string]string{},
-			Finalizers:  []string{"testing-finalizer"},
+		Name:      "deleting-machine",
+		Namespace: namespace.Name,
+		Labels: map[string]string{
+			clusterv1.MachineControlPlaneLabel: "",
 		},
+		Annotations: map[string]string{},
+		Finalizers:  []string{"testing-finalizer"},
 		Spec: clusterv1.MachineSpec{
 			ClusterName: testCluster.Name,
 			InfrastructureRef: clusterv1.ContractVersionedObjectReference{
@@ -1888,15 +1816,13 @@ func TestKubeadmControlPlaneReconciler_syncMachines(t *testing.T) {
 
 	// Existing machine that has a InfrastructureRef which does not exist.
 	nilInfraMachineMachine := &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "nil-infra-machine-machine",
-			Namespace: namespace.Name,
-			Labels: map[string]string{
-				clusterv1.MachineControlPlaneLabel: "",
-			},
-			Annotations: map[string]string{},
-			Finalizers:  []string{"testing-finalizer"},
+		Name:      "nil-infra-machine-machine",
+		Namespace: namespace.Name,
+		Labels: map[string]string{
+			clusterv1.MachineControlPlaneLabel: "",
 		},
+		Annotations: map[string]string{},
+		Finalizers:  []string{"testing-finalizer"},
 		Spec: clusterv1.MachineSpec{
 			ClusterName: testCluster.Name,
 			InfrastructureRef: clusterv1.ContractVersionedObjectReference{
@@ -1915,11 +1841,9 @@ func TestKubeadmControlPlaneReconciler_syncMachines(t *testing.T) {
 	}
 
 	kcp := &controlplanev1.KubeadmControlPlane{
-		ObjectMeta: metav1.ObjectMeta{
-			UID:       types.UID("abc-123-control-plane"),
-			Name:      "existing-kcp",
-			Namespace: namespace.Name,
-		},
+		UID:       types.UID("abc-123-control-plane"),
+		Name:      "existing-kcp",
+		Namespace: namespace.Name,
 		Spec: controlplanev1.KubeadmControlPlaneSpec{
 			Version:           "v1.26.1",
 			KubeadmConfigSpec: *bootstrapSpec,
@@ -2164,10 +2088,8 @@ func TestKubeadmControlPlaneReconciler_reconcileControlPlaneAndMachinesCondition
 	now := time.Now()
 
 	defaultMachine1 := clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "machine1-test",
-			Namespace: metav1.NamespaceDefault,
-		},
+		Name:      "machine1-test",
+		Namespace: metav1.NamespaceDefault,
 		Spec: clusterv1.MachineSpec{
 			Version:    "v1.31.0",
 			ProviderID: "foo",
@@ -2182,24 +2104,18 @@ func TestKubeadmControlPlaneReconciler_reconcileControlPlaneAndMachinesCondition
 	defaultMachine1NotUpToDate.Spec.Version = "v1.30.0"
 
 	defaultMachine2 := clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "machine2-test",
-			Namespace: metav1.NamespaceDefault,
-		},
+		Name:      "machine2-test",
+		Namespace: metav1.NamespaceDefault,
 	}
 
 	defaultCluster := &clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "cluster-test",
-			Namespace: metav1.NamespaceDefault,
-		},
+		Name:      "cluster-test",
+		Namespace: metav1.NamespaceDefault,
 	}
 
 	defaultKCP := &controlplanev1.KubeadmControlPlane{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "kcp-test",
-			Namespace: metav1.NamespaceDefault,
-		},
+		Name:      "kcp-test",
+		Namespace: metav1.NamespaceDefault,
 		Spec: controlplanev1.KubeadmControlPlaneSpec{
 			Version: "v1.31.0",
 		},
@@ -3360,32 +3276,24 @@ func TestKubeadmControlPlaneReconciler_reconcileControlPlaneAndMachinesCondition
 func TestKubeadmControlPlaneReconciler_forwardLeaderShip(t *testing.T) {
 	now := time.Now()
 	m := &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "m",
-		},
+		Name: "m",
 		Status: clusterv1.MachineStatus{
 			NodeRef: clusterv1.MachineNodeReference{Name: "m"},
 		},
 	}
 	mWithoutNode := &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "m-without-node",
-		},
+		Name: "m-without-node",
 	}
 	mWithDeletionTimestamp := &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:              "m-with-deletion-timestamp",
-			DeletionTimestamp: new(metav1.Now()),
-		},
+		Name:              "m-with-deletion-timestamp",
+		DeletionTimestamp: new(metav1.Now()),
 		Status: clusterv1.MachineStatus{
 			NodeRef: clusterv1.MachineNodeReference{Name: "m-with-deletion-timestamp"},
 		},
 	}
 	mNewest := &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:              "m-newest",
-			CreationTimestamp: metav1.Time{Time: now},
-		},
+		Name:              "m-newest",
+		CreationTimestamp: metav1.Time{Time: now},
 		Status: clusterv1.MachineStatus{
 			NodeRef: clusterv1.MachineNodeReference{Name: "m-newest"},
 			Conditions: []metav1.Condition{
@@ -3396,10 +3304,8 @@ func TestKubeadmControlPlaneReconciler_forwardLeaderShip(t *testing.T) {
 		},
 	}
 	mEtcdUnhealthy := &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:              "m-etcd-unhealthy",
-			CreationTimestamp: metav1.Time{Time: now},
-		},
+		Name:              "m-etcd-unhealthy",
+		CreationTimestamp: metav1.Time{Time: now},
 		Status: clusterv1.MachineStatus{
 			NodeRef: clusterv1.MachineNodeReference{Name: "m-etcd-unhealthy"},
 			Conditions: []metav1.Condition{
@@ -3410,10 +3316,8 @@ func TestKubeadmControlPlaneReconciler_forwardLeaderShip(t *testing.T) {
 		},
 	}
 	mMHCUnhealthy := &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:              "m-mhc-unhealthy",
-			CreationTimestamp: metav1.Time{Time: now},
-		},
+		Name:              "m-mhc-unhealthy",
+		CreationTimestamp: metav1.Time{Time: now},
 		Status: clusterv1.MachineStatus{
 			NodeRef: clusterv1.MachineNodeReference{Name: "m-mhc-unhealthy"},
 			Conditions: []metav1.Condition{
@@ -3424,10 +3328,8 @@ func TestKubeadmControlPlaneReconciler_forwardLeaderShip(t *testing.T) {
 		},
 	}
 	mNotUpToDate := &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:              "m-not-up-to-date",
-			CreationTimestamp: metav1.Time{Time: now},
-		},
+		Name:              "m-not-up-to-date",
+		CreationTimestamp: metav1.Time{Time: now},
 		Status: clusterv1.MachineStatus{
 			NodeRef: clusterv1.MachineNodeReference{Name: "m-not-up-to-date"},
 			Conditions: []metav1.Condition{
@@ -3438,10 +3340,8 @@ func TestKubeadmControlPlaneReconciler_forwardLeaderShip(t *testing.T) {
 		},
 	}
 	mOldest := &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:              "m-oldest",
-			CreationTimestamp: metav1.Time{Time: now.Add(-time.Hour)},
-		},
+		Name:              "m-oldest",
+		CreationTimestamp: metav1.Time{Time: now.Add(-time.Hour)},
 		Status: clusterv1.MachineStatus{
 			NodeRef: clusterv1.MachineNodeReference{Name: "m-oldest"},
 			Conditions: []metav1.Condition{
@@ -3578,11 +3478,9 @@ func (cc *fakeClusterCache) GetHealthCheckingState(_ context.Context, _ client.O
 
 func TestKubeadmControlPlaneReconciler_reconcileEtcdMembers(t *testing.T) {
 	m1 := &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "m1",
-			Annotations: map[string]string{
-				controlplanev1.PreTerminateHookCleanupAnnotation: "",
-			},
+		Name: "m1",
+		Annotations: map[string]string{
+			controlplanev1.PreTerminateHookCleanupAnnotation: "",
 		},
 		Status: clusterv1.MachineStatus{
 			NodeRef: clusterv1.MachineNodeReference{
@@ -3793,10 +3691,9 @@ func TestKubeadmControlPlaneReconciler_reconcileEtcdMembers(t *testing.T) {
 					}(),
 				},
 				Nodes: []*pkg.Node{
-					pkg.TransformNode(&corev1.Node{ObjectMeta: metav1.ObjectMeta{
+					pkg.TransformNode(&corev1.Node{
 						Name:              "m2-node",
-						CreationTimestamp: metav1.Now(),
-					}}),
+						CreationTimestamp: metav1.Now()}),
 				},
 			},
 			etcdMembers: []*etcd.Member{
@@ -3824,10 +3721,9 @@ func TestKubeadmControlPlaneReconciler_reconcileEtcdMembers(t *testing.T) {
 					}(),
 				},
 				Nodes: []*pkg.Node{
-					pkg.TransformNode(&corev1.Node{ObjectMeta: metav1.ObjectMeta{
+					pkg.TransformNode(&corev1.Node{
 						Name:              "m2-node",
-						CreationTimestamp: metav1.NewTime(time.Now().Add(-etcdMemberStartupGracePeriod - time.Second)),
-					}}),
+						CreationTimestamp: metav1.NewTime(time.Now().Add(-etcdMemberStartupGracePeriod - time.Second))}),
 				},
 			},
 			etcdMembers: []*etcd.Member{
@@ -3939,16 +3835,12 @@ func TestKubeadmControlPlaneReconciler_reconcileEtcdMembers(t *testing.T) {
 
 func TestKubeadmControlPlaneReconciler_reconcilePreTerminateHook(t *testing.T) {
 	cluster := &clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "cluster",
-		},
+		Name: "cluster",
 	}
 	machine := &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "machine",
-			Annotations: map[string]string{
-				controlplanev1.PreTerminateHookCleanupAnnotation: "",
-			},
+		Name: "machine",
+		Annotations: map[string]string{
+			controlplanev1.PreTerminateHookCleanupAnnotation: "",
 		},
 		Status: clusterv1.MachineStatus{
 			NodeRef: clusterv1.MachineNodeReference{
@@ -3969,11 +3861,9 @@ func TestKubeadmControlPlaneReconciler_reconcilePreTerminateHook(t *testing.T) {
 	setEtcdMemeberHealthy(machine)
 
 	deletingMachine := &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:              "deleting-machine",
-			DeletionTimestamp: &metav1.Time{Time: time.Now()},
-			Finalizers:        []string{clusterv1.MachineFinalizer},
-		},
+		Name:              "deleting-machine",
+		DeletionTimestamp: &metav1.Time{Time: time.Now()},
+		Finalizers:        []string{clusterv1.MachineFinalizer},
 		Status: clusterv1.MachineStatus{
 			NodeRef: clusterv1.MachineNodeReference{
 				Name: "deleting-machine-node",
@@ -3981,13 +3871,11 @@ func TestKubeadmControlPlaneReconciler_reconcilePreTerminateHook(t *testing.T) {
 		},
 	}
 	deletingMachineWithKCPPreTerminateHook := &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:              "deleting-machine-with-kcp-pre-terminate-hook",
-			DeletionTimestamp: &metav1.Time{Time: time.Now()},
-			Finalizers:        []string{clusterv1.MachineFinalizer},
-			Annotations: map[string]string{
-				controlplanev1.PreTerminateHookCleanupAnnotation: "",
-			},
+		Name:              "deleting-machine-with-kcp-pre-terminate-hook",
+		DeletionTimestamp: &metav1.Time{Time: time.Now()},
+		Finalizers:        []string{clusterv1.MachineFinalizer},
+		Annotations: map[string]string{
+			controlplanev1.PreTerminateHookCleanupAnnotation: "",
 		},
 		Status: clusterv1.MachineStatus{
 			NodeRef: clusterv1.MachineNodeReference{
@@ -3996,14 +3884,12 @@ func TestKubeadmControlPlaneReconciler_reconcilePreTerminateHook(t *testing.T) {
 		},
 	}
 	deletingMachineWithKCPAndOtherPreTerminateHooksOld := &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:              "deleting-machine-with-kcp-and-other-pre-terminate-hooks",
-			DeletionTimestamp: &metav1.Time{Time: time.Now().Add(-1 * time.Duration(1) * time.Minute)},
-			Finalizers:        []string{clusterv1.MachineFinalizer},
-			Annotations: map[string]string{
-				controlplanev1.PreTerminateHookCleanupAnnotation:           "",
-				clusterv1.PreTerminateDeleteHookAnnotationPrefix + "/test": "",
-			},
+		Name:              "deleting-machine-with-kcp-and-other-pre-terminate-hooks",
+		DeletionTimestamp: &metav1.Time{Time: time.Now().Add(-1 * time.Duration(1) * time.Minute)},
+		Finalizers:        []string{clusterv1.MachineFinalizer},
+		Annotations: map[string]string{
+			controlplanev1.PreTerminateHookCleanupAnnotation:           "",
+			clusterv1.PreTerminateDeleteHookAnnotationPrefix + "/test": "",
 		},
 		Status: clusterv1.MachineStatus{
 			NodeRef: clusterv1.MachineNodeReference{
@@ -4405,9 +4291,7 @@ func TestKubeadmControlPlaneReconciler_reconcilePreTerminateHook(t *testing.T) {
 						return m
 					}(),
 					"provisioning-machine": &clusterv1.Machine{
-						ObjectMeta: metav1.ObjectMeta{
-							Name: "provisioning-machine",
-						},
+						Name: "provisioning-machine",
 					},
 				},
 			},
@@ -4500,9 +4384,7 @@ func TestKubeadmControlPlaneReconciler_machineHasOtherPreTerminateHooks(t *testi
 			g := NewWithT(t)
 
 			m := &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Annotations: tt.annotations,
-				},
+				Annotations: tt.annotations,
 			}
 			g.Expect(machineHasOtherPreTerminateHooks(m)).To(Equal(tt.want))
 		})
@@ -4514,10 +4396,8 @@ func TestKubeadmControlPlaneReconciler_updateCoreDNS(t *testing.T) {
 
 	cluster := newCluster(&types.NamespacedName{Name: "foo", Namespace: metav1.NamespaceDefault})
 	kcp := &controlplanev1.KubeadmControlPlane{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: cluster.Namespace,
-			Name:      "foo",
-		},
+		Namespace: cluster.Namespace,
+		Name:      "foo",
 		Spec: controlplanev1.KubeadmControlPlaneSpec{
 			Replicas: nil,
 			Version:  "v1.16.6",
@@ -4532,10 +4412,8 @@ func TestKubeadmControlPlaneReconciler_updateCoreDNS(t *testing.T) {
 		},
 	}
 	depl := &appsv1.Deployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "coredns",
-			Namespace: metav1.NamespaceSystem,
-		},
+		Name:      "coredns",
+		Namespace: metav1.NamespaceSystem,
 		Spec: appsv1.DeploymentSpec{
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
@@ -4548,16 +4426,12 @@ func TestKubeadmControlPlaneReconciler_updateCoreDNS(t *testing.T) {
 					}},
 					Volumes: []corev1.Volume{{
 						Name: "config-volume",
-						VolumeSource: corev1.VolumeSource{
-							ConfigMap: &corev1.ConfigMapVolumeSource{
-								LocalObjectReference: corev1.LocalObjectReference{
-									Name: "coredns",
-								},
-								Items: []corev1.KeyToPath{{
-									Key:  "Corefile",
-									Path: "Corefile",
-								}},
-							},
+						ConfigMap: &corev1.ConfigMapVolumeSource{
+							Name: "coredns",
+							Items: []corev1.KeyToPath{{
+								Key:  "Corefile",
+								Path: "Corefile",
+							}},
 						},
 					}},
 				},
@@ -4566,20 +4440,16 @@ func TestKubeadmControlPlaneReconciler_updateCoreDNS(t *testing.T) {
 	}
 	originalCorefile := "original core file"
 	corednsCM := &corev1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "coredns",
-			Namespace: metav1.NamespaceSystem,
-		},
+		Name:      "coredns",
+		Namespace: metav1.NamespaceSystem,
 		Data: map[string]string{
 			"Corefile": originalCorefile,
 		},
 	}
 
 	kubeadmCM := &corev1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "kubeadm-config",
-			Namespace: metav1.NamespaceSystem,
-		},
+		Name:      "kubeadm-config",
+		Namespace: metav1.NamespaceSystem,
 		Data: map[string]string{
 			"ClusterConfiguration": `apiServer:
 dns:
@@ -4627,16 +4497,12 @@ kubernetesVersion: metav1.16.1`,
 
 		expectedVolume := corev1.Volume{
 			Name: "config-volume",
-			VolumeSource: corev1.VolumeSource{
-				ConfigMap: &corev1.ConfigMapVolumeSource{
-					LocalObjectReference: corev1.LocalObjectReference{
-						Name: "coredns",
-					},
-					Items: []corev1.KeyToPath{{
-						Key:  "Corefile",
-						Path: "Corefile",
-					}},
-				},
+			ConfigMap: &corev1.ConfigMapVolumeSource{
+				Name: "coredns",
+				Items: []corev1.KeyToPath{{
+					Key:  "Corefile",
+					Path: "Corefile",
+				}},
 			},
 		}
 		var actualCoreDNSDeployment appsv1.Deployment
@@ -4904,12 +4770,10 @@ func TestKubeadmControlPlaneReconciler_reconcileDelete(t *testing.T) {
 
 		for i := range 10 {
 			initObjs = append(initObjs, &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      fmt.Sprintf("worker-%d", i),
-					Namespace: cluster.Namespace,
-					Labels: map[string]string{
-						clusterv1.ClusterNameLabel: cluster.Name,
-					},
+				Name:      fmt.Sprintf("worker-%d", i),
+				Namespace: cluster.Namespace,
+				Labels: map[string]string{
+					clusterv1.ClusterNameLabel: cluster.Name,
 				},
 			})
 		}
@@ -4966,12 +4830,10 @@ func TestKubeadmControlPlaneReconciler_reconcileDelete(t *testing.T) {
 
 		for i := range 10 {
 			initObjs = append(initObjs, &clusterv1.MachinePool{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      fmt.Sprintf("mp-%d", i),
-					Namespace: cluster.Namespace,
-					Labels: map[string]string{
-						clusterv1.ClusterNameLabel: cluster.Name,
-					},
+				Name:      fmt.Sprintf("mp-%d", i),
+				Namespace: cluster.Namespace,
+				Labels: map[string]string{
+					clusterv1.ClusterNameLabel: cluster.Name,
 				},
 			})
 		}
@@ -5055,9 +4917,7 @@ func TestKubeadmControlPlaneReconciler_reconcileDelete(t *testing.T) {
 
 func TestObjectsPendingDelete(t *testing.T) {
 	c := &clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "test-cluster",
-		},
+		Name: "test-cluster",
 	}
 
 	cpMachineLabels := map[string]string{
@@ -5086,9 +4946,7 @@ func TestObjectsPendingDelete(t *testing.T) {
 	machinePools := &clusterv1.MachinePoolList{
 		Items: []clusterv1.MachinePool{
 			{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "mp1",
-				},
+				Name: "mp1",
 			},
 		},
 	}
@@ -5151,16 +5009,14 @@ func createClusterWithControlPlane(namespace string) (*clusterv1.Cluster, *contr
 	}
 
 	kcp := &controlplanev1.KubeadmControlPlane{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      kcpName,
-			Namespace: namespace,
-			OwnerReferences: []metav1.OwnerReference{
-				{
-					Kind:       "Cluster",
-					APIVersion: clusterv1.GroupVersion.String(),
-					Name:       kcpName,
-					UID:        "1",
-				},
+		Name:      kcpName,
+		Namespace: namespace,
+		OwnerReferences: []metav1.OwnerReference{
+			{
+				Kind:       "Cluster",
+				APIVersion: clusterv1.GroupVersion.String(),
+				Name:       kcpName,
+				UID:        "1",
 			},
 		},
 		Spec: controlplanev1.KubeadmControlPlaneSpec{
@@ -5216,14 +5072,12 @@ func setKCPHealthy(kcp *controlplanev1.KubeadmControlPlane) {
 
 func createMachineNodePair(name string, cluster *clusterv1.Cluster, kcp *controlplanev1.KubeadmControlPlane, ready bool) (*clusterv1.Machine, *corev1.Node) {
 	machine := &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace:   cluster.Namespace,
-			Name:        name,
-			Labels:      desiredstate.ControlPlaneMachineLabels(kcp, cluster.Name),
-			Annotations: map[string]string{},
-			OwnerReferences: []metav1.OwnerReference{
-				*metav1.NewControllerRef(kcp, controlplanev1.GroupVersion.WithKind("KubeadmControlPlane")),
-			},
+		Namespace:   cluster.Namespace,
+		Name:        name,
+		Labels:      desiredstate.ControlPlaneMachineLabels(kcp, cluster.Name),
+		Annotations: map[string]string{},
+		OwnerReferences: []metav1.OwnerReference{
+			*metav1.NewControllerRef(kcp, controlplanev1.GroupVersion.WithKind("KubeadmControlPlane")),
 		},
 		Spec: clusterv1.MachineSpec{
 			ClusterName: cluster.Name,
@@ -5245,10 +5099,8 @@ func createMachineNodePair(name string, cluster *clusterv1.Cluster, kcp *control
 	}
 
 	node := &corev1.Node{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:   name,
-			Labels: map[string]string{"node-role.kubernetes.io/control-plane": ""},
-		},
+		Name:   name,
+		Labels: map[string]string{"node-role.kubernetes.io/control-plane": ""},
 	}
 
 	if ready {
@@ -5277,10 +5129,8 @@ func setMachineHealthy(m *clusterv1.Machine) {
 // newCluster return a CAPI cluster object.
 func newCluster(namespacedName *types.NamespacedName) *clusterv1.Cluster {
 	return &clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: namespacedName.Namespace,
-			Name:      namespacedName.Name,
-		},
+		Namespace: namespacedName.Namespace,
+		Name:      namespacedName.Name,
 	}
 }
 

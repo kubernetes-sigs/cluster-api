@@ -45,11 +45,9 @@ func createToken(ctx context.Context, c client.Client, ttl time.Duration) (strin
 
 	secretName := bootstraputil.BootstrapTokenSecretName(tokenID)
 	secretToken := &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      secretName,
-			Namespace: metav1.NamespaceSystem,
-		},
-		Type: bootstrapapi.SecretTypeBootstrapToken,
+		Name:      secretName,
+		Namespace: metav1.NamespaceSystem,
+		Type:      bootstrapapi.SecretTypeBootstrapToken,
 		Data: map[string][]byte{
 			bootstrapapi.BootstrapTokenIDKey:               []byte(tokenID),
 			bootstrapapi.BootstrapTokenSecretKey:           []byte(tokenSecret),

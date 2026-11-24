@@ -25,7 +25,6 @@ import (
 	"time"
 
 	pkgerrors "github.com/pkg/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog/v2"
@@ -352,17 +351,13 @@ func createRequest(oldMS, newMS *clusterv1.MachineSet, templateObjects *template
 func cleanupMachineSet(machineSet *clusterv1.MachineSet) *clusterv1.MachineSet {
 	return &clusterv1.MachineSet{
 		// Set GVK because object is later marshalled with json.Marshal.
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: clusterv1.GroupVersion.String(),
-			Kind:       "MachineSet",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:        machineSet.Name,
-			Namespace:   machineSet.Namespace,
-			Labels:      machineSet.Labels,
-			Annotations: machineSet.Annotations,
-		},
-		Spec: *machineSet.Spec.DeepCopy(),
+		APIVersion:  clusterv1.GroupVersion.String(),
+		Kind:        "MachineSet",
+		Name:        machineSet.Name,
+		Namespace:   machineSet.Namespace,
+		Labels:      machineSet.Labels,
+		Annotations: machineSet.Annotations,
+		Spec:        *machineSet.Spec.DeepCopy(),
 	}
 }
 

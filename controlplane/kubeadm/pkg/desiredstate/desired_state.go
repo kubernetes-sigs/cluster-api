@@ -128,14 +128,12 @@ func ComputeDesiredMachine(kcp *controlplanev1.KubeadmControlPlane, cluster *clu
 
 	// Construct the basic Machine.
 	desiredMachine := &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{
-			UID:       machineUID,
-			Name:      machineName,
-			Namespace: kcp.Namespace,
-			// Note: by setting the ownerRef on creation we signal to the Machine controller that this is not a stand-alone Machine.
-			OwnerReferences: []metav1.OwnerReference{
-				*metav1.NewControllerRef(kcp, controlplanev1.GroupVersion.WithKind("KubeadmControlPlane")),
-			},
+		UID:       machineUID,
+		Name:      machineName,
+		Namespace: kcp.Namespace,
+		// Note: by setting the ownerRef on creation we signal to the Machine controller that this is not a stand-alone Machine.
+		OwnerReferences: []metav1.OwnerReference{
+			*metav1.NewControllerRef(kcp, controlplanev1.GroupVersion.WithKind("KubeadmControlPlane")),
 		},
 		Spec: clusterv1.MachineSpec{
 			ClusterName:   cluster.Name,
@@ -225,14 +223,12 @@ func ComputeDesiredKubeadmConfig(kcp *controlplanev1.KubeadmControlPlane, cluste
 	DefaultFeatureGates(spec, parsedVersion)
 
 	kubeadmConfig := &bootstrapv1.KubeadmConfig{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:            name,
-			Namespace:       kcp.Namespace,
-			Labels:          ControlPlaneMachineLabels(kcp, cluster.Name),
-			Annotations:     ControlPlaneMachineAnnotations(kcp),
-			OwnerReferences: ownerReferences,
-		},
-		Spec: *spec,
+		Name:            name,
+		Namespace:       kcp.Namespace,
+		Labels:          ControlPlaneMachineLabels(kcp, cluster.Name),
+		Annotations:     ControlPlaneMachineAnnotations(kcp),
+		OwnerReferences: ownerReferences,
+		Spec:            *spec,
 	}
 	if existingKubeadmConfig != nil {
 		kubeadmConfig.SetName(existingKubeadmConfig.GetName())

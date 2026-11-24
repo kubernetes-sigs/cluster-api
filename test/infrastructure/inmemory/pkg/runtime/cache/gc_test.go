@@ -23,7 +23,6 @@ import (
 
 	. "github.com/onsi/gomega"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 
 	cloudv1 "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/cloud/api/v1alpha1"
@@ -46,10 +45,8 @@ func Test_cache_gc(t *testing.T) {
 	c.AddResourceGroup("foo")
 
 	obj := &cloudv1.CloudMachine{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:       "baz",
-			Finalizers: []string{"foo"},
-		},
+		Name:       "baz",
+		Finalizers: []string{"foo"},
 	}
 	err = c.Create("foo", obj)
 	g.Expect(err).ToNot(HaveOccurred())

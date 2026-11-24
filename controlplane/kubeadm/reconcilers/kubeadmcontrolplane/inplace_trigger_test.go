@@ -22,7 +22,6 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/utils/ptr"
@@ -45,16 +44,14 @@ func Test_triggerInPlaceUpdate(t *testing.T) {
 	g.Expect(err).ToNot(HaveOccurred())
 
 	currentMachine := &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "machine-to-in-place-update",
-			Namespace: ns.Name,
-			Labels: map[string]string{
-				clusterv1.ClusterNameLabel: "cluster-1",
-				"label-1":                  "label-value-1",
-			},
-			Annotations: map[string]string{
-				"annotation-1": "annotation-value-1",
-			},
+		Name:      "machine-to-in-place-update",
+		Namespace: ns.Name,
+		Labels: map[string]string{
+			clusterv1.ClusterNameLabel: "cluster-1",
+			"label-1":                  "label-value-1",
+		},
+		Annotations: map[string]string{
+			"annotation-1": "annotation-value-1",
 		},
 		Spec: clusterv1.MachineSpec{
 			ClusterName: "cluster-1",
@@ -85,16 +82,14 @@ func Test_triggerInPlaceUpdate(t *testing.T) {
 	desiredMachine.Spec.Version = "v1.31.0"
 
 	currentKubeadmConfig := &bootstrapv1.KubeadmConfig{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "machine-to-in-place-update",
-			Namespace: ns.Name,
-			Labels: map[string]string{
-				clusterv1.ClusterNameLabel: "cluster-1",
-				"label-1":                  "label-value-1",
-			},
-			Annotations: map[string]string{
-				"annotation-1": "annotation-value-1",
-			},
+		Name:      "machine-to-in-place-update",
+		Namespace: ns.Name,
+		Labels: map[string]string{
+			clusterv1.ClusterNameLabel: "cluster-1",
+			"label-1":                  "label-value-1",
+		},
+		Annotations: map[string]string{
+			"annotation-1": "annotation-value-1",
 		},
 		Spec: bootstrapv1.KubeadmConfigSpec{
 			ClusterConfiguration: bootstrapv1.ClusterConfiguration{
@@ -305,10 +300,8 @@ func Test_triggerInPlaceUpdate(t *testing.T) {
 
 			controlPlane := &pkg.ControlPlane{
 				KCP: &controlplanev1.KubeadmControlPlane{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "kcp-test",
-						Namespace: "default",
-					},
+					Name:      "kcp-test",
+					Namespace: "default",
 				},
 			}
 

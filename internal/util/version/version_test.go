@@ -113,18 +113,14 @@ func TestVersionsFromMachines(t *testing.T) {
 		base := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
 		machines := []*clusterv1.Machine{
 			{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:              "newer",
-					CreationTimestamp: metav1.NewTime(base.Add(time.Minute)),
-				},
-				Spec: clusterv1.MachineSpec{Version: "v1.32.0+aaa"},
+				Name:              "newer",
+				CreationTimestamp: metav1.NewTime(base.Add(time.Minute)),
+				Spec:              clusterv1.MachineSpec{Version: "v1.32.0+aaa"},
 			},
 			{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:              "older",
-					CreationTimestamp: metav1.NewTime(base),
-				},
-				Spec: clusterv1.MachineSpec{Version: "v1.32.0+bbb"},
+				Name:              "older",
+				CreationTimestamp: metav1.NewTime(base),
+				Spec:              clusterv1.MachineSpec{Version: "v1.32.0+bbb"},
 			},
 		}
 

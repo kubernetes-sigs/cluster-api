@@ -25,7 +25,6 @@ import (
 	. "github.com/onsi/gomega"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -91,7 +90,7 @@ func Test_inventoryClient_CheckInventoryCRDs(t *testing.T) {
 	}
 }
 
-var fooProvider = clusterctlv1.Provider{ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "ns1", ResourceVersion: "999"}}
+var fooProvider = clusterctlv1.Provider{Name: "foo", Namespace: "ns1", ResourceVersion: "999"}
 var v1alpha4Contract = "v1alpha4"
 
 func Test_inventoryClient_List(t *testing.T) {
@@ -344,7 +343,7 @@ func Test_CheckCAPIContract(t *testing.T) {
 			name: "Pass when Cluster API with current contract is installed",
 			fields: fields{
 				proxy: test.NewFakeProxy().WithObjs(&apiextensionsv1.CustomResourceDefinition{
-					ObjectMeta: metav1.ObjectMeta{Name: "clusters.cluster.x-k8s.io"},
+					Name: "clusters.cluster.x-k8s.io",
 					Spec: apiextensionsv1.CustomResourceDefinitionSpec{
 						Versions: []apiextensionsv1.CustomResourceDefinitionVersion{
 							{
@@ -365,7 +364,7 @@ func Test_CheckCAPIContract(t *testing.T) {
 			name: "Fails when Cluster API with previous contract is installed",
 			fields: fields{
 				proxy: test.NewFakeProxy().WithObjs(&apiextensionsv1.CustomResourceDefinition{
-					ObjectMeta: metav1.ObjectMeta{Name: "clusters.cluster.x-k8s.io"},
+					Name: "clusters.cluster.x-k8s.io",
 					Spec: apiextensionsv1.CustomResourceDefinitionSpec{
 						Versions: []apiextensionsv1.CustomResourceDefinitionVersion{
 							{
@@ -386,7 +385,7 @@ func Test_CheckCAPIContract(t *testing.T) {
 			name: "Pass when Cluster API with previous contract is installed, but this is explicitly tolerated",
 			fields: fields{
 				proxy: test.NewFakeProxy().WithObjs(&apiextensionsv1.CustomResourceDefinition{
-					ObjectMeta: metav1.ObjectMeta{Name: "clusters.cluster.x-k8s.io"},
+					Name: "clusters.cluster.x-k8s.io",
 					Spec: apiextensionsv1.CustomResourceDefinitionSpec{
 						Versions: []apiextensionsv1.CustomResourceDefinitionVersion{
 							{
@@ -409,7 +408,7 @@ func Test_CheckCAPIContract(t *testing.T) {
 			name: "Fails when Cluster API with next contract is installed",
 			fields: fields{
 				proxy: test.NewFakeProxy().WithObjs(&apiextensionsv1.CustomResourceDefinition{
-					ObjectMeta: metav1.ObjectMeta{Name: "clusters.cluster.x-k8s.io"},
+					Name: "clusters.cluster.x-k8s.io",
 					Spec: apiextensionsv1.CustomResourceDefinitionSpec{
 						Versions: []apiextensionsv1.CustomResourceDefinitionVersion{
 							{
@@ -461,9 +460,9 @@ func Test_inventoryClient_CheckSingleProviderInstance(t *testing.T) {
 			name: "Returns error when there are multiple instances of the same provider",
 			fields: fields{
 				initObjs: []client.Object{
-					&clusterctlv1.Provider{Type: string(clusterctlv1.CoreProviderType), ProviderName: "foo", ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "ns1"}},
-					&clusterctlv1.Provider{Type: string(clusterctlv1.CoreProviderType), ProviderName: "foo", ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "ns2"}},
-					&clusterctlv1.Provider{Type: string(clusterctlv1.InfrastructureProviderType), ProviderName: "bar", ObjectMeta: metav1.ObjectMeta{Name: "bar", Namespace: "ns2"}},
+					&clusterctlv1.Provider{Type: string(clusterctlv1.CoreProviderType), ProviderName: "foo", Name: "foo", Namespace: "ns1"},
+					&clusterctlv1.Provider{Type: string(clusterctlv1.CoreProviderType), ProviderName: "foo", Name: "foo", Namespace: "ns2"},
+					&clusterctlv1.Provider{Type: string(clusterctlv1.InfrastructureProviderType), ProviderName: "bar", Name: "bar", Namespace: "ns2"},
 				},
 			},
 			wantErr: true,
@@ -472,9 +471,9 @@ func Test_inventoryClient_CheckSingleProviderInstance(t *testing.T) {
 			name: "Does not return error when there is only single instance of all providers",
 			fields: fields{
 				initObjs: []client.Object{
-					&clusterctlv1.Provider{Type: string(clusterctlv1.CoreProviderType), ProviderName: "foo", ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "ns1"}},
-					&clusterctlv1.Provider{Type: string(clusterctlv1.CoreProviderType), ProviderName: "foo-1", ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "ns2"}},
-					&clusterctlv1.Provider{Type: string(clusterctlv1.InfrastructureProviderType), ProviderName: "bar", ObjectMeta: metav1.ObjectMeta{Name: "bar", Namespace: "ns2"}},
+					&clusterctlv1.Provider{Type: string(clusterctlv1.CoreProviderType), ProviderName: "foo", Name: "foo", Namespace: "ns1"},
+					&clusterctlv1.Provider{Type: string(clusterctlv1.CoreProviderType), ProviderName: "foo-1", Name: "foo", Namespace: "ns2"},
+					&clusterctlv1.Provider{Type: string(clusterctlv1.InfrastructureProviderType), ProviderName: "bar", Name: "bar", Namespace: "ns2"},
 				},
 			},
 			wantErr: false,
@@ -499,7 +498,7 @@ func Test_inventoryClient_CheckSingleProviderInstance(t *testing.T) {
 // inventoryCRDWithVersion returns the clusterctl inventory CRD serving the given version.
 func inventoryCRDWithVersion(version string) *apiextensionsv1.CustomResourceDefinition {
 	return &apiextensionsv1.CustomResourceDefinition{
-		ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("providers.%s", clusterctlv1.GroupVersion.Group)},
+		Name: fmt.Sprintf("providers.%s", clusterctlv1.GroupVersion.Group),
 		Spec: apiextensionsv1.CustomResourceDefinitionSpec{
 			Versions: []apiextensionsv1.CustomResourceDefinitionVersion{{Name: version, Storage: true}},
 		},

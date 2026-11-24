@@ -39,7 +39,6 @@ import (
 	"github.com/spf13/pflag"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -957,14 +956,12 @@ func getProviderObj(version *string) func(prefix string, objs []unstructured.Uns
 		}
 
 		provider := &clusterctlv1.Provider{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      manifestLabel,
-				Namespace: namespace,
-				Labels: map[string]string{
-					clusterv1.ProviderNameLabel:      manifestLabel,
-					clusterctlv1.ClusterctlLabel:     "",
-					clusterctlv1.ClusterctlCoreLabel: clusterctlv1.ClusterctlCoreLabelInventoryValue,
-				},
+			Name:      manifestLabel,
+			Namespace: namespace,
+			Labels: map[string]string{
+				clusterv1.ProviderNameLabel:      manifestLabel,
+				clusterctlv1.ClusterctlLabel:     "",
+				clusterctlv1.ClusterctlCoreLabel: clusterctlv1.ClusterctlCoreLabelInventoryValue,
 			},
 			ProviderName: providerName,
 			Type:         providerType,

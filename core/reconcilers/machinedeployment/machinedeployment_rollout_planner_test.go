@@ -75,17 +75,13 @@ func TestComputeDesiredNewMS(t *testing.T) {
 
 		deployment := &clusterv1.MachineDeployment{}
 		currentMS := &clusterv1.MachineSet{
-			ObjectMeta: metav1.ObjectMeta{
-				Annotations: map[string]string{
-					clusterv1.RevisionAnnotation: "1",
-				},
+			Annotations: map[string]string{
+				clusterv1.RevisionAnnotation: "1",
 			},
 		}
 		oldMS := &clusterv1.MachineSet{
-			ObjectMeta: metav1.ObjectMeta{
-				Annotations: map[string]string{
-					clusterv1.RevisionAnnotation: "2",
-				},
+			Annotations: map[string]string{
+				clusterv1.RevisionAnnotation: "2",
 			},
 		}
 
@@ -113,17 +109,13 @@ func TestComputeDesiredNewMS(t *testing.T) {
 
 		deployment := &clusterv1.MachineDeployment{}
 		currentMS := &clusterv1.MachineSet{
-			ObjectMeta: metav1.ObjectMeta{
-				Annotations: map[string]string{
-					clusterv1.RevisionAnnotation: "3",
-				},
+			Annotations: map[string]string{
+				clusterv1.RevisionAnnotation: "3",
 			},
 		}
 		oldMS := &clusterv1.MachineSet{
-			ObjectMeta: metav1.ObjectMeta{
-				Annotations: map[string]string{
-					clusterv1.RevisionAnnotation: "2",
-				},
+			Annotations: map[string]string{
+				clusterv1.RevisionAnnotation: "2",
 			},
 		}
 
@@ -155,10 +147,8 @@ func TestComputeDesiredOldMS(t *testing.T) {
 
 		deployment := &clusterv1.MachineDeployment{}
 		currentMS := &clusterv1.MachineSet{
-			ObjectMeta: metav1.ObjectMeta{
-				Annotations: map[string]string{
-					clusterv1.RevisionAnnotation: revision,
-				},
+			Annotations: map[string]string{
+				clusterv1.RevisionAnnotation: revision,
 			},
 		}
 
@@ -189,10 +179,8 @@ func TestComputeDesiredOldMS(t *testing.T) {
 			},
 		}
 		currentMS := &clusterv1.MachineSet{
-			ObjectMeta: metav1.ObjectMeta{
-				Annotations: map[string]string{
-					clusterv1.RevisionAnnotation: revision,
-				},
+			Annotations: map[string]string{
+				clusterv1.RevisionAnnotation: revision,
 			},
 		}
 
@@ -231,11 +219,9 @@ func TestComputeDesiredMS(t *testing.T) {
 	}
 
 	deployment := &clusterv1.MachineDeployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace:   "default",
-			Name:        "md1",
-			Annotations: map[string]string{"top-level-annotation": "top-level-annotation-value"},
-		},
+		Namespace:   "default",
+		Name:        "md1",
+		Annotations: map[string]string{"top-level-annotation": "top-level-annotation-value"},
 		Spec: clusterv1.MachineDeploymentSpec{
 			ClusterName: "test-cluster",
 			Replicas:    ptr.To[int32](3),
@@ -284,17 +270,15 @@ func TestComputeDesiredMS(t *testing.T) {
 	}
 
 	skeletonMSBasedOnMD := &clusterv1.MachineSet{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace:         "default",
-			CreationTimestamp: metav1.Now(),
-			Labels: map[string]string{
-				// labels that must be propagated to MS.
-				"machine-label1": "machine-value1",
-			},
-			Annotations: map[string]string{
-				// annotations that must be propagated to MS.
-				"top-level-annotation": "top-level-annotation-value",
-			},
+		Namespace:         "default",
+		CreationTimestamp: metav1.Now(),
+		Labels: map[string]string{
+			// labels that must be propagated to MS.
+			"machine-label1": "machine-value1",
+		},
+		Annotations: map[string]string{
+			// annotations that must be propagated to MS.
+			"top-level-annotation": "top-level-annotation-value",
 		},
 		Spec: clusterv1.MachineSetSpec{
 			// Info that we do expect to be copied from the MD.
@@ -326,24 +310,22 @@ func TestComputeDesiredMS(t *testing.T) {
 		replicas := new(int32(1))
 		uniqueLabelValue := "123"
 		currentMS := &clusterv1.MachineSet{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace:         "default",
-				CreationTimestamp: metav1.Now(),
-				Labels: map[string]string{
-					// labels that must be carried over
-					clusterv1.MachineDeploymentUniqueLabel: uniqueLabelValue,
-					// unknown labels from current MS should not be considered for desired state (known labels are inferred from MD).
-					"foo": "bar",
-				},
-				Annotations: map[string]string{
-					// unknown annotations from current MS should not be considered for desired state (known annotations are inferred from MD).
-					"foo": "bar",
-				},
-				// value that must be preserved
-				UID:        types.UID(uid),
-				Name:       name,
-				Finalizers: finalizers,
+			Namespace:         "default",
+			CreationTimestamp: metav1.Now(),
+			Labels: map[string]string{
+				// labels that must be carried over
+				clusterv1.MachineDeploymentUniqueLabel: uniqueLabelValue,
+				// unknown labels from current MS should not be considered for desired state (known labels are inferred from MD).
+				"foo": "bar",
 			},
+			Annotations: map[string]string{
+				// unknown annotations from current MS should not be considered for desired state (known annotations are inferred from MD).
+				"foo": "bar",
+			},
+			// value that must be preserved
+			UID:        types.UID(uid),
+			Name:       name,
+			Finalizers: finalizers,
 			Spec: clusterv1.MachineSetSpec{
 				// value that must be preserved
 				Replicas: replicas,
@@ -602,15 +584,13 @@ func machineSetControllerMutatorCreateMachines(_ context.Context, ms *clusterv1.
 		machineName := fmt.Sprintf("m%d", scope.GetNextMachineUID())
 		scope.machineSetMachines[ms.Name] = append(scope.machineSetMachines[ms.Name],
 			&clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: machineName,
-					OwnerReferences: []metav1.OwnerReference{
-						{
-							APIVersion: clusterv1.GroupVersion.String(),
-							Kind:       "MachineSet",
-							Name:       ms.Name,
-							Controller: new(true),
-						},
+				Name: machineName,
+				OwnerReferences: []metav1.OwnerReference{
+					{
+						APIVersion: clusterv1.GroupVersion.String(),
+						Kind:       "MachineSet",
+						Name:       ms.Name,
+						Controller: new(true),
 					},
 				},
 				Spec: *ms.Spec.Template.Spec.DeepCopy(),
@@ -1297,7 +1277,7 @@ func withOnDeleteStrategy() func(md *clusterv1.MachineDeployment) {
 
 func createMD(failureDomain string, replicas int32, options ...machineDeploymentOption) *clusterv1.MachineDeployment {
 	md := &clusterv1.MachineDeployment{
-		ObjectMeta: metav1.ObjectMeta{Name: "md"},
+		Name: "md",
 		Spec: clusterv1.MachineDeploymentSpec{
 			// Note: using failureDomain as a template field to determine upToDate
 			Template: clusterv1.MachineTemplateSpec{Spec: clusterv1.MachineSpec{FailureDomain: failureDomain}},
@@ -1331,9 +1311,7 @@ func withMSAnnotation(name, value string) fakeMachineSetOption {
 
 func createMS(name, failureDomain string, replicas int32, opts ...fakeMachineSetOption) *clusterv1.MachineSet {
 	ms := &clusterv1.MachineSet{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: name,
-		},
+		Name: name,
 		Spec: clusterv1.MachineSetSpec{
 			// Note: using failureDomain as a template field to determine upToDate
 			Template: clusterv1.MachineTemplateSpec{Spec: clusterv1.MachineSpec{FailureDomain: failureDomain}},
@@ -1361,15 +1339,13 @@ func withMAnnotation(name, value string) fakeMachinesOption {
 
 func createM(name, ownedByMS, failureDomain string, opts ...fakeMachinesOption) *clusterv1.Machine {
 	m := &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: name,
-			OwnerReferences: []metav1.OwnerReference{
-				{
-					APIVersion: clusterv1.GroupVersion.String(),
-					Kind:       "MachineSet",
-					Name:       ownedByMS,
-					Controller: new(true),
-				},
+		Name: name,
+		OwnerReferences: []metav1.OwnerReference{
+			{
+				APIVersion: clusterv1.GroupVersion.String(),
+				Kind:       "MachineSet",
+				Name:       ownedByMS,
+				Controller: new(true),
 			},
 		},
 		Spec: clusterv1.MachineSpec{

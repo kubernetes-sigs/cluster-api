@@ -49,9 +49,7 @@ func TestReconcileOldMachineSetsOnDelete(t *testing.T) {
 		{
 			name: "OnDelete strategy: do not scale oldMSs when no machines have been deleted",
 			machineDeployment: &clusterv1.MachineDeployment{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "md",
-				},
+				Name: "md",
 				Spec: clusterv1.MachineDeploymentSpec{
 					Rollout: clusterv1.MachineDeploymentRolloutSpec{
 						Strategy: clusterv1.MachineDeploymentRolloutStrategy{
@@ -63,18 +61,14 @@ func TestReconcileOldMachineSetsOnDelete(t *testing.T) {
 			},
 			scaleIntent: map[string]int32{},
 			newMachineSet: &clusterv1.MachineSet{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "ms3",
-				},
+				Name: "ms3",
 				Spec: clusterv1.MachineSetSpec{
 					Replicas: ptr.To[int32](0),
 				},
 			},
 			oldMachineSets: []*clusterv1.MachineSet{
 				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "ms1",
-					},
+					Name: "ms1",
 					Spec: clusterv1.MachineSetSpec{
 						Replicas: ptr.To[int32](3),
 					},
@@ -83,9 +77,7 @@ func TestReconcileOldMachineSetsOnDelete(t *testing.T) {
 					},
 				},
 				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "ms2",
-					},
+					Name: "ms2",
 					Spec: clusterv1.MachineSetSpec{
 						Replicas: ptr.To[int32](1),
 					},
@@ -102,9 +94,7 @@ func TestReconcileOldMachineSetsOnDelete(t *testing.T) {
 		{
 			name: "OnDelete strategy: scale down oldMSs when machines have been deleted",
 			machineDeployment: &clusterv1.MachineDeployment{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "md",
-				},
+				Name: "md",
 				Spec: clusterv1.MachineDeploymentSpec{
 					Rollout: clusterv1.MachineDeploymentRolloutSpec{
 						Strategy: clusterv1.MachineDeploymentRolloutStrategy{
@@ -116,18 +106,14 @@ func TestReconcileOldMachineSetsOnDelete(t *testing.T) {
 			},
 			scaleIntent: map[string]int32{},
 			newMachineSet: &clusterv1.MachineSet{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "ms3",
-				},
+				Name: "ms3",
 				Spec: clusterv1.MachineSetSpec{
 					Replicas: ptr.To[int32](0),
 				},
 			},
 			oldMachineSets: []*clusterv1.MachineSet{
 				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "ms1",
-					},
+					Name: "ms1",
 					Spec: clusterv1.MachineSetSpec{
 						Replicas: ptr.To[int32](3),
 					},
@@ -136,9 +122,7 @@ func TestReconcileOldMachineSetsOnDelete(t *testing.T) {
 					},
 				},
 				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "ms2",
-					},
+					Name: "ms2",
 					Spec: clusterv1.MachineSetSpec{
 						Replicas: ptr.To[int32](1),
 					},
@@ -160,9 +144,7 @@ func TestReconcileOldMachineSetsOnDelete(t *testing.T) {
 		{
 			name: "OnDelete strategy: scale down oldMSs when md has been scaled down",
 			machineDeployment: &clusterv1.MachineDeployment{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "md",
-				},
+				Name: "md",
 				Spec: clusterv1.MachineDeploymentSpec{
 					Rollout: clusterv1.MachineDeploymentRolloutSpec{
 						Strategy: clusterv1.MachineDeploymentRolloutStrategy{
@@ -174,18 +156,14 @@ func TestReconcileOldMachineSetsOnDelete(t *testing.T) {
 			},
 			scaleIntent: map[string]int32{},
 			newMachineSet: &clusterv1.MachineSet{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "ms3",
-				},
+				Name: "ms3",
 				Spec: clusterv1.MachineSetSpec{
 					Replicas: ptr.To[int32](2),
 				},
 			},
 			oldMachineSets: []*clusterv1.MachineSet{
 				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "ms1",
-					},
+					Name: "ms1",
 					Spec: clusterv1.MachineSetSpec{
 						Replicas: ptr.To[int32](1),
 					},
@@ -194,9 +172,7 @@ func TestReconcileOldMachineSetsOnDelete(t *testing.T) {
 					},
 				},
 				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "ms2",
-					},
+					Name: "ms2",
 					Spec: clusterv1.MachineSetSpec{
 						Replicas: ptr.To[int32](2),
 					},
@@ -218,9 +194,7 @@ func TestReconcileOldMachineSetsOnDelete(t *testing.T) {
 		{
 			name: "OnDelete strategy: scale down oldMSs when md has been scaled down, keeps into account newMS scale intent",
 			machineDeployment: &clusterv1.MachineDeployment{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "md",
-				},
+				Name: "md",
 				Spec: clusterv1.MachineDeploymentSpec{
 					Rollout: clusterv1.MachineDeploymentRolloutSpec{
 						Strategy: clusterv1.MachineDeploymentRolloutStrategy{
@@ -234,18 +208,14 @@ func TestReconcileOldMachineSetsOnDelete(t *testing.T) {
 				"ms3": 2, // scaling intent for new MS (+1)
 			},
 			newMachineSet: &clusterv1.MachineSet{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "ms3",
-				},
+				Name: "ms3",
 				Spec: clusterv1.MachineSetSpec{
 					Replicas: ptr.To[int32](1),
 				},
 			},
 			oldMachineSets: []*clusterv1.MachineSet{
 				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "ms1",
-					},
+					Name: "ms1",
 					Spec: clusterv1.MachineSetSpec{
 						Replicas: ptr.To[int32](1),
 					},
@@ -254,9 +224,7 @@ func TestReconcileOldMachineSetsOnDelete(t *testing.T) {
 					},
 				},
 				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "ms2",
-					},
+					Name: "ms2",
 					Spec: clusterv1.MachineSetSpec{
 						Replicas: ptr.To[int32](2),
 					},
@@ -279,9 +247,7 @@ func TestReconcileOldMachineSetsOnDelete(t *testing.T) {
 		{
 			name: "OnDelete strategy: scale down oldMSs when md has been scaled down keeps into account deleted machines",
 			machineDeployment: &clusterv1.MachineDeployment{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "md",
-				},
+				Name: "md",
 				Spec: clusterv1.MachineDeploymentSpec{
 					Rollout: clusterv1.MachineDeploymentRolloutSpec{
 						Strategy: clusterv1.MachineDeploymentRolloutStrategy{
@@ -293,18 +259,14 @@ func TestReconcileOldMachineSetsOnDelete(t *testing.T) {
 			},
 			scaleIntent: map[string]int32{},
 			newMachineSet: &clusterv1.MachineSet{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "ms3",
-				},
+				Name: "ms3",
 				Spec: clusterv1.MachineSetSpec{
 					Replicas: ptr.To[int32](2),
 				},
 			},
 			oldMachineSets: []*clusterv1.MachineSet{
 				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "ms1",
-					},
+					Name: "ms1",
 					Spec: clusterv1.MachineSetSpec{
 						Replicas: ptr.To[int32](1),
 					},
@@ -313,9 +275,7 @@ func TestReconcileOldMachineSetsOnDelete(t *testing.T) {
 					},
 				},
 				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "ms2",
-					},
+					Name: "ms2",
 					Spec: clusterv1.MachineSetSpec{
 						Replicas: ptr.To[int32](2),
 					},

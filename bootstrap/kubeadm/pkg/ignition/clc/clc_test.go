@@ -165,66 +165,46 @@ func TestRender(t *testing.T) {
 					},
 					Files: []types.File{
 						{
-							Node: types.Node{
-								Filesystem: "root",
-								Path:       "/etc/sudoers.d/foo",
+							Filesystem: "root",
+							Path:       "/etc/sudoers.d/foo",
+							Contents: types.FileContents{
+								Source: "data:,foo%20ALL%3D(ALL)%20NOPASSWD%3AALL%0A",
 							},
-							FileEmbedded1: types.FileEmbedded1{
-								Contents: types.FileContents{
-									Source: "data:,foo%20ALL%3D(ALL)%20NOPASSWD%3AALL%0A",
-								},
-								Mode: new(384),
-							},
+							Mode: new(384),
 						},
 						{
-							Node: types.Node{
-								Filesystem: "root",
-								Path:       "/etc/testfile.yaml",
-								User:       &types.NodeUser{Name: "nobody"},
-								Group:      &types.NodeGroup{Name: "nobody"},
+							Filesystem: "root",
+							Path:       "/etc/testfile.yaml",
+							User:       &types.NodeUser{Name: "nobody"},
+							Group:      &types.NodeGroup{Name: "nobody"},
+							Contents: types.FileContents{
+								Source: "data:,foo%0A",
 							},
-							FileEmbedded1: types.FileEmbedded1{
-								Contents: types.FileContents{
-									Source: "data:,foo%0A",
-								},
-								Mode: new(384),
-							},
+							Mode: new(384),
 						},
 						{
-							Node: types.Node{
-								Filesystem: "root",
-								Path:       "/etc/kubeadm.sh",
+							Filesystem: "root",
+							Path:       "/etc/kubeadm.sh",
+							Contents: types.FileContents{
+								Source: "data:,%23!%2Fbin%2Fbash%0Aset%20-e%0A%0Apre-command%0Aanother-pre-command%0Acat%20%3C%3CEOF%20%3E%20%2Fetc%2Fmodules-load.d%2Fcontainerd.conf%0Aoverlay%0Abr_netfilter%0AEOF%0A%0A%0Akubeadm%20join%0Amkdir%20-p%20%2Frun%2Fcluster-api%20%26%26%20echo%20success%20%3E%20%2Frun%2Fcluster-api%2Fbootstrap-success.complete%0Amv%20%2Fetc%2Fkubeadm.yml%20%2Ftmp%2F%0A%0Apost-kubeadm-command%0Aanother-post-kubeamd-command%0Acat%20%3C%3CEOF%20%3E%20%2Fetc%2Fmodules-load.d%2Fcontainerd.conf%0Aoverlay%0Abr_netfilter%0AEOF%0A",
 							},
-							FileEmbedded1: types.FileEmbedded1{
-								Contents: types.FileContents{
-									Source: "data:,%23!%2Fbin%2Fbash%0Aset%20-e%0A%0Apre-command%0Aanother-pre-command%0Acat%20%3C%3CEOF%20%3E%20%2Fetc%2Fmodules-load.d%2Fcontainerd.conf%0Aoverlay%0Abr_netfilter%0AEOF%0A%0A%0Akubeadm%20join%0Amkdir%20-p%20%2Frun%2Fcluster-api%20%26%26%20echo%20success%20%3E%20%2Frun%2Fcluster-api%2Fbootstrap-success.complete%0Amv%20%2Fetc%2Fkubeadm.yml%20%2Ftmp%2F%0A%0Apost-kubeadm-command%0Aanother-post-kubeamd-command%0Acat%20%3C%3CEOF%20%3E%20%2Fetc%2Fmodules-load.d%2Fcontainerd.conf%0Aoverlay%0Abr_netfilter%0AEOF%0A",
-								},
-								Mode: new(448),
-							},
+							Mode: new(448),
 						},
 						{
-							Node: types.Node{
-								Filesystem: "root",
-								Path:       "/etc/kubeadm.yml",
+							Filesystem: "root",
+							Path:       "/etc/kubeadm.yml",
+							Contents: types.FileContents{
+								Source: "data:,---%0Afoo%0A",
 							},
-							FileEmbedded1: types.FileEmbedded1{
-								Contents: types.FileContents{
-									Source: "data:,---%0Afoo%0A",
-								},
-								Mode: new(384),
-							},
+							Mode: new(384),
 						},
 						{
-							Node: types.Node{
-								Filesystem: "root",
-								Path:       "/etc/ntp.conf",
+							Filesystem: "root",
+							Path:       "/etc/ntp.conf",
+							Contents: types.FileContents{
+								Source: "data:,%23%20Common%20pool%0Aserver%20foo.bar%0Aserver%20baz%0A%0A%23%20Warning%3A%20Using%20default%20NTP%20settings%20will%20leave%20your%20NTP%0A%23%20server%20accessible%20to%20all%20hosts%20on%20the%20Internet.%0A%0A%23%20If%20you%20want%20to%20deny%20all%20machines%20(including%20your%20own)%0A%23%20from%20accessing%20the%20NTP%20server%2C%20uncomment%3A%0A%23restrict%20default%20ignore%0A%0A%23%20Default%20configuration%3A%0A%23%20-%20Allow%20only%20time%20queries%2C%20at%20a%20limited%20rate%2C%20sending%20KoD%20when%20in%20excess.%0A%23%20-%20Allow%20all%20local%20queries%20(IPv4%2C%20IPv6)%0Arestrict%20default%20nomodify%20nopeer%20noquery%20notrap%20limited%20kod%0Arestrict%20127.0.0.1%0Arestrict%20%5B%3A%3A1%5D%0A",
 							},
-							FileEmbedded1: types.FileEmbedded1{
-								Contents: types.FileContents{
-									Source: "data:,%23%20Common%20pool%0Aserver%20foo.bar%0Aserver%20baz%0A%0A%23%20Warning%3A%20Using%20default%20NTP%20settings%20will%20leave%20your%20NTP%0A%23%20server%20accessible%20to%20all%20hosts%20on%20the%20Internet.%0A%0A%23%20If%20you%20want%20to%20deny%20all%20machines%20(including%20your%20own)%0A%23%20from%20accessing%20the%20NTP%20server%2C%20uncomment%3A%0A%23restrict%20default%20ignore%0A%0A%23%20Default%20configuration%3A%0A%23%20-%20Allow%20only%20time%20queries%2C%20at%20a%20limited%20rate%2C%20sending%20KoD%20when%20in%20excess.%0A%23%20-%20Allow%20all%20local%20queries%20(IPv4%2C%20IPv6)%0Arestrict%20default%20nomodify%20nopeer%20noquery%20notrap%20limited%20kod%0Arestrict%20127.0.0.1%0Arestrict%20%5B%3A%3A1%5D%0A",
-								},
-								Mode: new(420),
-							},
+							Mode: new(420),
 						},
 					},
 					Filesystems: []types.Filesystem{
@@ -298,40 +278,28 @@ func TestRender(t *testing.T) {
 				Storage: types.Storage{
 					Files: []types.File{
 						{
-							Node: types.Node{
-								Filesystem: "root",
-								Path:       "/etc/ssh/sshd_config",
+							Filesystem: "root",
+							Path:       "/etc/ssh/sshd_config",
+							Contents: types.FileContents{
+								Source: "data:,%23%20Use%20most%20defaults%20for%20sshd%20configuration.%0ASubsystem%20sftp%20internal-sftp%0AClientAliveInterval%20180%0AUseDNS%20no%0AUsePAM%20yes%0APrintLastLog%20no%20%23%20handled%20by%20PAM%0APrintMotd%20no%20%23%20handled%20by%20PAM%0A%0AMatch%20User%20foo%2Cbar%0A%20%20PasswordAuthentication%20yes%0A",
 							},
-							FileEmbedded1: types.FileEmbedded1{
-								Contents: types.FileContents{
-									Source: "data:,%23%20Use%20most%20defaults%20for%20sshd%20configuration.%0ASubsystem%20sftp%20internal-sftp%0AClientAliveInterval%20180%0AUseDNS%20no%0AUsePAM%20yes%0APrintLastLog%20no%20%23%20handled%20by%20PAM%0APrintMotd%20no%20%23%20handled%20by%20PAM%0A%0AMatch%20User%20foo%2Cbar%0A%20%20PasswordAuthentication%20yes%0A",
-								},
-								Mode: new(384),
-							},
+							Mode: new(384),
 						},
 						{
-							Node: types.Node{
-								Filesystem: "root",
-								Path:       "/etc/kubeadm.sh",
+							Filesystem: "root",
+							Path:       "/etc/kubeadm.sh",
+							Contents: types.FileContents{
+								Source: "data:,%23!%2Fbin%2Fbash%0Aset%20-e%0A%0Apre-command%0Aanother-pre-command%0Acat%20%3C%3CEOF%20%3E%20%2Fetc%2Fmodules-load.d%2Fcontainerd.conf%0Aoverlay%0Abr_netfilter%0AEOF%0A%0A%0Akubeadm%20join%0Amkdir%20-p%20%2Frun%2Fcluster-api%20%26%26%20echo%20success%20%3E%20%2Frun%2Fcluster-api%2Fbootstrap-success.complete%0Amv%20%2Fetc%2Fkubeadm.yml%20%2Ftmp%2F%0A%0Apost-kubeadm-command%0Aanother-post-kubeamd-command%0Acat%20%3C%3CEOF%20%3E%20%2Fetc%2Fmodules-load.d%2Fcontainerd.conf%0Aoverlay%0Abr_netfilter%0AEOF%0A",
 							},
-							FileEmbedded1: types.FileEmbedded1{
-								Contents: types.FileContents{
-									Source: "data:,%23!%2Fbin%2Fbash%0Aset%20-e%0A%0Apre-command%0Aanother-pre-command%0Acat%20%3C%3CEOF%20%3E%20%2Fetc%2Fmodules-load.d%2Fcontainerd.conf%0Aoverlay%0Abr_netfilter%0AEOF%0A%0A%0Akubeadm%20join%0Amkdir%20-p%20%2Frun%2Fcluster-api%20%26%26%20echo%20success%20%3E%20%2Frun%2Fcluster-api%2Fbootstrap-success.complete%0Amv%20%2Fetc%2Fkubeadm.yml%20%2Ftmp%2F%0A%0Apost-kubeadm-command%0Aanother-post-kubeamd-command%0Acat%20%3C%3CEOF%20%3E%20%2Fetc%2Fmodules-load.d%2Fcontainerd.conf%0Aoverlay%0Abr_netfilter%0AEOF%0A",
-								},
-								Mode: new(448),
-							},
+							Mode: new(448),
 						},
 						{
-							Node: types.Node{
-								Filesystem: "root",
-								Path:       "/etc/kubeadm.yml",
+							Filesystem: "root",
+							Path:       "/etc/kubeadm.yml",
+							Contents: types.FileContents{
+								Source: "data:,---%0Afoo%0A",
 							},
-							FileEmbedded1: types.FileEmbedded1{
-								Contents: types.FileContents{
-									Source: "data:,---%0Afoo%0A",
-								},
-								Mode: new(384),
-							},
+							Mode: new(384),
 						},
 					},
 				},
@@ -373,48 +341,32 @@ func TestRender(t *testing.T) {
 				Storage: types.Storage{
 					Files: []types.File{
 						{
-							Node: types.Node{
-								Filesystem: "root",
-								Path:       "/etc/base64encodedcontent.yaml",
-							},
-							FileEmbedded1: types.FileEmbedded1{
-								Contents: types.FileContents{Source: "data:,foo%0A"},
-								Mode:     new(384),
-							},
+							Filesystem: "root",
+							Path:       "/etc/base64encodedcontent.yaml",
+							Contents:   types.FileContents{Source: "data:,foo%0A"},
+							Mode:       new(384),
 						},
 						{
-							Node: types.Node{
-								Filesystem: "root",
-								Path:       "/etc/plaincontent.yaml",
-							},
-							FileEmbedded1: types.FileEmbedded1{
-								Contents: types.FileContents{Source: "data:,foo%0A"},
-								Mode:     new(384),
-							},
+							Filesystem: "root",
+							Path:       "/etc/plaincontent.yaml",
+							Contents:   types.FileContents{Source: "data:,foo%0A"},
+							Mode:       new(384),
 						},
 						{
-							Node: types.Node{
-								Filesystem: "root",
-								Path:       "/etc/kubeadm.sh",
+							Filesystem: "root",
+							Path:       "/etc/kubeadm.sh",
+							Contents: types.FileContents{
+								Source: "data:,%23!%2Fbin%2Fbash%0Aset%20-e%0A%0Apre-command%0Aanother-pre-command%0Acat%20%3C%3CEOF%20%3E%20%2Fetc%2Fmodules-load.d%2Fcontainerd.conf%0Aoverlay%0Abr_netfilter%0AEOF%0A%0A%0Akubeadm%20join%0Amkdir%20-p%20%2Frun%2Fcluster-api%20%26%26%20echo%20success%20%3E%20%2Frun%2Fcluster-api%2Fbootstrap-success.complete%0Amv%20%2Fetc%2Fkubeadm.yml%20%2Ftmp%2F%0A%0Apost-kubeadm-command%0Aanother-post-kubeamd-command%0Acat%20%3C%3CEOF%20%3E%20%2Fetc%2Fmodules-load.d%2Fcontainerd.conf%0Aoverlay%0Abr_netfilter%0AEOF%0A",
 							},
-							FileEmbedded1: types.FileEmbedded1{
-								Contents: types.FileContents{
-									Source: "data:,%23!%2Fbin%2Fbash%0Aset%20-e%0A%0Apre-command%0Aanother-pre-command%0Acat%20%3C%3CEOF%20%3E%20%2Fetc%2Fmodules-load.d%2Fcontainerd.conf%0Aoverlay%0Abr_netfilter%0AEOF%0A%0A%0Akubeadm%20join%0Amkdir%20-p%20%2Frun%2Fcluster-api%20%26%26%20echo%20success%20%3E%20%2Frun%2Fcluster-api%2Fbootstrap-success.complete%0Amv%20%2Fetc%2Fkubeadm.yml%20%2Ftmp%2F%0A%0Apost-kubeadm-command%0Aanother-post-kubeamd-command%0Acat%20%3C%3CEOF%20%3E%20%2Fetc%2Fmodules-load.d%2Fcontainerd.conf%0Aoverlay%0Abr_netfilter%0AEOF%0A",
-								},
-								Mode: new(448),
-							},
+							Mode: new(448),
 						},
 						{
-							Node: types.Node{
-								Filesystem: "root",
-								Path:       "/etc/kubeadm.yml",
+							Filesystem: "root",
+							Path:       "/etc/kubeadm.yml",
+							Contents: types.FileContents{
+								Source: "data:,---%0Afoo%0A",
 							},
-							FileEmbedded1: types.FileEmbedded1{
-								Contents: types.FileContents{
-									Source: "data:,---%0Afoo%0A",
-								},
-								Mode: new(384),
-							},
+							Mode: new(384),
 						},
 					},
 				},
@@ -465,83 +417,59 @@ func TestRender(t *testing.T) {
 				Storage: types.Storage{
 					Files: []types.File{
 						{
-							Node: types.Node{
-								Filesystem: "root",
-								Path:       "/etc/username-group-name-owner.yaml",
-								User: &types.NodeUser{
-									Name: "nobody",
-								},
-								Group: &types.NodeGroup{
-									Name: "nobody",
-								},
+							Filesystem: "root",
+							Path:       "/etc/username-group-name-owner.yaml",
+							User: &types.NodeUser{
+								Name: "nobody",
 							},
-							FileEmbedded1: types.FileEmbedded1{
-								Contents: types.FileContents{Source: "data:,"},
-								Mode:     new(384),
+							Group: &types.NodeGroup{
+								Name: "nobody",
 							},
+							Contents: types.FileContents{Source: "data:,"},
+							Mode:     new(384),
 						},
 						{
-							Node: types.Node{
-								Filesystem: "root",
-								Path:       "/etc/user-only-owner.yaml",
-								User: &types.NodeUser{
-									Name: "nobody",
-								},
+							Filesystem: "root",
+							Path:       "/etc/user-only-owner.yaml",
+							User: &types.NodeUser{
+								Name: "nobody",
 							},
-							FileEmbedded1: types.FileEmbedded1{
-								Contents: types.FileContents{Source: "data:,"},
-								Mode:     new(384),
-							},
+							Contents: types.FileContents{Source: "data:,"},
+							Mode:     new(384),
 						},
 						{
-							Node: types.Node{
-								Filesystem: "root",
-								Path:       "/etc/user-only-with-colon-owner.yaml",
-								User: &types.NodeUser{
-									Name: "nobody",
-								},
+							Filesystem: "root",
+							Path:       "/etc/user-only-with-colon-owner.yaml",
+							User: &types.NodeUser{
+								Name: "nobody",
 							},
-							FileEmbedded1: types.FileEmbedded1{
-								Contents: types.FileContents{Source: "data:,"},
-								Mode:     new(384),
-							},
+							Contents: types.FileContents{Source: "data:,"},
+							Mode:     new(384),
 						},
 						{
-							Node: types.Node{
-								Filesystem: "root",
-								Path:       "/etc/group-only-owner.yaml",
-								Group: &types.NodeGroup{
-									Name: "nobody",
-								},
+							Filesystem: "root",
+							Path:       "/etc/group-only-owner.yaml",
+							Group: &types.NodeGroup{
+								Name: "nobody",
 							},
-							FileEmbedded1: types.FileEmbedded1{
-								Contents: types.FileContents{Source: "data:,"},
-								Mode:     new(384),
-							},
+							Contents: types.FileContents{Source: "data:,"},
+							Mode:     new(384),
 						},
 						{
-							Node: types.Node{
-								Filesystem: "root",
-								Path:       "/etc/kubeadm.sh",
+							Filesystem: "root",
+							Path:       "/etc/kubeadm.sh",
+							Contents: types.FileContents{
+								Source: "data:,%23!%2Fbin%2Fbash%0Aset%20-e%0A%0Apre-command%0Aanother-pre-command%0Acat%20%3C%3CEOF%20%3E%20%2Fetc%2Fmodules-load.d%2Fcontainerd.conf%0Aoverlay%0Abr_netfilter%0AEOF%0A%0A%0Akubeadm%20join%0Amkdir%20-p%20%2Frun%2Fcluster-api%20%26%26%20echo%20success%20%3E%20%2Frun%2Fcluster-api%2Fbootstrap-success.complete%0Amv%20%2Fetc%2Fkubeadm.yml%20%2Ftmp%2F%0A%0Apost-kubeadm-command%0Aanother-post-kubeamd-command%0Acat%20%3C%3CEOF%20%3E%20%2Fetc%2Fmodules-load.d%2Fcontainerd.conf%0Aoverlay%0Abr_netfilter%0AEOF%0A",
 							},
-							FileEmbedded1: types.FileEmbedded1{
-								Contents: types.FileContents{
-									Source: "data:,%23!%2Fbin%2Fbash%0Aset%20-e%0A%0Apre-command%0Aanother-pre-command%0Acat%20%3C%3CEOF%20%3E%20%2Fetc%2Fmodules-load.d%2Fcontainerd.conf%0Aoverlay%0Abr_netfilter%0AEOF%0A%0A%0Akubeadm%20join%0Amkdir%20-p%20%2Frun%2Fcluster-api%20%26%26%20echo%20success%20%3E%20%2Frun%2Fcluster-api%2Fbootstrap-success.complete%0Amv%20%2Fetc%2Fkubeadm.yml%20%2Ftmp%2F%0A%0Apost-kubeadm-command%0Aanother-post-kubeamd-command%0Acat%20%3C%3CEOF%20%3E%20%2Fetc%2Fmodules-load.d%2Fcontainerd.conf%0Aoverlay%0Abr_netfilter%0AEOF%0A",
-								},
-								Mode: new(448),
-							},
+							Mode: new(448),
 						},
 						{
-							Node: types.Node{
-								Filesystem: "root",
-								Path:       "/etc/kubeadm.yml",
+							Filesystem: "root",
+							Path:       "/etc/kubeadm.yml",
+							Contents: types.FileContents{
+								Source: "data:,---%0Afoo%0A",
 							},
-							FileEmbedded1: types.FileEmbedded1{
-								Contents: types.FileContents{
-									Source: "data:,---%0Afoo%0A",
-								},
-								Mode: new(384),
-							},
+							Mode: new(384),
 						},
 					},
 				},

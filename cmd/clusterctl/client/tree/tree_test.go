@@ -528,14 +528,10 @@ func Test_createGroupNode(t *testing.T) {
 	beforeNow := metav1.Time{Time: now.Time.Add(-1 * time.Hour)}.Rfc3339Copy()
 
 	obj := &clusterv1.Machine{
-		TypeMeta: metav1.TypeMeta{
-			Kind: "Machine",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "ns",
-			Name:      "my-machine",
-		},
-		Spec: clusterv1.MachineSpec{Version: "v1.35.0"},
+		Kind:      "Machine",
+		Namespace: "ns",
+		Name:      "my-machine",
+		Spec:      clusterv1.MachineSpec{Version: "v1.35.0"},
 		Status: clusterv1.MachineStatus{
 			Conditions: []metav1.Condition{
 				{Type: clusterv1.AvailableCondition, Status: metav1.ConditionTrue},
@@ -546,14 +542,10 @@ func Test_createGroupNode(t *testing.T) {
 	}
 
 	sibling := &clusterv1.Machine{
-		TypeMeta: metav1.TypeMeta{
-			Kind: "Machine",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "ns",
-			Name:      "sibling-machine",
-		},
-		Spec: clusterv1.MachineSpec{Version: "v1.35.0"},
+		Kind:      "Machine",
+		Namespace: "ns",
+		Name:      "sibling-machine",
+		Spec:      clusterv1.MachineSpec{Version: "v1.35.0"},
 		Status: clusterv1.MachineStatus{
 			Conditions: []metav1.Condition{
 				{Type: clusterv1.ReadyCondition, LastTransitionTime: beforeNow},
@@ -562,10 +554,8 @@ func Test_createGroupNode(t *testing.T) {
 	}
 
 	want := &NodeObject{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "MachineGroup",
-			APIVersion: GroupVersionVirtualObject.String(),
-		},
+		Kind:       "MachineGroup",
+		APIVersion: GroupVersionVirtualObject.String(),
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "", // random string
 			Namespace: "ns",
@@ -611,14 +601,10 @@ func Test_createV1Beta1GroupNode(t *testing.T) {
 	beforeNow := metav1.Time{Time: now.Add(-1 * time.Hour)}
 
 	obj := &clusterv1.Machine{
-		TypeMeta: metav1.TypeMeta{
-			Kind: "Machine",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "ns",
-			Name:      "my-machine",
-		},
-		Spec: clusterv1.MachineSpec{Version: "v1.35.0"},
+		Kind:      "Machine",
+		Namespace: "ns",
+		Name:      "my-machine",
+		Spec:      clusterv1.MachineSpec{Version: "v1.35.0"},
 		Status: clusterv1.MachineStatus{
 			Deprecated: &clusterv1.MachineDeprecatedStatus{
 				V1Beta1: &clusterv1.MachineV1Beta1DeprecatedStatus{
@@ -631,14 +617,10 @@ func Test_createV1Beta1GroupNode(t *testing.T) {
 	}
 
 	sibling := &clusterv1.Machine{
-		TypeMeta: metav1.TypeMeta{
-			Kind: "Machine",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "ns",
-			Name:      "sibling-machine",
-		},
-		Spec: clusterv1.MachineSpec{Version: "v1.35.0"},
+		Kind:      "Machine",
+		Namespace: "ns",
+		Name:      "sibling-machine",
+		Spec:      clusterv1.MachineSpec{Version: "v1.35.0"},
 		Status: clusterv1.MachineStatus{
 			Deprecated: &clusterv1.MachineDeprecatedStatus{
 				V1Beta1: &clusterv1.MachineV1Beta1DeprecatedStatus{
@@ -651,10 +633,8 @@ func Test_createV1Beta1GroupNode(t *testing.T) {
 	}
 
 	want := &NodeObject{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "MachineGroup",
-			APIVersion: GroupVersionVirtualObject.String(),
-		},
+		Kind:       "MachineGroup",
+		APIVersion: GroupVersionVirtualObject.String(),
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "", // random string
 			Namespace: "ns",
@@ -699,10 +679,8 @@ func Test_updateGroupNode(t *testing.T) {
 	first := fakeMachine("first-machine")
 
 	group := &NodeObject{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "MachineGroup",
-			APIVersion: GroupVersionVirtualObject.String(),
-		},
+		Kind:       "MachineGroup",
+		APIVersion: GroupVersionVirtualObject.String(),
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "", // random string
 			Namespace: "ns",
@@ -727,13 +705,9 @@ func Test_updateGroupNode(t *testing.T) {
 	}
 
 	obj := &clusterv1.Machine{
-		TypeMeta: metav1.TypeMeta{
-			Kind: "Machine",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "ns",
-			Name:      "another-machine",
-		},
+		Kind:      "Machine",
+		Namespace: "ns",
+		Name:      "another-machine",
 		Status: clusterv1.MachineStatus{
 			Conditions: []metav1.Condition{
 				{Type: clusterv1.AvailableCondition, Status: metav1.ConditionTrue},
@@ -744,10 +718,8 @@ func Test_updateGroupNode(t *testing.T) {
 	}
 
 	want := &NodeObject{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "MachineGroup",
-			APIVersion: GroupVersionVirtualObject.String(),
-		},
+		Kind:       "MachineGroup",
+		APIVersion: GroupVersionVirtualObject.String(),
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "", // random string
 			Namespace: "ns",
@@ -784,10 +756,8 @@ func Test_updateV1Beta1GroupNode(t *testing.T) {
 	first := fakeMachine("first-machine")
 
 	group := &NodeObject{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "MachineGroup",
-			APIVersion: GroupVersionVirtualObject.String(),
-		},
+		Kind:       "MachineGroup",
+		APIVersion: GroupVersionVirtualObject.String(),
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "", // random string
 			Namespace: "ns",
@@ -815,13 +785,9 @@ func Test_updateV1Beta1GroupNode(t *testing.T) {
 	}
 
 	obj := &clusterv1.Machine{
-		TypeMeta: metav1.TypeMeta{
-			Kind: "Machine",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "ns",
-			Name:      "another-machine",
-		},
+		Kind:      "Machine",
+		Namespace: "ns",
+		Name:      "another-machine",
 		Status: clusterv1.MachineStatus{
 			Deprecated: &clusterv1.MachineDeprecatedStatus{
 				V1Beta1: &clusterv1.MachineV1Beta1DeprecatedStatus{
@@ -834,10 +800,8 @@ func Test_updateV1Beta1GroupNode(t *testing.T) {
 	}
 
 	want := &NodeObject{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "MachineGroup",
-			APIVersion: GroupVersionVirtualObject.String(),
-		},
+		Kind:       "MachineGroup",
+		APIVersion: GroupVersionVirtualObject.String(),
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "", // random string
 			Namespace: "ns",
@@ -1486,14 +1450,10 @@ type clusterOption func(*clusterv1.Cluster)
 
 func fakeCluster(name string, options ...clusterOption) *clusterv1.Cluster {
 	c := &clusterv1.Cluster{
-		TypeMeta: metav1.TypeMeta{
-			Kind: "Cluster",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "ns",
-			Name:      name,
-			UID:       types.UID(name),
-		},
+		Kind:      "Cluster",
+		Namespace: "ns",
+		Name:      name,
+		UID:       types.UID(name),
 	}
 	for _, opt := range options {
 		opt(c)
@@ -1526,14 +1486,10 @@ type machineOption func(*clusterv1.Machine)
 
 func fakeMachine(name string, options ...machineOption) *clusterv1.Machine {
 	m := &clusterv1.Machine{
-		TypeMeta: metav1.TypeMeta{
-			Kind: "Machine",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "ns",
-			Name:      name,
-			UID:       types.UID(name),
-		},
+		Kind:      "Machine",
+		Namespace: "ns",
+		Name:      name,
+		UID:       types.UID(name),
 	}
 	for _, opt := range options {
 		opt(m)

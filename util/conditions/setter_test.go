@@ -157,7 +157,7 @@ func TestSet(t *testing.T) {
 	t.Run("Set infers ObservedGeneration", func(t *testing.T) {
 		g := NewWithT(t)
 		foo := &builder.Phase3Obj{
-			ObjectMeta: metav1.ObjectMeta{Generation: 123},
+			Generation: 123,
 			Status: builder.Phase3ObjStatus{
 				Conditions: nil,
 			},
@@ -181,7 +181,7 @@ func TestSet(t *testing.T) {
 	t.Run("Set drops milliseconds", func(t *testing.T) {
 		g := NewWithT(t)
 		foo := &builder.Phase3Obj{
-			ObjectMeta: metav1.ObjectMeta{Generation: 123},
+			Generation: 123,
 			Status: builder.Phase3ObjStatus{
 				Conditions: nil,
 			},

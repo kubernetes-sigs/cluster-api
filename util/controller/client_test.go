@@ -20,7 +20,6 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
@@ -35,10 +34,8 @@ func Test_Delete(t *testing.T) {
 	g.Expect(err).ToNot(HaveOccurred())
 
 	ms := &clusterv1.MachineSet{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "ms",
-			Namespace: ns.Name,
-		},
+		Name:      "ms",
+		Namespace: ns.Name,
 		Spec: clusterv1.MachineSetSpec{
 			ClusterName: "test1",
 			Template: clusterv1.MachineTemplateSpec{

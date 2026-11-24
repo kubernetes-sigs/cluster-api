@@ -24,7 +24,6 @@ import (
 	"time"
 
 	. "github.com/onsi/gomega"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog/v2"
 
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
@@ -306,10 +305,8 @@ func ApplyClusterTemplateAndWait(ctx context.Context, input ApplyClusterTemplate
 
 	// Ensure we have a Cluster for dump and cleanup steps in AfterEach even if ApplyClusterTemplateAndWait fails.
 	result.Cluster = &clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      input.ConfigCluster.ClusterName,
-			Namespace: input.ConfigCluster.Namespace,
-		},
+		Name:      input.ConfigCluster.ClusterName,
+		Namespace: input.ConfigCluster.Namespace,
 	}
 
 	log.Logf("Getting the cluster template yaml")
@@ -390,10 +387,8 @@ func ApplyCustomClusterTemplateAndWait(ctx context.Context, input ApplyCustomClu
 
 	// Ensure we have a Cluster for dump and cleanup steps in AfterEach even if ApplyClusterTemplateAndWait fails.
 	result.Cluster = &clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      input.ClusterName,
-			Namespace: input.Namespace,
-		},
+		Name:      input.ClusterName,
+		Namespace: input.Namespace,
 	}
 
 	log.Logf("Applying the cluster template yaml of cluster %s", klog.KRef(input.Namespace, input.ClusterName))

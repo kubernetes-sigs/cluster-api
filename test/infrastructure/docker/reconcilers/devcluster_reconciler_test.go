@@ -21,7 +21,6 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -35,12 +34,10 @@ func TestDevCluster_ExternallyManaged(t *testing.T) {
 	g := NewWithT(t)
 
 	devCluster := &infrav1.DevCluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test-dev-cluster",
-			Namespace: "default",
-			Annotations: map[string]string{
-				clusterv1.ManagedByAnnotation: "external-controller",
-			},
+		Name:      "test-dev-cluster",
+		Namespace: "default",
+		Annotations: map[string]string{
+			clusterv1.ManagedByAnnotation: "external-controller",
 		},
 	}
 
@@ -54,10 +51,8 @@ func TestDevCluster_ExternallyManaged(t *testing.T) {
 	}
 
 	result, err := r.Reconcile(context.Background(), ctrl.Request{
-		NamespacedName: types.NamespacedName{
-			Name:      devCluster.Name,
-			Namespace: devCluster.Namespace,
-		},
+		Name:      devCluster.Name,
+		Namespace: devCluster.Namespace,
 	})
 
 	// Should return early without error

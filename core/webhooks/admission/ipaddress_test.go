@@ -21,7 +21,6 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -31,10 +30,8 @@ import (
 
 func TestIPAddressValidateCreate(t *testing.T) {
 	claim := &ipamv1.IPAddressClaim{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "claim",
-			Namespace: "default",
-		},
+		Name:      "claim",
+		Namespace: "default",
 		Spec: ipamv1.IPAddressClaimSpec{
 			PoolRef: ipamv1.IPPoolReference{
 				Kind:     "TestPool",
@@ -46,9 +43,7 @@ func TestIPAddressValidateCreate(t *testing.T) {
 
 	getAddress := func(v6 bool, fn func(addr *ipamv1.IPAddress)) ipamv1.IPAddress {
 		addr := ipamv1.IPAddress{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: "default",
-			},
+			Namespace: "default",
 			Spec: ipamv1.IPAddressSpec{
 				ClaimRef: ipamv1.IPAddressClaimReference{Name: claim.Name},
 				PoolRef:  claim.Spec.PoolRef,
@@ -163,9 +158,7 @@ func TestIPAddressValidateCreate(t *testing.T) {
 func TestIPAddressValidateUpdate(t *testing.T) {
 	getAddress := func(fn func(addr *ipamv1.IPAddress)) ipamv1.IPAddress {
 		addr := ipamv1.IPAddress{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: "default",
-			},
+			Namespace: "default",
 			Spec: ipamv1.IPAddressSpec{
 				ClaimRef: ipamv1.IPAddressClaimReference{},
 				PoolRef:  ipamv1.IPPoolReference{},

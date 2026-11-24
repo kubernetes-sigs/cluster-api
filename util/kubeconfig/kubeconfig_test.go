@@ -66,11 +66,9 @@ users:
 `
 
 	validSecret = &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test1-kubeconfig",
-			Namespace: "test",
-			Labels:    map[string]string{clusterv1.ClusterNameLabel: "test1"},
-		},
+		Name:      "test1-kubeconfig",
+		Namespace: "test",
+		Labels:    map[string]string{clusterv1.ClusterNameLabel: "test1"},
 		Data: map[string][]byte{
 			secret.KubeconfigDataName: []byte(validKubeConfig),
 		},
@@ -240,10 +238,8 @@ func TestCreateSecretWithOwner(t *testing.T) {
 	g.Expect(err).ToNot(HaveOccurred())
 
 	caSecret := &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test1-ca",
-			Namespace: "test",
-		},
+		Name:      "test1-ca",
+		Namespace: "test",
 		Data: map[string][]byte{
 			secret.TLSKeyDataName: certs.EncodePrivateKeyPEM(caKey),
 			secret.TLSCrtDataName: certs.EncodeCertPEM(caCert),
@@ -295,10 +291,8 @@ func TestCreateSecretWithOwnerHasEndpointPrefixIsSlush(t *testing.T) {
 	g.Expect(err).ToNot(HaveOccurred())
 
 	caSecret := &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test1-ca",
-			Namespace: "test",
-		},
+		Name:      "test1-ca",
+		Namespace: "test",
 		Data: map[string][]byte{
 			secret.TLSKeyDataName: certs.EncodePrivateKeyPEM(caKey),
 			secret.TLSCrtDataName: certs.EncodeCertPEM(caCert),
@@ -350,10 +344,8 @@ func TestCreateSecret(t *testing.T) {
 	g.Expect(err).ToNot(HaveOccurred())
 
 	caSecret := &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test1-ca",
-			Namespace: "test",
-		},
+		Name:      "test1-ca",
+		Namespace: "test",
 		Data: map[string][]byte{
 			secret.TLSKeyDataName: certs.EncodePrivateKeyPEM(caKey),
 			secret.TLSCrtDataName: certs.EncodeCertPEM(caCert),
@@ -363,10 +355,8 @@ func TestCreateSecret(t *testing.T) {
 	c := fake.NewClientBuilder().WithObjects(caSecret).Build()
 
 	cluster := &clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test1",
-			Namespace: "test",
-		},
+		Name:      "test1",
+		Namespace: "test",
 		Spec: clusterv1.ClusterSpec{
 			ControlPlaneEndpoint: clusterv1.APIEndpoint{
 				Host: "localhost",
@@ -445,10 +435,8 @@ func TestRegenerateClientCerts(t *testing.T) {
 	g.Expect(err).ToNot(HaveOccurred())
 
 	caSecret := &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test1-ca",
-			Namespace: "test",
-		},
+		Name:      "test1-ca",
+		Namespace: "test",
 		Data: map[string][]byte{
 			secret.TLSKeyDataName: certs.EncodePrivateKeyPEM(caKey),
 			secret.TLSCrtDataName: certs.EncodeCertPEM(caCert),

@@ -31,7 +31,6 @@ import (
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -509,14 +508,10 @@ func Test_certManagerClient_deleteObjs(t *testing.T) {
 			fields: fields{
 				objs: []client.Object{
 					&apiextensionsv1.CustomResourceDefinition{
-						TypeMeta: metav1.TypeMeta{
-							Kind:       "CustomResourceDefinition",
-							APIVersion: apiextensionsv1.SchemeGroupVersion.String(),
-						},
-						ObjectMeta: metav1.ObjectMeta{
-							Name:   "foo",
-							Labels: map[string]string{clusterctlv1.ClusterctlCoreLabel: clusterctlv1.ClusterctlCoreLabelCertManagerValue},
-						},
+						Kind:       "CustomResourceDefinition",
+						APIVersion: apiextensionsv1.SchemeGroupVersion.String(),
+						Name:       "foo",
+						Labels:     map[string]string{clusterctlv1.ClusterctlCoreLabel: clusterctlv1.ClusterctlCoreLabelCertManagerValue},
 					},
 				},
 			},
@@ -528,14 +523,10 @@ func Test_certManagerClient_deleteObjs(t *testing.T) {
 			fields: fields{
 				objs: []client.Object{
 					&corev1.Namespace{
-						TypeMeta: metav1.TypeMeta{
-							Kind:       "Namespace",
-							APIVersion: corev1.SchemeGroupVersion.String(),
-						},
-						ObjectMeta: metav1.ObjectMeta{
-							Name:   "foo",
-							Labels: map[string]string{clusterctlv1.ClusterctlCoreLabel: clusterctlv1.ClusterctlCoreLabelCertManagerValue},
-						},
+						Kind:       "Namespace",
+						APIVersion: corev1.SchemeGroupVersion.String(),
+						Name:       "foo",
+						Labels:     map[string]string{clusterctlv1.ClusterctlCoreLabel: clusterctlv1.ClusterctlCoreLabelCertManagerValue},
 					},
 				},
 			},
@@ -547,14 +538,10 @@ func Test_certManagerClient_deleteObjs(t *testing.T) {
 			fields: fields{
 				objs: []client.Object{
 					&admissionregistration.MutatingWebhookConfiguration{
-						TypeMeta: metav1.TypeMeta{
-							Kind:       "MutatingWebhookConfiguration",
-							APIVersion: admissionregistration.SchemeGroupVersion.String(),
-						},
-						ObjectMeta: metav1.ObjectMeta{
-							Name:   "foo",
-							Labels: map[string]string{clusterctlv1.ClusterctlCoreLabel: clusterctlv1.ClusterctlCoreLabelCertManagerValue},
-						},
+						Kind:       "MutatingWebhookConfiguration",
+						APIVersion: admissionregistration.SchemeGroupVersion.String(),
+						Name:       "foo",
+						Labels:     map[string]string{clusterctlv1.ClusterctlCoreLabel: clusterctlv1.ClusterctlCoreLabelCertManagerValue},
 					},
 				},
 			},
@@ -566,14 +553,10 @@ func Test_certManagerClient_deleteObjs(t *testing.T) {
 			fields: fields{
 				objs: []client.Object{
 					&admissionregistration.ValidatingWebhookConfiguration{
-						TypeMeta: metav1.TypeMeta{
-							Kind:       "ValidatingWebhookConfiguration",
-							APIVersion: admissionregistration.SchemeGroupVersion.String(),
-						},
-						ObjectMeta: metav1.ObjectMeta{
-							Name:   "foo",
-							Labels: map[string]string{clusterctlv1.ClusterctlCoreLabel: clusterctlv1.ClusterctlCoreLabelCertManagerValue},
-						},
+						Kind:       "ValidatingWebhookConfiguration",
+						APIVersion: admissionregistration.SchemeGroupVersion.String(),
+						Name:       "foo",
+						Labels:     map[string]string{clusterctlv1.ClusterctlCoreLabel: clusterctlv1.ClusterctlCoreLabelCertManagerValue},
 					},
 				},
 			},
@@ -585,24 +568,16 @@ func Test_certManagerClient_deleteObjs(t *testing.T) {
 			fields: fields{
 				objs: []client.Object{
 					&corev1.ServiceAccount{
-						TypeMeta: metav1.TypeMeta{
-							Kind:       "ServiceAccount",
-							APIVersion: corev1.SchemeGroupVersion.String(),
-						},
-						ObjectMeta: metav1.ObjectMeta{
-							Name:   "foo",
-							Labels: map[string]string{clusterctlv1.ClusterctlCoreLabel: clusterctlv1.ClusterctlCoreLabelCertManagerValue},
-						},
+						Kind:       "ServiceAccount",
+						APIVersion: corev1.SchemeGroupVersion.String(),
+						Name:       "foo",
+						Labels:     map[string]string{clusterctlv1.ClusterctlCoreLabel: clusterctlv1.ClusterctlCoreLabelCertManagerValue},
 					},
 					&appsv1.Deployment{
-						TypeMeta: metav1.TypeMeta{
-							Kind:       "Deployment",
-							APIVersion: appsv1.SchemeGroupVersion.String(),
-						},
-						ObjectMeta: metav1.ObjectMeta{
-							Name:   "bar",
-							Labels: map[string]string{clusterctlv1.ClusterctlCoreLabel: clusterctlv1.ClusterctlCoreLabelCertManagerValue},
-						},
+						Kind:       "Deployment",
+						APIVersion: appsv1.SchemeGroupVersion.String(),
+						Name:       "bar",
+						Labels:     map[string]string{clusterctlv1.ClusterctlCoreLabel: clusterctlv1.ClusterctlCoreLabelCertManagerValue},
 					},
 				},
 			},
@@ -671,14 +646,10 @@ func Test_certManagerClient_PlanUpgrade(t *testing.T) {
 			// v0.11.0
 			objs: []client.Object{
 				&appsv1.Deployment{
-					TypeMeta: metav1.TypeMeta{
-						Kind:       "Deployment",
-						APIVersion: appsv1.SchemeGroupVersion.String(),
-					},
-					ObjectMeta: metav1.ObjectMeta{
-						Name:   "cert-manager",
-						Labels: map[string]string{clusterctlv1.ClusterctlCoreLabel: clusterctlv1.ClusterctlCoreLabelCertManagerValue},
-					},
+					Kind:       "Deployment",
+					APIVersion: appsv1.SchemeGroupVersion.String(),
+					Name:       "cert-manager",
+					Labels:     map[string]string{clusterctlv1.ClusterctlCoreLabel: clusterctlv1.ClusterctlCoreLabelCertManagerValue},
 				},
 			},
 			expectErr: false,
@@ -692,15 +663,11 @@ func Test_certManagerClient_PlanUpgrade(t *testing.T) {
 			name: "returns the upgrade plan for cert-manager if an older version is installed",
 			objs: []client.Object{
 				&appsv1.Deployment{
-					TypeMeta: metav1.TypeMeta{
-						Kind:       "Deployment",
-						APIVersion: appsv1.SchemeGroupVersion.String(),
-					},
-					ObjectMeta: metav1.ObjectMeta{
-						Name:        "cert-manager",
-						Labels:      map[string]string{clusterctlv1.ClusterctlCoreLabel: clusterctlv1.ClusterctlCoreLabelCertManagerValue},
-						Annotations: map[string]string{clusterctlv1.CertManagerVersionAnnotation: "v0.10.2"},
-					},
+					Kind:        "Deployment",
+					APIVersion:  appsv1.SchemeGroupVersion.String(),
+					Name:        "cert-manager",
+					Labels:      map[string]string{clusterctlv1.ClusterctlCoreLabel: clusterctlv1.ClusterctlCoreLabelCertManagerValue},
+					Annotations: map[string]string{clusterctlv1.CertManagerVersionAnnotation: "v0.10.2"},
 				},
 			},
 			expectErr: false,
@@ -714,15 +681,11 @@ func Test_certManagerClient_PlanUpgrade(t *testing.T) {
 			name: "returns plan if shouldn't upgrade",
 			objs: []client.Object{
 				&appsv1.Deployment{
-					TypeMeta: metav1.TypeMeta{
-						Kind:       "Deployment",
-						APIVersion: appsv1.SchemeGroupVersion.String(),
-					},
-					ObjectMeta: metav1.ObjectMeta{
-						Name:        "cert-manager",
-						Labels:      map[string]string{clusterctlv1.ClusterctlCoreLabel: clusterctlv1.ClusterctlCoreLabelCertManagerValue},
-						Annotations: map[string]string{clusterctlv1.CertManagerVersionAnnotation: config.CertManagerDefaultVersion},
-					},
+					Kind:        "Deployment",
+					APIVersion:  appsv1.SchemeGroupVersion.String(),
+					Name:        "cert-manager",
+					Labels:      map[string]string{clusterctlv1.ClusterctlCoreLabel: clusterctlv1.ClusterctlCoreLabelCertManagerValue},
+					Annotations: map[string]string{clusterctlv1.CertManagerVersionAnnotation: config.CertManagerDefaultVersion},
 					Spec: appsv1.DeploymentSpec{
 						Template: corev1.PodTemplateSpec{
 							Spec: corev1.PodSpec{
@@ -746,15 +709,11 @@ func Test_certManagerClient_PlanUpgrade(t *testing.T) {
 			name: "returns empty plan and error if cannot parse semver",
 			objs: []client.Object{
 				&appsv1.Deployment{
-					TypeMeta: metav1.TypeMeta{
-						Kind:       "Deployment",
-						APIVersion: appsv1.SchemeGroupVersion.String(),
-					},
-					ObjectMeta: metav1.ObjectMeta{
-						Name:        "cert-manager",
-						Labels:      map[string]string{clusterctlv1.ClusterctlCoreLabel: clusterctlv1.ClusterctlCoreLabelCertManagerValue},
-						Annotations: map[string]string{clusterctlv1.CertManagerVersionAnnotation: "bad-sem-ver"},
-					},
+					Kind:        "Deployment",
+					APIVersion:  appsv1.SchemeGroupVersion.String(),
+					Name:        "cert-manager",
+					Labels:      map[string]string{clusterctlv1.ClusterctlCoreLabel: clusterctlv1.ClusterctlCoreLabelCertManagerValue},
+					Annotations: map[string]string{clusterctlv1.CertManagerVersionAnnotation: "bad-sem-ver"},
 				},
 			},
 			expectErr: true,
@@ -815,9 +774,7 @@ func Test_certManagerClient_EnsureLatestVersion(t *testing.T) {
 			fields: fields{
 				proxy: test.NewFakeProxy().WithObjs(
 					&corev1.Namespace{
-						ObjectMeta: metav1.ObjectMeta{
-							Labels: map[string]string{},
-						},
+						Labels: map[string]string{},
 					},
 				),
 			},

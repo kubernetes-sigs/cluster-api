@@ -30,7 +30,6 @@ import (
 	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog/v2"
@@ -109,10 +108,8 @@ func createUnstructured(ctx context.Context, c client.Client, obj *unstructured.
 // getOrCreateClusterResourceSetBinding retrieves ClusterResourceSetBinding resource owned by the cluster or create a new one if not found.
 func (r *Reconciler) getOrCreateClusterResourceSetBinding(ctx context.Context, cluster *clusterv1.Cluster, clusterResourceSet *addonsv1.ClusterResourceSet) (*addonsv1.ClusterResourceSetBinding, error) {
 	clusterResourceSetBinding := &addonsv1.ClusterResourceSetBinding{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      cluster.Name,
-			Namespace: cluster.Namespace,
-		},
+		Name:      cluster.Name,
+		Namespace: cluster.Namespace,
 	}
 	clusterResourceSetBindingKey := client.ObjectKeyFromObject(clusterResourceSetBinding)
 

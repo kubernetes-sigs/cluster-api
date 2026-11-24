@@ -84,35 +84,35 @@ func TestControlPlane(t *testing.T) {
 		}
 		machines := collections.Machines{
 			"machine-1": &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{Name: "m1"},
+				Name: "m1",
 				Spec: clusterv1.MachineSpec{
 					Version:           "v1.31.0", // up-to-date
 					FailureDomain:     "one",
 					InfrastructureRef: clusterv1.ContractVersionedObjectReference{Kind: "GenericInfrastructureMachine", APIGroup: clusterv1.GroupVersionInfrastructure.Group, Name: "m1"},
 				}},
 			"machine-2": &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{Name: "m2"},
+				Name: "m2",
 				Spec: clusterv1.MachineSpec{
 					Version:           "v1.29.0", // not up-to-date
 					FailureDomain:     "two",
 					InfrastructureRef: clusterv1.ContractVersionedObjectReference{Kind: "GenericInfrastructureMachine", APIGroup: clusterv1.GroupVersionInfrastructure.Group, Name: "m2"},
 				}},
 			"machine-3": &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{Name: "m3", DeletionTimestamp: new(metav1.Now())}, // deleted
+				Name: "m3", DeletionTimestamp: new(metav1.Now()), // deleted
 				Spec: clusterv1.MachineSpec{
 					Version:           "v1.29.3", // not up-to-date
 					FailureDomain:     "three",
 					InfrastructureRef: clusterv1.ContractVersionedObjectReference{Kind: "GenericInfrastructureMachine", APIGroup: clusterv1.GroupVersionInfrastructure.Group, Name: "m3"},
 				}},
 			"machine-4": &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{Name: "m4", DeletionTimestamp: new(metav1.Now())}, // deleted
+				Name: "m4", DeletionTimestamp: new(metav1.Now()), // deleted
 				Spec: clusterv1.MachineSpec{
 					Version:           "v1.31.0", // up-to-date
 					FailureDomain:     "two",
 					InfrastructureRef: clusterv1.ContractVersionedObjectReference{Kind: "GenericInfrastructureMachine", APIGroup: clusterv1.GroupVersionInfrastructure.Group, Name: "m4"},
 				}},
 			"machine-5": &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{Name: "m5"},
+				Name: "m5",
 				Spec: clusterv1.MachineSpec{
 					Version:           "v1.31.0", // up-to-date
 					FailureDomain:     "three",
@@ -150,9 +150,9 @@ func TestControlPlane(t *testing.T) {
 
 func TestHasMachinesToBeRemediated(t *testing.T) {
 	// healthy machine (without MachineHealthCheckSucceded condition)
-	healthyMachineNotProvisioned := &clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "healthyMachine1"}}
+	healthyMachineNotProvisioned := &clusterv1.Machine{Name: "healthyMachine1"}
 	// healthy machine (with MachineHealthCheckSucceded == true)
-	healthyMachineProvisioned := &clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "healthyMachine2"}, Status: clusterv1.MachineStatus{NodeRef: clusterv1.MachineNodeReference{Name: "node1"}}}
+	healthyMachineProvisioned := &clusterv1.Machine{Name: "healthyMachine2", Status: clusterv1.MachineStatus{NodeRef: clusterv1.MachineNodeReference{Name: "node1"}}}
 	healthyMachineProvisioned.SetConditions([]metav1.Condition{
 		{
 			Type:   clusterv1.MachineHealthCheckSucceededCondition,
@@ -160,7 +160,7 @@ func TestHasMachinesToBeRemediated(t *testing.T) {
 		},
 	})
 	// unhealthy machine NOT eligible for KCP remediation (with MachineHealthCheckSucceded == False, but without MachineOwnerRemediated condition)
-	unhealthyMachineNOTOwnerRemediated := &clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "unhealthyMachineNOTOwnerRemediated"}, Status: clusterv1.MachineStatus{NodeRef: clusterv1.MachineNodeReference{Name: "node2"}}}
+	unhealthyMachineNOTOwnerRemediated := &clusterv1.Machine{Name: "unhealthyMachineNOTOwnerRemediated", Status: clusterv1.MachineStatus{NodeRef: clusterv1.MachineNodeReference{Name: "node2"}}}
 	unhealthyMachineNOTOwnerRemediated.SetConditions([]metav1.Condition{
 		{
 			Type:   clusterv1.MachineHealthCheckSucceededCondition,
@@ -168,7 +168,7 @@ func TestHasMachinesToBeRemediated(t *testing.T) {
 		},
 	})
 	// unhealthy machine eligible for KCP remediation (with MachineHealthCheckSucceded == False, with MachineOwnerRemediated condition)
-	unhealthyMachineOwnerRemediated := &clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "unhealthyMachineOwnerRemediated"}, Status: clusterv1.MachineStatus{NodeRef: clusterv1.MachineNodeReference{Name: "node3"}}}
+	unhealthyMachineOwnerRemediated := &clusterv1.Machine{Name: "unhealthyMachineOwnerRemediated", Status: clusterv1.MachineStatus{NodeRef: clusterv1.MachineNodeReference{Name: "node3"}}}
 	unhealthyMachineOwnerRemediated.SetConditions([]metav1.Condition{
 		{
 			Type:   clusterv1.MachineHealthCheckSucceededCondition,
@@ -231,16 +231,16 @@ func TestHasMachinesToBeRemediated(t *testing.T) {
 
 func TestHasHealthyMachineStillProvisioning(t *testing.T) {
 	// healthy machine (without MachineHealthCheckSucceded condition) still provisioning (without NodeRef)
-	healthyMachineStillProvisioning1 := &clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "healthyMachineStillProvisioning1"}}
+	healthyMachineStillProvisioning1 := &clusterv1.Machine{Name: "healthyMachineStillProvisioning1"}
 
 	// healthy machine (without MachineHealthCheckSucceded condition) provisioned (with NodeRef)
-	healthyMachineProvisioned1 := &clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "healthyMachineProvisioned1"}}
+	healthyMachineProvisioned1 := &clusterv1.Machine{Name: "healthyMachineProvisioned1"}
 	healthyMachineProvisioned1.Status.NodeRef = clusterv1.MachineNodeReference{
 		Name: "healthyMachine",
 	}
 
 	// unhealthy machine (with MachineHealthCheckSucceded condition) still provisioning (without NodeRef)
-	unhealthyMachineStillProvisioning1 := &clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "unhealthyMachineStillProvisioning1"}}
+	unhealthyMachineStillProvisioning1 := &clusterv1.Machine{Name: "unhealthyMachineStillProvisioning1"}
 	unhealthyMachineStillProvisioning1.SetConditions([]metav1.Condition{
 		{
 			Type:   clusterv1.MachineHealthCheckSucceededCondition,
@@ -253,7 +253,7 @@ func TestHasHealthyMachineStillProvisioning(t *testing.T) {
 	})
 
 	// unhealthy machine (with MachineHealthCheckSucceded condition) provisioned (with NodeRef)
-	unhealthyMachineProvisioned1 := &clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "unhealthyMachineProvisioned1"}}
+	unhealthyMachineProvisioned1 := &clusterv1.Machine{Name: "unhealthyMachineProvisioned1"}
 	unhealthyMachineProvisioned1.Status.NodeRef = clusterv1.MachineNodeReference{
 		Name: "unhealthyMachine",
 	}
@@ -297,33 +297,25 @@ func TestHasHealthyMachineStillProvisioning(t *testing.T) {
 
 func TestMachinesToCompleteTriggerInPlaceUpdate(t *testing.T) {
 	machineWithoutAnnotations := &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "machineWithoutAnnotations",
-		},
+		Name: "machineWithoutAnnotations",
 	}
 	machineWithUpdateInProgressAnnotation := &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "machineWithUpdateInProgressAnnotation",
-			Annotations: map[string]string{
-				clusterv1.UpdateInProgressAnnotation: "",
-			},
+		Name: "machineWithUpdateInProgressAnnotation",
+		Annotations: map[string]string{
+			clusterv1.UpdateInProgressAnnotation: "",
 		},
 	}
 	machineWithPendingHooksAnnotation := &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "machineWithPendingHooksAnnotation",
-			Annotations: map[string]string{
-				runtimev1.PendingHooksAnnotation: "UpdateMachine",
-			},
+		Name: "machineWithPendingHooksAnnotation",
+		Annotations: map[string]string{
+			runtimev1.PendingHooksAnnotation: "UpdateMachine",
 		},
 	}
 	machineWithBothAnnotations := &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "machineWithBothAnnotations",
-			Annotations: map[string]string{
-				clusterv1.UpdateInProgressAnnotation: "",
-				runtimev1.PendingHooksAnnotation:     "UpdateMachine",
-			},
+		Name: "machineWithBothAnnotations",
+		Annotations: map[string]string{
+			clusterv1.UpdateInProgressAnnotation: "",
+			runtimev1.PendingHooksAnnotation:     "UpdateMachine",
 		},
 	}
 
@@ -374,33 +366,25 @@ func TestMachinesToCompleteTriggerInPlaceUpdate(t *testing.T) {
 
 func TestMachinesToCompleteInPlaceUpdate(t *testing.T) {
 	machineWithoutAnnotations := &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "machineWithoutAnnotations",
-		},
+		Name: "machineWithoutAnnotations",
 	}
 	machineWithUpdateInProgressAnnotation := &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "machineWithUpdateInProgressAnnotation",
-			Annotations: map[string]string{
-				clusterv1.UpdateInProgressAnnotation: "",
-			},
+		Name: "machineWithUpdateInProgressAnnotation",
+		Annotations: map[string]string{
+			clusterv1.UpdateInProgressAnnotation: "",
 		},
 	}
 	machineWithPendingHooksAnnotation := &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "machineWithPendingHooksAnnotation",
-			Annotations: map[string]string{
-				runtimev1.PendingHooksAnnotation: "UpdateMachine",
-			},
+		Name: "machineWithPendingHooksAnnotation",
+		Annotations: map[string]string{
+			runtimev1.PendingHooksAnnotation: "UpdateMachine",
 		},
 	}
 	machineWithBothAnnotations := &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "machineWithBothAnnotations",
-			Annotations: map[string]string{
-				clusterv1.UpdateInProgressAnnotation: "",
-				runtimev1.PendingHooksAnnotation:     "UpdateMachine",
-			},
+		Name: "machineWithBothAnnotations",
+		Annotations: map[string]string{
+			clusterv1.UpdateInProgressAnnotation: "",
+			runtimev1.PendingHooksAnnotation:     "UpdateMachine",
 		},
 	}
 
@@ -451,7 +435,7 @@ func TestMachinesToCompleteInPlaceUpdate(t *testing.T) {
 
 func TestStatusToLogKeyAndValues(t *testing.T) {
 	healthyMachine := &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{Name: "healthy"},
+		Name: "healthy",
 		Status: clusterv1.MachineStatus{
 			NodeRef: clusterv1.MachineNodeReference{Name: "healthy-node"},
 			Conditions: []metav1.Condition{
@@ -466,7 +450,7 @@ func TestStatusToLogKeyAndValues(t *testing.T) {
 	}
 
 	machineWithoutNode := &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{Name: "without-node"},
+		Name: "without-node",
 		Status: clusterv1.MachineStatus{
 			// NodeRef is not set
 			Conditions: []metav1.Condition{
@@ -480,7 +464,7 @@ func TestStatusToLogKeyAndValues(t *testing.T) {
 		},
 	}
 
-	machineJustCreated := &clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "just-created"}}
+	machineJustCreated := &clusterv1.Machine{Name: "just-created"}
 
 	machineJustDeleted := healthyMachine.DeepCopy()
 	machineJustDeleted.Name = "just-deleted"
@@ -531,7 +515,7 @@ func TestDefaultTaintIsMissing(t *testing.T) {
 		{
 			name: "taint exists",
 			machine: &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{Name: "m1"},
+				Name: "m1",
 			},
 			kubeadmConfig: &bootstrapv1.KubeadmConfig{},
 			node: &Node{
@@ -549,7 +533,7 @@ func TestDefaultTaintIsMissing(t *testing.T) {
 		{
 			name: "taint is missing if defined at machine level, but not present on the node",
 			machine: &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{Name: "m1"},
+				Name: "m1",
 				Spec: clusterv1.MachineSpec{
 					Taints: []clusterv1.MachineTaint{
 						{
@@ -566,7 +550,7 @@ func TestDefaultTaintIsMissing(t *testing.T) {
 		{
 			name: "taint is missing if kubeadm default taints must be applied on init (taint not set), but not present on the node",
 			machine: &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{Name: "m1"},
+				Name: "m1",
 			},
 			kubeadmConfig: &bootstrapv1.KubeadmConfig{
 				Spec: bootstrapv1.KubeadmConfigSpec{
@@ -579,7 +563,7 @@ func TestDefaultTaintIsMissing(t *testing.T) {
 		{
 			name: "taint is missing if kubeadm default taints must be applied on join (taint not set), but not present on the node",
 			machine: &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{Name: "m1"},
+				Name: "m1",
 			},
 			kubeadmConfig: &bootstrapv1.KubeadmConfig{
 				Spec: bootstrapv1.KubeadmConfigSpec{
@@ -594,7 +578,7 @@ func TestDefaultTaintIsMissing(t *testing.T) {
 		{
 			name: "taint is missing if kubeadm init taints includes the default taint, but not present on the node",
 			machine: &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{Name: "m1"},
+				Name: "m1",
 			},
 			kubeadmConfig: &bootstrapv1.KubeadmConfig{
 				Spec: bootstrapv1.KubeadmConfigSpec{
@@ -616,7 +600,7 @@ func TestDefaultTaintIsMissing(t *testing.T) {
 		{
 			name: "taint is missing if kubeadm join taints includes the default taint, but not present on the node",
 			machine: &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{Name: "m1"},
+				Name: "m1",
 			},
 			kubeadmConfig: &bootstrapv1.KubeadmConfig{
 				Spec: bootstrapv1.KubeadmConfigSpec{
@@ -639,7 +623,7 @@ func TestDefaultTaintIsMissing(t *testing.T) {
 		{
 			name: "taint is not missing if kubeadm init taints does not include the default taint",
 			machine: &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{Name: "m1"},
+				Name: "m1",
 			},
 			kubeadmConfig: &bootstrapv1.KubeadmConfig{
 				Spec: bootstrapv1.KubeadmConfigSpec{
@@ -656,7 +640,7 @@ func TestDefaultTaintIsMissing(t *testing.T) {
 		{
 			name: "taint is not missing if kubeadm join taints does not include the default taint",
 			machine: &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{Name: "m1"},
+				Name: "m1",
 			},
 			kubeadmConfig: &bootstrapv1.KubeadmConfig{
 				Spec: bootstrapv1.KubeadmConfigSpec{
@@ -707,9 +691,7 @@ func withFailureDomain(fd string) machineOpt {
 
 func machine(name string, opts ...machineOpt) *clusterv1.Machine {
 	m := &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: name,
-		},
+		Name: name,
 	}
 	for _, opt := range opts {
 		opt(m)

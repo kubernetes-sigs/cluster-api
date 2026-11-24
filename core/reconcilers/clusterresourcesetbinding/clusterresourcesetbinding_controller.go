@@ -113,10 +113,8 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 func (r *Reconciler) clusterToClusterResourceSetBinding(_ context.Context, o client.Object) []ctrl.Request {
 	return []reconcile.Request{
 		{
-			NamespacedName: client.ObjectKey{
-				Namespace: o.GetNamespace(),
-				Name:      o.GetName(),
-			},
+			Namespace: o.GetNamespace(),
+			Name:      o.GetName(),
 		},
 	}
 }

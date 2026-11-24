@@ -25,7 +25,6 @@ import (
 
 	. "github.com/onsi/gomega"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/types"
@@ -62,16 +61,12 @@ func Test_WalkTemplates(t *testing.T) {
 	}
 	// TypeMeta is required here because we convert these objects directly to JSON.
 	kubeadmControlPlaneTemplate := controlplanev1.KubeadmControlPlaneTemplate{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "KubeadmControlPlaneTemplate",
-			APIVersion: controlplanev1.GroupVersion.String(),
-		},
+		Kind:       "KubeadmControlPlaneTemplate",
+		APIVersion: controlplanev1.GroupVersion.String(),
 	}
 	kubeadmConfigTemplate := bootstrapv1.KubeadmConfigTemplate{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "KubeadmConfigTemplate",
-			APIVersion: bootstrapv1.GroupVersion.String(),
-		},
+		Kind:       "KubeadmConfigTemplate",
+		APIVersion: bootstrapv1.GroupVersion.String(),
 	}
 	tests := []struct {
 		name             string
@@ -95,10 +90,8 @@ func Test_WalkTemplates(t *testing.T) {
 				}),
 			},
 			expectedResponse: &runtimehooksv1.GeneratePatchesResponse{
-				CommonResponse: runtimehooksv1.CommonResponse{
-					Status:  runtimehooksv1.ResponseStatusFailure,
-					Message: fmt.Sprintf("failed to merge builtin variables: failed to unmarshal builtin variable: json: cannot unmarshal string into Go value of type %s.Builtins", runtimehooksv1.GroupVersion.Version),
-				},
+				Status:  runtimehooksv1.ResponseStatusFailure,
+				Message: fmt.Sprintf("failed to merge builtin variables: failed to unmarshal builtin variable: json: cannot unmarshal string into Go value of type %s.Builtins", runtimehooksv1.GroupVersion.Version),
 			},
 		},
 		{
@@ -112,9 +105,7 @@ func Test_WalkTemplates(t *testing.T) {
 				},
 			},
 			expectedResponse: &runtimehooksv1.GeneratePatchesResponse{
-				CommonResponse: runtimehooksv1.CommonResponse{
-					Status: runtimehooksv1.ResponseStatusSuccess,
-				},
+				Status: runtimehooksv1.ResponseStatusSuccess,
 			},
 		},
 		{
@@ -128,11 +119,9 @@ func Test_WalkTemplates(t *testing.T) {
 				},
 			},
 			expectedResponse: &runtimehooksv1.GeneratePatchesResponse{
-				CommonResponse: runtimehooksv1.CommonResponse{
-					Status: runtimehooksv1.ResponseStatusFailure,
-					Message: "no kind \"Unknown\" is registered for version \"controlplane.cluster.x-k8s." +
-						"io/v1beta2\" in scheme",
-				},
+				Status: runtimehooksv1.ResponseStatusFailure,
+				Message: "no kind \"Unknown\" is registered for version \"controlplane.cluster.x-k8s." +
+					"io/v1beta2\" in scheme",
 			},
 			options: []WalkTemplatesOption{
 				FailForUnknownTypes{},
@@ -152,12 +141,10 @@ func Test_WalkTemplates(t *testing.T) {
 				},
 			},
 			expectedResponse: &runtimehooksv1.GeneratePatchesResponse{
-				CommonResponse: runtimehooksv1.CommonResponse{
-					Status: runtimehooksv1.ResponseStatusFailure,
-					Message: "error generating patches - HolderReference apiVersion \"invalid/cluster.x-k8s." +
-						"io/vx\" is not in valid format: unexpected GroupVersion string: invalid/cluster.x-k8s." +
-						"io/vx",
-				},
+				Status: runtimehooksv1.ResponseStatusFailure,
+				Message: "error generating patches - HolderReference apiVersion \"invalid/cluster.x-k8s." +
+					"io/vx\" is not in valid format: unexpected GroupVersion string: invalid/cluster.x-k8s." +
+					"io/vx",
 			},
 			options: []WalkTemplatesOption{
 				FailForUnknownTypes{},
@@ -170,9 +157,7 @@ func Test_WalkTemplates(t *testing.T) {
 				requestItem("2", kubeadmConfigTemplate, nil),
 			},
 			expectedResponse: &runtimehooksv1.GeneratePatchesResponse{
-				CommonResponse: runtimehooksv1.CommonResponse{
-					Status: runtimehooksv1.ResponseStatusSuccess,
-				},
+				Status: runtimehooksv1.ResponseStatusSuccess,
 				Items: []runtimehooksv1.GeneratePatchesResponseItem{
 					responseItem("1", "[{\"op\":\"add\",\"path\":\"/metadata/annotations\",\"value\":{\"a\":\"a\"}}]", runtimehooksv1.JSONPatchType),
 					responseItem("2", "[{\"op\":\"add\",\"path\":\"/metadata/annotations\",\"value\":{\"b\":\"b\"}}]", runtimehooksv1.JSONPatchType),
@@ -186,9 +171,7 @@ func Test_WalkTemplates(t *testing.T) {
 				requestItem("2", kubeadmConfigTemplate, nil),
 			},
 			expectedResponse: &runtimehooksv1.GeneratePatchesResponse{
-				CommonResponse: runtimehooksv1.CommonResponse{
-					Status: runtimehooksv1.ResponseStatusSuccess,
-				},
+				Status: runtimehooksv1.ResponseStatusSuccess,
 				Items: []runtimehooksv1.GeneratePatchesResponseItem{
 					responseItem("1", "[{\"op\":\"add\",\"path\":\"/metadata/annotations\",\"value\":{\"a\":\"a\"}}]", runtimehooksv1.JSONPatchType),
 					responseItem("2", "[{\"op\":\"add\",\"path\":\"/metadata/annotations\",\"value\":{\"b\":\"b\"}}]", runtimehooksv1.JSONPatchType),
@@ -205,9 +188,7 @@ func Test_WalkTemplates(t *testing.T) {
 				requestItem("2", kubeadmConfigTemplate, nil),
 			},
 			expectedResponse: &runtimehooksv1.GeneratePatchesResponse{
-				CommonResponse: runtimehooksv1.CommonResponse{
-					Status: runtimehooksv1.ResponseStatusSuccess,
-				},
+				Status: runtimehooksv1.ResponseStatusSuccess,
 				Items: []runtimehooksv1.GeneratePatchesResponseItem{
 					responseItem("1", "{\"metadata\":{\"annotations\":{\"a\":\"a\"}}}", runtimehooksv1.JSONMergePatchType),
 					responseItem("2", "{\"metadata\":{\"annotations\":{\"b\":\"b\"}}}", runtimehooksv1.JSONMergePatchType),

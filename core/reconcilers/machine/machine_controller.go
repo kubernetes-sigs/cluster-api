@@ -1065,9 +1065,7 @@ func (r *Reconciler) deleteNode(ctx context.Context, cluster *clusterv1.Cluster,
 	}
 
 	node := &corev1.Node{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: name,
-		},
+		Name: name,
 	}
 
 	if err := remoteClient.Delete(ctx, node); err != nil {

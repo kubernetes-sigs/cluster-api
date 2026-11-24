@@ -67,10 +67,8 @@ kind: ConfigMap
 apiVersion: v1`, resourceConfigMap1Name, resourceConfigMapsNamespace)
 
 		testConfigmap := &corev1.ConfigMap{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      configmapName,
-				Namespace: namespaceName,
-			},
+			Name:      configmapName,
+			Namespace: namespaceName,
 			Data: map[string]string{
 				"cm": resourceConfigMap1Content,
 			},
@@ -83,11 +81,9 @@ metadata:
  name: %s
  namespace: %s`, resourceConfigMap2Name, resourceConfigMapsNamespace)
 		testSecret := &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      secretName,
-				Namespace: namespaceName,
-			},
-			Type: "addons.cluster.x-k8s.io/resource-set",
+			Name:      secretName,
+			Namespace: namespaceName,
+			Type:      "addons.cluster.x-k8s.io/resource-set",
 			StringData: map[string]string{
 				"cm": resourceConfigMap2Content,
 			},
@@ -108,10 +104,8 @@ metadata:
 
 		clusterName = fmt.Sprintf("cluster-%s", util.RandomString(6))
 		testCluster = &clusterv1.Cluster{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      clusterName,
-				Namespace: ns.Name,
-			},
+			Name:      clusterName,
+			Namespace: ns.Name,
 			Spec: clusterv1.ClusterSpec{
 				ControlPlaneRef: clusterv1.ContractVersionedObjectReference{
 					APIGroup: builder.ControlPlaneGroupVersion.Group,
@@ -144,47 +138,37 @@ metadata:
 
 		t.Log("Deleting the Kubeconfig Secret")
 		secret := &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      clusterName + "-kubeconfig",
-				Namespace: ns.Name,
-			},
+			Name:      clusterName + "-kubeconfig",
+			Namespace: ns.Name,
 		}
 		g.Expect(env.Delete(ctx, secret)).To(Succeed())
 
 		t.Log("Deleting the ClusterResourceSet")
 		clusterResourceSetInstance := &addonsv1.ClusterResourceSet{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      clusterResourceSetName,
-				Namespace: ns.Name,
-			},
+			Name:      clusterResourceSetName,
+			Namespace: ns.Name,
 		}
 		g.Expect(client.IgnoreNotFound(env.Delete(ctx, clusterResourceSetInstance))).To(Succeed())
 		g.Eventually(func() bool {
 			return apierrors.IsNotFound(env.Get(ctx, client.ObjectKeyFromObject(clusterResourceSetInstance), &addonsv1.ClusterResourceSet{}))
 		}, timeout).Should(BeTrue())
 
-		g.Expect(env.Delete(ctx, &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{
+		g.Expect(env.Delete(ctx, &corev1.ConfigMap{
 			Name:      configmapName,
-			Namespace: ns.Name,
-		}})).To(Succeed())
-		g.Expect(env.Delete(ctx, &corev1.Secret{ObjectMeta: metav1.ObjectMeta{
+			Namespace: ns.Name})).To(Succeed())
+		g.Expect(env.Delete(ctx, &corev1.Secret{
 			Name:      secretName,
-			Namespace: ns.Name,
-		}})).To(Succeed())
+			Namespace: ns.Name})).To(Succeed())
 
 		cm1 := &corev1.ConfigMap{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      resourceConfigMap1Name,
-				Namespace: resourceConfigMapsNamespace,
-			},
+			Name:      resourceConfigMap1Name,
+			Namespace: resourceConfigMapsNamespace,
 		}
 		g.Expect(client.IgnoreNotFound(env.Delete(ctx, cm1))).To(Succeed())
 
 		cm2 := &corev1.ConfigMap{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      resourceConfigMap2Name,
-				Namespace: resourceConfigMapsNamespace,
-			},
+			Name:      resourceConfigMap2Name,
+			Namespace: resourceConfigMapsNamespace,
 		}
 		g.Expect(client.IgnoreNotFound(env.Delete(ctx, cm2))).To(Succeed())
 
@@ -204,10 +188,8 @@ metadata:
 
 		t.Log("Creating a ClusterResourceSet instance that has same labels as selector")
 		clusterResourceSetInstance := &addonsv1.ClusterResourceSet{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      clusterResourceSetName,
-				Namespace: ns.Name,
-			},
+			Name:      clusterResourceSetName,
+			Namespace: ns.Name,
 			Spec: addonsv1.ClusterResourceSetSpec{
 				ClusterSelector: metav1.LabelSelector{
 					MatchLabels: labels,
@@ -230,10 +212,8 @@ metadata:
 		defer teardown(t, g, ns)
 
 		clusterResourceSetInstance := &addonsv1.ClusterResourceSet{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      clusterResourceSetName,
-				Namespace: ns.Name,
-			},
+			Name:      clusterResourceSetName,
+			Namespace: ns.Name,
 			Spec: addonsv1.ClusterResourceSetSpec{
 				ClusterSelector: metav1.LabelSelector{
 					MatchLabels: labels,
@@ -292,10 +272,8 @@ metadata:
 		newCMName := fmt.Sprintf("test-configmap-%s", util.RandomString(6))
 
 		crsInstance := &addonsv1.ClusterResourceSet{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      clusterResourceSetName,
-				Namespace: ns.Name,
-			},
+			Name:      clusterResourceSetName,
+			Namespace: ns.Name,
 			Spec: addonsv1.ClusterResourceSetSpec{
 				ClusterSelector: metav1.LabelSelector{
 					MatchLabels: labels,
@@ -340,11 +318,9 @@ metadata:
 		time.Sleep(2 * time.Second)
 
 		newConfigmap := &corev1.ConfigMap{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      newCMName,
-				Namespace: ns.Name,
-			},
-			Data: map[string]string{},
+			Name:      newCMName,
+			Namespace: ns.Name,
+			Data:      map[string]string{},
 		}
 		g.Expect(env.Create(ctx, newConfigmap)).To(Succeed())
 		defer func() {
@@ -396,10 +372,8 @@ metadata:
 		newSecretName := fmt.Sprintf("test-secret-%s", util.RandomString(6))
 
 		crsInstance := &addonsv1.ClusterResourceSet{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      clusterResourceSetName,
-				Namespace: ns.Name,
-			},
+			Name:      clusterResourceSetName,
+			Namespace: ns.Name,
 			Spec: addonsv1.ClusterResourceSetSpec{
 				ClusterSelector: metav1.LabelSelector{
 					MatchLabels: labels,
@@ -444,12 +418,10 @@ metadata:
 		}, timeout).Should(BeTrue())
 
 		newSecret := &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      newSecretName,
-				Namespace: ns.Name,
-			},
-			Type: addonsv1.ClusterResourceSetSecretType,
-			Data: map[string][]byte{},
+			Name:      newSecretName,
+			Namespace: ns.Name,
+			Type:      addonsv1.ClusterResourceSetSecretType,
+			Data:      map[string][]byte{},
 		}
 		g.Expect(env.Create(ctx, newSecret)).To(Succeed())
 		defer func() {
@@ -504,10 +476,8 @@ metadata:
 
 		t.Log("Creating a ClusterResourceSet instance that has same labels as selector")
 		clusterResourceSetInstance2 := &addonsv1.ClusterResourceSet{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      clusterResourceSetName,
-				Namespace: ns.Name,
-			},
+			Name:      clusterResourceSetName,
+			Namespace: ns.Name,
 			Spec: addonsv1.ClusterResourceSetSpec{
 				ClusterSelector: metav1.LabelSelector{
 					MatchLabels: labels,
@@ -520,10 +490,8 @@ metadata:
 
 		t.Log("Creating a second ClusterResourceSet instance that has same labels as selector")
 		clusterResourceSetInstance3 := &addonsv1.ClusterResourceSet{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "test-clusterresourceset2",
-				Namespace: ns.Name,
-			},
+			Name:      "test-clusterresourceset2",
+			Namespace: ns.Name,
 			Spec: addonsv1.ClusterResourceSetSpec{
 				ClusterSelector: metav1.LabelSelector{
 					MatchLabels: labels,
@@ -587,12 +555,10 @@ metadata:
 
 		dt := metav1.Now()
 		clusterResourceSetInstance := &addonsv1.ClusterResourceSet{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:              clusterResourceSetName,
-				Namespace:         ns.Name,
-				Finalizers:        []string{addonsv1.ClusterResourceSetFinalizer},
-				DeletionTimestamp: &dt,
-			},
+			Name:              clusterResourceSetName,
+			Namespace:         ns.Name,
+			Finalizers:        []string{addonsv1.ClusterResourceSetFinalizer},
+			DeletionTimestamp: &dt,
 			Spec: addonsv1.ClusterResourceSetSpec{
 				ClusterSelector: metav1.LabelSelector{
 					MatchLabels: labels,
@@ -628,10 +594,8 @@ metadata:
 
 		t.Log("Creating a ClusterResourceSet instance that has same labels as selector")
 		clusterResourceSet := &addonsv1.ClusterResourceSet{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      clusterResourceSetName,
-				Namespace: ns.Name,
-			},
+			Name:      clusterResourceSetName,
+			Namespace: ns.Name,
 			Spec: addonsv1.ClusterResourceSetSpec{
 				Strategy: string(addonsv1.ClusterResourceSetStrategyReconcile),
 				ClusterSelector: metav1.LabelSelector{
@@ -713,11 +677,9 @@ metadata:
 		g.Expect(err).ToNot(HaveOccurred())
 
 		testSecret := &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      secretName,
-				Namespace: ns.Name,
-			},
-			Type: "addons.cluster.x-k8s.io/resource-set",
+			Name:      secretName,
+			Namespace: ns.Name,
+			Type:      "addons.cluster.x-k8s.io/resource-set",
 			StringData: map[string]string{
 				"cm": string(resourceConfigMap2Content),
 			},
@@ -772,10 +734,8 @@ metadata:
 
 		t.Log("Creating a ClusterResourceSet instance that has same labels as selector")
 		clusterResourceSet := &addonsv1.ClusterResourceSet{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      clusterResourceSetName,
-				Namespace: ns.Name,
-			},
+			Name:      clusterResourceSetName,
+			Namespace: ns.Name,
 			Spec: addonsv1.ClusterResourceSetSpec{
 				Strategy: string(addonsv1.ClusterResourceSetStrategyApplyOnce),
 				ClusterSelector: metav1.LabelSelector{
@@ -860,10 +820,8 @@ metadata:
 
 		t.Log("Creating a ClusterResourceSet instance that has same labels as selector")
 		clusterResourceSet := &addonsv1.ClusterResourceSet{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      clusterResourceSetName,
-				Namespace: ns.Name,
-			},
+			Name:      clusterResourceSetName,
+			Namespace: ns.Name,
 			Spec: addonsv1.ClusterResourceSetSpec{
 				Strategy: string(addonsv1.ClusterResourceSetStrategyApplyOnce),
 				ClusterSelector: metav1.LabelSelector{
@@ -932,9 +890,7 @@ metadata:
 
 		t.Log("Creating missing namespace")
 		missingNs := &corev1.Namespace{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: missingNamespace,
-			},
+			Name: missingNamespace,
 		}
 		g.Expect(env.Create(ctx, missingNs)).To(Succeed())
 
@@ -960,10 +916,8 @@ metadata:
 			createConfigMapAndSecret(g, ns.Name, configmapName, secretName)
 
 			clusterResourceSetInstance := &addonsv1.ClusterResourceSet{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      fmt.Sprintf("clusterresourceset-%d", i),
-					Namespace: ns.Name,
-				},
+				Name:      fmt.Sprintf("clusterresourceset-%d", i),
+				Namespace: ns.Name,
 				Spec: addonsv1.ClusterResourceSetSpec{
 					ClusterSelector: metav1.LabelSelector{
 						MatchLabels: labels,
@@ -1043,11 +997,9 @@ func configMapHasBeenUpdated(env *envtest.Environment, key client.ObjectKey, new
 
 func configMap(name, namespace string, data map[string]string) *corev1.ConfigMap {
 	return &corev1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: namespace,
-		},
-		Data: data,
+		Name:      name,
+		Namespace: namespace,
+		Data:      data,
 	}
 }
 

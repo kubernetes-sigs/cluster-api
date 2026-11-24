@@ -107,10 +107,8 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 		b.WatchesRawSource(source.Kind(
 			r.PartialSecretCache,
 			&metav1.PartialObjectMetadata{
-				TypeMeta: metav1.TypeMeta{
-					Kind:       "Secret",
-					APIVersion: "v1",
-				},
+				Kind:       "Secret",
+				APIVersion: "v1",
 			},
 			handler.TypedEnqueueRequestsFromMapFunc(
 				r.secretToExtensionConfig,
@@ -261,7 +259,7 @@ func (r *Reconciler) secretToExtensionConfig(ctx context.Context, secret *metav1
 	}
 
 	for _, ext := range extensionConfigs.Items {
-		result = append(result, ctrl.Request{NamespacedName: client.ObjectKey{Name: ext.Name}})
+		result = append(result, ctrl.Request{Name: ext.Name})
 	}
 
 	return result

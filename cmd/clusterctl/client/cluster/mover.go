@@ -709,14 +709,10 @@ func waitReadyForMove(ctx context.Context, proxy Proxy, nodes []*node, dryRun bo
 		}
 
 		obj := &metav1.PartialObjectMetadata{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      n.identity.Name,
-				Namespace: n.identity.Namespace,
-			},
-			TypeMeta: metav1.TypeMeta{
-				APIVersion: n.identity.APIVersion,
-				Kind:       n.identity.Kind,
-			},
+			Name:       n.identity.Name,
+			Namespace:  n.identity.Namespace,
+			APIVersion: n.identity.APIVersion,
+			Kind:       n.identity.Kind,
 		}
 		key := client.ObjectKeyFromObject(obj)
 
@@ -753,14 +749,10 @@ func patchCluster(ctx context.Context, proxy Proxy, n *node, patch client.Patch,
 	// Since the patch has been generated already in caller of this function, the ONLY affect that mutators can have
 	// here is on namespace of the resource.
 	clusterObj, err := applyMutators(&clusterv1.Cluster{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       clusterv1.ClusterKind,
-			APIVersion: clusterv1.GroupVersion.String(),
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      n.identity.Name,
-			Namespace: n.identity.Namespace,
-		},
+		Kind:       clusterv1.ClusterKind,
+		APIVersion: clusterv1.GroupVersion.String(),
+		Name:       n.identity.Name,
+		Namespace:  n.identity.Namespace,
 	}, mutators...)
 	if err != nil {
 		return err
@@ -788,14 +780,10 @@ func pauseClusterClass(ctx context.Context, proxy Proxy, n *node, pause bool, mu
 	// Get a mutated copy of the ClusterClass to identify the target namespace.
 	// The ClusterClass could have been moved to a different namespace after the move.
 	mutatedClusterClass, err := applyMutators(&clusterv1.ClusterClass{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       clusterv1.ClusterClassKind,
-			APIVersion: clusterv1.GroupVersion.String(),
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      n.identity.Name,
-			Namespace: n.identity.Namespace,
-		},
+		Kind:       clusterv1.ClusterClassKind,
+		APIVersion: clusterv1.GroupVersion.String(),
+		Name:       n.identity.Name,
+		Namespace:  n.identity.Namespace,
 	}, mutators...)
 	if err != nil {
 		return err
@@ -914,13 +902,9 @@ func (o *objectMover) ensureNamespace(ctx context.Context, toProxy Proxy, namesp
 
 	// If the namespace does not exist, create it.
 	ns = &corev1.Namespace{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: "v1",
-			Kind:       "Namespace",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name: namespace,
-		},
+		APIVersion: "v1",
+		Kind:       "Namespace",
+		Name:       namespace,
 	}
 	log.V(1).Info("Creating", ns.Kind, ns.Name)
 	if err := cs.Create(ctx, ns); err != nil && !apierrors.IsAlreadyExists(err) {

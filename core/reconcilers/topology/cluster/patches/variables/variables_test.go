@@ -66,16 +66,14 @@ func TestGlobal(t *testing.T) {
 				},
 			},
 			cluster: &clusterv1.Cluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "cluster1",
-					Namespace: metav1.NamespaceDefault,
-					UID:       types.UID(clusterUID),
-					Labels:    map[string]string{"foo": "bar"},
-					Annotations: map[string]string{
-						"fizz":                             "buzz",
-						corev1.LastAppliedConfigAnnotation: "should not be copied to builtin variables",
-						conversionutil.DataAnnotation:      "should not be copied to builtin variables",
-					},
+				Name:      "cluster1",
+				Namespace: metav1.NamespaceDefault,
+				UID:       types.UID(clusterUID),
+				Labels:    map[string]string{"foo": "bar"},
+				Annotations: map[string]string{
+					"fizz":                             "buzz",
+					corev1.LastAppliedConfigAnnotation: "should not be copied to builtin variables",
+					conversionutil.DataAnnotation:      "should not be copied to builtin variables",
 				},
 				Spec: clusterv1.ClusterSpec{
 					Topology: clusterv1.Topology{
@@ -151,11 +149,9 @@ func TestGlobal(t *testing.T) {
 				},
 			},
 			cluster: &clusterv1.Cluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "cluster1",
-					Namespace: metav1.NamespaceDefault,
-					UID:       types.UID(clusterUID),
-				},
+				Name:      "cluster1",
+				Namespace: metav1.NamespaceDefault,
+				UID:       types.UID(clusterUID),
 				Spec: clusterv1.ClusterSpec{
 					Topology: clusterv1.Topology{
 						ClassRef: clusterv1.ClusterClassRef{
@@ -230,11 +226,9 @@ func TestGlobal(t *testing.T) {
 				},
 			},
 			cluster: &clusterv1.Cluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "cluster1",
-					Namespace: metav1.NamespaceDefault,
-					UID:       types.UID(clusterUID),
-				},
+				Name:      "cluster1",
+				Namespace: metav1.NamespaceDefault,
+				UID:       types.UID(clusterUID),
 				Spec: clusterv1.ClusterSpec{
 					Topology: clusterv1.Topology{
 						ClassRef: clusterv1.ClusterClassRef{
@@ -307,11 +301,9 @@ func TestGlobal(t *testing.T) {
 				},
 			},
 			cluster: &clusterv1.Cluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "cluster1",
-					Namespace: metav1.NamespaceDefault,
-					UID:       types.UID(clusterUID),
-				},
+				Name:      "cluster1",
+				Namespace: metav1.NamespaceDefault,
+				UID:       types.UID(clusterUID),
 				Spec: clusterv1.ClusterSpec{
 					Topology: clusterv1.Topology{
 						ClassRef: clusterv1.ClusterClassRef{
@@ -380,11 +372,9 @@ func TestGlobal(t *testing.T) {
 				},
 			},
 			cluster: &clusterv1.Cluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "cluster1",
-					Namespace: metav1.NamespaceDefault,
-					UID:       types.UID(clusterUID),
-				},
+				Name:      "cluster1",
+				Namespace: metav1.NamespaceDefault,
+				UID:       types.UID(clusterUID),
 				Spec: clusterv1.ClusterSpec{
 					Topology: clusterv1.Topology{
 						ClassRef: clusterv1.ClusterClassRef{

@@ -28,7 +28,6 @@ import (
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	toolscache "k8s.io/client-go/tools/cache"
@@ -60,10 +59,8 @@ func CreateNamespace(ctx context.Context, input CreateNamespaceInput, intervals 
 		input.Name = fmt.Sprintf("test-%s", util.RandomString(6))
 	}
 	ns := &corev1.Namespace{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:   input.Name,
-			Labels: input.Labels,
-		},
+		Name:   input.Name,
+		Labels: input.Labels,
 	}
 	log.Logf("Creating namespace %s", input.Name)
 	Eventually(func() error {
@@ -86,9 +83,7 @@ func EnsureNamespace(ctx context.Context, mgmt client.Client, namespace string) 
 	err := mgmt.Get(ctx, client.ObjectKey{Name: namespace}, ns)
 	if err != nil && apierrors.IsNotFound(err) {
 		ns = &corev1.Namespace{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: namespace,
-			},
+			Name: namespace,
 		}
 		Eventually(func() error {
 			return mgmt.Create(ctx, ns)
@@ -108,9 +103,7 @@ func DeleteNamespace(ctx context.Context, input DeleteNamespaceInput, intervals 
 	Expect(input.Deleter).NotTo(BeNil(), "input.Deleter is required for DeleteNamespace")
 	Expect(input.Name).NotTo(BeEmpty(), "input.Name is required for DeleteNamespace")
 	ns := &corev1.Namespace{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: input.Name,
-		},
+		Name: input.Name,
 	}
 	log.Logf("Deleting namespace %s", input.Name)
 	Eventually(func() error {

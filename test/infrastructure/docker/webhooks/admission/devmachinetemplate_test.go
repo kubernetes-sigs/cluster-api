@@ -22,7 +22,6 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
-	admissionv1 "k8s.io/api/admission/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
@@ -72,42 +71,42 @@ func TestDevMachineTemplateInvalid(t *testing.T) {
 			name:        "return no error if no modification",
 			newTemplate: newTemplate,
 			oldTemplate: newTemplate,
-			req:         &admission.Request{AdmissionRequest: admissionv1.AdmissionRequest{DryRun: new(false)}},
+			req:         &admission.Request{DryRun: new(false)},
 			wantError:   false,
 		},
 		{
 			name:        "don't allow modification",
 			newTemplate: newTemplate,
 			oldTemplate: &oldTemplate,
-			req:         &admission.Request{AdmissionRequest: admissionv1.AdmissionRequest{DryRun: new(false)}},
+			req:         &admission.Request{DryRun: new(false)},
 			wantError:   true,
 		},
 		{
 			name:        "don't allow modification, skip immutability annotation set",
 			newTemplate: newTemplateSkipImmutabilityAnnotationSet,
 			oldTemplate: &oldTemplate,
-			req:         &admission.Request{AdmissionRequest: admissionv1.AdmissionRequest{DryRun: new(false)}},
+			req:         &admission.Request{DryRun: new(false)},
 			wantError:   true,
 		},
 		{
 			name:        "don't allow modification, dry run, no skip immutability annotation set",
 			newTemplate: newTemplate,
 			oldTemplate: &oldTemplate,
-			req:         &admission.Request{AdmissionRequest: admissionv1.AdmissionRequest{DryRun: new(true)}},
+			req:         &admission.Request{DryRun: new(true)},
 			wantError:   true,
 		},
 		{
 			name:        "skip immutability check",
 			newTemplate: newTemplateSkipImmutabilityAnnotationSet,
 			oldTemplate: &oldTemplate,
-			req:         &admission.Request{AdmissionRequest: admissionv1.AdmissionRequest{DryRun: new(true)}},
+			req:         &admission.Request{DryRun: new(true)},
 			wantError:   false,
 		},
 		{
 			name:        "don't allow invalid metadata",
 			newTemplate: newTemplateWithInvalidMetadata,
 			oldTemplate: newTemplate,
-			req:         &admission.Request{AdmissionRequest: admissionv1.AdmissionRequest{DryRun: new(true)}},
+			req:         &admission.Request{DryRun: new(true)},
 			wantError:   true,
 		},
 	}

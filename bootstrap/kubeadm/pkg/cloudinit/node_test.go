@@ -35,14 +35,12 @@ func TestNewNode(t *testing.T) {
 		{
 			"check for duplicated write_files",
 			&NodeInput{
-				BaseUserData: BaseUserData{
-					AdditionalFiles: []bootstrapv1.File{
-						{
-							Path:        "/etc/foo.conf",
-							Content:     "bar",
-							Owner:       "root",
-							Permissions: "0644",
-						},
+				AdditionalFiles: []bootstrapv1.File{
+					{
+						Path:        "/etc/foo.conf",
+						Content:     "bar",
+						Owner:       "root",
+						Permissions: "0644",
 					},
 				},
 			},

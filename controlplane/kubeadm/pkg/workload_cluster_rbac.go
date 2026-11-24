@@ -23,7 +23,6 @@ import (
 	pkgerrors "github.com/pkg/errors"
 	rbacv1 "k8s.io/api/rbac/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"sigs.k8s.io/cluster-api/util/version"
@@ -74,9 +73,7 @@ func (w *Workload) EnsureKubeadmPermissions(ctx context.Context, targetVersion s
 	// Rif https://github.com/kubernetes/kubernetes/pull/138957.
 	// This change can be dropped when the min supported Kubernetes version in Cluster API >=1.38.
 	return w.EnsureResource(ctx, &rbacv1.ClusterRoleBinding{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: KubeletAPIAdminClusterRoleBindingName,
-		},
+		Name: KubeletAPIAdminClusterRoleBindingName,
 		RoleRef: rbacv1.RoleRef{
 			APIGroup: rbacv1.GroupName,
 			Kind:     "ClusterRole",

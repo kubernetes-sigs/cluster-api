@@ -862,12 +862,10 @@ func calculateDeletingConditionForSummary(machine *clusterv1.Machine) conditions
 			Kind: "Machine",
 			Name: machine.Name,
 		},
-		Condition: metav1.Condition{
-			Type:    clusterv1.MachineDeletingCondition,
-			Status:  metav1.ConditionTrue,
-			Reason:  clusterv1.MachineDeletingReason,
-			Message: msg,
-		},
+		Type:    clusterv1.MachineDeletingCondition,
+		Status:  metav1.ConditionTrue,
+		Reason:  clusterv1.MachineDeletingReason,
+		Message: msg,
 	}
 }
 

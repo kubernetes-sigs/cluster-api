@@ -569,12 +569,10 @@ func getDevMachines(ctx context.Context, c client.Client, cluster clusterv1.Clus
 // These DevMachines have the clusterv1.ClusterNameLabel and clusterv1.MachinePoolNameLabel to support MachinePool Machines.
 func computeDesiredDevMachine(name string, cluster *clusterv1.Cluster, machinePool *clusterv1.MachinePool, devMachinePool *infrav1.DevMachinePool, existingDevMachine *infrav1.DevMachine) *infrav1.DevMachine {
 	devMachine := &infrav1.DevMachine{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace:   devMachinePool.Namespace,
-			Name:        name,
-			Labels:      make(map[string]string),
-			Annotations: make(map[string]string),
-		},
+		Namespace:   devMachinePool.Namespace,
+		Name:        name,
+		Labels:      make(map[string]string),
+		Annotations: make(map[string]string),
 		Spec: infrav1.DevMachineSpec{
 			Backend: infrav1.DevMachineBackendSpec{
 				Docker: &infrav1.DockerMachineBackendSpec{

@@ -21,7 +21,6 @@ import (
 	"sort"
 
 	pkgerrors "github.com/pkg/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
@@ -205,9 +204,7 @@ func appendProviders(list []clusterctlv1.Provider, providerType clusterctlv1.Pro
 		}
 
 		list = append(list, clusterctlv1.Provider{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: clusterctlv1.ManifestLabel(name, providerType),
-			},
+			Name:         clusterctlv1.ManifestLabel(name, providerType),
 			ProviderName: name,
 			Type:         string(providerType),
 			Version:      version,

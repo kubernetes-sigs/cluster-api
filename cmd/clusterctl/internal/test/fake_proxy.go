@@ -21,7 +21,6 @@ import (
 	"errors"
 
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -172,19 +171,15 @@ func (f *FakeProxy) WithNamespace(n string) *FakeProxy {
 // components and the corresponding inventory item.
 func (f *FakeProxy) WithProviderInventory(name string, providerType clusterctlv1.ProviderType, version, targetNamespace string) *FakeProxy {
 	f.objs = append(f.objs, &clusterctlv1.Provider{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: clusterctlv1.GroupVersion.String(),
-			Kind:       "Provider",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			ResourceVersion: "999",
-			Namespace:       targetNamespace,
-			Name:            clusterctlv1.ManifestLabel(name, providerType),
-			Labels: map[string]string{
-				clusterctlv1.ClusterctlLabel:     "",
-				clusterv1.ProviderNameLabel:      clusterctlv1.ManifestLabel(name, providerType),
-				clusterctlv1.ClusterctlCoreLabel: clusterctlv1.ClusterctlCoreLabelInventoryValue,
-			},
+		APIVersion:      clusterctlv1.GroupVersion.String(),
+		Kind:            "Provider",
+		ResourceVersion: "999",
+		Namespace:       targetNamespace,
+		Name:            clusterctlv1.ManifestLabel(name, providerType),
+		Labels: map[string]string{
+			clusterctlv1.ClusterctlLabel:     "",
+			clusterv1.ProviderNameLabel:      clusterctlv1.ManifestLabel(name, providerType),
+			clusterctlv1.ClusterctlCoreLabel: clusterctlv1.ClusterctlCoreLabelInventoryValue,
 		},
 		ProviderName: name,
 		Type:         string(providerType),

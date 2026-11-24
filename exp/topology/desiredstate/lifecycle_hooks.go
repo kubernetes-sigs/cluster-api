@@ -54,15 +54,11 @@ func (g *generator) callBeforeClusterUpgradeHook(ctx context.Context, s *scope.S
 			}
 			// Add the hook with a response to the tracker so we can later update the condition.
 			s.HookResponseTracker.Add(runtimehooksv1.BeforeClusterUpgrade, &runtimehooksv1.BeforeClusterUpgradeResponse{
-				CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
-					// RetryAfterSeconds needs to be set because having only hooks without RetryAfterSeconds
-					// would lead to not updating the condition. We can rely on getting an event when the
-					// annotation gets removed so we set twice of the default sync-period to not cause additional reconciles.
-					RetryAfterSeconds: 20 * 60,
-					CommonResponse: runtimehooksv1.CommonResponse{
-						Message: message,
-					},
-				},
+				// RetryAfterSeconds needs to be set because having only hooks without RetryAfterSeconds
+				// would lead to not updating the condition. We can rely on getting an event when the
+				// annotation gets removed so we set twice of the default sync-period to not cause additional reconciles.
+				RetryAfterSeconds: 20 * 60,
+				Message:           message,
 			})
 
 			log.Info(fmt.Sprintf("Cluster upgrade from version %s to version %s is blocked by %s hook (via annotations), waiting for the annotations to be removed", *currentVersion, topologyVersion, runtimecatalog.HookName(runtimehooksv1.BeforeClusterUpgrade)), "hooks", strings.Join(hookAnnotations, ","))

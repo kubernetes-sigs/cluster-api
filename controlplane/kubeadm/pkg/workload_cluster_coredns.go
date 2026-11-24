@@ -251,10 +251,8 @@ func (w *Workload) updateCoreDNSCorefile(ctx context.Context, info *coreDNSInfo)
 
 	// First we backup the Corefile by backing it up.
 	if err := w.Client.Update(ctx, &corev1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      coreDNSKey,
-			Namespace: metav1.NamespaceSystem,
-		},
+		Name:      coreDNSKey,
+		Namespace: metav1.NamespaceSystem,
 		Data: map[string]string{
 			corefileKey:       info.Corefile,
 			corefileBackupKey: info.Corefile,
@@ -276,10 +274,8 @@ func (w *Workload) updateCoreDNSCorefile(ctx context.Context, info *coreDNSInfo)
 	}
 
 	if err := w.Client.Update(ctx, &corev1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      coreDNSKey,
-			Namespace: metav1.NamespaceSystem,
-		},
+		Name:      coreDNSKey,
+		Namespace: metav1.NamespaceSystem,
 		Data: map[string]string{
 			corefileKey:       updatedCorefile,
 			corefileBackupKey: info.Corefile,

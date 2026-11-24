@@ -43,10 +43,8 @@ import (
 
 func TestClusterReconcileInfrastructure(t *testing.T) {
 	cluster := &clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test-cluster",
-			Namespace: "test-namespace",
-		},
+		Name:      "test-cluster",
+		Namespace: "test-namespace",
 		Status: clusterv1.ClusterStatus{
 			Initialization: clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: new(true)},
 		},
@@ -63,10 +61,8 @@ func TestClusterReconcileInfrastructure(t *testing.T) {
 		},
 	}
 	clusterNoEndpoint := &clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test-cluster",
-			Namespace: "test-namespace",
-		},
+		Name:      "test-cluster",
+		Namespace: "test-namespace",
 		Status: clusterv1.ClusterStatus{
 			Initialization: clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: new(true)},
 		},
@@ -89,7 +85,7 @@ func TestClusterReconcileInfrastructure(t *testing.T) {
 	}{
 		{
 			name:      "returns no error if infrastructure ref is nil",
-			cluster:   &clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{Name: "test-cluster", Namespace: "test-namespace"}},
+			cluster:   &clusterv1.Cluster{Name: "test-cluster", Namespace: "test-namespace"},
 			expectErr: false,
 			check: func(g *GomegaWithT, in *clusterv1.Cluster) {
 				g.Expect(ptr.Deref(in.Status.Initialization.InfrastructureProvisioned, false)).To(BeTrue())
@@ -289,10 +285,8 @@ func TestClusterReconcileInfrastructure(t *testing.T) {
 
 func TestClusterReconcileControlPlane(t *testing.T) {
 	cluster := &clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test-cluster",
-			Namespace: "test-namespace",
-		},
+		Name:      "test-cluster",
+		Namespace: "test-namespace",
 		Status: clusterv1.ClusterStatus{
 			Initialization: clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: new(true)},
 		},
@@ -309,10 +303,8 @@ func TestClusterReconcileControlPlane(t *testing.T) {
 		},
 	}
 	clusterNoEndpoint := &clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test-cluster",
-			Namespace: "test-namespace",
-		},
+		Name:      "test-cluster",
+		Namespace: "test-namespace",
 		Status: clusterv1.ClusterStatus{
 			Initialization: clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: new(true)},
 		},
@@ -335,7 +327,7 @@ func TestClusterReconcileControlPlane(t *testing.T) {
 	}{
 		{
 			name:      "returns no error if control plane ref is nil",
-			cluster:   &clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{Name: "test-cluster", Namespace: "test-namespace"}},
+			cluster:   &clusterv1.Cluster{Name: "test-cluster", Namespace: "test-namespace"},
 			expectErr: false,
 		},
 		{
@@ -577,9 +569,7 @@ func TestClusterReconcileControlPlane(t *testing.T) {
 
 func TestClusterReconcileKubeConfig(t *testing.T) {
 	cluster := &clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "test-cluster",
-		},
+		Name: "test-cluster",
 		Spec: clusterv1.ClusterSpec{
 			ControlPlaneEndpoint: clusterv1.APIEndpoint{
 				Host: "1.2.3.4",
@@ -604,9 +594,7 @@ func TestClusterReconcileKubeConfig(t *testing.T) {
 			name:    "kubeconfig secret found",
 			cluster: cluster,
 			secret: &corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "test-cluster-kubeconfig",
-				},
+				Name: "test-cluster-kubeconfig",
 			},
 			wantErr: false,
 		},
@@ -620,9 +608,7 @@ func TestClusterReconcileKubeConfig(t *testing.T) {
 			name:    "invalid ca secret, should return error",
 			cluster: cluster,
 			secret: &corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "test-cluster-ca",
-				},
+				Name: "test-cluster-ca",
 			},
 			wantErr: true,
 		},
@@ -663,10 +649,8 @@ func TestClusterReconcileKubeConfig(t *testing.T) {
 
 func TestClusterReconcilePhases_reconcileFailureDomains(t *testing.T) {
 	cluster := &clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test-cluster",
-			Namespace: "test-namespace",
-		},
+		Name:      "test-cluster",
+		Namespace: "test-namespace",
 		Status: clusterv1.ClusterStatus{
 			Initialization: clusterv1.ClusterInitializationStatus{InfrastructureProvisioned: new(true)},
 		},
@@ -729,7 +713,7 @@ func TestClusterReconcilePhases_reconcileFailureDomains(t *testing.T) {
 	}{
 		{
 			name:    "expect no failure domain if infrastructure ref is nil",
-			cluster: &clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{Name: "test-cluster", Namespace: "test-namespace"}},
+			cluster: &clusterv1.Cluster{Name: "test-cluster", Namespace: "test-namespace"},
 		},
 		{
 			name:                 "expect no failure domain if infra config does not have failure domain",
@@ -917,11 +901,9 @@ func TestEnsureOwnerRefAndLabel(t *testing.T) {
 		{
 			name: "Topology defined - should set ownerReference with controller: true",
 			cluster: &clusterv1.Cluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-cluster",
-					Namespace: "test-namespace",
-					UID:       "test-uid",
-				},
+				Name:      "test-cluster",
+				Namespace: "test-namespace",
+				UID:       "test-uid",
 				Spec: clusterv1.ClusterSpec{
 					Topology: clusterv1.Topology{
 						ClassRef: clusterv1.ClusterClassRef{
@@ -946,12 +928,10 @@ func TestEnsureOwnerRefAndLabel(t *testing.T) {
 		{
 			name: "Topology not defined - should set ownerReference with controller: false",
 			cluster: &clusterv1.Cluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-cluster",
-					Namespace: "test-namespace",
-					UID:       "test-uid",
-				},
-				Spec: clusterv1.ClusterSpec{},
+				Name:      "test-cluster",
+				Namespace: "test-namespace",
+				UID:       "test-uid",
+				Spec:      clusterv1.ClusterSpec{},
 			},
 			obj: &unstructured.Unstructured{
 				Object: map[string]any{

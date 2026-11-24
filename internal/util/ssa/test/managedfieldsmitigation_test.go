@@ -52,15 +52,13 @@ func TestMigrateClusterAndMitigateManagedFieldsIssue(t *testing.T) {
 	otherFieldManager := "other-manager"
 
 	cluster := &clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "cluster-1",
-			Namespace: "default",
-			Labels: map[string]string{
-				"label-1": "value-1",
-			},
-			Annotations: map[string]string{
-				"annotation-1": "value-1",
-			},
+		Name:      "cluster-1",
+		Namespace: "default",
+		Labels: map[string]string{
+			"label-1": "value-1",
+		},
+		Annotations: map[string]string{
+			"annotation-1": "value-1",
 		},
 		Spec: clusterv1.ClusterSpec{
 			ControlPlaneRef: clusterv1.ContractVersionedObjectReference{
@@ -76,15 +74,13 @@ func TestMigrateClusterAndMitigateManagedFieldsIssue(t *testing.T) {
 		},
 	}
 	clusterApply := &clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "cluster-1",
-			Namespace: "default",
-			Labels: map[string]string{
-				"label-ssa": "value-1",
-			},
-			Annotations: map[string]string{
-				"annotation-ssa": "value-1",
-			},
+		Name:      "cluster-1",
+		Namespace: "default",
+		Labels: map[string]string{
+			"label-ssa": "value-1",
+		},
+		Annotations: map[string]string{
+			"annotation-ssa": "value-1",
 		},
 		Spec: clusterv1.ClusterSpec{
 			ClusterNetwork: clusterv1.ClusterNetwork{
@@ -472,15 +468,13 @@ func TestMitigateManagedFieldsIssue(t *testing.T) {
 	otherFieldManager := "other-manager"
 
 	machineDeployment := &clusterv1.MachineDeployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "md-1",
-			Namespace: "default",
-			Labels: map[string]string{
-				"label-1": "value-1",
-			},
-			Annotations: map[string]string{
-				"annotation-1": "value-1",
-			},
+		Name:      "md-1",
+		Namespace: "default",
+		Labels: map[string]string{
+			"label-1": "value-1",
+		},
+		Annotations: map[string]string{
+			"annotation-1": "value-1",
 		},
 		Spec: clusterv1.MachineDeploymentSpec{
 			ClusterName: "cluster-1",
@@ -501,15 +495,13 @@ func TestMitigateManagedFieldsIssue(t *testing.T) {
 	}
 
 	kubeadmControlPlane := &controlplanev1.KubeadmControlPlane{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "kcp-1",
-			Namespace: "default",
-			Labels: map[string]string{
-				"label-1": "value-1",
-			},
-			Annotations: map[string]string{
-				"annotation-1": "value-1",
-			},
+		Name:      "kcp-1",
+		Namespace: "default",
+		Labels: map[string]string{
+			"label-1": "value-1",
+		},
+		Annotations: map[string]string{
+			"annotation-1": "value-1",
 		},
 		Spec: controlplanev1.KubeadmControlPlaneSpec{
 			KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
@@ -686,15 +678,13 @@ func TestMitigateManagedFieldsIssue(t *testing.T) {
 	}
 }}`)
 	kubeadmControlPlaneApply := &controlplanev1.KubeadmControlPlane{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "kcp-1",
-			Namespace: "default",
-			Labels: map[string]string{
-				"label-1": "value-1",
-			},
-			Annotations: map[string]string{
-				"annotation-1": "value-1",
-			},
+		Name:      "kcp-1",
+		Namespace: "default",
+		Labels: map[string]string{
+			"label-1": "value-1",
+		},
+		Annotations: map[string]string{
+			"annotation-1": "value-1",
 		},
 		Spec: controlplanev1.KubeadmControlPlaneSpec{
 			KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
@@ -1016,15 +1006,13 @@ func TestMitigateManagedFieldsIssue(t *testing.T) {
 }}`)
 
 	kubeadmControlPlaneV1Beta1 := &controlplanev1beta1.KubeadmControlPlane{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "kcp-1",
-			Namespace: "default",
-			Labels: map[string]string{
-				"label-1": "value-1",
-			},
-			Annotations: map[string]string{
-				"annotation-1": "value-1",
-			},
+		Name:      "kcp-1",
+		Namespace: "default",
+		Labels: map[string]string{
+			"label-1": "value-1",
+		},
+		Annotations: map[string]string{
+			"annotation-1": "value-1",
 		},
 		Spec: controlplanev1beta1.KubeadmControlPlaneSpec{
 			KubeadmConfigSpec: bootstrapv1beta1.KubeadmConfigSpec{
@@ -1130,15 +1118,13 @@ func TestMitigateManagedFieldsIssue(t *testing.T) {
 	}
 }}`)
 	kubeadmControlPlaneV1Beta1Apply := &controlplanev1beta1.KubeadmControlPlane{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "kcp-1",
-			Namespace: "default",
-			Labels: map[string]string{
-				"label-1": "value-1",
-			},
-			Annotations: map[string]string{
-				"annotation-1": "value-1",
-			},
+		Name:      "kcp-1",
+		Namespace: "default",
+		Labels: map[string]string{
+			"label-1": "value-1",
+		},
+		Annotations: map[string]string{
+			"annotation-1": "value-1",
 		},
 		Spec: controlplanev1beta1.KubeadmControlPlaneSpec{
 			KubeadmConfigSpec: bootstrapv1beta1.KubeadmConfigSpec{

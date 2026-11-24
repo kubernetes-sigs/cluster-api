@@ -414,7 +414,7 @@ func TestConsistencyStore_getStore_MultiNamespaceInformer(t *testing.T) {
 	owner := types.NamespacedName{Name: "owner-1", Namespace: nsA.Name}
 	ownerUID := types.UID("owner-uid-1")
 
-	cm := &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: "cm", Namespace: nsA.Name}}
+	cm := &corev1.ConfigMap{Name: "cm", Namespace: nsA.Name}
 	gvkt := StructuredObject(corev1.SchemeGroupVersion, "ConfigMap")
 	configMapStore, err := getStore(ctx, c, gvkt)
 	require.NoError(t, err)
@@ -423,7 +423,7 @@ func TestConsistencyStore_getStore_MultiNamespaceInformer(t *testing.T) {
 	// EnsureReady must wait until the ConfigMap is in the cache.
 	c.WroteAt(owner, ownerUID, gvkt, cm.ResourceVersion)
 
-	node := &corev1.Node{ObjectMeta: metav1.ObjectMeta{Name: "node"}}
+	node := &corev1.Node{Name: "node"}
 	gvkt = StructuredObject(corev1.SchemeGroupVersion, "Node")
 	nodeStore, err := getStore(ctx, c, gvkt)
 	require.NoError(t, err)

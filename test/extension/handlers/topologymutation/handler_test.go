@@ -24,7 +24,6 @@ import (
 
 	. "github.com/onsi/gomega"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -215,10 +214,8 @@ func Test_patchDevMachineTemplate(t *testing.T) {
 			template:  &infrav1.DevMachineTemplate{},
 			variables: nil,
 			expectedTemplate: &infrav1.DevMachineTemplate{
-				ObjectMeta: metav1.ObjectMeta{
-					Annotations: map[string]string{"top-level-annotation-1": "top-level-annotation-value-1"},
-					Labels:      map[string]string{"top-level-label-1": "top-level-label-value-1"},
-				},
+				Annotations: map[string]string{"top-level-annotation-1": "top-level-annotation-value-1"},
+				Labels:      map[string]string{"top-level-label-1": "top-level-label-value-1"},
 			},
 			expectedErr: true,
 		},
@@ -243,10 +240,8 @@ func Test_patchDevMachineTemplate(t *testing.T) {
 				})},
 			},
 			expectedTemplate: &infrav1.DevMachineTemplate{
-				ObjectMeta: metav1.ObjectMeta{
-					Annotations: map[string]string{"top-level-annotation-1": "top-level-annotation-value-1"},
-					Labels:      map[string]string{"top-level-label-1": "top-level-label-value-1"},
-				},
+				Annotations: map[string]string{"top-level-annotation-1": "top-level-annotation-value-1"},
+				Labels:      map[string]string{"top-level-label-1": "top-level-label-value-1"},
 				Spec: infrav1.DevMachineTemplateSpec{
 					Template: infrav1.DevMachineTemplateResource{
 						Spec: infrav1.DevMachineSpec{
@@ -281,10 +276,8 @@ func Test_patchDevMachineTemplate(t *testing.T) {
 				})},
 			},
 			expectedTemplate: &infrav1.DevMachineTemplate{
-				ObjectMeta: metav1.ObjectMeta{
-					Annotations: map[string]string{"top-level-annotation-1": "top-level-annotation-value-1"},
-					Labels:      map[string]string{"top-level-label-1": "top-level-label-value-1"},
-				},
+				Annotations: map[string]string{"top-level-annotation-1": "top-level-annotation-value-1"},
+				Labels:      map[string]string{"top-level-label-1": "top-level-label-value-1"},
 				Spec: infrav1.DevMachineTemplateSpec{
 					Template: infrav1.DevMachineTemplateResource{
 						Spec: infrav1.DevMachineSpec{
@@ -428,16 +421,12 @@ func TestHandler_GeneratePatches(t *testing.T) {
 	}
 	// Have to set GVK because we directly Marshal to JSON.
 	kubeadmControlPlaneTemplate := controlplanev1.KubeadmControlPlaneTemplate{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "KubeadmControlPlaneTemplate",
-			APIVersion: controlplanev1.GroupVersion.String(),
-		},
+		Kind:       "KubeadmControlPlaneTemplate",
+		APIVersion: controlplanev1.GroupVersion.String(),
 	}
 	devMachineTemplate := infrav1.DevMachineTemplate{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "DevMachineTemplate",
-			APIVersion: infrav1.GroupVersion.String(),
-		},
+		Kind:       "DevMachineTemplate",
+		APIVersion: infrav1.GroupVersion.String(),
 		Spec: infrav1.DevMachineTemplateSpec{
 			Template: infrav1.DevMachineTemplateResource{
 				Spec: infrav1.DevMachineSpec{
@@ -449,10 +438,8 @@ func TestHandler_GeneratePatches(t *testing.T) {
 		},
 	}
 	devMachinePoolTemplate := infrav1.DevMachinePoolTemplate{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "DevMachinePoolTemplate",
-			APIVersion: infrav1.GroupVersion.String(),
-		},
+		Kind:       "DevMachinePoolTemplate",
+		APIVersion: infrav1.GroupVersion.String(),
 		Spec: infrav1.DevMachinePoolTemplateSpec{
 			Template: infrav1.DevMachinePoolTemplateResource{
 				Spec: infrav1.DevMachinePoolSpec{
@@ -464,10 +451,8 @@ func TestHandler_GeneratePatches(t *testing.T) {
 		},
 	}
 	devClusterTemplate := infrav1.DevClusterTemplate{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "DevClusterTemplate",
-			APIVersion: infrav1.GroupVersion.String(),
-		},
+		Kind:       "DevClusterTemplate",
+		APIVersion: infrav1.GroupVersion.String(),
 		Spec: infrav1.DevClusterTemplateSpec{
 			Template: infrav1.DevClusterTemplateResource{
 				Spec: infrav1.DevClusterSpec{
@@ -493,9 +478,7 @@ func TestHandler_GeneratePatches(t *testing.T) {
 				requestItem("6", devMachinePoolTemplate, machinePoolVars123),
 			},
 			expectedResponse: &runtimehooksv1.GeneratePatchesResponse{
-				CommonResponse: runtimehooksv1.CommonResponse{
-					Status: runtimehooksv1.ResponseStatusSuccess,
-				},
+				Status: runtimehooksv1.ResponseStatusSuccess,
 				Items: []runtimehooksv1.GeneratePatchesResponseItem{
 					responseItem("1", `
 [ {

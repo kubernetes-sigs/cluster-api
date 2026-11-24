@@ -504,17 +504,13 @@ func (r *Reconciler) removeInPlaceUpdateAnnotation(ctx context.Context, c client
 func cleanupMachine(machine *clusterv1.Machine) *clusterv1.Machine {
 	return &clusterv1.Machine{
 		// Set GVK because object is later marshalled with json.Marshal when the hook request is sent.
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: clusterv1.GroupVersion.String(),
-			Kind:       "Machine",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:        machine.Name,
-			Namespace:   machine.Namespace,
-			Labels:      machine.Labels,
-			Annotations: machine.Annotations,
-		},
-		Spec: *machine.Spec.DeepCopy(),
+		APIVersion:  clusterv1.GroupVersion.String(),
+		Kind:        "Machine",
+		Name:        machine.Name,
+		Namespace:   machine.Namespace,
+		Labels:      machine.Labels,
+		Annotations: machine.Annotations,
+		Spec:        *machine.Spec.DeepCopy(),
 	}
 }
 

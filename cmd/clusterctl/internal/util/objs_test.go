@@ -23,7 +23,6 @@ import (
 	. "github.com/onsi/gomega"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 )
@@ -278,13 +277,9 @@ func TestIsDeploymentWithManager(t *testing.T) {
 	convertor := runtime.DefaultUnstructuredConverter
 
 	depManagerContainer := &appsv1.Deployment{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "Deployment",
-			APIVersion: "apps/v1",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "manager-deployment",
-		},
+		Kind:       "Deployment",
+		APIVersion: "apps/v1",
+		Name:       "manager-deployment",
 		Spec: appsv1.DeploymentSpec{
 			Template: corev1.PodTemplateSpec{
 				Spec: corev1.PodSpec{
@@ -299,13 +294,9 @@ func TestIsDeploymentWithManager(t *testing.T) {
 	}
 
 	depNOManagerContainer := &appsv1.Deployment{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "Deployment",
-			APIVersion: "apps/v1",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "not-manager-deployment",
-		},
+		Kind:       "Deployment",
+		APIVersion: "apps/v1",
+		Name:       "not-manager-deployment",
 		Spec: appsv1.DeploymentSpec{
 			Template: corev1.PodTemplateSpec{
 				Spec: corev1.PodSpec{
@@ -320,13 +311,9 @@ func TestIsDeploymentWithManager(t *testing.T) {
 	}
 
 	svc := &corev1.Service{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "Service",
-			APIVersion: "v1",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "test-service",
-		},
+		Kind:       "Service",
+		APIVersion: "v1",
+		Name:       "test-service",
 	}
 	svcObj, err := convertor.ToUnstructured(svc)
 	if err != nil {

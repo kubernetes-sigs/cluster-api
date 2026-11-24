@@ -508,7 +508,7 @@ func (r *Reconciler) extensionConfigToClusterClass(ctx context.Context, o client
 					continue
 				}
 				if extName == ext.Name {
-					res = append(res, ctrl.Request{NamespacedName: client.ObjectKey{Namespace: clusterClass.Namespace, Name: clusterClass.Name}})
+					res = append(res, ctrl.Request{Namespace: clusterClass.Namespace, Name: clusterClass.Name})
 					// Once we've added the ClusterClass once we can break here.
 					break
 				}

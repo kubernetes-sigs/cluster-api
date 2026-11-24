@@ -401,11 +401,6 @@ linters:
       - zz_generated.*\.go$
       - vendored_openapi\.go$
     rules:
-      # Note: embedlit (from modernize) suggests dropping the embedded type name in struct literals.
-      - linters:
-          - modernize
-        text: 'embedlit: embedded field type can be removed from struct literal'
-
       # TODO: Excludes that can be removed once we bumped to controller-runtime v0.25.
       - linters:
           - staticcheck

@@ -39,6 +39,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/core/reconcilers/machinedeployment/mdutil"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
@@ -87,10 +88,14 @@ const logRateLimitInterval = time.Minute
 type Reconciler struct {
 	Client        client.Client
 	APIReader     client.Reader
+	ClusterCache  clustercache.ClusterCache
 	RuntimeClient runtimeclient.Client
 
 	// WatchFilterValue is the label value used to filter events prior to reconciliation.
 	WatchFilterValue string
+
+	RemoteConnectionGracePeriod time.Duration
+	RemoteConditionsGracePeriod time.Duration
 
 	controller capicontrollerutil.Controller
 	recorder   record.EventRecorder
@@ -103,8 +108,15 @@ type Reconciler struct {
 
 // SetupWithManager sets up the reconciler with the Manager.
 func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
-	if r.Client == nil || r.APIReader == nil {
-		return pkgerrors.New("Client and APIReader must not be nil")
+	if r.Client == nil || r.APIReader == nil ||
+		r.RemoteConnectionGracePeriod == time.Duration(0) || r.RemoteConditionsGracePeriod < 2*time.Minute {
+		// A minimum of 2m is enforced to ensure the ClusterCache always drops the connection before the grace period is reached.
+		// In the worst case the ClusterCache will take FailureThreshold x (Interval + Timeout) = 5x(10s+5s) = 75s to drop a
+		// connection. There might be some additional delays in health checking under high load. So we use 2m as a minimum
+		// to have some buffer.
+		return pkgerrors.New("Client and APIReader must not be nil and " +
+			"RemoteConnectionGracePeriod must not be 0 and " +
+			"RemoteConditionsGracePeriod must not be < 2m")
 	}
 	if features.Gates.Enabled(features.InPlaceUpdates) && r.RuntimeClient == nil {
 		return pkgerrors.New("RuntimeClient must not be nil when InPlaceUpdates feature gate is enabled")
@@ -124,6 +136,10 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 			&clusterv1.MachineSet{},
 			handler.EnqueueRequestsFromMapFunc(r.MachineSetToDeployments),
 		).
+		WatchesRawSource(r.ClusterCache.GetClusterSource("machinedeployment", clusterToMachineDeployments,
+			clustercache.WatchForProbeFailure(r.RemoteConnectionGracePeriod),
+			clustercache.WatchForProbeFailure(r.RemoteConditionsGracePeriod),
+		)).
 		WithOptions(options).
 		WithEventFilter(predicates.ResourceHasFilterLabel(mgr.GetScheme(), predicateLog, r.WatchFilterValue)).
 		Watches(

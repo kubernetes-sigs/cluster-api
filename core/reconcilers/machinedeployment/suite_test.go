@@ -110,8 +110,11 @@ func TestMain(m *testing.M) {
 			panic(fmt.Sprintf("Failed to start MachineSetReconciler: %v", err))
 		}
 		if err := (&Reconciler{
-			Client:    mgr.GetClient(),
-			APIReader: mgr.GetAPIReader(),
+			Client:                      mgr.GetClient(),
+			APIReader:                   mgr.GetAPIReader(),
+			ClusterCache:                clusterCache,
+			RemoteConnectionGracePeriod: 50 * time.Second,
+			RemoteConditionsGracePeriod: 5 * time.Minute,
 		}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: 1}); err != nil {
 			panic(fmt.Sprintf("Failed to start MachineDeploymentReconciler: %v", err))
 		}

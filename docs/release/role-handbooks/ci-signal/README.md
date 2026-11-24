@@ -102,3 +102,5 @@ Once the new minor release (e.g., `v1.8.0`) has been officially cut, perform the
    - `.github/workflows/weekly-md-link-check.yaml`
    - `.github/workflows/weekly-security-scan.yaml`
    - `.github/workflows/weekly-test-release.yaml`
+
+3. Delete all GitHub Actions on the branch that is now out of support (e.g. `release-1.5`)

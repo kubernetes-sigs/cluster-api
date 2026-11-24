@@ -262,6 +262,22 @@ func (r *Reconciler) reconcile(ctx context.Context, reconcileStartTime metav1.Ti
 	// If the cluster is already initialized, get the remote cluster cache to use as a client.Reader.
 	var remoteClient client.Client
 	if conditions.IsTrue(cluster, clusterv1.ClusterControlPlaneInitializedCondition) {
+		// Short circuit if the connection to the workload cluster is down, because without Nodes health checks would
+		// be wrong and trigger unwanted remediation (e.g. NodeStartupTimeout would be hit for every Machine).
+		// Note: It is not required to requeue, because the controller will get an event as soon as the connection is created.
+		if !r.ClusterCache.Connected(ctx, util.ObjectKey(cluster)) {
+			mhc.Status.RemediationsAllowed = ptr.To[int32](0)
+			conditions.Set(mhc, metav1.Condition{
+				Type:    clusterv1.MachineHealthCheckRemediationAllowedCondition,
+				Status:  metav1.ConditionFalse,
+				Reason:  clusterv1.MachineHealthCheckConnectionDownReason,
+				Message: "Remediation is not allowed, waiting for connection to the workload cluster",
+			})
+			r.logRateLimiter.InfoAtMostEvery(logger, logRateLimitInterval, waitingForConnectionKey(mhc), "Waiting for connection to health check Machines")
+			return ctrl.Result{}, nil
+		}
+		r.logRateLimiter.Forget(waitingForConnectionKey(mhc))
+
 		var err error
 		remoteClient, err = r.ClusterCache.GetClient(ctx, util.ObjectKey(cluster))
 		if err != nil {
@@ -424,6 +440,10 @@ func (r *Reconciler) reconcile(ctx context.Context, reconcileStartTime metav1.Ti
 	}
 
 	return ctrl.Result{}, nil
+}
+
+func waitingForConnectionKey(mhc *clusterv1.MachineHealthCheck) logutil.Key {
+	return logutil.NewKey("WaitingForConnection", logutil.WithObjects(mhc))
 }
 
 // patchHealthyTargets patches healthy machines with MachineHealthCheckSucceededCondition.

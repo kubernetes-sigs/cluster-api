@@ -417,6 +417,18 @@ func (r *Reconciler) healthCheckTargets(targets []healthCheckTarget, logger logr
 	for _, t := range targets {
 		logger := logger.WithValues("Machine", klog.KObj(t.Machine), "Node", klog.KObj(t.Node))
 		logger.V(3).Info("Health checking target")
+
+		// Skip targets with conditions computed while the connection to the workload cluster was down, because
+		// MHC should avoid remediated decision on stale Machine conditions after a reconnect.
+		// It should wait for the Machine controller/the owner controller to refresh conditions instead.
+		// Note: The log line for each Machine is not expected to be noisy, because the Machine controller refreshes conditions as soon
+		// as the connection is created, and it has a lower rate limit interval than the MachineHealthCheck controller.
+		if conditions.IsTrue(t.Cluster, clusterv1.ClusterControlPlaneInitializedCondition) && hasConditionsComputedWhileConnectionDown(t.Machine) {
+			r.logRateLimiter.InfoAtMostEvery(logger, logRateLimitInterval, waitingForMachineConditionsRefreshKey(t.MHC, t.Machine), "Remediation is blocked, waiting for Machine conditions computed while the connection to the workload cluster was down to be refreshed")
+			continue
+		}
+		r.logRateLimiter.Forget(waitingForMachineConditionsRefreshKey(t.MHC, t.Machine))
+
 		needsRemediation, nextCheck, err := t.needsRemediation(r.ProgramCache, r.expressionResultCache, logger, reconcileStartTime, timeoutForMachineToHaveNode)
 		if err != nil {
 			return nil, nil, nil, err
@@ -447,6 +459,20 @@ func (r *Reconciler) healthCheckTargets(targets []healthCheckTarget, logger logr
 		}
 	}
 	return healthy, unhealthy, nextChecks, nil
+}
+
+// hasConditionsComputedWhileConnectionDown returns true if the Machine has at least one condition with the ConnectionDown reason.
+func hasConditionsComputedWhileConnectionDown(machine *clusterv1.Machine) bool {
+	for _, c := range machine.Status.Conditions {
+		if c.Reason == clusterv1.ConnectionDownReason {
+			return true
+		}
+	}
+	return false
+}
+
+func waitingForMachineConditionsRefreshKey(mhc *clusterv1.MachineHealthCheck, m *clusterv1.Machine) logutil.Key {
+	return logutil.NewKey("WaitingForMachineConditionsRefresh", logutil.WithObjects(mhc, m))
 }
 
 func waitingForMachineGoUnhealthyKey(mhc *clusterv1.MachineHealthCheck, m *clusterv1.Machine) logutil.Key {

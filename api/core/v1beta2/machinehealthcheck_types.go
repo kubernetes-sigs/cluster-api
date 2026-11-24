@@ -33,6 +33,10 @@ const (
 	// the MachineHealthCheck is blocked from making any further remediation.
 	MachineHealthCheckTooManyUnhealthyReason = "TooManyUnhealthy"
 
+	// MachineHealthCheckConnectionDownReason is the reason used when the connection to the workload cluster is down
+	// and the MachineHealthCheck is blocked from making any further remediation.
+	MachineHealthCheckConnectionDownReason = ConnectionDownReason
+
 	// MachineHealthCheckRemediationAllowedReason is the reason used when the number of unhealthy machine
 	// is within the limits defined by the MachineHealthCheck, and thus remediation is allowed.
 	MachineHealthCheckRemediationAllowedReason = "RemediationAllowed"

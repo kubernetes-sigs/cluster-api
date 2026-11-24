@@ -320,9 +320,9 @@ func TestMatchesKubeadmConfig(t *testing.T) {
 		g.Expect(match).To(BeFalse())
 		g.Expect(reason).To(BeComparableTo(`Machine KubeadmConfig is outdated: diff: &v1beta2.KubeadmConfigSpec{
     ClusterConfiguration: v1beta2.ClusterConfiguration{
-      ... // 4 identical fields
-      Scheduler:       {},
+      ... // 5 identical fields
       DNS:             {},
+      Proxy:           {},
 -     CertificatesDir: "bar",
 +     CertificatesDir: "foo",
       ImageRepository: "",
@@ -1990,9 +1990,9 @@ func TestUpToDate(t *testing.T) {
 			expectEligibleForInPlaceUpdate: true,
 			expectLogMessages: []string{`Machine KubeadmConfig is outdated: diff: &v1beta2.KubeadmConfigSpec{
     ClusterConfiguration: v1beta2.ClusterConfiguration{
-      ... // 4 identical fields
-      Scheduler:       {},
+      ... // 5 identical fields
       DNS:             {},
+      Proxy:           {},
 -     CertificatesDir: "foo",
 +     CertificatesDir: "bar",
       ImageRepository: "",

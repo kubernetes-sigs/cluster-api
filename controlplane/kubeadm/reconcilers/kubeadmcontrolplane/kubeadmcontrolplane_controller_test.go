@@ -4717,7 +4717,7 @@ kubernetesVersion: metav1.16.1`,
 		g.Expect(workloadCluster.UpdateCoreDNS(ctx, kcp)).To(Succeed())
 	})
 
-	t.Run("should not return an error when no DNS upgrade is requested", func(t *testing.T) {
+	t.Run("should not return an error when no DNS upgrade is requested using annotation", func(t *testing.T) {
 		g := NewWithT(t)
 		objs := []client.Object{
 			cluster.DeepCopy(),
@@ -4752,6 +4752,41 @@ kubernetesVersion: metav1.16.1`,
 		var actualCoreDNSDeployment appsv1.Deployment
 		g.Expect(fakeClient.Get(ctx, client.ObjectKey{Name: "coredns", Namespace: metav1.NamespaceSystem}, &actualCoreDNSDeployment)).To(Succeed())
 		g.Expect(actualCoreDNSDeployment.Spec.Template.Spec.Containers[0].Image).ToNot(ContainSubstring("coredns"))
+	})
+
+	t.Run("should not return an error when no DNS upgrade is requested using spec", func(t *testing.T) {
+		g := NewWithT(t)
+		depl := depl.DeepCopy()
+		depl.Spec.Template.Spec.Containers[0].Image = "my-cool-image!!!!" // something very unlikely for getCoreDNSInfo to parse
+		kcp := kcp.DeepCopy()
+		kcp.Spec.KubeadmConfigSpec.ClusterConfiguration.DNS.Disabled = new(true)
+		objs := []client.Object{
+			cluster.DeepCopy(),
+			corednsCM.DeepCopy(),
+			kubeadmCM.DeepCopy(),
+			depl,
+		}
+
+		fakeClient := newFakeClient(objs...)
+		workloadCluster := fakeWorkloadCluster{
+			Workload: &pkg.Workload{
+				Client: fakeClient,
+			},
+		}
+
+		g.Expect(workloadCluster.UpdateCoreDNS(ctx, kcp)).To(Succeed())
+
+		var actualCoreDNSCM corev1.ConfigMap
+		g.Expect(fakeClient.Get(ctx, client.ObjectKey{Name: "coredns", Namespace: metav1.NamespaceSystem}, &actualCoreDNSCM)).To(Succeed())
+		g.Expect(actualCoreDNSCM.Data).To(Equal(corednsCM.Data))
+
+		var actualKubeadmConfig corev1.ConfigMap
+		g.Expect(fakeClient.Get(ctx, client.ObjectKey{Name: "kubeadm-config", Namespace: metav1.NamespaceSystem}, &actualKubeadmConfig)).To(Succeed())
+		g.Expect(actualKubeadmConfig.Data).To(Equal(kubeadmCM.Data))
+
+		var actualCoreDNSDeployment appsv1.Deployment
+		g.Expect(fakeClient.Get(ctx, client.ObjectKey{Name: "coredns", Namespace: metav1.NamespaceSystem}, &actualCoreDNSDeployment)).To(Succeed())
+		g.Expect(actualCoreDNSDeployment.Spec.Template.Spec.Containers[0].Image).To(Equal("my-cool-image!!!!"))
 	})
 
 	t.Run("returns error when unable to UpdateCoreDNS", func(t *testing.T) {

@@ -361,6 +361,7 @@ _Appears in:_
 | `controllerManager` _[ControlPlaneComponent](#controlplanecomponent)_ | controllerManager contains extra settings for the controller manager control plane component |  | Optional: \{\} <br /> |
 | `scheduler` _[ControlPlaneComponent](#controlplanecomponent)_ | scheduler contains extra settings for the scheduler control plane component |  | Optional: \{\} <br /> |
 | `dns` _[DNS](#dns)_ | dns defines the options for the DNS add-on installed in the cluster. |  | Optional: \{\} <br /> |
+| `proxy` _[Proxy](#proxy)_ | proxy defines the options for the proxy add-on installed in the cluster. |  | Optional: \{\} <br /> |
 | `certificatesDir` _string_ | certificatesDir specifies where to store or look for all required certificates.<br />NB: if not provided, this will default to `/etc/kubernetes/pki` |  | MaxLength: 512 <br />MinLength: 1 <br />Optional: \{\} <br /> |
 | `imageRepository` _string_ | imageRepository sets the container registry to pull images from.<br />* If not set, the default registry of kubeadm will be used, i.e.<br />  * registry.k8s.io (new registry): >= v1.22.17, >= v1.23.15, >= v1.24.9, >= v1.25.0<br />  * k8s.gcr.io (old registry): all older versions<br />  Please note that when imageRepository is not set we don't allow upgrades to<br />  versions >= v1.22.0 which use the old registry (k8s.gcr.io). Please use<br />  a newer patch version with the new registry instead (i.e. >= v1.22.17,<br />  >= v1.23.15, >= v1.24.9, >= v1.25.0).<br />* If the version is a CI build (kubernetes version starts with `ci/` or `ci-cross/`)<br /> `gcr.io/k8s-staging-ci-images` will be used as a default for control plane components<br />  and for kube-proxy, while `registry.k8s.io` will be used for all the other images. |  | MaxLength: 512 <br />MinLength: 1 <br />Optional: \{\} <br /> |
 | `featureGates` _object (keys:string, values:boolean)_ | featureGates enabled by the user. |  | Optional: \{\} <br /> |
@@ -425,6 +426,7 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `imageRepository` _string_ | imageRepository sets the container registry to pull images from.<br />if not set, the ImageRepository defined in ClusterConfiguration will be used instead. |  | MaxLength: 512 <br />MinLength: 1 <br />Optional: \{\} <br /> |
 | `imageTag` _string_ | imageTag allows to specify a tag for the image.<br />In case this value is set, kubeadm does not change automatically the version of the above components during upgrades. |  | MaxLength: 256 <br />MinLength: 1 <br />Optional: \{\} <br /> |
+| `disabled` _boolean_ | disabled specifies whether to disable this addon in the cluster<br />Default: false (defaulted in kubeadm) |  | Optional: \{\} <br /> |
 
 
 #### Discovery
@@ -1255,6 +1257,22 @@ _Appears in:_
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
 | `directory` _string_ | directory is a path to a directory that contains files named "target[suffix][+patchtype].extension".<br />For example, "kube-apiserver0+merge.yaml" or just "etcd.json". "target" can be one of<br />"kube-apiserver", "kube-controller-manager", "kube-scheduler", "etcd". "patchtype" can be one<br />of "strategic" "merge" or "json" and they match the patch formats supported by kubectl.<br />The default "patchtype" is "strategic". "extension" must be either "json" or "yaml".<br />"suffix" is an optional string that can be used to determine which patches are applied<br />first alpha-numerically.<br />These files can be written into the target directory via KubeadmConfig.Files which<br />specifies additional files to be created on the machine, either with content inline or<br />by referencing a secret. |  | MaxLength: 512 <br />MinLength: 1 <br />Optional: \{\} <br /> |
+
+
+#### Proxy
+
+
+
+Proxy defines the proxy addon that should be used in the cluster.
+
+
+
+_Appears in:_
+- [ClusterConfiguration](#clusterconfiguration)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `disabled` _boolean_ | disabled specifies whether to disable this addon in the cluster<br />Default: false (defaulted in kubeadm) |  | Optional: \{\} <br /> |
 
 
 #### SecretFileSource

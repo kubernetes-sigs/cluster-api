@@ -255,6 +255,12 @@ func hubClusterConfigurationFuzzer(in *bootstrapv1.ClusterConfiguration, c randf
 			}
 			in.Etcd.Local.ExtraArgs[i] = arg
 		}
+		if in.DNS.Disabled != nil && !*in.DNS.Disabled {
+			in.DNS.Disabled = nil
+		}
+		if in.Proxy.Disabled != nil && !*in.Proxy.Disabled {
+			in.Proxy.Disabled = nil
+		}
 	}
 }
 

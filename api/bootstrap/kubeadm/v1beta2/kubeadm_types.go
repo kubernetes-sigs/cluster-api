@@ -182,6 +182,10 @@ type ClusterConfiguration struct {
 	// +optional
 	DNS DNS `json:"dns,omitempty,omitzero"`
 
+	// proxy defines the options for the proxy add-on installed in the cluster.
+	// +optional
+	Proxy Proxy `json:"proxy,omitempty,omitzero"`
+
 	// certificatesDir specifies where to store or look for all required certificates.
 	// NB: if not provided, this will default to `/etc/kubernetes/pki`
 	// +optional
@@ -355,6 +359,20 @@ type DNS struct {
 	ImageTag string `json:"imageTag,omitempty"`
 
 	// TODO: evaluate if we need also a ImageName based on user feedbacks
+
+	// disabled specifies whether to disable this addon in the cluster
+	// Default: false (defaulted in kubeadm)
+	// +optional
+	Disabled *bool `json:"disabled,omitempty"`
+}
+
+// Proxy defines the proxy addon that should be used in the cluster.
+// +kubebuilder:validation:MinProperties=1
+type Proxy struct {
+	// disabled specifies whether to disable this addon in the cluster
+	// Default: false (defaulted in kubeadm)
+	// +optional
+	Disabled *bool `json:"disabled,omitempty"`
 }
 
 // APIEndpoint struct contains elements of API server instance deployed on a node.

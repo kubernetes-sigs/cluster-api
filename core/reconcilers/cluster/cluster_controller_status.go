@@ -75,7 +75,7 @@ func (r *Reconciler) updateStatus(ctx context.Context, s *scope) error {
 
 	// conditions
 	healthCheckingState := r.ClusterCache.GetHealthCheckingState(ctx, client.ObjectKeyFromObject(s.cluster))
-	setRemoteConnectionProbeCondition(ctx, s.cluster, healthCheckingState, r.RemoteConnectionGracePeriod)
+	setRemoteConnectionProbeCondition(ctx, s.cluster, healthCheckingState, r.RemoteConnectionGracePeriod, r.RemoteConditionsGracePeriod)
 	setInfrastructureReadyCondition(ctx, s.cluster, s.infraCluster, s.infraClusterIsNotFound)
 	setControlPlaneAvailableCondition(ctx, s.cluster, s.controlPlane, s.controlPlaneIsNotFound)
 	setControlPlaneInitializedCondition(ctx, s.cluster, s.controlPlane, controlPlaneContractVersion, s.descendants.controlPlaneMachines, s.controlPlaneIsNotFound, s.getDescendantsSucceeded)
@@ -89,7 +89,7 @@ func (r *Reconciler) updateStatus(ctx context.Context, s *scope) error {
 	setScalingDownCondition(ctx, s.cluster, s.controlPlane, clusterv1.MachinePoolList{}, s.descendants.machineDeployments, s.descendants.machineSets, s.controlPlaneIsNotFound, s.getDescendantsSucceeded)
 	setRemediatingCondition(ctx, s.cluster, machinesToBeRemediated, unhealthyMachines, s.getDescendantsSucceeded)
 	setDeletingCondition(ctx, s.cluster, s.deletingReason, s.deletingMessage)
-	setAvailableCondition(ctx, s.cluster, s.clusterClass)
+	setAvailableCondition(ctx, s.cluster, s.clusterClass, healthCheckingState, r.RemoteConditionsGracePeriod)
 
 	return nil
 }
@@ -308,7 +308,7 @@ func setWorkersReplicas(_ context.Context, cluster *clusterv1.Cluster, machinePo
 	cluster.Status.Workers.Versions = internalversion.AggregateStatusVersions(workerVersions)
 }
 
-func setRemoteConnectionProbeCondition(_ context.Context, cluster *clusterv1.Cluster, healthCheckingState clustercache.HealthCheckingState, remoteConnectionGracePeriod time.Duration) {
+func setRemoteConnectionProbeCondition(_ context.Context, cluster *clusterv1.Cluster, healthCheckingState clustercache.HealthCheckingState, remoteConnectionGracePeriod, remoteConditionsGracePeriod time.Duration) {
 	// ClusterCache did not try to connect often enough yet, either during controller startup or when a new Cluster is created.
 	if healthCheckingState.LastProbeSuccessTime.IsZero() && healthCheckingState.ConsecutiveFailures < 5 {
 		// If condition is not set, set it.
@@ -323,18 +323,23 @@ func setRemoteConnectionProbeCondition(_ context.Context, cluster *clusterv1.Clu
 		return
 	}
 
+	// Note: In case of remote connection down, this condition flips after remoteConnectionGracePeriod expires.
+	// All the other conditions will be preserved until after remoteConditionsGracePeriod expires (only Available conditions will start reporting a warning).
 	if time.Since(healthCheckingState.LastProbeSuccessTime) > remoteConnectionGracePeriod {
-		var msg string
-		if healthCheckingState.LastProbeSuccessTime.IsZero() {
-			msg = "Remote connection probe failed"
-		} else {
-			msg = fmt.Sprintf("Remote connection probe failed, probe last succeeded at %s", healthCheckingState.LastProbeSuccessTime.Format(time.RFC3339))
+		message := connectionIssueDetectedMessage(healthCheckingState.LastProbeSuccessTime)
+		controlPlaneInitialized := conditions.Get(cluster, clusterv1.ClusterControlPlaneInitializedCondition)
+		var controlPlaneInitializedTime time.Time
+		if controlPlaneInitialized != nil {
+			controlPlaneInitializedTime = controlPlaneInitialized.LastTransitionTime.Time
+		}
+		if time.Since(maxTime(healthCheckingState.LastProbeSuccessTime, controlPlaneInitializedTime)) > remoteConditionsGracePeriod {
+			message = connectionDownMessage(healthCheckingState.LastProbeSuccessTime)
 		}
 		conditions.Set(cluster, metav1.Condition{
 			Type:    clusterv1.ClusterRemoteConnectionProbeCondition,
 			Status:  metav1.ConditionFalse,
 			Reason:  clusterv1.ClusterRemoteConnectionProbeFailedReason,
-			Message: msg,
+			Message: message,
 		})
 		return
 	}
@@ -1134,6 +1139,8 @@ func setDeletingCondition(_ context.Context, cluster *clusterv1.Cluster, deletin
 type clusterConditionCustomMergeStrategy struct {
 	cluster                        *clusterv1.Cluster
 	negativePolarityConditionTypes []string
+	healthCheckingState            clustercache.HealthCheckingState
+	remoteConditionsGracePeriod    time.Duration
 }
 
 func (c clusterConditionCustomMergeStrategy) Merge(operation conditions.MergeOperation, mergeConditions []conditions.ConditionWithOwnerInfo, conditionTypes []string) (status metav1.ConditionStatus, reason, message string, err error) {
@@ -1154,6 +1161,13 @@ func (c clusterConditionCustomMergeStrategy) Merge(operation conditions.MergeOpe
 				condition.Reason != clusterv1.ClusterTopologyReconciledFailedReason && condition.Reason != clusterv1.ClusterTopologyReconciledClusterClassNotReconciledReason {
 				return conditions.InfoMergePriority
 			}
+
+			// ClusterRemoteConnectionProbeCondition should be always considered as info.
+			// Note: after remoteConditionsGracePeriod expires, ControlPlaneAvailable or WorkerAvailable conditions will report False / impact cluster Availability.
+			if condition.Type == clusterv1.ClusterRemoteConnectionProbeCondition && condition.Status == metav1.ConditionFalse {
+				return conditions.InfoMergePriority
+			}
+
 			return conditions.GetDefaultMergePriorityFunc(c.negativePolarityConditionTypes...)(condition)
 		}),
 		conditions.ComputeReasonFunc(conditions.GetDefaultComputeMergeReasonFunc(
@@ -1164,7 +1178,7 @@ func (c clusterConditionCustomMergeStrategy) Merge(operation conditions.MergeOpe
 	).Merge(operation, mergeConditions, conditionTypes)
 }
 
-func setAvailableCondition(ctx context.Context, cluster *clusterv1.Cluster, clusterClass *clusterv1.ClusterClass) {
+func setAvailableCondition(ctx context.Context, cluster *clusterv1.Cluster, clusterClass *clusterv1.ClusterClass, healthCheckingState clustercache.HealthCheckingState, remoteConditionsGracePeriod time.Duration) {
 	log := ctrl.LoggerFrom(ctx)
 
 	defaultAvailabilityGates := []string{
@@ -1200,6 +1214,9 @@ func setAvailableCondition(ctx context.Context, cluster *clusterv1.Cluster, clus
 				cluster: cluster,
 				// Instruct merge to consider Deleting condition with negative polarity,
 				negativePolarityConditionTypes: negativePolarityConditionTypes,
+
+				healthCheckingState:         healthCheckingState,
+				remoteConditionsGracePeriod: remoteConditionsGracePeriod,
 			},
 		},
 	}
@@ -1348,4 +1365,43 @@ func (w aggregationWrapper) GetLabels() map[string]string {
 		return w.ms.GetLabels()
 	}
 	panic("not supported")
+}
+
+const (
+	connectionIssueDetectedPrefix = "Connection issue detected"
+	connectionDownPrefix          = "Connection down"
+)
+
+// lastProbeSuccessMessage returns the time of the last successful probe of the connection to the workload cluster, if any.
+func lastProbeSuccessMessage(lastProbeSuccessTime time.Time) string {
+	if lastProbeSuccessTime.IsZero() {
+		return ""
+	}
+	return fmt.Sprintf("last successful probe at %s", lastProbeSuccessTime.Format(time.RFC3339))
+}
+
+// connectionIssueDetectedMessage is the message surfaced while the connection to the workload cluster is down, but the
+// remote conditions grace period is not expired yet: conditions keep reporting the last known state.
+func connectionIssueDetectedMessage(lastProbeSuccessTime time.Time) string {
+	return withLastProbeSuccess(connectionIssueDetectedPrefix, lastProbeSuccessTime)
+}
+
+// connectionDownMessage is the message surfaced when the connection to the workload cluster is down and
+// the remote conditions grace period is expired: the last known state is not reliable anymore.
+func connectionDownMessage(lastProbeSuccessTime time.Time) string {
+	return withLastProbeSuccess(connectionDownPrefix, lastProbeSuccessTime)
+}
+
+func withLastProbeSuccess(prefix string, lastProbeSuccessTime time.Time) string {
+	if lastProbeSuccessTime.IsZero() {
+		return prefix
+	}
+	return prefix + ", " + lastProbeSuccessMessage(lastProbeSuccessTime)
+}
+
+func maxTime(t1, t2 time.Time) time.Time {
+	if t1.After(t2) {
+		return t1
+	}
+	return t2
 }

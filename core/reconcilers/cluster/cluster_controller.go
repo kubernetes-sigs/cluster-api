@@ -87,6 +87,7 @@ type Reconciler struct {
 	WatchFilterValue string
 
 	RemoteConnectionGracePeriod time.Duration
+	RemoteConditionsGracePeriod time.Duration
 
 	recorder        record.EventRecorder
 	externalTracker external.ObjectTracker
@@ -95,8 +96,15 @@ type Reconciler struct {
 
 // SetupWithManager sets up the reconciler with the Manager.
 func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
-	if r.Client == nil || r.APIReader == nil || r.ClusterCache == nil || r.RemoteConnectionGracePeriod == time.Duration(0) {
-		return pkgerrors.New("Client, APIReader and ClusterCache must not be nil and RemoteConnectionGracePeriod must not be 0")
+	if r.Client == nil || r.APIReader == nil || r.ClusterCache == nil ||
+		r.RemoteConnectionGracePeriod == time.Duration(0) || r.RemoteConditionsGracePeriod < 2*time.Minute {
+		// A minimum of 2m is enforced to ensure the ClusterCache always drops the connection before the grace period is reached.
+		// In the worst case the ClusterCache will take FailureThreshold x (Interval + Timeout) = 5x(10s+5s) = 75s to drop a
+		// connection. There might be some additional delays in health checking under high load. So we use 2m as a minimum
+		// to have some buffer.
+		return pkgerrors.New("Client, APIReader and ClusterCache must not be nil and " +
+			"RemoteConnectionGracePeriod must not be 0 and " +
+			"RemoteConditionsGracePeriod must not be < 2m")
 	}
 
 	predicateLog := ctrl.LoggerFrom(ctx).WithValues("controller", "cluster")
@@ -104,7 +112,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 		For(&clusterv1.Cluster{}).
 		WatchesRawSource(r.ClusterCache.GetClusterSource("cluster", func(_ context.Context, o client.Object) []ctrl.Request {
 			return []ctrl.Request{{NamespacedName: client.ObjectKeyFromObject(o)}}
-		}, clustercache.WatchForProbeFailure(r.RemoteConnectionGracePeriod))).
+		}, clustercache.WatchForProbeFailure(r.RemoteConnectionGracePeriod), clustercache.WatchForProbeFailure(r.RemoteConditionsGracePeriod))).
 		Watches(
 			&clusterv1.Machine{},
 			handler.EnqueueRequestsFromMapFunc(r.controlPlaneMachineToCluster),

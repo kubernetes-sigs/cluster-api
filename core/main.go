@@ -607,6 +607,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager, watchNamespace stri
 		ClusterCache:                clusterCache,
 		WatchFilterValue:            watchFilterValue,
 		RemoteConnectionGracePeriod: remoteConnectionGracePeriod,
+		RemoteConditionsGracePeriod: remoteConditionsGracePeriod,
 	}).SetupWithManager(ctx, mgr, concurrency(clusterConcurrency)); err != nil {
 		setupLog.Error(err, "Unable to create controller", "controller", "Cluster")
 		os.Exit(1)

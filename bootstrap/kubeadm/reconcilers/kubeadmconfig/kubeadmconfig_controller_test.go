@@ -632,6 +632,7 @@ func TestKubeadmConfigReconciler_Reconcile_RequeueIfControlPlaneIsMissingAPIEndp
 	k := &Reconciler{
 		Client:              myclient,
 		SecretCachingClient: myclient,
+		ClusterCache:        clustercache.NewFakeClusterCache(myclient, client.ObjectKey{Name: cluster.Name, Namespace: cluster.Namespace}),
 		KubeadmInitLock:     &myInitLocker{},
 	}
 
@@ -747,6 +748,85 @@ func TestReconcileIfJoinCertificatesAvailableConditionInNodesAndControlPlaneIsRe
 			err = myclient.List(ctx, l, client.ListOption(client.InNamespace(metav1.NamespaceSystem)))
 			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(l.Items).To(HaveLen(1))
+		})
+	}
+}
+
+func TestReconcileJoinWaitsForConnectionToCreateToken(t *testing.T) {
+	cluster := builder.Cluster(metav1.NamespaceDefault, "cluster").Build()
+	cluster.Status.Initialization.InfrastructureProvisioned = new(true)
+	cluster.Status.Conditions = []metav1.Condition{{Type: clusterv1.ClusterControlPlaneInitializedCondition, Status: metav1.ConditionTrue}}
+	cluster.Spec.ControlPlaneEndpoint = clusterv1.APIEndpoint{Host: "100.105.150.1", Port: 6443}
+
+	useCases := []struct {
+		name          string
+		machine       *clusterv1.Machine
+		configName    string
+		configBuilder func(string, string) *bootstrapv1.KubeadmConfig
+	}{
+		{
+			name:          "Join a worker node",
+			machine:       newWorkerMachineForCluster(cluster),
+			configName:    "worker-join-cfg",
+			configBuilder: newWorkerJoinKubeadmConfig,
+		},
+		{
+			name:          "Join a control plane node",
+			machine:       newControlPlaneMachine(cluster, "control-plane-join-machine"),
+			configName:    "control-plane-join-cfg",
+			configBuilder: newControlPlaneJoinKubeadmConfig,
+		},
+	}
+
+	for _, rt := range useCases {
+		t.Run(rt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			config := rt.configBuilder(rt.machine.Namespace, rt.configName)
+			addKubeadmConfigToMachine(config, rt.machine)
+
+			objects := []client.Object{
+				cluster,
+				rt.machine,
+				config,
+			}
+			objects = append(objects, createSecrets(t, cluster, config)...)
+			myclient := fake.NewClientBuilder().WithObjects(objects...).WithStatusSubresource(&bootstrapv1.KubeadmConfig{}).Build()
+			remoteClient := fake.NewClientBuilder().Build()
+			k := &Reconciler{
+				Client:              myclient,
+				SecretCachingClient: myclient,
+				// Note: The empty ClusterCache has no connection to the workload cluster.
+				ClusterCache:    clustercache.NewFakeEmptyClusterCache(),
+				KubeadmInitLock: &myInitLocker{},
+				controller:      capicontrollerutil.NewFakeController(),
+			}
+
+			request := ctrl.Request{
+				NamespacedName: client.ObjectKey{
+					Namespace: config.GetNamespace(),
+					Name:      rt.configName,
+				},
+			}
+
+			// Without a connection a token cannot be created, so the reconcile must not fail and must not requeue
+			// (the controller gets an event as soon as the connection is created).
+			result, err := k.Reconcile(ctx, request)
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(result.IsZero()).To(BeTrue())
+
+			cfg, err := getKubeadmConfig(myclient, rt.configName, metav1.NamespaceDefault)
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(cfg.Spec.JoinConfiguration.Discovery.BootstrapToken.Token).To(BeEmpty())
+			g.Expect(ptr.Deref(cfg.Status.Initialization.DataSecretCreated, false)).To(BeFalse())
+			g.Expect(cfg.Status.DataSecretName).To(BeEmpty())
+			assertHasFalseCondition(g, myclient, request, bootstrapv1.KubeadmConfigDataSecretAvailableCondition, bootstrapv1.KubeadmConfigDataSecretNotAvailableReason)
+			c := conditions.Get(cfg, bootstrapv1.KubeadmConfigDataSecretAvailableCondition)
+			g.Expect(c.Message).To(ContainSubstring("Waiting for connection to create a bootstrap token"))
+
+			// Once the connection is available the join proceeds.
+			k.ClusterCache = clustercache.NewFakeClusterCache(remoteClient, client.ObjectKey{Name: cluster.Name, Namespace: cluster.Namespace})
+			triggerAndVerifyFirstReconcileToSetDiscovery(g, k, myclient, request, rt.configName)
 		})
 	}
 }
@@ -1439,6 +1519,27 @@ func TestBootstrapTokenRotationMachinePool(t *testing.T) {
 		g.Expect(bytes.Equal(tokenExpires[i], item.Data[bootstrapapi.BootstrapTokenExpirationKey])).To(BeTrue())
 	}
 
+	t.Log("When the connection to the workload cluster is down, the token is not rotated and the reconcile does not fail")
+
+	for i, item := range l.Items {
+		// Simulate that expiry time is only TTL*4/10 from now. This would normally trigger rotation.
+		item.Data[bootstrapapi.BootstrapTokenExpirationKey] = []byte(time.Now().UTC().Add(k.TokenTTL * 4 / 10).Format(time.RFC3339))
+		g.Expect(remoteClient.Update(ctx, &l.Items[i])).To(Succeed())
+	}
+
+	connectedClusterCache := k.ClusterCache
+	k.ClusterCache = clustercache.NewFakeEmptyClusterCache()
+	result, err = k.Reconcile(ctx, request)
+	g.Expect(err).ToNot(HaveOccurred())
+	g.Expect(result.IsZero()).To(BeTrue())
+	k.ClusterCache = connectedClusterCache
+
+	l = &corev1.SecretList{}
+	g.Expect(remoteClient.List(ctx, l, client.ListOption(client.InNamespace(metav1.NamespaceSystem)))).To(Succeed())
+	g.Expect(l.Items).To(HaveLen(1))
+	// The Secret with the bootstrap data exists, so it must still be reported as available.
+	assertHasTrueCondition(g, myclient, request, bootstrapv1.KubeadmConfigDataSecretAvailableCondition)
+
 	t.Log("Token must be rotated before it expires")
 
 	for i, item := range l.Items {
@@ -1533,6 +1634,21 @@ func TestBootstrapTokenRefreshIfTokenSecretCleaned(t *testing.T) {
 		l := &corev1.SecretList{}
 		g.Expect(remoteClient.List(ctx, l, client.ListOption(client.InNamespace(metav1.NamespaceSystem)))).To(Succeed())
 		g.Expect(l.Items).To(HaveLen(1))
+
+		t.Log("When the connection to the workload cluster is down, the token is not refreshed and the reconcile does not fail")
+
+		connectedClusterCache := k.ClusterCache
+		k.ClusterCache = clustercache.NewFakeEmptyClusterCache()
+		result, err = k.Reconcile(ctx, request)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(result.IsZero()).To(BeTrue())
+		k.ClusterCache = connectedClusterCache
+
+		cfg, err = getKubeadmConfig(myclient, "worker-join-cfg", metav1.NamespaceDefault)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(cfg.Spec.JoinConfiguration.Discovery.BootstrapToken.Token).To(Equal(firstToken))
+		// The Secret with the bootstrap data exists, so it must still be reported as available.
+		assertHasTrueCondition(g, myclient, request, bootstrapv1.KubeadmConfigDataSecretAvailableCondition)
 
 		t.Log("Token should not get recreated for single Machine since it will not use the new token if spec.bootstrap.dataSecretName was already set")
 

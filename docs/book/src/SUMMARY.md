@@ -108,6 +108,7 @@
         - [v1.12 to v1.13](./reference/releases/migrations/v1.12-to-v1.13.md)
         - [v1.13 to v1.14](./reference/releases/migrations/v1.13-to-v1.14.md)
         - [v1.14 to v1.15](./reference/releases/migrations/v1.14-to-v1.15.md)
+        - [v1.15 to v1.16](./reference/releases/migrations/v1.15-to-v1.16.md)
     - [API Reference](./reference/api/reference.md)
       - [v1beta2 API](reference/api/crd-api-reference.md)
       - [v1beta1 API (Deprecated)](reference/api/crd-api-reference-v1beta1.md)

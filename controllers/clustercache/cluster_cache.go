@@ -153,6 +153,10 @@ type ClusterCache interface {
 	// If there is no connection to the workload cluster ErrClusterNotConnected will be returned.
 	GetClient(ctx context.Context, cluster client.ObjectKey) (client.Client, error)
 
+	// Connected returns true if there is a connection to the workload cluster, i.e. the clusterAccessor has a
+	// client, cache, etc.
+	Connected(ctx context.Context, cluster client.ObjectKey) bool
+
 	// GetReader returns a cached read-only client for the given cluster.
 	// If there is no connection to the workload cluster ErrClusterNotConnected will be returned.
 	GetReader(ctx context.Context, cluster client.ObjectKey) (client.Reader, error)
@@ -409,6 +413,14 @@ func (cc *clusterCache) GetClient(ctx context.Context, cluster client.ObjectKey)
 		return nil, pkgerrors.WithMessage(ErrClusterNotConnected, "error getting client")
 	}
 	return accessor.GetClient(ctx)
+}
+
+func (cc *clusterCache) Connected(ctx context.Context, cluster client.ObjectKey) bool {
+	accessor := cc.getClusterAccessor(cluster)
+	if accessor == nil {
+		return false
+	}
+	return accessor.Connected(ctx)
 }
 
 func (cc *clusterCache) GetReader(ctx context.Context, cluster client.ObjectKey) (client.Reader, error) {

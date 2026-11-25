@@ -46,7 +46,7 @@ import (
 type GetCAPIResourcesInput struct {
 	Lister       Lister
 	Namespace    string
-	IncludeTypes []metav1.TypeMeta
+	IncludeTypes map[metav1.TypeMeta]apiextensionsv1.ResourceScope
 }
 
 // GetCAPIResources reads all the CAPI resources in a namespace.
@@ -57,9 +57,9 @@ func GetCAPIResources(ctx context.Context, input GetCAPIResourcesInput) []*unstr
 	Expect(input.Namespace).NotTo(BeEmpty(), "input.Namespace is required for GetCAPIResources")
 
 	types := getClusterAPITypes(ctx, input.Lister)
-	for _, typ := range input.IncludeTypes {
+	for typ, scope := range input.IncludeTypes {
 		if _, ok := types[typ]; !ok {
-			types[typ] = apiextensionsv1.NamespaceScoped
+			types[typ] = scope
 		}
 	}
 
@@ -128,7 +128,7 @@ type DumpAllResourcesInput struct {
 	ClusterctlConfigPath string
 	Namespace            string
 	LogPath              string
-	IncludeTypes         []metav1.TypeMeta
+	IncludeTypes         map[metav1.TypeMeta]apiextensionsv1.ResourceScope
 }
 
 // DumpAllResources dumps Cluster API related resources to YAML

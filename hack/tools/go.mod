@@ -32,7 +32,7 @@ require (
 	sigs.k8s.io/cluster-api/api v0.0.0-00010101000000-000000000000
 	sigs.k8s.io/cluster-api/test v0.0.0-00010101000000-000000000000
 	sigs.k8s.io/controller-runtime v0.25.1-0.20261124111440-f193095be29e
-	sigs.k8s.io/controller-tools v0.23.1-0.20261123155621-91f453fac95d
+	sigs.k8s.io/controller-tools v0.23.0
 	sigs.k8s.io/kubebuilder/docs/book/utils v0.0.0-20260611053758-c72b289c1ec8
 	sigs.k8s.io/kustomize/api v0.17.3
 	sigs.k8s.io/yaml v1.6.0
@@ -163,6 +163,7 @@ require (
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
+	k8s.io/apiextensions-apiserver v0.38.0-beta.0 // indirect
 	k8s.io/apiserver v0.38.0-beta.0 // indirect
 	k8s.io/cluster-bootstrap v0.38.0-beta.0 // indirect
 	sigs.k8s.io/json v0.0.0-20250730193827-2d320260d730 // indirect

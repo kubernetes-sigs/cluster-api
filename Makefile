@@ -130,6 +130,8 @@ SETUP_ENVTEST_BIN := setup-envtest
 SETUP_ENVTEST := $(abspath $(TOOLS_BIN_DIR)/$(SETUP_ENVTEST_BIN)-$(SETUP_ENVTEST_VER))
 SETUP_ENVTEST_PKG := sigs.k8s.io/controller-runtime/tools/setup-envtest
 
+# Note: Unreleased version (no release yet supports k8s.io/apiextensions-api, which controller-runtime now uses).
+# Released versions only know k8s.io/apiextensions-apiserver, so they generate wrong CRDs for apiextensionsv1.JSON fields.
 CONTROLLER_GEN_VER := 91f453fac95d
 CONTROLLER_GEN_BIN := controller-gen
 CONTROLLER_GEN := $(abspath $(TOOLS_BIN_DIR)/$(CONTROLLER_GEN_BIN)-$(CONTROLLER_GEN_VER))

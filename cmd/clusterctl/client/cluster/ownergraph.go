@@ -22,6 +22,7 @@ import (
 
 	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
+	apiextensionsv1 "k8s.io/apiextensions-api/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -90,16 +91,17 @@ func GetOwnerGraph(ctx context.Context, namespace, kubeconfigPath string, filter
 }
 
 func discoverOwnerGraph(ctx context.Context, namespace string, o *objectGraph, filterFn GetOwnerGraphFilterFunction) (OwnerGraph, error) {
-	selectors := []client.ListOption{}
-	if namespace != "" {
-		selectors = append(selectors, client.InNamespace(namespace))
-	}
 	ownerGraph := OwnerGraph{}
 
 	discoveryBackoff := newReadBackoff()
 	for _, discoveryType := range o.types {
 		typeMeta := discoveryType.typeMeta
 		objList := new(unstructured.UnstructuredList)
+
+		selectors := []client.ListOption{}
+		if namespace != "" && discoveryType.scope != apiextensionsv1.ClusterScoped {
+			selectors = append(selectors, client.InNamespace(namespace))
+		}
 
 		if err := retryWithExponentialBackoff(ctx, discoveryBackoff, func(ctx context.Context) error {
 			return getObjList(ctx, o.proxy, &typeMeta, selectors, objList)

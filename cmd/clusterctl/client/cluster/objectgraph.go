@@ -435,15 +435,15 @@ func (o *objectGraph) Discovery(ctx context.Context, namespace string) error {
 	log := logf.Log
 	log.Info("Discovering Cluster API objects")
 
-	selectors := []client.ListOption{}
-	if namespace != "" {
-		selectors = append(selectors, client.InNamespace(namespace))
-	}
-
 	discoveryBackoff := newReadBackoff()
 	for _, discoveryType := range o.types {
 		typeMeta := discoveryType.typeMeta
 		objList := new(unstructured.UnstructuredList)
+
+		selectors := []client.ListOption{}
+		if namespace != "" && discoveryType.scope != apiextensionsv1.ClusterScoped {
+			selectors = append(selectors, client.InNamespace(namespace))
+		}
 
 		if err := retryWithExponentialBackoff(ctx, discoveryBackoff, func(ctx context.Context) error {
 			return getObjList(ctx, o.proxy, &typeMeta, selectors, objList)

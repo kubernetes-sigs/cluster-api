@@ -955,17 +955,6 @@ func (w *Workload) updateStaticPodCondition(ctx context.Context, machine *cluste
 			Reason:  controlplanev1.KubeadmControlPlaneMachinePodFailedReason,
 			Message: "All the containers have been terminated",
 		})
-	case corev1.PodUnknown: //nolint:staticcheck // Deprecated because the kubelet no longer sets it, but we keep handling it for pods reporting this phase.
-		// PodUnknown means that for some reason the state of the pod could not be obtained, typically due
-		// to an error in communicating with the host of the pod.
-		v1beta1conditions.MarkUnknown(machine, staticPodV1Beta1Condition, controlplanev1.PodInspectionFailedV1Beta1Reason, "Pod is reporting Unknown status")
-
-		conditions.Set(machine, metav1.Condition{
-			Type:    staticPodCondition,
-			Status:  metav1.ConditionUnknown,
-			Reason:  controlplanev1.KubeadmControlPlaneMachinePodInspectionFailedReason,
-			Message: "Pod is reporting Unknown status",
-		})
 	}
 }
 

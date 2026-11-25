@@ -1662,24 +1662,6 @@ func TestUpdateStaticPodCondition(t *testing.T) {
 				Message: "All the containers have been terminated",
 			},
 		},
-		{
-			name: "pod in unknown phase should report PodCondition=Unknown, PodInspectionFailed",
-			injectClient: &fakeClient{
-				get: map[string]any{
-					podkey: fakePod(podName,
-						withPhase(corev1.PodUnknown), //nolint:staticcheck // Deprecated because the kubelet no longer sets it, but we still test that we handle it.
-					),
-				},
-			},
-			node:                     fakeNode(nodeName),
-			expectedV1Beta1Condition: *v1beta1conditions.UnknownCondition(condition, controlplanev1.PodInspectionFailedV1Beta1Reason, "Pod is reporting Unknown status"),
-			expectedCondition: metav1.Condition{
-				Type:    v1beta2Condition,
-				Status:  metav1.ConditionUnknown,
-				Reason:  controlplanev1.KubeadmControlPlaneMachinePodInspectionFailedReason,
-				Message: "Pod is reporting Unknown status",
-			},
-		},
 	}
 
 	for _, tt := range tests {

@@ -1280,7 +1280,7 @@ func getVolumeAttachmentForNode(ctx context.Context, c client.Client, nodeName s
 			client.Limit(100),
 		}
 		if err := c.List(ctx, volumeAttachmentList, listOpts...); err != nil {
-			return nil, pkgerrors.Wrap(err, "failed to list VolumeAttachments")
+			return nil, err
 		}
 
 		for _, volumeAttachment := range volumeAttachmentList.Items {

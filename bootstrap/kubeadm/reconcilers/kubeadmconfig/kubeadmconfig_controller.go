@@ -70,6 +70,9 @@ import (
 const (
 	// DefaultTokenTTL is the default TTL used for tokens.
 	DefaultTokenTTL = 15 * time.Minute
+
+	// logRateLimitInterval is the interval at which log lines repeated on every reconcile while waiting for something are logged.
+	logRateLimitInterval = time.Minute
 )
 
 // InitLocker is a lock that is used around kubeadm init.
@@ -94,6 +97,7 @@ type Reconciler struct {
 	APIReader       client.Reader
 	ClusterCache    clustercache.ClusterCache
 	KubeadmInitLock InitLocker
+	logRateLimiter  *logutil.Limiter
 
 	// WatchFilterValue is the label value used to filter events prior to reconciliation.
 	WatchFilterValue string
@@ -154,6 +158,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 	}
 
 	r.controller = c
+	r.logRateLimiter = logutil.New(ctx)
 	return nil
 }
 
@@ -366,6 +371,21 @@ func (r *Reconciler) reconcile(ctx context.Context, scope *Scope, cluster *clust
 	// Unlock any locks that might have been set during init process
 	r.KubeadmInitLock.Unlock(ctx, cluster)
 
+	// Short circuit the join operation if the connection to the workload cluster is down and it is required to create a token to perform the join.
+	// Note: it is not required to requeue, because the controller will get an event as soon as the connection is created.
+	if !r.ClusterCache.Connected(ctx, util.ObjectKey(scope.Cluster)) &&
+		!config.Spec.JoinConfiguration.Discovery.File.IsDefined() && config.Spec.JoinConfiguration.Discovery.BootstrapToken.Token == "" {
+		conditions.Set(scope.Config, metav1.Condition{
+			Type:    bootstrapv1.KubeadmConfigDataSecretAvailableCondition,
+			Status:  metav1.ConditionFalse,
+			Reason:  bootstrapv1.KubeadmConfigDataSecretNotAvailableReason,
+			Message: "Waiting for connection to create a bootstrap token for kubeadm join",
+		})
+		r.logRateLimiter.InfoAtMostEvery(log, logRateLimitInterval, waitForConnectionKey(config, "CreateToken"), "Waiting for connection to create a bootstrap token for kubeadm join")
+		return ctrl.Result{}, nil
+	}
+	r.logRateLimiter.Forget(waitForConnectionKey(config, "CreateToken"))
+
 	// it's a control plane join
 	if configOwner.IsControlPlaneMachine() {
 		return r.joinControlplane(ctx, scope)
@@ -375,9 +395,24 @@ func (r *Reconciler) reconcile(ctx context.Context, scope *Scope, cluster *clust
 	return r.joinWorker(ctx, scope)
 }
 
+// waitForConnectionKey returns the key of the log lines about waiting for the connection to the workload cluster.
+// Note: The operation is a value of the key, so all the operations share the same scope and the duration of the wait
+// counts from the first operation waiting for the connection.
+func waitForConnectionKey(config *bootstrapv1.KubeadmConfig, operation string) logutil.Key {
+	return logutil.NewKey("WaitingForConnection", logutil.WithObjects(config), logutil.WithValues(operation))
+}
+
 func (r *Reconciler) refreshBootstrapTokenIfNeeded(ctx context.Context, config *bootstrapv1.KubeadmConfig, cluster *clusterv1.Cluster, scope *Scope) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
 	token := config.Spec.JoinConfiguration.Discovery.BootstrapToken.Token
+
+	// Short circuit the refresh operation if the connection to the workload cluster is down.
+	// Note: it is not required to requeue, because the controller will get an event as soon as the connection is created.
+	if !r.ClusterCache.Connected(ctx, util.ObjectKey(scope.Cluster)) {
+		r.logRateLimiter.InfoAtMostEvery(log, logRateLimitInterval, waitForConnectionKey(config, "RefreshToken"), "Waiting for connection to refresh the bootstrap token for kubeadm join")
+		return ctrl.Result{}, nil
+	}
+	r.logRateLimiter.Forget(waitForConnectionKey(config, "RefreshToken"))
 
 	remoteClient, err := r.ClusterCache.GetClient(ctx, util.ObjectKey(cluster))
 	if err != nil {
@@ -450,13 +485,21 @@ func (r *Reconciler) recreateBootstrapToken(ctx context.Context, config *bootstr
 
 func (r *Reconciler) rotateMachinePoolBootstrapToken(ctx context.Context, config *bootstrapv1.KubeadmConfig, cluster *clusterv1.Cluster, scope *Scope) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
-	log.V(2).Info("Config is owned by a MachinePool, checking if token should be rotated")
+	token := config.Spec.JoinConfiguration.Discovery.BootstrapToken.Token
+
+	// Short circuit the rotate operation if the connection to the workload cluster is down.
+	// Note: it is not required to requeue, because the controller will get an event as soon as the connection is created.
+	if !r.ClusterCache.Connected(ctx, util.ObjectKey(scope.Cluster)) {
+		r.logRateLimiter.InfoAtMostEvery(log, logRateLimitInterval, waitForConnectionKey(config, "RotateToken"), "Waiting for connection to rotate the bootstrap token for kubeadm join")
+		return ctrl.Result{}, nil
+	}
+	r.logRateLimiter.Forget(waitForConnectionKey(config, "RotateToken"))
+
 	remoteClient, err := r.ClusterCache.GetClient(ctx, util.ObjectKey(cluster))
 	if err != nil {
 		return ctrl.Result{}, err
 	}
 
-	token := config.Spec.JoinConfiguration.Discovery.BootstrapToken.Token
 	shouldRotate, err := shouldRotate(ctx, remoteClient, token, r.TokenTTL)
 	if err != nil {
 		return ctrl.Result{}, err

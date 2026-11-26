@@ -267,11 +267,19 @@ func (r *Reconciler) reconcile(ctx context.Context, reconcileStartTime metav1.Ti
 		// Note: It is not required to requeue, because the controller will get an event as soon as the connection is created.
 		if !r.ClusterCache.Connected(ctx, util.ObjectKey(cluster)) {
 			mhc.Status.RemediationsAllowed = ptr.To[int32](0)
+			message := "Remediation is not allowed, waiting for connection to the workload cluster"
+			v1beta1conditions.Set(mhc, &clusterv1.Condition{
+				Type:     clusterv1.RemediationAllowedV1Beta1Condition,
+				Status:   corev1.ConditionFalse,
+				Severity: clusterv1.ConditionSeverityWarning,
+				Reason:   clusterv1.ConnectionDownV1Beta1Reason,
+				Message:  message,
+			})
 			conditions.Set(mhc, metav1.Condition{
 				Type:    clusterv1.MachineHealthCheckRemediationAllowedCondition,
 				Status:  metav1.ConditionFalse,
 				Reason:  clusterv1.MachineHealthCheckConnectionDownReason,
-				Message: "Remediation is not allowed, waiting for connection to the workload cluster",
+				Message: message,
 			})
 			r.logRateLimiter.InfoAtMostEvery(logger, logRateLimitInterval, waitingForConnectionKey(mhc), "Waiting for connection to health check Machines")
 			return ctrl.Result{}, nil

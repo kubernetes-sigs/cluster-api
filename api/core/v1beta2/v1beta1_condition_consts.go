@@ -229,6 +229,10 @@ const (
 	// TooManyUnhealthyV1Beta1Reason is the reason used when too many Machines are unhealthy and the MachineHealthCheck is blocked
 	// from making any further remediations.
 	TooManyUnhealthyV1Beta1Reason = "TooManyUnhealthy"
+
+	// ConnectionDownV1Beta1Reason is the reason used when the connection to the workload cluster is down
+	// and the MachineHealthCheck is blocked from making any further remediations.
+	ConnectionDownV1Beta1Reason = "ConnectionDown"
 )
 
 // Conditions and condition Reasons for  MachineDeployments.

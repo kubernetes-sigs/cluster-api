@@ -2896,8 +2896,8 @@ func Test_reconcileWaitsForConnection(t *testing.T) {
 		Reason:  clusterv1.MachineHealthCheckConnectionDownReason,
 		Message: "Remediation is not allowed, waiting for connection to the workload cluster",
 	}, conditions.IgnoreLastTransitionTime(true)))
-	// The v1beta1 condition keeps the last known status.
-	g.Expect(v1beta1conditions.IsTrue(mhc, clusterv1.RemediationAllowedV1Beta1Condition)).To(BeTrue())
+	g.Expect(v1beta1conditions.IsFalse(mhc, clusterv1.RemediationAllowedV1Beta1Condition)).To(BeTrue())
+	g.Expect(v1beta1conditions.GetReason(mhc, clusterv1.RemediationAllowedV1Beta1Condition)).To(Equal(clusterv1.ConnectionDownV1Beta1Reason))
 
 	// Machines are not health checked.
 	gotMachine := &clusterv1.Machine{}

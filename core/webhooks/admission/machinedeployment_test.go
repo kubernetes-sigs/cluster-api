@@ -523,6 +523,24 @@ func TestMachineDeploymentValidation(t *testing.T) {
 			expectErr: true,
 		},
 		{
+			name:      "should return error for negative remediation maxInFlight",
+			selectors: map[string]string{"foo": "bar"},
+			labels:    map[string]string{"foo": "bar"},
+			remediation: clusterv1.MachineDeploymentRemediationSpec{
+				MaxInFlight: &negativeInt,
+			},
+			expectErr: true,
+		},
+		{
+			name:      "should return error for negative percentage remediation maxInFlight",
+			selectors: map[string]string{"foo": "bar"},
+			labels:    map[string]string{"foo": "bar"},
+			remediation: clusterv1.MachineDeploymentRemediationSpec{
+				MaxInFlight: &negativePercentage,
+			},
+			expectErr: true,
+		},
+		{
 			name:      "should not return error for valid percentage remediation maxInFlight",
 			selectors: map[string]string{"foo": "bar"},
 			labels:    map[string]string{"foo": "bar"},

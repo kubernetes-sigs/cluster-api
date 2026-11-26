@@ -299,8 +299,9 @@ func validateRolloutStrategy(fldPath *field.Path, maxUnavailable, maxSurge *ints
 }
 
 // isNegativeIntOrPercent returns true for a negative int or percentage, like -1 or "-10%".
-// The rollout planner can't make progress with them: a negative maxUnavailable, for
-// example, requires more available Machines than spec.replicas.
+// The controllers can't make progress with them: a negative maxUnavailable, for example,
+// requires more available Machines than spec.replicas, and a negative maxInFlight or
+// unhealthyLessThanOrEqualTo never allows a remediation.
 func isNegativeIntOrPercent(v *intstr.IntOrString) bool {
 	// With a total of 100, the scaled value of a percentage is the percentage itself.
 	scaled, err := intstr.GetScaledValueFromIntOrPercent(v, 100, false)
@@ -315,6 +316,11 @@ func validateRemediationMaxInFlight(fldPath *field.Path, maxInFlight *intstr.Int
 			allErrs = append(
 				allErrs,
 				field.Invalid(fldPath.Child("maxInFlight"), maxInFlight.String(), fmt.Sprintf("must be either an int or a percentage: %v", err.Error())),
+			)
+		} else if isNegativeIntOrPercent(maxInFlight) {
+			allErrs = append(
+				allErrs,
+				field.Invalid(fldPath.Child("maxInFlight"), maxInFlight.String(), "must be greater than or equal to 0"),
 			)
 		}
 	}

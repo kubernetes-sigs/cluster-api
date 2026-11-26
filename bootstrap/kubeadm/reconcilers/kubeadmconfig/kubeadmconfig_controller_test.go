@@ -1637,6 +1637,11 @@ func TestBootstrapTokenRefreshIfTokenSecretCleaned(t *testing.T) {
 
 		t.Log("When the connection to the workload cluster is down, the token is not refreshed and the reconcile does not fail")
 
+		// Simulate that expiry time is only TTL*4/10 from now. This would normally trigger a refresh.
+		expiringSoon := []byte(time.Now().UTC().Add(k.TokenTTL * 4 / 10).Format(time.RFC3339))
+		l.Items[0].Data[bootstrapapi.BootstrapTokenExpirationKey] = expiringSoon
+		g.Expect(remoteClient.Update(ctx, &l.Items[0])).To(Succeed())
+
 		connectedClusterCache := k.ClusterCache
 		k.ClusterCache = clustercache.NewFakeEmptyClusterCache()
 		result, err = k.Reconcile(ctx, request)
@@ -1647,6 +1652,9 @@ func TestBootstrapTokenRefreshIfTokenSecretCleaned(t *testing.T) {
 		cfg, err = getKubeadmConfig(myclient, "worker-join-cfg", metav1.NamespaceDefault)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(cfg.Spec.JoinConfiguration.Discovery.BootstrapToken.Token).To(Equal(firstToken))
+		tokenSecret := &corev1.Secret{}
+		g.Expect(remoteClient.Get(ctx, client.ObjectKeyFromObject(&l.Items[0]), tokenSecret)).To(Succeed())
+		g.Expect(tokenSecret.Data[bootstrapapi.BootstrapTokenExpirationKey]).To(Equal(expiringSoon))
 		// The Secret with the bootstrap data exists, so it must still be reported as available.
 		assertHasTrueCondition(g, myclient, request, bootstrapv1.KubeadmConfigDataSecretAvailableCondition)
 

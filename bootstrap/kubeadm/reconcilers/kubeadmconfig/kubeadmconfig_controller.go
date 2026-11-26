@@ -406,11 +406,6 @@ func (r *Reconciler) refreshBootstrapTokenIfNeeded(ctx context.Context, config *
 	log := ctrl.LoggerFrom(ctx)
 	token := config.Spec.JoinConfiguration.Discovery.BootstrapToken.Token
 
-	// If token is empty at this stage, another discovery mechanism has been used.
-	if token == "" {
-		return ctrl.Result{}, nil
-	}
-
 	// Short circuit the refresh operation if the connection to the workload cluster is down.
 	// Note: it is not required to requeue, because the controller will get an event as soon as the connection is created.
 	if !r.ClusterCache.Connected(ctx, util.ObjectKey(scope.Cluster)) {
@@ -492,14 +487,9 @@ func (r *Reconciler) rotateMachinePoolBootstrapToken(ctx context.Context, config
 	log := ctrl.LoggerFrom(ctx)
 	token := config.Spec.JoinConfiguration.Discovery.BootstrapToken.Token
 
-	// If token is empty at this stage, another discovery mechanism has been used.
-	if token == "" {
-		return ctrl.Result{}, nil
-	}
-
 	// Short circuit the rotate operation if the connection to the workload cluster is down.
 	// Note: it is not required to requeue, because the controller will get an event as soon as the connection is created.
-	if !r.ClusterCache.Connected(ctx, util.ObjectKey(scope.Cluster)) && !config.Spec.JoinConfiguration.Discovery.File.IsDefined() {
+	if !r.ClusterCache.Connected(ctx, util.ObjectKey(scope.Cluster)) {
 		r.logRateLimiter.InfoAtMostEvery(log, logRateLimitInterval, waitForConnectionKey(config, "RotateToken"), "Waiting for connection to rotate the bootstrap token for kubeadm join")
 		return ctrl.Result{}, nil
 	}

@@ -50,6 +50,7 @@ import (
 	"sigs.k8s.io/cluster-api/util/conditions"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 	"sigs.k8s.io/cluster-api/util/index"
+	logutil "sigs.k8s.io/cluster-api/util/log"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/test/builder"
 )
@@ -2845,6 +2846,64 @@ func createMachinesWithNodes(
 	}
 
 	return nodes, machines, cleanup
+}
+
+func Test_reconcileWaitsForConnection(t *testing.T) {
+	g := NewWithT(t)
+
+	cluster := &clusterv1.Cluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      testClusterName,
+			Namespace: metav1.NamespaceDefault,
+		},
+	}
+	conditions.Set(cluster, metav1.Condition{Type: clusterv1.ClusterInfrastructureReadyCondition, Status: metav1.ConditionTrue})
+	conditions.Set(cluster, metav1.Condition{Type: clusterv1.ClusterControlPlaneInitializedCondition, Status: metav1.ConditionTrue})
+
+	labels := map[string]string{"cluster": testClusterName, "nodepool": "foo"}
+	mhc := newMachineHealthCheckWithLabels("mhc", metav1.NamespaceDefault, testClusterName, labels)
+	v1beta1conditions.MarkTrue(mhc, clusterv1.RemediationAllowedV1Beta1Condition)
+	conditions.Set(mhc, metav1.Condition{
+		Type:   clusterv1.MachineHealthCheckRemediationAllowedCondition,
+		Status: metav1.ConditionTrue,
+		Reason: clusterv1.MachineHealthCheckRemediationAllowedReason,
+	})
+
+	// Note: Without a connection the Node can't be read, so without the short circuit this Machine would be
+	// considered unhealthy because of the NodeStartupTimeout.
+	machine := newTestMachine("machine1", metav1.NamespaceDefault, testClusterName, "node1", mhc.Spec.Selector.MatchLabels)
+	machine.CreationTimestamp = metav1.NewTime(time.Now().Add(-time.Hour))
+
+	fakeClient := fake.NewClientBuilder().WithObjects(cluster, mhc, machine).WithStatusSubresource(&clusterv1.MachineHealthCheck{}, &clusterv1.Machine{}).Build()
+	r := &Reconciler{
+		Client: fakeClient,
+		// Note: The empty ClusterCache has no connection to the workload cluster.
+		ClusterCache:   clustercache.NewFakeEmptyClusterCache(),
+		recorder:       record.NewFakeRecorder(32),
+		logRateLimiter: logutil.New(ctx),
+	}
+
+	// Without a connection the Machines can't be health checked, so the reconcile must not fail and must not requeue
+	// (the controller gets an event as soon as the connection is created).
+	result, err := r.reconcile(ctx, metav1.Now(), logr.New(log.NullLogSink{}), cluster, mhc)
+	g.Expect(err).ToNot(HaveOccurred())
+	g.Expect(result.IsZero()).To(BeTrue())
+
+	g.Expect(mhc.Status.RemediationsAllowed).To(Equal(ptr.To[int32](0)))
+	g.Expect(*conditions.Get(mhc, clusterv1.MachineHealthCheckRemediationAllowedCondition)).To(conditions.MatchCondition(metav1.Condition{
+		Type:    clusterv1.MachineHealthCheckRemediationAllowedCondition,
+		Status:  metav1.ConditionFalse,
+		Reason:  clusterv1.MachineHealthCheckConnectionDownReason,
+		Message: "Remediation is not allowed, waiting for connection to the workload cluster",
+	}, conditions.IgnoreLastTransitionTime(true)))
+	g.Expect(v1beta1conditions.IsFalse(mhc, clusterv1.RemediationAllowedV1Beta1Condition)).To(BeTrue())
+	g.Expect(v1beta1conditions.GetReason(mhc, clusterv1.RemediationAllowedV1Beta1Condition)).To(Equal(clusterv1.ConnectionDownV1Beta1Reason))
+
+	// Machines are not health checked.
+	gotMachine := &clusterv1.Machine{}
+	g.Expect(fakeClient.Get(ctx, client.ObjectKeyFromObject(machine), gotMachine)).To(Succeed())
+	g.Expect(conditions.Has(gotMachine, clusterv1.MachineHealthCheckSucceededCondition)).To(BeFalse())
+	g.Expect(v1beta1conditions.Has(gotMachine, clusterv1.MachineHealthCheckSucceededV1Beta1Condition)).To(BeFalse())
 }
 
 func newMachineHealthCheckWithLabels(name, namespace, cluster string, labels map[string]string) *clusterv1.MachineHealthCheck {

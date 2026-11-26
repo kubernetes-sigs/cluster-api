@@ -440,6 +440,37 @@ func TestHealthCheckTargets(t *testing.T) {
 		(time.Duration(timeoutForUnhealthyMachineConditions) * time.Second).String(),
 	)
 
+	// Machine condition computed while the connection to the workload cluster was down, unhealthy for longer than timeout.
+	testMachineConnectionDown400 := newTestUnhealthyMachine("machine1", namespace, clusterName, "node1", mhcSelector, controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyCondition, metav1.ConditionUnknown, clusterv1.ConnectionDownReason, now, 400*time.Second)
+	machineConnectionDown400 := healthCheckTarget{
+		Cluster: cluster,
+		MHC:     testMHC,
+		Machine: testMachineConnectionDown400,
+		Node:    testNodeHealthy,
+	}
+
+	// Same as above, but for a control plane Machine when the control plane is not yet initialized.
+	clusterControlPlaneNotInitialized := cluster.DeepCopy()
+	conditions.Set(clusterControlPlaneNotInitialized, metav1.Condition{Type: clusterv1.ClusterControlPlaneInitializedCondition, Status: metav1.ConditionFalse})
+	testControlPlaneMachineConnectionDown400 := testMachineConnectionDown400.DeepCopy()
+	testControlPlaneMachineConnectionDown400.Labels[clusterv1.MachineControlPlaneLabel] = ""
+	controlPlaneMachineConnectionDown400ControlPlaneNotInitialized := healthCheckTarget{
+		Cluster: clusterControlPlaneNotInitialized,
+		MHC:     testMHC,
+		Machine: testControlPlaneMachineConnectionDown400,
+		Node:    testNodeHealthy,
+	}
+	machineConnectionDown400Condition := newFailedHealthCheckV1Beta1Condition(
+		clusterv1.UnhealthyMachineConditionV1Beta1Reason,
+		"Condition EtcdPodHealthy on Machine is reporting status Unknown with reason ConnectionDown for more than %s",
+		(time.Duration(timeoutForUnhealthyMachineConditions) * time.Second).String(),
+	)
+	machineConnectionDown400V1Beta2Condition := newFailedHealthCheckCondition(
+		clusterv1.MachineHealthCheckUnhealthyMachineReason,
+		"Health check failed:\n  * Condition EtcdPodHealthy on Machine is reporting status Unknown with reason ConnectionDown for more than %s",
+		(time.Duration(timeoutForUnhealthyMachineConditions) * time.Second).String(),
+	)
+
 	// Target for when the machine has the remediate machine annotation
 	const annotationRemediationMsg = "Marked for remediation via remediate-machine annotation"
 	const annotationRemediationV1Beta2Msg = "Health check failed: marked for remediation via cluster.x-k8s.io/remediate-machine annotation"
@@ -645,6 +676,22 @@ func TestHealthCheckTargets(t *testing.T) {
 			expectedNeedsRemediation:                 []healthCheckTarget{machineUnhealthy400},
 			expectedNeedsRemediationCondition:        []clusterv1.Condition{machineUnhealthy400Condition},
 			expectedNeedsRemediationV1Beta2Condition: []metav1.Condition{machineUnhealthy400V1Beta2Condition},
+			expectedNextCheckTimes:                   []time.Duration{},
+		},
+		{
+			desc:                     "when the machine has conditions computed while the connection to the workload cluster was down, the target is neither healthy nor unhealthy",
+			targets:                  []healthCheckTarget{machineConnectionDown400},
+			expectedHealthy:          []healthCheckTarget{},
+			expectedNeedsRemediation: []healthCheckTarget{},
+			expectedNextCheckTimes:   []time.Duration{},
+		},
+		{
+			desc:                                     "when the control plane is not initialized, a control plane machine with conditions with the ConnectionDown reason is health checked",
+			targets:                                  []healthCheckTarget{controlPlaneMachineConnectionDown400ControlPlaneNotInitialized},
+			expectedHealthy:                          []healthCheckTarget{},
+			expectedNeedsRemediation:                 []healthCheckTarget{controlPlaneMachineConnectionDown400ControlPlaneNotInitialized},
+			expectedNeedsRemediationCondition:        []clusterv1.Condition{machineConnectionDown400Condition},
+			expectedNeedsRemediationV1Beta2Condition: []metav1.Condition{machineConnectionDown400V1Beta2Condition},
 			expectedNextCheckTimes:                   []time.Duration{},
 		},
 		{

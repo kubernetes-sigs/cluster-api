@@ -100,7 +100,6 @@ func TestMain(m *testing.M) {
 			//       Otherwise it defaults to the binary name which is not manager in tests.
 			Client:       client.WithFieldOwner(mgr.GetClient(), "manager"),
 			APIReader:    mgr.GetAPIReader(),
-			ClusterCache: clusterCache,
 			DynamicCache: dynamicCache,
 		}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: 1}); err != nil {
 			panic(fmt.Sprintf("Failed to start MMachineSetReconciler: %v", err))

@@ -103,7 +103,6 @@ func TestMain(m *testing.M) {
 		if err := (&machinesetcontroller.Reconciler{
 			Client:       mgr.GetClient(),
 			APIReader:    mgr.GetAPIReader(),
-			ClusterCache: clusterCache,
 			DynamicCache: dynamicCache,
 		}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: 1}); err != nil {
 			panic(fmt.Sprintf("Failed to start MMachineSetReconciler: %v", err))

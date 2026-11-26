@@ -1259,6 +1259,85 @@ func TestMachineSetReconciler_updateStatusResizedCondition(t *testing.T) {
 	}
 }
 
+func TestMachineSetReconciler_reconcileV1Beta1StatusReplicaCounters(t *testing.T) {
+	cluster := &clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: metav1.NamespaceDefault}}
+	now := metav1.Now()
+	machineWithNodeReady := func(status metav1.ConditionStatus, lastTransitionTime metav1.Time) *clusterv1.Machine {
+		m := &clusterv1.Machine{
+			ObjectMeta: metav1.ObjectMeta{Name: "machine-a", Namespace: metav1.NamespaceDefault},
+			Status:     clusterv1.MachineStatus{NodeRef: clusterv1.MachineNodeReference{Name: "node-a"}},
+		}
+		conditions.Set(m, metav1.Condition{Type: clusterv1.MachineNodeReadyCondition, Status: status, Reason: "Foo", LastTransitionTime: lastTransitionTime})
+		return m
+	}
+
+	tests := []struct {
+		name            string
+		machine         *clusterv1.Machine
+		minReadySeconds int32
+		wantReady       int32
+		wantAvailable   int32
+	}{
+		{
+			name:    "Machine without nodeRef is neither ready nor available",
+			machine: &clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "machine-a", Namespace: metav1.NamespaceDefault}},
+		},
+		{
+			name: "Machine without NodeReady condition is neither ready nor available",
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{Name: "machine-a", Namespace: metav1.NamespaceDefault},
+				Status:     clusterv1.MachineStatus{NodeRef: clusterv1.MachineNodeReference{Name: "node-a"}},
+			},
+		},
+		{
+			name:    "Machine with NodeReady Unknown (e.g. connection to the workload cluster down) is neither ready nor available",
+			machine: machineWithNodeReady(metav1.ConditionUnknown, now),
+		},
+		{
+			name:    "Machine with NodeReady False is neither ready nor available",
+			machine: machineWithNodeReady(metav1.ConditionFalse, now),
+		},
+		{
+			name:          "Machine with NodeReady True is ready and available without minReadySeconds",
+			machine:       machineWithNodeReady(metav1.ConditionTrue, now),
+			wantReady:     1,
+			wantAvailable: 1,
+		},
+		{
+			name:            "Machine with NodeReady True since less than minReadySeconds is ready but not available",
+			machine:         machineWithNodeReady(metav1.ConditionTrue, metav1.NewTime(now.Add(-5*time.Second))),
+			minReadySeconds: 10,
+			wantReady:       1,
+		},
+		{
+			name:            "Machine with NodeReady True since more than minReadySeconds is ready and available",
+			machine:         machineWithNodeReady(metav1.ConditionTrue, metav1.NewTime(now.Add(-20*time.Second))),
+			minReadySeconds: 10,
+			wantReady:       1,
+			wantAvailable:   1,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			ms := newMachineSet("ms", cluster.Name, int32(1))
+			ms.Spec.Template.Spec.MinReadySeconds = new(tt.minReadySeconds)
+			s := &scope{
+				cluster:            cluster,
+				machineSet:         ms,
+				machines:           []*clusterv1.Machine{tt.machine},
+				reconcileStartTime: now,
+				getAndAdoptMachinesForMachineSetSucceeded: true,
+			}
+			r := &Reconciler{recorder: record.NewFakeRecorder(32)}
+			g.Expect(r.reconcileV1Beta1Status(ctx, s)).To(Succeed())
+			g.Expect(ms.Status.Deprecated.V1Beta1.ReadyReplicas).To(Equal(tt.wantReady))
+			g.Expect(ms.Status.Deprecated.V1Beta1.AvailableReplicas).To(Equal(tt.wantAvailable))
+		})
+	}
+}
+
 func TestMachineSetReconciler_syncMachines(t *testing.T) {
 	utilfeature.SetFeatureGateDuringTest(t, features.Gates, features.MachineTaintPropagation, true)
 

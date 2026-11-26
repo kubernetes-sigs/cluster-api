@@ -53,9 +53,7 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/api/runtime/hooks/v1alpha1"
-	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	"sigs.k8s.io/cluster-api/controllers/external"
-	"sigs.k8s.io/cluster-api/controllers/noderefutil"
 	"sigs.k8s.io/cluster-api/core/reconcilers/machine"
 	"sigs.k8s.io/cluster-api/core/reconcilers/machinedeployment/mdutil"
 	"sigs.k8s.io/cluster-api/core/setup"
@@ -113,7 +111,6 @@ const (
 type Reconciler struct {
 	Client                          client.Client
 	APIReader                       client.Reader
-	ClusterCache                    clustercache.ClusterCache
 	DynamicCache                    dynamiccache.DynamicCache
 	machineClientWithDeleteResponse capicontrollerutil.ClientWithDeleteResponse
 
@@ -140,8 +137,8 @@ type Reconciler struct {
 
 // SetupWithManager sets up the reconciler with the Manager.
 func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
-	if r.Client == nil || r.APIReader == nil || r.ClusterCache == nil {
-		return pkgerrors.New("Client, APIReader and ClusterCache must not be nil")
+	if r.Client == nil || r.APIReader == nil {
+		return pkgerrors.New("Client and APIReader must not be nil")
 	}
 
 	predicateLog := ctrl.LoggerFrom(ctx).WithValues("controller", "machineset")
@@ -176,7 +173,6 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 			predicates.ClusterPausedTransitions(mgr.GetScheme(), predicateLog),
 			predicates.ResourceHasFilterLabel(mgr.GetScheme(), predicateLog, r.WatchFilterValue),
 		).
-		WatchesRawSource(r.ClusterCache.GetClusterSource("machineset", clusterToMachineSets)).
 		Build(ctx, r)
 	if err != nil {
 		return pkgerrors.Wrap(err, "failed setting up with a controller manager")
@@ -1616,7 +1612,6 @@ func (r *Reconciler) reconcileV1Beta1Status(ctx context.Context, s *scope) error
 
 	ms := s.machineSet
 	filteredMachines := s.machines
-	cluster := s.cluster
 
 	if ms.Spec.Replicas == nil {
 		return pkgerrors.New("Cannot update status when MachineSet spec.replicas is not set")
@@ -1651,15 +1646,12 @@ func (r *Reconciler) reconcileV1Beta1Status(ctx context.Context, s *scope) error
 			continue
 		}
 
-		node, err := r.getMachineNode(ctx, cluster, machine)
-		if err != nil && machine.GetDeletionTimestamp().IsZero() {
-			log.Error(err, "Unable to retrieve Node status", "Node", klog.KObj(node))
-			continue
-		}
-
-		if noderefutil.IsNodeReady(node) {
+		// Note: The Machine NodeReady condition mirrors the Ready condition of the Node, including its lastTransitionTime,
+		// so the Node does not have to be read from the workload cluster. As a consequence, while the connection to the
+		// workload cluster is down, these counters follow the remote conditions grace period like all the other conditions.
+		if isMachineNodeReady(machine) {
 			readyReplicasCount++
-			if noderefutil.IsNodeAvailable(node, ptr.Deref(ms.Spec.Template.Spec.MinReadySeconds, 0), s.reconcileStartTime) {
+			if isMachineNodeAvailable(machine, ptr.Deref(ms.Spec.Template.Spec.MinReadySeconds, 0), s.reconcileStartTime) {
 				availableReplicasCount++
 			}
 		} else if machine.GetDeletionTimestamp().IsZero() {
@@ -1737,16 +1729,23 @@ func shouldRequeueForReplicaCountersRefresh(s *scope) ctrl.Result {
 	return ctrl.Result{}
 }
 
-func (r *Reconciler) getMachineNode(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine) (*corev1.Node, error) {
-	remoteClient, err := r.ClusterCache.GetClient(ctx, util.ObjectKey(cluster))
-	if err != nil {
-		return nil, err
+// isMachineNodeReady returns true if the Node of the Machine is ready, according to the Machine NodeReady condition.
+func isMachineNodeReady(machine *clusterv1.Machine) bool {
+	return conditions.IsTrue(machine, clusterv1.MachineNodeReadyCondition)
+}
+
+// isMachineNodeAvailable returns true if the Node of the Machine is ready since at least minReadySeconds, according to
+// the Machine NodeReady condition.
+func isMachineNodeAvailable(machine *clusterv1.Machine, minReadySeconds int32, now metav1.Time) bool {
+	nodeReady := conditions.Get(machine, clusterv1.MachineNodeReadyCondition)
+	if nodeReady == nil || nodeReady.Status != metav1.ConditionTrue {
+		return false
 	}
-	node := &corev1.Node{}
-	if err := remoteClient.Get(ctx, client.ObjectKey{Name: machine.Status.NodeRef.Name}, node); err != nil {
-		return nil, pkgerrors.Wrapf(err, "error retrieving node %s for machine %s/%s", machine.Status.NodeRef.Name, machine.Namespace, machine.Name)
+	if minReadySeconds == 0 {
+		return true
 	}
-	return node, nil
+	return !nodeReady.LastTransitionTime.IsZero() &&
+		nodeReady.LastTransitionTime.Add(time.Duration(minReadySeconds)*time.Second).Before(now.Time)
 }
 
 func (r *Reconciler) reconcileUnhealthyMachines(ctx context.Context, s *scope) (ctrl.Result, error) {

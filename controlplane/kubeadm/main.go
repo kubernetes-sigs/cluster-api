@@ -29,7 +29,7 @@ import (
 	"github.com/spf13/pflag"
 	"go.etcd.io/etcd/client/pkg/v3/logutil"
 	"go.uber.org/zap/zapcore"
-	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	apiextensionsv1 "k8s.io/apiextensions-api/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"

@@ -28,9 +28,9 @@ import (
 	"github.com/blang/semver/v4"
 	pkgerrors "github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/validate/content"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/apimachinery/pkg/util/wait"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -162,7 +162,7 @@ func (webhook *Cluster) validate(ctx context.Context, oldCluster, newCluster *cl
 	var allErrs field.ErrorList
 	var allWarnings admission.Warnings
 	// The Cluster name is used as a label value. This check ensures that names which are not valid label values are rejected.
-	if errs := validation.IsValidLabelValue(newCluster.Name); len(errs) != 0 {
+	if errs := content.IsLabelValue(newCluster.Name); len(errs) != 0 {
 		for _, err := range errs {
 			allErrs = append(
 				allErrs,

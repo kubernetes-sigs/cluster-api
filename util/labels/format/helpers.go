@@ -22,7 +22,7 @@ import (
 	"fmt"
 	"hash/fnv"
 
-	"k8s.io/apimachinery/pkg/util/validation"
+	"k8s.io/apimachinery/pkg/api/validate/content"
 )
 
 // MustFormatValue returns the passed inputLabelValue if it meets the standards for a Kubernetes label value.
@@ -32,7 +32,7 @@ func MustFormatValue(str string) string {
 	// - be less than 64 characters long.
 	// - be an empty string OR consist of alphanumeric characters, '-', '_' or '.'.
 	// - start and end with an alphanumeric character
-	if len(validation.IsValidLabelValue(str)) == 0 {
+	if len(content.IsLabelValue(str)) == 0 {
 		return str
 	}
 	hasher := fnv.New32a()

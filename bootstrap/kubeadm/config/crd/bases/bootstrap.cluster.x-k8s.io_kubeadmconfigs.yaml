@@ -94,12 +94,12 @@ spec:
                           properties:
                             name:
                               description: |-
-                                Name of the environment variable.
+                                name is the name of the environment variable.
                                 May consist of any printable ASCII characters except '='.
                               type: string
                             value:
                               description: |-
-                                Variable references $(VAR_NAME) are expanded
+                                value is the value of the environment variable. Variable references $(VAR_NAME) are expanded
                                 using the previously defined environment variables in the container and
                                 any service environment variables. If a variable cannot be resolved,
                                 the reference in the input string will be unchanged. Double $$ are reduced
@@ -110,29 +110,30 @@ spec:
                                 Defaults to "".
                               type: string
                             valueFrom:
-                              description: Source for the environment variable's value.
-                                Cannot be used if value is not empty.
+                              description: valueFrom is the source for the environment
+                                variable's value. Cannot be used if value is not empty.
                               properties:
                                 configMapKeyRef:
-                                  description: Selects a key of a ConfigMap.
+                                  description: configMapKeyRef selects a key of a
+                                    ConfigMap.
                                   properties:
                                     key:
                                       description: |-
-                                        The key to select from the ConfigMap's Data field.
+                                        key is the key to select from the ConfigMap's Data field.
                                         Keys in the BinaryData field are not currently propagated to container env vars.
                                       type: string
                                     name:
                                       default: ""
                                       description: |-
-                                        Name of the referent.
+                                        name of the referent.
                                         This field is effectively required, but due to backwards compatibility is
                                         allowed to be empty. Instances of this type with an empty value here are
                                         almost certainly wrong.
                                         More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
                                       type: string
                                     optional:
-                                      description: Specify whether the ConfigMap or
-                                        its key must be defined
+                                      description: optional specifies whether the
+                                        ConfigMap or its key must be defined
                                       type: boolean
                                   required:
                                   - key
@@ -140,16 +141,17 @@ spec:
                                   x-kubernetes-map-type: atomic
                                 fieldRef:
                                   description: |-
-                                    Selects a field of the pod: supports metadata.name, metadata.namespace, `metadata.labels['<KEY>']`, `metadata.annotations['<KEY>']`,
+                                    fieldRef selects a field of the pod: supports metadata.name, metadata.namespace, `metadata.labels['<KEY>']`, `metadata.annotations['<KEY>']`,
                                     spec.nodeName, spec.serviceAccountName, status.hostIP, status.podIP, status.podIPs.
                                   properties:
                                     apiVersion:
-                                      description: Version of the schema the FieldPath
-                                        is written in terms of, defaults to "v1".
+                                      description: apiVersion is the version of the
+                                        schema the FieldPath is written in terms of,
+                                        defaults to "v1".
                                       type: string
                                     fieldPath:
-                                      description: Path of the field to select in
-                                        the specified API version.
+                                      description: fieldPath is the path of the field
+                                        to select in the specified API version.
                                       type: string
                                   required:
                                   - fieldPath
@@ -157,19 +159,19 @@ spec:
                                   x-kubernetes-map-type: atomic
                                 fileKeyRef:
                                   description: |-
-                                    FileKeyRef selects a key of the env file.
+                                    fileKeyRef selects a key of the env file.
                                     Requires the EnvFiles feature gate to be enabled.
                                   properties:
                                     key:
                                       description: |-
-                                        The key within the env file. An invalid key will prevent the pod from starting.
+                                        key is the key within the env file. An invalid key will prevent the pod from starting.
                                         The keys defined within a source may consist of any printable ASCII characters except '='.
                                         During Alpha stage of the EnvFiles feature gate, the key size is limited to 128 characters.
                                       type: string
                                     optional:
                                       default: false
                                       description: |-
-                                        Specify whether the file or its key must be defined. If the file or key
+                                        optional specifies whether the file or its key must be defined. If the file or key
                                         does not exist, then the env var is not published.
                                         If optional is set to true and the specified key does not exist,
                                         the environment variable will not be set in the Pod's containers.
@@ -179,12 +181,12 @@ spec:
                                       type: boolean
                                     path:
                                       description: |-
-                                        The path within the volume from which to select the file.
+                                        path is the path within the volume from which to select the file.
                                         Must be relative and may not contain the '..' path or start with '..'.
                                       type: string
                                     volumeName:
-                                      description: The name of the volume mount containing
-                                        the env file.
+                                      description: volumeName is the name of the volume
+                                        mount containing the env file.
                                       type: string
                                   required:
                                   - key
@@ -194,48 +196,50 @@ spec:
                                   x-kubernetes-map-type: atomic
                                 resourceFieldRef:
                                   description: |-
-                                    Selects a resource of the container: only resources limits and requests
+                                    resourceFieldRef selects a resource of the container: only resources limits and requests
                                     (limits.cpu, limits.memory, limits.ephemeral-storage, requests.cpu, requests.memory and requests.ephemeral-storage) are currently supported.
                                   properties:
                                     containerName:
-                                      description: 'Container name: required for volumes,
-                                        optional for env vars'
+                                      description: 'containerName is the name of the
+                                        container: required for volumes, optional
+                                        for env vars'
                                       type: string
                                     divisor:
                                       anyOf:
                                       - type: integer
                                       - type: string
-                                      description: Specifies the output format of
-                                        the exposed resources, defaults to "1"
+                                      description: |-
+                                        divisor optionally indicates how the resource from the container should be scaled.
+                                        If unset or 0, the resource is not scaled (divisor is treated as 1).
                                       pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                                       x-kubernetes-int-or-string: true
                                     resource:
-                                      description: 'Required: resource to select'
+                                      description: resource is the resource to select
                                       type: string
                                   required:
                                   - resource
                                   type: object
                                   x-kubernetes-map-type: atomic
                                 secretKeyRef:
-                                  description: Selects a key of a secret in the pod's
-                                    namespace
+                                  description: secretKeyRef selects a key of a secret
+                                    in the pod's namespace
                                   properties:
                                     key:
-                                      description: The key of the secret to select
-                                        from.  Must be a valid secret key.
+                                      description: key is the key of the secret to
+                                        select from.  Must be a valid secret key.
                                       type: string
                                     name:
                                       default: ""
                                       description: |-
-                                        Name of the referent.
+                                        name of the referent.
                                         This field is effectively required, but due to backwards compatibility is
                                         allowed to be empty. Instances of this type with an empty value here are
                                         almost certainly wrong.
                                         More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
                                       type: string
                                     optional:
-                                      description: Specify whether the Secret or its
-                                        key must be defined
+                                      description: optional specifies whether the
+                                        Secret or its key must be defined
                                       type: boolean
                                   required:
                                   - key
@@ -366,12 +370,12 @@ spec:
                           properties:
                             name:
                               description: |-
-                                Name of the environment variable.
+                                name is the name of the environment variable.
                                 May consist of any printable ASCII characters except '='.
                               type: string
                             value:
                               description: |-
-                                Variable references $(VAR_NAME) are expanded
+                                value is the value of the environment variable. Variable references $(VAR_NAME) are expanded
                                 using the previously defined environment variables in the container and
                                 any service environment variables. If a variable cannot be resolved,
                                 the reference in the input string will be unchanged. Double $$ are reduced
@@ -382,29 +386,30 @@ spec:
                                 Defaults to "".
                               type: string
                             valueFrom:
-                              description: Source for the environment variable's value.
-                                Cannot be used if value is not empty.
+                              description: valueFrom is the source for the environment
+                                variable's value. Cannot be used if value is not empty.
                               properties:
                                 configMapKeyRef:
-                                  description: Selects a key of a ConfigMap.
+                                  description: configMapKeyRef selects a key of a
+                                    ConfigMap.
                                   properties:
                                     key:
                                       description: |-
-                                        The key to select from the ConfigMap's Data field.
+                                        key is the key to select from the ConfigMap's Data field.
                                         Keys in the BinaryData field are not currently propagated to container env vars.
                                       type: string
                                     name:
                                       default: ""
                                       description: |-
-                                        Name of the referent.
+                                        name of the referent.
                                         This field is effectively required, but due to backwards compatibility is
                                         allowed to be empty. Instances of this type with an empty value here are
                                         almost certainly wrong.
                                         More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
                                       type: string
                                     optional:
-                                      description: Specify whether the ConfigMap or
-                                        its key must be defined
+                                      description: optional specifies whether the
+                                        ConfigMap or its key must be defined
                                       type: boolean
                                   required:
                                   - key
@@ -412,16 +417,17 @@ spec:
                                   x-kubernetes-map-type: atomic
                                 fieldRef:
                                   description: |-
-                                    Selects a field of the pod: supports metadata.name, metadata.namespace, `metadata.labels['<KEY>']`, `metadata.annotations['<KEY>']`,
+                                    fieldRef selects a field of the pod: supports metadata.name, metadata.namespace, `metadata.labels['<KEY>']`, `metadata.annotations['<KEY>']`,
                                     spec.nodeName, spec.serviceAccountName, status.hostIP, status.podIP, status.podIPs.
                                   properties:
                                     apiVersion:
-                                      description: Version of the schema the FieldPath
-                                        is written in terms of, defaults to "v1".
+                                      description: apiVersion is the version of the
+                                        schema the FieldPath is written in terms of,
+                                        defaults to "v1".
                                       type: string
                                     fieldPath:
-                                      description: Path of the field to select in
-                                        the specified API version.
+                                      description: fieldPath is the path of the field
+                                        to select in the specified API version.
                                       type: string
                                   required:
                                   - fieldPath
@@ -429,19 +435,19 @@ spec:
                                   x-kubernetes-map-type: atomic
                                 fileKeyRef:
                                   description: |-
-                                    FileKeyRef selects a key of the env file.
+                                    fileKeyRef selects a key of the env file.
                                     Requires the EnvFiles feature gate to be enabled.
                                   properties:
                                     key:
                                       description: |-
-                                        The key within the env file. An invalid key will prevent the pod from starting.
+                                        key is the key within the env file. An invalid key will prevent the pod from starting.
                                         The keys defined within a source may consist of any printable ASCII characters except '='.
                                         During Alpha stage of the EnvFiles feature gate, the key size is limited to 128 characters.
                                       type: string
                                     optional:
                                       default: false
                                       description: |-
-                                        Specify whether the file or its key must be defined. If the file or key
+                                        optional specifies whether the file or its key must be defined. If the file or key
                                         does not exist, then the env var is not published.
                                         If optional is set to true and the specified key does not exist,
                                         the environment variable will not be set in the Pod's containers.
@@ -451,12 +457,12 @@ spec:
                                       type: boolean
                                     path:
                                       description: |-
-                                        The path within the volume from which to select the file.
+                                        path is the path within the volume from which to select the file.
                                         Must be relative and may not contain the '..' path or start with '..'.
                                       type: string
                                     volumeName:
-                                      description: The name of the volume mount containing
-                                        the env file.
+                                      description: volumeName is the name of the volume
+                                        mount containing the env file.
                                       type: string
                                   required:
                                   - key
@@ -466,48 +472,50 @@ spec:
                                   x-kubernetes-map-type: atomic
                                 resourceFieldRef:
                                   description: |-
-                                    Selects a resource of the container: only resources limits and requests
+                                    resourceFieldRef selects a resource of the container: only resources limits and requests
                                     (limits.cpu, limits.memory, limits.ephemeral-storage, requests.cpu, requests.memory and requests.ephemeral-storage) are currently supported.
                                   properties:
                                     containerName:
-                                      description: 'Container name: required for volumes,
-                                        optional for env vars'
+                                      description: 'containerName is the name of the
+                                        container: required for volumes, optional
+                                        for env vars'
                                       type: string
                                     divisor:
                                       anyOf:
                                       - type: integer
                                       - type: string
-                                      description: Specifies the output format of
-                                        the exposed resources, defaults to "1"
+                                      description: |-
+                                        divisor optionally indicates how the resource from the container should be scaled.
+                                        If unset or 0, the resource is not scaled (divisor is treated as 1).
                                       pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                                       x-kubernetes-int-or-string: true
                                     resource:
-                                      description: 'Required: resource to select'
+                                      description: resource is the resource to select
                                       type: string
                                   required:
                                   - resource
                                   type: object
                                   x-kubernetes-map-type: atomic
                                 secretKeyRef:
-                                  description: Selects a key of a secret in the pod's
-                                    namespace
+                                  description: secretKeyRef selects a key of a secret
+                                    in the pod's namespace
                                   properties:
                                     key:
-                                      description: The key of the secret to select
-                                        from.  Must be a valid secret key.
+                                      description: key is the key of the secret to
+                                        select from.  Must be a valid secret key.
                                       type: string
                                     name:
                                       default: ""
                                       description: |-
-                                        Name of the referent.
+                                        name of the referent.
                                         This field is effectively required, but due to backwards compatibility is
                                         allowed to be empty. Instances of this type with an empty value here are
                                         almost certainly wrong.
                                         More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
                                       type: string
                                     optional:
-                                      description: Specify whether the Secret or its
-                                        key must be defined
+                                      description: optional specifies whether the
+                                        Secret or its key must be defined
                                       type: boolean
                                   required:
                                   - key
@@ -674,12 +682,12 @@ spec:
                               properties:
                                 name:
                                   description: |-
-                                    Name of the environment variable.
+                                    name is the name of the environment variable.
                                     May consist of any printable ASCII characters except '='.
                                   type: string
                                 value:
                                   description: |-
-                                    Variable references $(VAR_NAME) are expanded
+                                    value is the value of the environment variable. Variable references $(VAR_NAME) are expanded
                                     using the previously defined environment variables in the container and
                                     any service environment variables. If a variable cannot be resolved,
                                     the reference in the input string will be unchanged. Double $$ are reduced
@@ -690,29 +698,31 @@ spec:
                                     Defaults to "".
                                   type: string
                                 valueFrom:
-                                  description: Source for the environment variable's
-                                    value. Cannot be used if value is not empty.
+                                  description: valueFrom is the source for the environment
+                                    variable's value. Cannot be used if value is not
+                                    empty.
                                   properties:
                                     configMapKeyRef:
-                                      description: Selects a key of a ConfigMap.
+                                      description: configMapKeyRef selects a key of
+                                        a ConfigMap.
                                       properties:
                                         key:
                                           description: |-
-                                            The key to select from the ConfigMap's Data field.
+                                            key is the key to select from the ConfigMap's Data field.
                                             Keys in the BinaryData field are not currently propagated to container env vars.
                                           type: string
                                         name:
                                           default: ""
                                           description: |-
-                                            Name of the referent.
+                                            name of the referent.
                                             This field is effectively required, but due to backwards compatibility is
                                             allowed to be empty. Instances of this type with an empty value here are
                                             almost certainly wrong.
                                             More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
                                           type: string
                                         optional:
-                                          description: Specify whether the ConfigMap
-                                            or its key must be defined
+                                          description: optional specifies whether
+                                            the ConfigMap or its key must be defined
                                           type: boolean
                                       required:
                                       - key
@@ -720,16 +730,17 @@ spec:
                                       x-kubernetes-map-type: atomic
                                     fieldRef:
                                       description: |-
-                                        Selects a field of the pod: supports metadata.name, metadata.namespace, `metadata.labels['<KEY>']`, `metadata.annotations['<KEY>']`,
+                                        fieldRef selects a field of the pod: supports metadata.name, metadata.namespace, `metadata.labels['<KEY>']`, `metadata.annotations['<KEY>']`,
                                         spec.nodeName, spec.serviceAccountName, status.hostIP, status.podIP, status.podIPs.
                                       properties:
                                         apiVersion:
-                                          description: Version of the schema the FieldPath
-                                            is written in terms of, defaults to "v1".
+                                          description: apiVersion is the version of
+                                            the schema the FieldPath is written in
+                                            terms of, defaults to "v1".
                                           type: string
                                         fieldPath:
-                                          description: Path of the field to select
-                                            in the specified API version.
+                                          description: fieldPath is the path of the
+                                            field to select in the specified API version.
                                           type: string
                                       required:
                                       - fieldPath
@@ -737,19 +748,19 @@ spec:
                                       x-kubernetes-map-type: atomic
                                     fileKeyRef:
                                       description: |-
-                                        FileKeyRef selects a key of the env file.
+                                        fileKeyRef selects a key of the env file.
                                         Requires the EnvFiles feature gate to be enabled.
                                       properties:
                                         key:
                                           description: |-
-                                            The key within the env file. An invalid key will prevent the pod from starting.
+                                            key is the key within the env file. An invalid key will prevent the pod from starting.
                                             The keys defined within a source may consist of any printable ASCII characters except '='.
                                             During Alpha stage of the EnvFiles feature gate, the key size is limited to 128 characters.
                                           type: string
                                         optional:
                                           default: false
                                           description: |-
-                                            Specify whether the file or its key must be defined. If the file or key
+                                            optional specifies whether the file or its key must be defined. If the file or key
                                             does not exist, then the env var is not published.
                                             If optional is set to true and the specified key does not exist,
                                             the environment variable will not be set in the Pod's containers.
@@ -759,12 +770,12 @@ spec:
                                           type: boolean
                                         path:
                                           description: |-
-                                            The path within the volume from which to select the file.
+                                            path is the path within the volume from which to select the file.
                                             Must be relative and may not contain the '..' path or start with '..'.
                                           type: string
                                         volumeName:
-                                          description: The name of the volume mount
-                                            containing the env file.
+                                          description: volumeName is the name of the
+                                            volume mount containing the env file.
                                           type: string
                                       required:
                                       - key
@@ -774,49 +785,52 @@ spec:
                                       x-kubernetes-map-type: atomic
                                     resourceFieldRef:
                                       description: |-
-                                        Selects a resource of the container: only resources limits and requests
+                                        resourceFieldRef selects a resource of the container: only resources limits and requests
                                         (limits.cpu, limits.memory, limits.ephemeral-storage, requests.cpu, requests.memory and requests.ephemeral-storage) are currently supported.
                                       properties:
                                         containerName:
-                                          description: 'Container name: required for
-                                            volumes, optional for env vars'
+                                          description: 'containerName is the name
+                                            of the container: required for volumes,
+                                            optional for env vars'
                                           type: string
                                         divisor:
                                           anyOf:
                                           - type: integer
                                           - type: string
-                                          description: Specifies the output format
-                                            of the exposed resources, defaults to
-                                            "1"
+                                          description: |-
+                                            divisor optionally indicates how the resource from the container should be scaled.
+                                            If unset or 0, the resource is not scaled (divisor is treated as 1).
                                           pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                                           x-kubernetes-int-or-string: true
                                         resource:
-                                          description: 'Required: resource to select'
+                                          description: resource is the resource to
+                                            select
                                           type: string
                                       required:
                                       - resource
                                       type: object
                                       x-kubernetes-map-type: atomic
                                     secretKeyRef:
-                                      description: Selects a key of a secret in the
-                                        pod's namespace
+                                      description: secretKeyRef selects a key of a
+                                        secret in the pod's namespace
                                       properties:
                                         key:
-                                          description: The key of the secret to select
-                                            from.  Must be a valid secret key.
+                                          description: key is the key of the secret
+                                            to select from.  Must be a valid secret
+                                            key.
                                           type: string
                                         name:
                                           default: ""
                                           description: |-
-                                            Name of the referent.
+                                            name of the referent.
                                             This field is effectively required, but due to backwards compatibility is
                                             allowed to be empty. Instances of this type with an empty value here are
                                             almost certainly wrong.
                                             More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
                                           type: string
                                         optional:
-                                          description: Specify whether the Secret
-                                            or its key must be defined
+                                          description: optional specifies whether
+                                            the Secret or its key must be defined
                                           type: boolean
                                       required:
                                       - key
@@ -957,12 +971,12 @@ spec:
                           properties:
                             name:
                               description: |-
-                                Name of the environment variable.
+                                name is the name of the environment variable.
                                 May consist of any printable ASCII characters except '='.
                               type: string
                             value:
                               description: |-
-                                Variable references $(VAR_NAME) are expanded
+                                value is the value of the environment variable. Variable references $(VAR_NAME) are expanded
                                 using the previously defined environment variables in the container and
                                 any service environment variables. If a variable cannot be resolved,
                                 the reference in the input string will be unchanged. Double $$ are reduced
@@ -973,29 +987,30 @@ spec:
                                 Defaults to "".
                               type: string
                             valueFrom:
-                              description: Source for the environment variable's value.
-                                Cannot be used if value is not empty.
+                              description: valueFrom is the source for the environment
+                                variable's value. Cannot be used if value is not empty.
                               properties:
                                 configMapKeyRef:
-                                  description: Selects a key of a ConfigMap.
+                                  description: configMapKeyRef selects a key of a
+                                    ConfigMap.
                                   properties:
                                     key:
                                       description: |-
-                                        The key to select from the ConfigMap's Data field.
+                                        key is the key to select from the ConfigMap's Data field.
                                         Keys in the BinaryData field are not currently propagated to container env vars.
                                       type: string
                                     name:
                                       default: ""
                                       description: |-
-                                        Name of the referent.
+                                        name of the referent.
                                         This field is effectively required, but due to backwards compatibility is
                                         allowed to be empty. Instances of this type with an empty value here are
                                         almost certainly wrong.
                                         More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
                                       type: string
                                     optional:
-                                      description: Specify whether the ConfigMap or
-                                        its key must be defined
+                                      description: optional specifies whether the
+                                        ConfigMap or its key must be defined
                                       type: boolean
                                   required:
                                   - key
@@ -1003,16 +1018,17 @@ spec:
                                   x-kubernetes-map-type: atomic
                                 fieldRef:
                                   description: |-
-                                    Selects a field of the pod: supports metadata.name, metadata.namespace, `metadata.labels['<KEY>']`, `metadata.annotations['<KEY>']`,
+                                    fieldRef selects a field of the pod: supports metadata.name, metadata.namespace, `metadata.labels['<KEY>']`, `metadata.annotations['<KEY>']`,
                                     spec.nodeName, spec.serviceAccountName, status.hostIP, status.podIP, status.podIPs.
                                   properties:
                                     apiVersion:
-                                      description: Version of the schema the FieldPath
-                                        is written in terms of, defaults to "v1".
+                                      description: apiVersion is the version of the
+                                        schema the FieldPath is written in terms of,
+                                        defaults to "v1".
                                       type: string
                                     fieldPath:
-                                      description: Path of the field to select in
-                                        the specified API version.
+                                      description: fieldPath is the path of the field
+                                        to select in the specified API version.
                                       type: string
                                   required:
                                   - fieldPath
@@ -1020,19 +1036,19 @@ spec:
                                   x-kubernetes-map-type: atomic
                                 fileKeyRef:
                                   description: |-
-                                    FileKeyRef selects a key of the env file.
+                                    fileKeyRef selects a key of the env file.
                                     Requires the EnvFiles feature gate to be enabled.
                                   properties:
                                     key:
                                       description: |-
-                                        The key within the env file. An invalid key will prevent the pod from starting.
+                                        key is the key within the env file. An invalid key will prevent the pod from starting.
                                         The keys defined within a source may consist of any printable ASCII characters except '='.
                                         During Alpha stage of the EnvFiles feature gate, the key size is limited to 128 characters.
                                       type: string
                                     optional:
                                       default: false
                                       description: |-
-                                        Specify whether the file or its key must be defined. If the file or key
+                                        optional specifies whether the file or its key must be defined. If the file or key
                                         does not exist, then the env var is not published.
                                         If optional is set to true and the specified key does not exist,
                                         the environment variable will not be set in the Pod's containers.
@@ -1042,12 +1058,12 @@ spec:
                                       type: boolean
                                     path:
                                       description: |-
-                                        The path within the volume from which to select the file.
+                                        path is the path within the volume from which to select the file.
                                         Must be relative and may not contain the '..' path or start with '..'.
                                       type: string
                                     volumeName:
-                                      description: The name of the volume mount containing
-                                        the env file.
+                                      description: volumeName is the name of the volume
+                                        mount containing the env file.
                                       type: string
                                   required:
                                   - key
@@ -1057,48 +1073,50 @@ spec:
                                   x-kubernetes-map-type: atomic
                                 resourceFieldRef:
                                   description: |-
-                                    Selects a resource of the container: only resources limits and requests
+                                    resourceFieldRef selects a resource of the container: only resources limits and requests
                                     (limits.cpu, limits.memory, limits.ephemeral-storage, requests.cpu, requests.memory and requests.ephemeral-storage) are currently supported.
                                   properties:
                                     containerName:
-                                      description: 'Container name: required for volumes,
-                                        optional for env vars'
+                                      description: 'containerName is the name of the
+                                        container: required for volumes, optional
+                                        for env vars'
                                       type: string
                                     divisor:
                                       anyOf:
                                       - type: integer
                                       - type: string
-                                      description: Specifies the output format of
-                                        the exposed resources, defaults to "1"
+                                      description: |-
+                                        divisor optionally indicates how the resource from the container should be scaled.
+                                        If unset or 0, the resource is not scaled (divisor is treated as 1).
                                       pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                                       x-kubernetes-int-or-string: true
                                     resource:
-                                      description: 'Required: resource to select'
+                                      description: resource is the resource to select
                                       type: string
                                   required:
                                   - resource
                                   type: object
                                   x-kubernetes-map-type: atomic
                                 secretKeyRef:
-                                  description: Selects a key of a secret in the pod's
-                                    namespace
+                                  description: secretKeyRef selects a key of a secret
+                                    in the pod's namespace
                                   properties:
                                     key:
-                                      description: The key of the secret to select
-                                        from.  Must be a valid secret key.
+                                      description: key is the key of the secret to
+                                        select from.  Must be a valid secret key.
                                       type: string
                                     name:
                                       default: ""
                                       description: |-
-                                        Name of the referent.
+                                        name of the referent.
                                         This field is effectively required, but due to backwards compatibility is
                                         allowed to be empty. Instances of this type with an empty value here are
                                         almost certainly wrong.
                                         More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
                                       type: string
                                     optional:
-                                      description: Specify whether the Secret or its
-                                        key must be defined
+                                      description: optional specifies whether the
+                                        Secret or its key must be defined
                                       type: boolean
                                   required:
                                   - key
@@ -1567,22 +1585,23 @@ spec:
                           properties:
                             effect:
                               description: |-
-                                Required. The effect of the taint on pods
-                                that do not tolerate the taint.
+                                effect is the effect of the taint on pods
+                                that do not tolerate the taint. Required.
                                 Valid effects are NoSchedule, PreferNoSchedule and NoExecute.
                               type: string
                             key:
-                              description: Required. The taint key to be applied to
-                                a node.
+                              description: |-
+                                key is the taint key to be applied to a node. Required.
+                                The taint key to be applied to a node.
                               type: string
                             timeAdded:
-                              description: TimeAdded represents the time at which
+                              description: timeAdded represents the time at which
                                 the taint was added.
                               format: date-time
                               type: string
                             value:
-                              description: The taint value corresponding to the taint
-                                key.
+                              description: value is the taint value corresponding
+                                to the taint key.
                               type: string
                           required:
                           - effect
@@ -1967,22 +1986,23 @@ spec:
                           properties:
                             effect:
                               description: |-
-                                Required. The effect of the taint on pods
-                                that do not tolerate the taint.
+                                effect is the effect of the taint on pods
+                                that do not tolerate the taint. Required.
                                 Valid effects are NoSchedule, PreferNoSchedule and NoExecute.
                               type: string
                             key:
-                              description: Required. The taint key to be applied to
-                                a node.
+                              description: |-
+                                key is the taint key to be applied to a node. Required.
+                                The taint key to be applied to a node.
                               type: string
                             timeAdded:
-                              description: TimeAdded represents the time at which
+                              description: timeAdded represents the time at which
                                 the taint was added.
                               format: date-time
                               type: string
                             value:
-                              description: The taint value corresponding to the taint
-                                key.
+                              description: value is the taint value corresponding
+                                to the taint key.
                               type: string
                           required:
                           - effect
@@ -2297,6 +2317,7 @@ spec:
                           format: date-time
                           type: string
                         message:
+                          default: ""
                           description: |-
                             message is a human readable message indicating details about the transition.
                             This may be an empty string.
@@ -2336,7 +2357,6 @@ spec:
                           type: string
                       required:
                       - lastTransitionTime
-                      - message
                       - reason
                       - status
                       - type
@@ -2475,12 +2495,12 @@ spec:
                           properties:
                             name:
                               description: |-
-                                Name of the environment variable.
+                                name is the name of the environment variable.
                                 May consist of any printable ASCII characters except '='.
                               type: string
                             value:
                               description: |-
-                                Variable references $(VAR_NAME) are expanded
+                                value is the value of the environment variable. Variable references $(VAR_NAME) are expanded
                                 using the previously defined environment variables in the container and
                                 any service environment variables. If a variable cannot be resolved,
                                 the reference in the input string will be unchanged. Double $$ are reduced
@@ -2491,29 +2511,30 @@ spec:
                                 Defaults to "".
                               type: string
                             valueFrom:
-                              description: Source for the environment variable's value.
-                                Cannot be used if value is not empty.
+                              description: valueFrom is the source for the environment
+                                variable's value. Cannot be used if value is not empty.
                               properties:
                                 configMapKeyRef:
-                                  description: Selects a key of a ConfigMap.
+                                  description: configMapKeyRef selects a key of a
+                                    ConfigMap.
                                   properties:
                                     key:
                                       description: |-
-                                        The key to select from the ConfigMap's Data field.
+                                        key is the key to select from the ConfigMap's Data field.
                                         Keys in the BinaryData field are not currently propagated to container env vars.
                                       type: string
                                     name:
                                       default: ""
                                       description: |-
-                                        Name of the referent.
+                                        name of the referent.
                                         This field is effectively required, but due to backwards compatibility is
                                         allowed to be empty. Instances of this type with an empty value here are
                                         almost certainly wrong.
                                         More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
                                       type: string
                                     optional:
-                                      description: Specify whether the ConfigMap or
-                                        its key must be defined
+                                      description: optional specifies whether the
+                                        ConfigMap or its key must be defined
                                       type: boolean
                                   required:
                                   - key
@@ -2521,16 +2542,17 @@ spec:
                                   x-kubernetes-map-type: atomic
                                 fieldRef:
                                   description: |-
-                                    Selects a field of the pod: supports metadata.name, metadata.namespace, `metadata.labels['<KEY>']`, `metadata.annotations['<KEY>']`,
+                                    fieldRef selects a field of the pod: supports metadata.name, metadata.namespace, `metadata.labels['<KEY>']`, `metadata.annotations['<KEY>']`,
                                     spec.nodeName, spec.serviceAccountName, status.hostIP, status.podIP, status.podIPs.
                                   properties:
                                     apiVersion:
-                                      description: Version of the schema the FieldPath
-                                        is written in terms of, defaults to "v1".
+                                      description: apiVersion is the version of the
+                                        schema the FieldPath is written in terms of,
+                                        defaults to "v1".
                                       type: string
                                     fieldPath:
-                                      description: Path of the field to select in
-                                        the specified API version.
+                                      description: fieldPath is the path of the field
+                                        to select in the specified API version.
                                       type: string
                                   required:
                                   - fieldPath
@@ -2538,19 +2560,19 @@ spec:
                                   x-kubernetes-map-type: atomic
                                 fileKeyRef:
                                   description: |-
-                                    FileKeyRef selects a key of the env file.
+                                    fileKeyRef selects a key of the env file.
                                     Requires the EnvFiles feature gate to be enabled.
                                   properties:
                                     key:
                                       description: |-
-                                        The key within the env file. An invalid key will prevent the pod from starting.
+                                        key is the key within the env file. An invalid key will prevent the pod from starting.
                                         The keys defined within a source may consist of any printable ASCII characters except '='.
                                         During Alpha stage of the EnvFiles feature gate, the key size is limited to 128 characters.
                                       type: string
                                     optional:
                                       default: false
                                       description: |-
-                                        Specify whether the file or its key must be defined. If the file or key
+                                        optional specifies whether the file or its key must be defined. If the file or key
                                         does not exist, then the env var is not published.
                                         If optional is set to true and the specified key does not exist,
                                         the environment variable will not be set in the Pod's containers.
@@ -2560,12 +2582,12 @@ spec:
                                       type: boolean
                                     path:
                                       description: |-
-                                        The path within the volume from which to select the file.
+                                        path is the path within the volume from which to select the file.
                                         Must be relative and may not contain the '..' path or start with '..'.
                                       type: string
                                     volumeName:
-                                      description: The name of the volume mount containing
-                                        the env file.
+                                      description: volumeName is the name of the volume
+                                        mount containing the env file.
                                       type: string
                                   required:
                                   - key
@@ -2575,48 +2597,50 @@ spec:
                                   x-kubernetes-map-type: atomic
                                 resourceFieldRef:
                                   description: |-
-                                    Selects a resource of the container: only resources limits and requests
+                                    resourceFieldRef selects a resource of the container: only resources limits and requests
                                     (limits.cpu, limits.memory, limits.ephemeral-storage, requests.cpu, requests.memory and requests.ephemeral-storage) are currently supported.
                                   properties:
                                     containerName:
-                                      description: 'Container name: required for volumes,
-                                        optional for env vars'
+                                      description: 'containerName is the name of the
+                                        container: required for volumes, optional
+                                        for env vars'
                                       type: string
                                     divisor:
                                       anyOf:
                                       - type: integer
                                       - type: string
-                                      description: Specifies the output format of
-                                        the exposed resources, defaults to "1"
+                                      description: |-
+                                        divisor optionally indicates how the resource from the container should be scaled.
+                                        If unset or 0, the resource is not scaled (divisor is treated as 1).
                                       pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                                       x-kubernetes-int-or-string: true
                                     resource:
-                                      description: 'Required: resource to select'
+                                      description: resource is the resource to select
                                       type: string
                                   required:
                                   - resource
                                   type: object
                                   x-kubernetes-map-type: atomic
                                 secretKeyRef:
-                                  description: Selects a key of a secret in the pod's
-                                    namespace
+                                  description: secretKeyRef selects a key of a secret
+                                    in the pod's namespace
                                   properties:
                                     key:
-                                      description: The key of the secret to select
-                                        from.  Must be a valid secret key.
+                                      description: key is the key of the secret to
+                                        select from.  Must be a valid secret key.
                                       type: string
                                     name:
                                       default: ""
                                       description: |-
-                                        Name of the referent.
+                                        name of the referent.
                                         This field is effectively required, but due to backwards compatibility is
                                         allowed to be empty. Instances of this type with an empty value here are
                                         almost certainly wrong.
                                         More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
                                       type: string
                                     optional:
-                                      description: Specify whether the Secret or its
-                                        key must be defined
+                                      description: optional specifies whether the
+                                        Secret or its key must be defined
                                       type: boolean
                                   required:
                                   - key
@@ -2763,12 +2787,12 @@ spec:
                           properties:
                             name:
                               description: |-
-                                Name of the environment variable.
+                                name is the name of the environment variable.
                                 May consist of any printable ASCII characters except '='.
                               type: string
                             value:
                               description: |-
-                                Variable references $(VAR_NAME) are expanded
+                                value is the value of the environment variable. Variable references $(VAR_NAME) are expanded
                                 using the previously defined environment variables in the container and
                                 any service environment variables. If a variable cannot be resolved,
                                 the reference in the input string will be unchanged. Double $$ are reduced
@@ -2779,29 +2803,30 @@ spec:
                                 Defaults to "".
                               type: string
                             valueFrom:
-                              description: Source for the environment variable's value.
-                                Cannot be used if value is not empty.
+                              description: valueFrom is the source for the environment
+                                variable's value. Cannot be used if value is not empty.
                               properties:
                                 configMapKeyRef:
-                                  description: Selects a key of a ConfigMap.
+                                  description: configMapKeyRef selects a key of a
+                                    ConfigMap.
                                   properties:
                                     key:
                                       description: |-
-                                        The key to select from the ConfigMap's Data field.
+                                        key is the key to select from the ConfigMap's Data field.
                                         Keys in the BinaryData field are not currently propagated to container env vars.
                                       type: string
                                     name:
                                       default: ""
                                       description: |-
-                                        Name of the referent.
+                                        name of the referent.
                                         This field is effectively required, but due to backwards compatibility is
                                         allowed to be empty. Instances of this type with an empty value here are
                                         almost certainly wrong.
                                         More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
                                       type: string
                                     optional:
-                                      description: Specify whether the ConfigMap or
-                                        its key must be defined
+                                      description: optional specifies whether the
+                                        ConfigMap or its key must be defined
                                       type: boolean
                                   required:
                                   - key
@@ -2809,16 +2834,17 @@ spec:
                                   x-kubernetes-map-type: atomic
                                 fieldRef:
                                   description: |-
-                                    Selects a field of the pod: supports metadata.name, metadata.namespace, `metadata.labels['<KEY>']`, `metadata.annotations['<KEY>']`,
+                                    fieldRef selects a field of the pod: supports metadata.name, metadata.namespace, `metadata.labels['<KEY>']`, `metadata.annotations['<KEY>']`,
                                     spec.nodeName, spec.serviceAccountName, status.hostIP, status.podIP, status.podIPs.
                                   properties:
                                     apiVersion:
-                                      description: Version of the schema the FieldPath
-                                        is written in terms of, defaults to "v1".
+                                      description: apiVersion is the version of the
+                                        schema the FieldPath is written in terms of,
+                                        defaults to "v1".
                                       type: string
                                     fieldPath:
-                                      description: Path of the field to select in
-                                        the specified API version.
+                                      description: fieldPath is the path of the field
+                                        to select in the specified API version.
                                       type: string
                                   required:
                                   - fieldPath
@@ -2826,19 +2852,19 @@ spec:
                                   x-kubernetes-map-type: atomic
                                 fileKeyRef:
                                   description: |-
-                                    FileKeyRef selects a key of the env file.
+                                    fileKeyRef selects a key of the env file.
                                     Requires the EnvFiles feature gate to be enabled.
                                   properties:
                                     key:
                                       description: |-
-                                        The key within the env file. An invalid key will prevent the pod from starting.
+                                        key is the key within the env file. An invalid key will prevent the pod from starting.
                                         The keys defined within a source may consist of any printable ASCII characters except '='.
                                         During Alpha stage of the EnvFiles feature gate, the key size is limited to 128 characters.
                                       type: string
                                     optional:
                                       default: false
                                       description: |-
-                                        Specify whether the file or its key must be defined. If the file or key
+                                        optional specifies whether the file or its key must be defined. If the file or key
                                         does not exist, then the env var is not published.
                                         If optional is set to true and the specified key does not exist,
                                         the environment variable will not be set in the Pod's containers.
@@ -2848,12 +2874,12 @@ spec:
                                       type: boolean
                                     path:
                                       description: |-
-                                        The path within the volume from which to select the file.
+                                        path is the path within the volume from which to select the file.
                                         Must be relative and may not contain the '..' path or start with '..'.
                                       type: string
                                     volumeName:
-                                      description: The name of the volume mount containing
-                                        the env file.
+                                      description: volumeName is the name of the volume
+                                        mount containing the env file.
                                       type: string
                                   required:
                                   - key
@@ -2863,48 +2889,50 @@ spec:
                                   x-kubernetes-map-type: atomic
                                 resourceFieldRef:
                                   description: |-
-                                    Selects a resource of the container: only resources limits and requests
+                                    resourceFieldRef selects a resource of the container: only resources limits and requests
                                     (limits.cpu, limits.memory, limits.ephemeral-storage, requests.cpu, requests.memory and requests.ephemeral-storage) are currently supported.
                                   properties:
                                     containerName:
-                                      description: 'Container name: required for volumes,
-                                        optional for env vars'
+                                      description: 'containerName is the name of the
+                                        container: required for volumes, optional
+                                        for env vars'
                                       type: string
                                     divisor:
                                       anyOf:
                                       - type: integer
                                       - type: string
-                                      description: Specifies the output format of
-                                        the exposed resources, defaults to "1"
+                                      description: |-
+                                        divisor optionally indicates how the resource from the container should be scaled.
+                                        If unset or 0, the resource is not scaled (divisor is treated as 1).
                                       pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                                       x-kubernetes-int-or-string: true
                                     resource:
-                                      description: 'Required: resource to select'
+                                      description: resource is the resource to select
                                       type: string
                                   required:
                                   - resource
                                   type: object
                                   x-kubernetes-map-type: atomic
                                 secretKeyRef:
-                                  description: Selects a key of a secret in the pod's
-                                    namespace
+                                  description: secretKeyRef selects a key of a secret
+                                    in the pod's namespace
                                   properties:
                                     key:
-                                      description: The key of the secret to select
-                                        from.  Must be a valid secret key.
+                                      description: key is the key of the secret to
+                                        select from.  Must be a valid secret key.
                                       type: string
                                     name:
                                       default: ""
                                       description: |-
-                                        Name of the referent.
+                                        name of the referent.
                                         This field is effectively required, but due to backwards compatibility is
                                         allowed to be empty. Instances of this type with an empty value here are
                                         almost certainly wrong.
                                         More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
                                       type: string
                                     optional:
-                                      description: Specify whether the Secret or its
-                                        key must be defined
+                                      description: optional specifies whether the
+                                        Secret or its key must be defined
                                       type: boolean
                                   required:
                                   - key
@@ -3106,12 +3134,12 @@ spec:
                               properties:
                                 name:
                                   description: |-
-                                    Name of the environment variable.
+                                    name is the name of the environment variable.
                                     May consist of any printable ASCII characters except '='.
                                   type: string
                                 value:
                                   description: |-
-                                    Variable references $(VAR_NAME) are expanded
+                                    value is the value of the environment variable. Variable references $(VAR_NAME) are expanded
                                     using the previously defined environment variables in the container and
                                     any service environment variables. If a variable cannot be resolved,
                                     the reference in the input string will be unchanged. Double $$ are reduced
@@ -3122,29 +3150,31 @@ spec:
                                     Defaults to "".
                                   type: string
                                 valueFrom:
-                                  description: Source for the environment variable's
-                                    value. Cannot be used if value is not empty.
+                                  description: valueFrom is the source for the environment
+                                    variable's value. Cannot be used if value is not
+                                    empty.
                                   properties:
                                     configMapKeyRef:
-                                      description: Selects a key of a ConfigMap.
+                                      description: configMapKeyRef selects a key of
+                                        a ConfigMap.
                                       properties:
                                         key:
                                           description: |-
-                                            The key to select from the ConfigMap's Data field.
+                                            key is the key to select from the ConfigMap's Data field.
                                             Keys in the BinaryData field are not currently propagated to container env vars.
                                           type: string
                                         name:
                                           default: ""
                                           description: |-
-                                            Name of the referent.
+                                            name of the referent.
                                             This field is effectively required, but due to backwards compatibility is
                                             allowed to be empty. Instances of this type with an empty value here are
                                             almost certainly wrong.
                                             More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
                                           type: string
                                         optional:
-                                          description: Specify whether the ConfigMap
-                                            or its key must be defined
+                                          description: optional specifies whether
+                                            the ConfigMap or its key must be defined
                                           type: boolean
                                       required:
                                       - key
@@ -3152,16 +3182,17 @@ spec:
                                       x-kubernetes-map-type: atomic
                                     fieldRef:
                                       description: |-
-                                        Selects a field of the pod: supports metadata.name, metadata.namespace, `metadata.labels['<KEY>']`, `metadata.annotations['<KEY>']`,
+                                        fieldRef selects a field of the pod: supports metadata.name, metadata.namespace, `metadata.labels['<KEY>']`, `metadata.annotations['<KEY>']`,
                                         spec.nodeName, spec.serviceAccountName, status.hostIP, status.podIP, status.podIPs.
                                       properties:
                                         apiVersion:
-                                          description: Version of the schema the FieldPath
-                                            is written in terms of, defaults to "v1".
+                                          description: apiVersion is the version of
+                                            the schema the FieldPath is written in
+                                            terms of, defaults to "v1".
                                           type: string
                                         fieldPath:
-                                          description: Path of the field to select
-                                            in the specified API version.
+                                          description: fieldPath is the path of the
+                                            field to select in the specified API version.
                                           type: string
                                       required:
                                       - fieldPath
@@ -3169,19 +3200,19 @@ spec:
                                       x-kubernetes-map-type: atomic
                                     fileKeyRef:
                                       description: |-
-                                        FileKeyRef selects a key of the env file.
+                                        fileKeyRef selects a key of the env file.
                                         Requires the EnvFiles feature gate to be enabled.
                                       properties:
                                         key:
                                           description: |-
-                                            The key within the env file. An invalid key will prevent the pod from starting.
+                                            key is the key within the env file. An invalid key will prevent the pod from starting.
                                             The keys defined within a source may consist of any printable ASCII characters except '='.
                                             During Alpha stage of the EnvFiles feature gate, the key size is limited to 128 characters.
                                           type: string
                                         optional:
                                           default: false
                                           description: |-
-                                            Specify whether the file or its key must be defined. If the file or key
+                                            optional specifies whether the file or its key must be defined. If the file or key
                                             does not exist, then the env var is not published.
                                             If optional is set to true and the specified key does not exist,
                                             the environment variable will not be set in the Pod's containers.
@@ -3191,12 +3222,12 @@ spec:
                                           type: boolean
                                         path:
                                           description: |-
-                                            The path within the volume from which to select the file.
+                                            path is the path within the volume from which to select the file.
                                             Must be relative and may not contain the '..' path or start with '..'.
                                           type: string
                                         volumeName:
-                                          description: The name of the volume mount
-                                            containing the env file.
+                                          description: volumeName is the name of the
+                                            volume mount containing the env file.
                                           type: string
                                       required:
                                       - key
@@ -3206,49 +3237,52 @@ spec:
                                       x-kubernetes-map-type: atomic
                                     resourceFieldRef:
                                       description: |-
-                                        Selects a resource of the container: only resources limits and requests
+                                        resourceFieldRef selects a resource of the container: only resources limits and requests
                                         (limits.cpu, limits.memory, limits.ephemeral-storage, requests.cpu, requests.memory and requests.ephemeral-storage) are currently supported.
                                       properties:
                                         containerName:
-                                          description: 'Container name: required for
-                                            volumes, optional for env vars'
+                                          description: 'containerName is the name
+                                            of the container: required for volumes,
+                                            optional for env vars'
                                           type: string
                                         divisor:
                                           anyOf:
                                           - type: integer
                                           - type: string
-                                          description: Specifies the output format
-                                            of the exposed resources, defaults to
-                                            "1"
+                                          description: |-
+                                            divisor optionally indicates how the resource from the container should be scaled.
+                                            If unset or 0, the resource is not scaled (divisor is treated as 1).
                                           pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                                           x-kubernetes-int-or-string: true
                                         resource:
-                                          description: 'Required: resource to select'
+                                          description: resource is the resource to
+                                            select
                                           type: string
                                       required:
                                       - resource
                                       type: object
                                       x-kubernetes-map-type: atomic
                                     secretKeyRef:
-                                      description: Selects a key of a secret in the
-                                        pod's namespace
+                                      description: secretKeyRef selects a key of a
+                                        secret in the pod's namespace
                                       properties:
                                         key:
-                                          description: The key of the secret to select
-                                            from.  Must be a valid secret key.
+                                          description: key is the key of the secret
+                                            to select from.  Must be a valid secret
+                                            key.
                                           type: string
                                         name:
                                           default: ""
                                           description: |-
-                                            Name of the referent.
+                                            name of the referent.
                                             This field is effectively required, but due to backwards compatibility is
                                             allowed to be empty. Instances of this type with an empty value here are
                                             almost certainly wrong.
                                             More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
                                           type: string
                                         optional:
-                                          description: Specify whether the Secret
-                                            or its key must be defined
+                                          description: optional specifies whether
+                                            the Secret or its key must be defined
                                           type: boolean
                                       required:
                                       - key
@@ -3372,12 +3406,12 @@ spec:
                           properties:
                             name:
                               description: |-
-                                Name of the environment variable.
+                                name is the name of the environment variable.
                                 May consist of any printable ASCII characters except '='.
                               type: string
                             value:
                               description: |-
-                                Variable references $(VAR_NAME) are expanded
+                                value is the value of the environment variable. Variable references $(VAR_NAME) are expanded
                                 using the previously defined environment variables in the container and
                                 any service environment variables. If a variable cannot be resolved,
                                 the reference in the input string will be unchanged. Double $$ are reduced
@@ -3388,29 +3422,30 @@ spec:
                                 Defaults to "".
                               type: string
                             valueFrom:
-                              description: Source for the environment variable's value.
-                                Cannot be used if value is not empty.
+                              description: valueFrom is the source for the environment
+                                variable's value. Cannot be used if value is not empty.
                               properties:
                                 configMapKeyRef:
-                                  description: Selects a key of a ConfigMap.
+                                  description: configMapKeyRef selects a key of a
+                                    ConfigMap.
                                   properties:
                                     key:
                                       description: |-
-                                        The key to select from the ConfigMap's Data field.
+                                        key is the key to select from the ConfigMap's Data field.
                                         Keys in the BinaryData field are not currently propagated to container env vars.
                                       type: string
                                     name:
                                       default: ""
                                       description: |-
-                                        Name of the referent.
+                                        name of the referent.
                                         This field is effectively required, but due to backwards compatibility is
                                         allowed to be empty. Instances of this type with an empty value here are
                                         almost certainly wrong.
                                         More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
                                       type: string
                                     optional:
-                                      description: Specify whether the ConfigMap or
-                                        its key must be defined
+                                      description: optional specifies whether the
+                                        ConfigMap or its key must be defined
                                       type: boolean
                                   required:
                                   - key
@@ -3418,16 +3453,17 @@ spec:
                                   x-kubernetes-map-type: atomic
                                 fieldRef:
                                   description: |-
-                                    Selects a field of the pod: supports metadata.name, metadata.namespace, `metadata.labels['<KEY>']`, `metadata.annotations['<KEY>']`,
+                                    fieldRef selects a field of the pod: supports metadata.name, metadata.namespace, `metadata.labels['<KEY>']`, `metadata.annotations['<KEY>']`,
                                     spec.nodeName, spec.serviceAccountName, status.hostIP, status.podIP, status.podIPs.
                                   properties:
                                     apiVersion:
-                                      description: Version of the schema the FieldPath
-                                        is written in terms of, defaults to "v1".
+                                      description: apiVersion is the version of the
+                                        schema the FieldPath is written in terms of,
+                                        defaults to "v1".
                                       type: string
                                     fieldPath:
-                                      description: Path of the field to select in
-                                        the specified API version.
+                                      description: fieldPath is the path of the field
+                                        to select in the specified API version.
                                       type: string
                                   required:
                                   - fieldPath
@@ -3435,19 +3471,19 @@ spec:
                                   x-kubernetes-map-type: atomic
                                 fileKeyRef:
                                   description: |-
-                                    FileKeyRef selects a key of the env file.
+                                    fileKeyRef selects a key of the env file.
                                     Requires the EnvFiles feature gate to be enabled.
                                   properties:
                                     key:
                                       description: |-
-                                        The key within the env file. An invalid key will prevent the pod from starting.
+                                        key is the key within the env file. An invalid key will prevent the pod from starting.
                                         The keys defined within a source may consist of any printable ASCII characters except '='.
                                         During Alpha stage of the EnvFiles feature gate, the key size is limited to 128 characters.
                                       type: string
                                     optional:
                                       default: false
                                       description: |-
-                                        Specify whether the file or its key must be defined. If the file or key
+                                        optional specifies whether the file or its key must be defined. If the file or key
                                         does not exist, then the env var is not published.
                                         If optional is set to true and the specified key does not exist,
                                         the environment variable will not be set in the Pod's containers.
@@ -3457,12 +3493,12 @@ spec:
                                       type: boolean
                                     path:
                                       description: |-
-                                        The path within the volume from which to select the file.
+                                        path is the path within the volume from which to select the file.
                                         Must be relative and may not contain the '..' path or start with '..'.
                                       type: string
                                     volumeName:
-                                      description: The name of the volume mount containing
-                                        the env file.
+                                      description: volumeName is the name of the volume
+                                        mount containing the env file.
                                       type: string
                                   required:
                                   - key
@@ -3472,48 +3508,50 @@ spec:
                                   x-kubernetes-map-type: atomic
                                 resourceFieldRef:
                                   description: |-
-                                    Selects a resource of the container: only resources limits and requests
+                                    resourceFieldRef selects a resource of the container: only resources limits and requests
                                     (limits.cpu, limits.memory, limits.ephemeral-storage, requests.cpu, requests.memory and requests.ephemeral-storage) are currently supported.
                                   properties:
                                     containerName:
-                                      description: 'Container name: required for volumes,
-                                        optional for env vars'
+                                      description: 'containerName is the name of the
+                                        container: required for volumes, optional
+                                        for env vars'
                                       type: string
                                     divisor:
                                       anyOf:
                                       - type: integer
                                       - type: string
-                                      description: Specifies the output format of
-                                        the exposed resources, defaults to "1"
+                                      description: |-
+                                        divisor optionally indicates how the resource from the container should be scaled.
+                                        If unset or 0, the resource is not scaled (divisor is treated as 1).
                                       pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                                       x-kubernetes-int-or-string: true
                                     resource:
-                                      description: 'Required: resource to select'
+                                      description: resource is the resource to select
                                       type: string
                                   required:
                                   - resource
                                   type: object
                                   x-kubernetes-map-type: atomic
                                 secretKeyRef:
-                                  description: Selects a key of a secret in the pod's
-                                    namespace
+                                  description: secretKeyRef selects a key of a secret
+                                    in the pod's namespace
                                   properties:
                                     key:
-                                      description: The key of the secret to select
-                                        from.  Must be a valid secret key.
+                                      description: key is the key of the secret to
+                                        select from.  Must be a valid secret key.
                                       type: string
                                     name:
                                       default: ""
                                       description: |-
-                                        Name of the referent.
+                                        name of the referent.
                                         This field is effectively required, but due to backwards compatibility is
                                         allowed to be empty. Instances of this type with an empty value here are
                                         almost certainly wrong.
                                         More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
                                       type: string
                                     optional:
-                                      description: Specify whether the Secret or its
-                                        key must be defined
+                                      description: optional specifies whether the
+                                        Secret or its key must be defined
                                       type: boolean
                                   required:
                                   - key
@@ -4029,22 +4067,23 @@ spec:
                           properties:
                             effect:
                               description: |-
-                                Required. The effect of the taint on pods
-                                that do not tolerate the taint.
+                                effect is the effect of the taint on pods
+                                that do not tolerate the taint. Required.
                                 Valid effects are NoSchedule, PreferNoSchedule and NoExecute.
                               type: string
                             key:
-                              description: Required. The taint key to be applied to
-                                a node.
+                              description: |-
+                                key is the taint key to be applied to a node. Required.
+                                The taint key to be applied to a node.
                               type: string
                             timeAdded:
-                              description: TimeAdded represents the time at which
+                              description: timeAdded represents the time at which
                                 the taint was added.
                               format: date-time
                               type: string
                             value:
-                              description: The taint value corresponding to the taint
-                                key.
+                              description: value is the taint value corresponding
+                                to the taint key.
                               type: string
                           required:
                           - effect
@@ -4510,22 +4549,23 @@ spec:
                           properties:
                             effect:
                               description: |-
-                                Required. The effect of the taint on pods
-                                that do not tolerate the taint.
+                                effect is the effect of the taint on pods
+                                that do not tolerate the taint. Required.
                                 Valid effects are NoSchedule, PreferNoSchedule and NoExecute.
                               type: string
                             key:
-                              description: Required. The taint key to be applied to
-                                a node.
+                              description: |-
+                                key is the taint key to be applied to a node. Required.
+                                The taint key to be applied to a node.
                               type: string
                             timeAdded:
-                              description: TimeAdded represents the time at which
+                              description: timeAdded represents the time at which
                                 the taint was added.
                               format: date-time
                               type: string
                             value:
-                              description: The taint value corresponding to the taint
-                                key.
+                              description: value is the taint value corresponding
+                                to the taint key.
                               type: string
                           required:
                           - effect
@@ -4809,6 +4849,7 @@ spec:
                       format: date-time
                       type: string
                     message:
+                      default: ""
                       description: |-
                         message is a human readable message indicating details about the transition.
                         This may be an empty string.
@@ -4847,7 +4888,6 @@ spec:
                       type: string
                   required:
                   - lastTransitionTime
-                  - message
                   - reason
                   - status
                   - type

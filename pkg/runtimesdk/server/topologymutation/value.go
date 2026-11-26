@@ -23,7 +23,7 @@ import (
 
 	pkgerrors "github.com/pkg/errors"
 	"github.com/valyala/fastjson"
-	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	apiextensionsv1 "k8s.io/apiextensions-api/pkg/apis/apiextensions/v1"
 )
 
 const (

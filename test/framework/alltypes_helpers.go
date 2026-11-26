@@ -27,14 +27,13 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	apiextensionsv1 "k8s.io/apiextensions-api/pkg/apis/apiextensions/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
@@ -47,7 +46,7 @@ import (
 type GetCAPIResourcesInput struct {
 	Lister       Lister
 	Namespace    string
-	IncludeTypes []metav1.TypeMeta
+	IncludeTypes map[metav1.TypeMeta]apiextensionsv1.ResourceScope
 }
 
 // GetCAPIResources reads all the CAPI resources in a namespace.
@@ -58,15 +57,24 @@ func GetCAPIResources(ctx context.Context, input GetCAPIResourcesInput) []*unstr
 	Expect(input.Namespace).NotTo(BeEmpty(), "input.Namespace is required for GetCAPIResources")
 
 	types := getClusterAPITypes(ctx, input.Lister)
-	types.Insert(input.IncludeTypes...)
+	for typ, scope := range input.IncludeTypes {
+		if _, ok := types[typ]; !ok {
+			types[typ] = scope
+		}
+	}
 
 	objList := []*unstructured.Unstructured{}
-	for _, typ := range types.UnsortedList() {
+	for typ, scope := range types {
 		typeList := new(unstructured.UnstructuredList)
 		typeList.SetAPIVersion(typ.APIVersion)
 		typeList.SetKind(typ.Kind)
 
-		if err := input.Lister.List(ctx, typeList, client.InNamespace(input.Namespace)); err != nil {
+		listOpts := []client.ListOption{}
+		if scope != apiextensionsv1.ClusterScoped {
+			listOpts = append(listOpts, client.InNamespace(input.Namespace))
+		}
+
+		if err := input.Lister.List(ctx, typeList, listOpts...); err != nil {
 			if apierrors.IsNotFound(err) {
 				continue
 			}
@@ -85,10 +93,10 @@ func GetCAPIResources(ctx context.Context, input GetCAPIResourcesInput) []*unstr
 	return objList
 }
 
-// getClusterAPITypes returns the list of TypeMeta to be considered for the move discovery phase.
+// getClusterAPITypes returns the list of TypeMeta, with their scope, to be considered for the move discovery phase.
 // This list includes all the types belonging to CAPI providers.
-func getClusterAPITypes(ctx context.Context, lister Lister) sets.Set[metav1.TypeMeta] {
-	discoveredTypes := sets.New[metav1.TypeMeta]()
+func getClusterAPITypes(ctx context.Context, lister Lister) map[metav1.TypeMeta]apiextensionsv1.ResourceScope {
+	discoveredTypes := map[metav1.TypeMeta]apiextensionsv1.ResourceScope{}
 
 	crdList := &apiextensionsv1.CustomResourceDefinitionList{}
 	Eventually(func() error {
@@ -101,13 +109,13 @@ func getClusterAPITypes(ctx context.Context, lister Lister) sets.Set[metav1.Type
 				continue
 			}
 
-			discoveredTypes.Insert(metav1.TypeMeta{
+			discoveredTypes[metav1.TypeMeta{
 				Kind: crd.Spec.Names.Kind,
 				APIVersion: metav1.GroupVersion{
 					Group:   crd.Spec.Group,
 					Version: version.Name,
 				}.String(),
-			})
+			}] = crd.Spec.Scope
 		}
 	}
 	return discoveredTypes
@@ -120,7 +128,7 @@ type DumpAllResourcesInput struct {
 	ClusterctlConfigPath string
 	Namespace            string
 	LogPath              string
-	IncludeTypes         []metav1.TypeMeta
+	IncludeTypes         map[metav1.TypeMeta]apiextensionsv1.ResourceScope
 }
 
 // DumpAllResources dumps Cluster API related resources to YAML

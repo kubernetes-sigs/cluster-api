@@ -26,7 +26,7 @@ import (
 
 	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
-	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	apiextensionsv1 "k8s.io/apiextensions-api/pkg/apis/apiextensions/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -435,15 +435,15 @@ func (o *objectGraph) Discovery(ctx context.Context, namespace string) error {
 	log := logf.Log
 	log.Info("Discovering Cluster API objects")
 
-	selectors := []client.ListOption{}
-	if namespace != "" {
-		selectors = append(selectors, client.InNamespace(namespace))
-	}
-
 	discoveryBackoff := newReadBackoff()
 	for _, discoveryType := range o.types {
 		typeMeta := discoveryType.typeMeta
 		objList := new(unstructured.UnstructuredList)
+
+		selectors := []client.ListOption{}
+		if namespace != "" && discoveryType.scope != apiextensionsv1.ClusterScoped {
+			selectors = append(selectors, client.InNamespace(namespace))
+		}
 
 		if err := retryWithExponentialBackoff(ctx, discoveryBackoff, func(ctx context.Context) error {
 			return getObjList(ctx, o.proxy, &typeMeta, selectors, objList)

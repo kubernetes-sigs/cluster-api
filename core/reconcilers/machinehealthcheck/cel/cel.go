@@ -21,8 +21,8 @@ import (
 	"fmt"
 	"time"
 
-	celgo "github.com/google/cel-go/cel"
-	celast "github.com/google/cel-go/common/ast"
+	celgo "cel.dev/cel-go/cel"
+	celast "cel.dev/cel-go/common/ast"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"

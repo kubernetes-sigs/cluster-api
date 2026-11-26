@@ -1517,7 +1517,7 @@ func schema_cluster_api_api_core_v1beta2_ClusterVariable(ref common.ReferenceCal
 					"value": {
 						SchemaProps: spec.SchemaProps{
 							Description: "value of the variable. Note: the value will be validated against the schema of the corresponding ClusterClassVariable from the ClusterClass. Note: We have to use apiextensionsv1.JSON instead of a custom JSON type, because controller-tools has a hard-coded schema for apiextensionsv1.JSON which cannot be produced by another type via controller-tools, i.e. it is not possible to have no type field. Ref: https://github.com/kubernetes-sigs/controller-tools/blob/d0e03a142d0ecdd5491593e941ee1d6b5d91dba6/pkg/crd/known_types.go#L106-L111",
-							Ref:         ref("k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1.JSON"),
+							Ref:         ref("k8s.io/apiextensions-api/pkg/apis/apiextensions/v1.JSON"),
 						},
 					},
 				},
@@ -1525,7 +1525,7 @@ func schema_cluster_api_api_core_v1beta2_ClusterVariable(ref common.ReferenceCal
 			},
 		},
 		Dependencies: []string{
-			"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1.JSON"},
+			"k8s.io/apiextensions-api/pkg/apis/apiextensions/v1.JSON"},
 	}
 }
 
@@ -2520,7 +2520,7 @@ func schema_cluster_api_api_core_v1beta2_JSONPatch(ref common.ReferenceCallback)
 					"value": {
 						SchemaProps: spec.SchemaProps{
 							Description: "value defines the value of the patch. Note: Either Value or ValueFrom is required for add and replace operations. Only one of them is allowed to be set at the same time. Note: We have to use apiextensionsv1.JSON instead of our JSON type, because controller-tools has a hard-coded schema for apiextensionsv1.JSON which cannot be produced by another type (unset type field). Ref: https://github.com/kubernetes-sigs/controller-tools/blob/d0e03a142d0ecdd5491593e941ee1d6b5d91dba6/pkg/crd/known_types.go#L106-L111",
-							Ref:         ref("k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1.JSON"),
+							Ref:         ref("k8s.io/apiextensions-api/pkg/apis/apiextensions/v1.JSON"),
 						},
 					},
 					"valueFrom": {
@@ -2534,7 +2534,7 @@ func schema_cluster_api_api_core_v1beta2_JSONPatch(ref common.ReferenceCallback)
 			},
 		},
 		Dependencies: []string{
-			"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1.JSON", "sigs.k8s.io/cluster-api/api/core/v1beta2.JSONPatchValue"},
+			"k8s.io/apiextensions-api/pkg/apis/apiextensions/v1.JSON", "sigs.k8s.io/cluster-api/api/core/v1beta2.JSONPatchValue"},
 	}
 }
 
@@ -2582,7 +2582,7 @@ func schema_cluster_api_api_core_v1beta2_JSONSchemaProps(ref common.ReferenceCal
 					"example": {
 						SchemaProps: spec.SchemaProps{
 							Description: "example is an example for this variable.",
-							Ref:         ref("k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1.JSON"),
+							Ref:         ref("k8s.io/apiextensions-api/pkg/apis/apiextensions/v1.JSON"),
 						},
 					},
 					"type": {
@@ -2749,7 +2749,7 @@ func schema_cluster_api_api_core_v1beta2_JSONSchemaProps(ref common.ReferenceCal
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
-										Ref: ref("k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1.JSON"),
+										Ref: ref("k8s.io/apiextensions-api/pkg/apis/apiextensions/v1.JSON"),
 									},
 								},
 							},
@@ -2758,7 +2758,7 @@ func schema_cluster_api_api_core_v1beta2_JSONSchemaProps(ref common.ReferenceCal
 					"default": {
 						SchemaProps: spec.SchemaProps{
 							Description: "default is the default value of the variable. NOTE: Can be set for all types.",
-							Ref:         ref("k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1.JSON"),
+							Ref:         ref("k8s.io/apiextensions-api/pkg/apis/apiextensions/v1.JSON"),
 						},
 					},
 					"x-kubernetes-validations": {
@@ -2849,7 +2849,7 @@ func schema_cluster_api_api_core_v1beta2_JSONSchemaProps(ref common.ReferenceCal
 			},
 		},
 		Dependencies: []string{
-			"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1.JSON", "sigs.k8s.io/cluster-api/api/core/v1beta2.JSONSchemaProps", "sigs.k8s.io/cluster-api/api/core/v1beta2.ValidationRule", "sigs.k8s.io/cluster-api/api/core/v1beta2.VariableSchemaMetadata"},
+			"k8s.io/apiextensions-api/pkg/apis/apiextensions/v1.JSON", "sigs.k8s.io/cluster-api/api/core/v1beta2.JSONSchemaProps", "sigs.k8s.io/cluster-api/api/core/v1beta2.ValidationRule", "sigs.k8s.io/cluster-api/api/core/v1beta2.VariableSchemaMetadata"},
 	}
 }
 

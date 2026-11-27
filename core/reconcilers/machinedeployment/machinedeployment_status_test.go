@@ -17,6 +17,7 @@ limitations under the License.
 package machinedeployment
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -302,7 +303,7 @@ func Test_setAvailableCondition(t *testing.T) {
 				Type:    clusterv1.MachineDeploymentAvailableCondition,
 				Status:  metav1.ConditionTrue,
 				Reason:  clusterv1.MachineDeploymentAvailableReason,
-				Message: connectionIssueDetectedMessage(reconcileTime.Add(-2 * time.Minute)),
+				Message: fmt.Sprintf("Connection issue detected, last successful probe at %s", reconcileTime.Add(-2*time.Minute).Format(time.RFC3339)),
 			},
 		},
 		{
@@ -328,7 +329,7 @@ func Test_setAvailableCondition(t *testing.T) {
 				Type:   clusterv1.MachineDeploymentAvailableCondition,
 				Status: metav1.ConditionFalse,
 				Reason: clusterv1.MachineDeploymentNotAvailableReason,
-				Message: "* " + connectionDownMessage(reconcileTime.Add(-5*time.Minute)) + "\n" +
+				Message: "* " + fmt.Sprintf("Connection down, last successful probe at %s", reconcileTime.Add(-5*time.Minute).Format(time.RFC3339)) + "\n" +
 					"* 0 available replicas, at least 5 required (spec.strategy.rollout.maxUnavailable is 0, spec.replicas is 5)",
 			},
 		},

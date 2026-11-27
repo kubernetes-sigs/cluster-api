@@ -176,13 +176,13 @@ func setAvailableCondition(_ context.Context, cluster *clusterv1.Cluster, machin
 	// If remote connection down and only remoteConnectionGracePeriod expired, surface the warning only as a message on top of the normal condition state.
 	lastProbeMessage := ""
 	if !healthCheckingState.LastProbeSuccessTime.IsZero() && time.Since(healthCheckingState.LastProbeSuccessTime) > remoteConnectionGracePeriod {
-		lastProbeMessage = connectionIssueDetectedMessage(healthCheckingState.LastProbeSuccessTime)
+		lastProbeMessage = fmt.Sprintf("Connection issue detected, last successful probe at %s", healthCheckingState.LastProbeSuccessTime.Format(time.RFC3339))
 	}
 
 	// If remote connection down and remoteConditionsGracePeriod expired, report it on top of NotAvailable (Machine Available condition also flips when remoteConditionsGracePeriod expired).
 	// Remote conditions grace period is counted from the latter of last probe success and control plane initialized.
 	if !healthCheckingState.LastProbeSuccessTime.IsZero() && time.Since(maxTime(healthCheckingState.LastProbeSuccessTime, controlPlaneInitialized.LastTransitionTime.Time)) > remoteConditionsGracePeriod {
-		lastProbeMessage = connectionDownMessage(healthCheckingState.LastProbeSuccessTime)
+		lastProbeMessage = fmt.Sprintf("Connection down, last successful probe at %s", healthCheckingState.LastProbeSuccessTime.Format(time.RFC3339))
 	}
 
 	// minReplicasNeeded will be equal to md.Spec.Replicas when the strategy is not RollingUpdateMachineDeploymentStrategyType.
@@ -707,38 +707,6 @@ func aggregateUnhealthyMachines(machines collections.Machines) string {
 	message += "not healthy (not to be remediated by MachineDeployment/MachineSet)"
 
 	return message
-}
-
-const (
-	connectionIssueDetectedPrefix = "Connection issue detected"
-	connectionDownPrefix          = "Connection down"
-)
-
-// lastProbeSuccessMessage returns the time of the last successful probe of the connection to the workload cluster, if any.
-func lastProbeSuccessMessage(lastProbeSuccessTime time.Time) string {
-	if lastProbeSuccessTime.IsZero() {
-		return ""
-	}
-	return fmt.Sprintf("last successful probe at %s", lastProbeSuccessTime.Format(time.RFC3339))
-}
-
-// connectionIssueDetectedMessage is the message surfaced while the connection to the workload cluster is down, but the
-// remote conditions grace period is not expired yet: conditions keep reporting the last known state.
-func connectionIssueDetectedMessage(lastProbeSuccessTime time.Time) string {
-	return withLastProbeSuccess(connectionIssueDetectedPrefix, lastProbeSuccessTime)
-}
-
-// connectionDownMessage is the message surfaced when the connection to the workload cluster is down and
-// the remote conditions grace period is expired: the last known state is not reliable anymore.
-func connectionDownMessage(lastProbeSuccessTime time.Time) string {
-	return withLastProbeSuccess(connectionDownPrefix, lastProbeSuccessTime)
-}
-
-func withLastProbeSuccess(prefix string, lastProbeSuccessTime time.Time) string {
-	if lastProbeSuccessTime.IsZero() {
-		return prefix
-	}
-	return prefix + ", " + lastProbeSuccessMessage(lastProbeSuccessTime)
 }
 
 func maxTime(t1, t2 time.Time) time.Time {

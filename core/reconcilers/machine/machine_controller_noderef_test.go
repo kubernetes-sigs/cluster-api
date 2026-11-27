@@ -40,6 +40,7 @@ import (
 	"sigs.k8s.io/cluster-api/pkg/features"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
+	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 	"sigs.k8s.io/cluster-api/util/index"
 	"sigs.k8s.io/cluster-api/util/kubeconfig"
 	"sigs.k8s.io/cluster-api/util/test/builder"
@@ -87,12 +88,14 @@ func TestReconcileNode(t *testing.T) {
 		machine                         *clusterv1.Machine
 		node                            *corev1.Node
 		controlPlaneInitialized         bool
+		disconnected                    bool
 		featureGateMachineTaintsEnabled bool
 		nodeGetErr                      bool
 		expectResult                    ctrl.Result
 		expectError                     bool
 		expected                        func(g *WithT, m *clusterv1.Machine)
 		expectNodeGetError              bool
+		expectNodeGetErrorIs            error
 		expectedNode                    func(g *WithT, m *corev1.Node)
 	}{
 		{
@@ -132,6 +135,31 @@ func TestReconcileNode(t *testing.T) {
 			nodeGetErr:                      false,
 			expectResult:                    ctrl.Result{},
 			expectError:                     false,
+		},
+		{
+			name:    "connection to the workload cluster down, should not read or patch the Node",
+			machine: defaultMachine.DeepCopy(),
+			node: &corev1.Node{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test-node-1",
+				},
+				Spec: corev1.NodeSpec{
+					ProviderID: "aws://us-east-1/test-node-1",
+				},
+			},
+			controlPlaneInitialized: true,
+			disconnected:            true,
+			expectResult:            ctrl.Result{},
+			expectError:             false,
+			expectNodeGetError:      true,
+			expectNodeGetErrorIs:    clustercache.ErrClusterNotConnected,
+			expected: func(g *WithT, m *clusterv1.Machine) {
+				g.Expect(m.Status.NodeRef.IsDefined()).To(BeFalse())
+				g.Expect(v1beta1conditions.Has(m, clusterv1.MachineNodeHealthyV1Beta1Condition)).To(BeFalse())
+			},
+			expectedNode: func(g *WithT, n *corev1.Node) {
+				g.Expect(n.Annotations).To(BeEmpty())
+			},
 		},
 		{
 			name:    "node found, should surface info",
@@ -326,8 +354,12 @@ func TestReconcileNode(t *testing.T) {
 				watches = append(watches, "machine-watchNodes")
 			}
 
+			clusterCache := clustercache.NewFakeClusterCache(c, client.ObjectKeyFromObject(cluster), watches...)
+			if tc.disconnected {
+				clusterCache = clustercache.NewFakeEmptyClusterCache()
+			}
 			r := &Reconciler{
-				ClusterCache: clustercache.NewFakeClusterCache(c, client.ObjectKeyFromObject(cluster), watches...),
+				ClusterCache: clusterCache,
 				Client:       c,
 				recorder:     record.NewFakeRecorder(10),
 				predicateLog: new(logr.New(log.NullLogSink{})),
@@ -346,6 +378,9 @@ func TestReconcileNode(t *testing.T) {
 			}
 
 			g.Expect(s.nodeGetError != nil).To(Equal(tc.expectNodeGetError))
+			if tc.expectNodeGetErrorIs != nil {
+				g.Expect(s.nodeGetError).To(MatchError(tc.expectNodeGetErrorIs))
+			}
 
 			if tc.expectedNode != nil {
 				node := &corev1.Node{}

@@ -33,6 +33,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	"sigs.k8s.io/cluster-api/core/reconcilers/machinedeployment/mdutil"
 	"sigs.k8s.io/cluster-api/internal/util/taints"
 	"sigs.k8s.io/cluster-api/pkg/features"
@@ -63,6 +64,24 @@ func (r *Reconciler) reconcileNode(ctx context.Context, s *scope) (ctrl.Result, 
 	cluster := s.cluster
 	machine := s.machine
 	infraMachine := s.infraMachine
+
+	// Short circuit if the connection to the workload cluster is down, because neither the Node watch can be created
+	// nor the Node can be read or patched.
+	// Note: s.nodeGetError is set so that the NodeReady and NodeHealthy conditions follow the connection grace periods.
+	// Note: It is not required to requeue, because the controller will get an event as soon as the connection is created.
+	if !r.ClusterCache.Connected(ctx, util.ObjectKey(cluster)) {
+		s.nodeGetError = clustercache.ErrClusterNotConnected
+		// Note: While the Machine is being deleted, reconcileDelete logs which operation is waiting for the connection;
+		// logging here too would change the values of the key on every reconcile and defeat rate limiting.
+		if machine.DeletionTimestamp.IsZero() {
+			r.logRateLimiter.InfoAtMostEvery(log, logRateLimitInterval, waitingForConnectionKey(machine, "ReconcileNode"),
+				"Waiting for connection to the workload cluster to reconcile the Node")
+		}
+		return ctrl.Result{}, nil
+	}
+	// Note: This also ends the wait of the operations in reconcileDelete, because reconcileNode always runs before
+	// reconcileDelete and Forget drops all the values of the key.
+	r.logRateLimiter.Forget(waitingForConnectionKey(machine, "ReconcileNode"))
 
 	// Create a watch on the nodes in the Cluster.
 	if err := r.watchClusterNodes(ctx, cluster); err != nil {
@@ -180,6 +199,13 @@ func (r *Reconciler) reconcileNode(ctx context.Context, s *scope) (ctrl.Result, 
 
 func waitingForNodeKey(m *clusterv1.Machine) logutil.Key {
 	return logutil.NewKey("WaitingForNode", logutil.WithObjects(m))
+}
+
+// waitingForConnectionKey returns the key of the log lines about waiting for the connection to the workload cluster.
+// Note: The operation is a value of the key, so all the operations share the same scope and the duration of the wait
+// counts from the first operation waiting for the connection.
+func waitingForConnectionKey(m *clusterv1.Machine, operation string) logutil.Key {
+	return logutil.NewKey("WaitingForConnection", logutil.WithObjects(m), logutil.WithValues(operation))
 }
 
 // summarizeNodeV1beta1Conditions summarizes a Node's conditions and returns the summary of condition statuses and concatenate failed condition messages:

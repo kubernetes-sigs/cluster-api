@@ -105,6 +105,7 @@ type Reconciler struct {
 	// WatchFilterValue is the label value used to filter events prior to reconciliation.
 	WatchFilterValue string
 
+	RemoteConnectionGracePeriod time.Duration
 	RemoteConditionsGracePeriod time.Duration
 
 	AdditionalSyncMachineLabels      []*regexp.Regexp
@@ -124,12 +125,15 @@ type Reconciler struct {
 
 // SetupWithManager sets up the reconciler with the Manager.
 func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
-	if r.Client == nil || r.APIReader == nil || r.ClusterCache == nil || r.RemoteConditionsGracePeriod < 2*time.Minute {
+	if r.Client == nil || r.APIReader == nil || r.ClusterCache == nil ||
+		r.RemoteConnectionGracePeriod == time.Duration(0) || r.RemoteConditionsGracePeriod < 2*time.Minute {
 		// A minimum of 2m is enforced to ensure the ClusterCache always drops the connection before the grace period is reached.
 		// In the worst case the ClusterCache will take FailureThreshold x (Interval + Timeout) = 5x(10s+5s) = 75s to drop a
 		// connection. There might be some additional delays in health checking under high load. So we use 2m as a minimum
 		// to have some buffer.
-		return pkgerrors.New("Client, APIReader and ClusterCache must not be nil and RemoteConditionsGracePeriod must not be < 2m")
+		return pkgerrors.New("Client, APIReader and ClusterCache must not be nil and " +
+			"RemoteConnectionGracePeriod must not be 0 and " +
+			"RemoteConditionsGracePeriod must not be < 2m")
 	}
 	if features.Gates.Enabled(features.InPlaceUpdates) && r.RuntimeClient == nil {
 		return pkgerrors.New("RuntimeClient must not be nil when InPlaceUpdates feature gate is enabled")
@@ -160,7 +164,10 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 			predicates.ClusterControlPlaneInitialized(mgr.GetScheme(), *r.predicateLog),
 			predicates.ResourceHasFilterLabel(mgr.GetScheme(), *r.predicateLog, r.WatchFilterValue),
 		).
-		WatchesRawSource(r.ClusterCache.GetClusterSource("machine", clusterToMachines, clustercache.WatchForProbeFailure(r.RemoteConditionsGracePeriod))).
+		WatchesRawSource(r.ClusterCache.GetClusterSource("machine", clusterToMachines,
+			clustercache.WatchForProbeFailure(r.RemoteConnectionGracePeriod),
+			clustercache.WatchForProbeFailure(r.RemoteConditionsGracePeriod),
+		)).
 		Watches(
 			&clusterv1.MachineSet{},
 			handler.EnqueueRequestsFromMapFunc(msToMachines),
@@ -547,6 +554,16 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (ctrl.Result
 				return ctrl.Result{}, err
 			}
 
+			// Short circuit if the connection to the workload cluster is down, because the Node cannot be drained.
+			// Note: The drain is skipped once NodeDrainTimeoutSeconds expires (see isNodeDrainAllowed), so requeue when it expires.
+			// If the timeout is not set, it is not required to requeue, because the controller will get an event as soon as the connection is created.
+			if !r.ClusterCache.Connected(ctx, util.ObjectKey(cluster)) {
+				s.deletingMessage = fmt.Sprintf("Waiting for connection to the workload cluster to drain Node (started at %s)", m.Status.Deletion.NodeDrainStartTime.Format(time.RFC3339))
+				r.logRateLimiter.InfoAtMostEvery(log, logRateLimitInterval, waitingForConnectionKey(m, "DrainNode"),
+					"Waiting for connection to the workload cluster to drain the Node", "Node", klog.KRef("", m.Status.NodeRef.Name))
+				return requeueAfterTimeout(m.Status.Deletion.NodeDrainStartTime, m.Spec.Deletion.NodeDrainTimeoutSeconds), nil
+			}
+
 			result, err := r.drainNode(ctx, s)
 			if err != nil {
 				v1beta1conditions.MarkFalse(m, clusterv1.DrainingSucceededV1Beta1Condition, clusterv1.DrainingFailedV1Beta1Reason, clusterv1.ConditionSeverityWarning, "%s", err.Error())
@@ -581,6 +598,16 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (ctrl.Result
 			}
 			s.deletingReason = clusterv1.MachineDeletingWaitingForVolumeDetachReason
 			s.deletingMessage = fmt.Sprintf("Waiting for Node volumes to be detached (started at %s)", m.Status.Deletion.WaitForNodeVolumeDetachStartTime.Format(time.RFC3339))
+
+			// Short circuit if the connection to the workload cluster is down, because the volumes attached to the Node cannot be checked.
+			// Note: The wait is skipped once NodeVolumeDetachTimeoutSeconds expires (see isNodeVolumeDetachingAllowed), so requeue when it expires.
+			// If the timeout is not set, it is not required to requeue, because the controller will get an event as soon as the connection is created.
+			if !r.ClusterCache.Connected(ctx, util.ObjectKey(cluster)) {
+				s.deletingMessage = fmt.Sprintf("Waiting for connection to the workload cluster to check that Node volumes are detached (started at %s)", m.Status.Deletion.WaitForNodeVolumeDetachStartTime.Format(time.RFC3339))
+				r.logRateLimiter.InfoAtMostEvery(log, logRateLimitInterval, waitingForConnectionKey(m, "WaitForNodeVolumeDetach"),
+					"Waiting for connection to the workload cluster to check that Node volumes are detached", "Node", klog.KRef("", m.Status.NodeRef.Name))
+				return requeueAfterTimeout(m.Status.Deletion.WaitForNodeVolumeDetachStartTime, m.Spec.Deletion.NodeVolumeDetachTimeoutSeconds), nil
+			}
 
 			result, err := r.shouldWaitForNodeVolumes(ctx, s)
 			if err != nil {
@@ -654,8 +681,6 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (ctrl.Result
 	// We only delete the node after the underlying infrastructure is gone.
 	// https://github.com/kubernetes-sigs/cluster-api/issues/2565
 	if isDeleteNodeAllowed {
-		log.Info(fmt.Sprintf("Deleting Node %s", m.Status.NodeRef.Name), "Node", klog.KRef("", m.Status.NodeRef.Name))
-
 		if m.Status.Deletion == nil {
 			m.Status.Deletion = &clusterv1.MachineDeletionStatus{}
 		}
@@ -663,17 +688,32 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (ctrl.Result
 			m.Status.Deletion.NodeDeletionStartTime = metav1.Now()
 		}
 
-		if err := r.deleteNode(ctx, cluster, m.Status.NodeRef.Name); err != nil && !apierrors.IsNotFound(pkgerrors.Cause(err)) {
-			v1beta1conditions.MarkFalse(m, clusterv1.MachineNodeHealthyV1Beta1Condition, clusterv1.DeletionFailedV1Beta1Reason, clusterv1.ConditionSeverityWarning, "")
-			r.recorder.Eventf(m, corev1.EventTypeWarning, "FailedDeleteNode", "error deleting Machine's Node: %v", err)
-
-			// If the node deletion timeout is not expired yet, requeue the Machine for reconciliation.
+		// Short circuit if the connection to the workload cluster is down, because the Node cannot be deleted.
+		// Note: The Machine is deleted without deleting the Node once NodeDeletionTimeoutSeconds expires, so requeue when it expires.
+		// If the timeout is not set, it is not required to requeue, because the controller will get an event as soon as the connection is created.
+		if !r.ClusterCache.Connected(ctx, util.ObjectKey(cluster)) {
 			if !r.nodeDeletionTimeoutExceeded(m) {
 				s.deletingReason = clusterv1.MachineDeletingDeletingNodeReason
-				s.deletingMessage = "Error deleting Node, please check controller logs for errors"
-				return ctrl.Result{}, err
+				s.deletingMessage = fmt.Sprintf("Waiting for connection to the workload cluster to delete Node (started at %s)", m.Status.Deletion.NodeDeletionStartTime.Format(time.RFC3339))
+				r.logRateLimiter.InfoAtMostEvery(log, logRateLimitInterval, waitingForConnectionKey(m, "DeleteNode"),
+					"Waiting for connection to the workload cluster to delete the Node", "Node", klog.KRef("", m.Status.NodeRef.Name))
+				return requeueAfterTimeout(m.Status.Deletion.NodeDeletionStartTime, m.Spec.Deletion.NodeDeletionTimeoutSeconds), nil
 			}
-			log.Error(err, "Node deletion timeout expired, continuing without Node deletion", "Node", klog.KRef("", m.Status.NodeRef.Name))
+			log.Info("Node deletion timeout expired, continuing without Node deletion because the connection to the workload cluster is down", "Node", klog.KRef("", m.Status.NodeRef.Name))
+		} else {
+			log.Info(fmt.Sprintf("Deleting Node %s", m.Status.NodeRef.Name), "Node", klog.KRef("", m.Status.NodeRef.Name))
+			if err := r.deleteNode(ctx, cluster, m.Status.NodeRef.Name); err != nil && !apierrors.IsNotFound(pkgerrors.Cause(err)) {
+				v1beta1conditions.MarkFalse(m, clusterv1.MachineNodeHealthyV1Beta1Condition, clusterv1.DeletionFailedV1Beta1Reason, clusterv1.ConditionSeverityWarning, "")
+				r.recorder.Eventf(m, corev1.EventTypeWarning, "FailedDeleteNode", "error deleting Machine's Node: %v", err)
+
+				// If the node deletion timeout is not expired yet, requeue the Machine for reconciliation.
+				if !r.nodeDeletionTimeoutExceeded(m) {
+					s.deletingReason = clusterv1.MachineDeletingDeletingNodeReason
+					s.deletingMessage = "Error deleting Node, please check controller logs for errors"
+					return ctrl.Result{}, err
+				}
+				log.Error(err, "Node deletion timeout expired, continuing without Node deletion", "Node", klog.KRef("", m.Status.NodeRef.Name))
+			}
 		}
 	}
 
@@ -694,6 +734,17 @@ func waitingForInfrastructureDeletionKey(m *clusterv1.Machine) logutil.Key {
 
 func waitingForBootstrapDeletionKey(m *clusterv1.Machine) logutil.Key {
 	return logutil.NewKey("WaitingForBootstrapDeletion", logutil.WithObjects(m))
+}
+
+// requeueAfterTimeout returns a result that requeues when the timeout counted from startTime expires.
+// If the timeout is not set, it returns an empty result.
+func requeueAfterTimeout(startTime metav1.Time, timeoutSeconds *int32) ctrl.Result {
+	if timeoutSeconds == nil || *timeoutSeconds <= 0 || startTime.IsZero() {
+		return ctrl.Result{}
+	}
+	// Note: The timeout could expire between the time it is checked by the caller and now; a minimum of 1s ensures
+	// we still requeue, because a RequeueAfter <= 0 does not requeue.
+	return ctrl.Result{RequeueAfter: max(time.Until(startTime.Add(time.Duration(*timeoutSeconds)*time.Second)), time.Second)}
 }
 
 func (r *Reconciler) isNodeDrainAllowed(m *clusterv1.Machine, infraMachine contractapi.InfraMachine) bool {
@@ -816,8 +867,12 @@ func (r *Reconciler) isDeleteNodeAllowed(ctx context.Context, cluster *clusterv1
 		// NOTE: The following is a best-effort attempt to retrieve the node,
 		// errors are logged but not returned to ensure machines are deleted
 		// even if the node cannot be retrieved.
-		remoteClient, err := r.ClusterCache.GetClient(ctx, util.ObjectKey(cluster))
-		if err != nil {
+		// Note: If the connection to the workload cluster is down, the Node is not retrieved and the Machine is deleted
+		// without draining and deleting the Node, because there is no timeout to wait for.
+		if !r.ClusterCache.Connected(ctx, util.ObjectKey(cluster)) {
+			r.logRateLimiter.InfoAtMostEvery(log, logRateLimitInterval, skippingNodeRetrievalKey(machine),
+				"Connection to the workload cluster is down, skipping retrieval of the Node of a Machine without status.nodeRef", "providerID", providerID)
+		} else if remoteClient, err := r.ClusterCache.GetClient(ctx, util.ObjectKey(cluster)); err != nil {
 			log.Error(err, "Failed to get cluster client while deleting Machine and checking for nodes")
 		} else {
 			node, err := r.getNode(ctx, remoteClient, providerID)
@@ -882,6 +937,10 @@ func (r *Reconciler) isDeleteNodeAllowed(ctx context.Context, cluster *clusterv1
 	}
 	// Otherwise it is okay to delete the NodeRef.
 	return nil
+}
+
+func skippingNodeRetrievalKey(m *clusterv1.Machine) logutil.Key {
+	return logutil.NewKey("SkippingNodeRetrieval", logutil.WithObjects(m))
 }
 
 func (r *Reconciler) drainNode(ctx context.Context, s *scope) (ctrl.Result, error) {

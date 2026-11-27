@@ -4075,6 +4075,9 @@ func TestReconcileDelete(t *testing.T) {
 		},
 	}
 
+	// Note: A recent start time is required to test the requeue when a timeout expires.
+	recentStartTime := time.Now().Truncate(time.Second)
+
 	excludeDrainAndVolumeDetach := map[string]string{
 		clusterv1.ExcludeNodeDrainingAnnotation:            "",
 		clusterv1.ExcludeWaitForNodeVolumeDetachAnnotation: "",
@@ -4093,9 +4096,15 @@ func TestReconcileDelete(t *testing.T) {
 		bootstrapConfig        contractapi.BootstrapConfig
 		interceptorFuncs       interceptor.Funcs
 		remoteInterceptorFuncs interceptor.Funcs
+		// connectionDown makes the ClusterCache report that there is no connection to the workload cluster.
+		connectionDown bool
+		modifyMachine  func(m *clusterv1.Machine)
 
 		// Expected results.
-		wantResult                 ctrl.Result
+		wantResult ctrl.Result
+		// wantRequeueAfterTolerance is the tolerance when comparing RequeueAfter; if not set RequeueAfter must match exactly.
+		// Note: It is required when RequeueAfter is computed from a start time, e.g. the time left until a deletion timeout expires.
+		wantRequeueAfterTolerance  time.Duration
 		wantErr                    string
 		wantDeletingReason         string
 		wantDeletingMessage        string
@@ -4269,6 +4278,101 @@ func TestReconcileDelete(t *testing.T) {
 			wantDeletingMessage:  "Deletion completed",
 			wantFinalizerRemoved: true,
 		},
+		{
+			name:                      "Wait for the connection to drain the Node, without requeue if the drain timeout is not set",
+			connectionDown:            true,
+			infraMachine:              infraMachine,
+			machineStatusDeletion:     &clusterv1.MachineDeletionStatus{NodeDrainStartTime: metav1.Time{Time: nodeDrainStartTime}},
+			wantDeletingReason:        clusterv1.MachineDeletingDrainingNodeReason,
+			wantDeletingMessage:       "Waiting for connection to the workload cluster to drain Node (started at 2024-10-09T16:13:59Z)",
+			wantMachineStatusDeletion: &clusterv1.MachineDeletionStatus{NodeDrainStartTime: metav1.Time{Time: anyTime}},
+		},
+		{
+			name:           "Wait for the connection to drain the Node, with requeue when the drain timeout expires",
+			connectionDown: true,
+			infraMachine:   infraMachine,
+			modifyMachine: func(m *clusterv1.Machine) {
+				m.Spec.Deletion.NodeDrainTimeoutSeconds = new(int32(60 * 60))
+			},
+			machineStatusDeletion:     &clusterv1.MachineDeletionStatus{NodeDrainStartTime: metav1.Time{Time: recentStartTime}},
+			wantResult:                ctrl.Result{RequeueAfter: time.Hour},
+			wantRequeueAfterTolerance: 5 * time.Second,
+			wantDeletingReason:        clusterv1.MachineDeletingDrainingNodeReason,
+			wantDeletingMessage:       fmt.Sprintf("Waiting for connection to the workload cluster to drain Node (started at %s)", recentStartTime.Format(time.RFC3339)),
+			wantMachineStatusDeletion: &clusterv1.MachineDeletionStatus{NodeDrainStartTime: metav1.Time{Time: anyTime}},
+		},
+		{
+			name:           "Skip the drain if the drain timeout expired and wait for the connection to check volume detach, with requeue when the volume detach timeout expires",
+			connectionDown: true,
+			infraMachine:   infraMachine,
+			modifyMachine: func(m *clusterv1.Machine) {
+				m.Spec.Deletion.NodeDrainTimeoutSeconds = new(int32(60))
+				m.Spec.Deletion.NodeVolumeDetachTimeoutSeconds = new(int32(60 * 60))
+			},
+			machineStatusDeletion: &clusterv1.MachineDeletionStatus{
+				NodeDrainStartTime:               metav1.Time{Time: nodeDrainStartTime},
+				WaitForNodeVolumeDetachStartTime: metav1.Time{Time: recentStartTime},
+			},
+			wantResult:                ctrl.Result{RequeueAfter: time.Hour},
+			wantRequeueAfterTolerance: 5 * time.Second,
+			wantDeletingReason:        clusterv1.MachineDeletingWaitingForVolumeDetachReason,
+			wantDeletingMessage:       fmt.Sprintf("Waiting for connection to the workload cluster to check that Node volumes are detached (started at %s)", recentStartTime.Format(time.RFC3339)),
+			wantMachineStatusDeletion: &clusterv1.MachineDeletionStatus{
+				NodeDrainStartTime:               metav1.Time{Time: anyTime},
+				WaitForNodeVolumeDetachStartTime: metav1.Time{Time: anyTime},
+			},
+		},
+		{
+			name:           "Wait for the connection to delete the Node, with requeue when the Node deletion timeout expires",
+			connectionDown: true,
+			annotations:    excludeDrainAndVolumeDetach,
+			modifyMachine: func(m *clusterv1.Machine) {
+				m.Spec.Deletion.NodeDeletionTimeoutSeconds = new(int32(10))
+			},
+			machineStatusDeletion:     &clusterv1.MachineDeletionStatus{NodeDeletionStartTime: metav1.Time{Time: recentStartTime}},
+			wantResult:                ctrl.Result{RequeueAfter: 10 * time.Second},
+			wantRequeueAfterTolerance: 5 * time.Second,
+			wantDeletingReason:        clusterv1.MachineDeletingDeletingNodeReason,
+			wantDeletingMessage:       fmt.Sprintf("Waiting for connection to the workload cluster to delete Node (started at %s)", recentStartTime.Format(time.RFC3339)),
+			wantMachineStatusDeletion: &clusterv1.MachineDeletionStatus{NodeDeletionStartTime: metav1.Time{Time: anyTime}},
+		},
+		{
+			name:           "Wait for the connection to delete the Node, without requeue if the Node deletion timeout is not set",
+			connectionDown: true,
+			annotations:    excludeDrainAndVolumeDetach,
+			modifyMachine: func(m *clusterv1.Machine) {
+				m.Spec.Deletion.NodeDeletionTimeoutSeconds = new(int32(0))
+			},
+			machineStatusDeletion:     &clusterv1.MachineDeletionStatus{NodeDeletionStartTime: metav1.Time{Time: nodeDrainStartTime}},
+			wantDeletingReason:        clusterv1.MachineDeletingDeletingNodeReason,
+			wantDeletingMessage:       "Waiting for connection to the workload cluster to delete Node (started at 2024-10-09T16:13:59Z)",
+			wantMachineStatusDeletion: &clusterv1.MachineDeletionStatus{NodeDeletionStartTime: metav1.Time{Time: anyTime}},
+		},
+		{
+			name:           "Complete deletion without deleting the Node if the Node deletion timeout expired and the connection is down",
+			connectionDown: true,
+			annotations:    excludeDrainAndVolumeDetach,
+			modifyMachine: func(m *clusterv1.Machine) {
+				m.Spec.Deletion.NodeDeletionTimeoutSeconds = new(int32(10))
+			},
+			machineStatusDeletion:     &clusterv1.MachineDeletionStatus{NodeDeletionStartTime: metav1.Time{Time: nodeDrainStartTime}},
+			wantDeletingReason:        clusterv1.MachineDeletingDeletionCompletedReason,
+			wantDeletingMessage:       "Deletion completed",
+			wantFinalizerRemoved:      true,
+			wantMachineStatusDeletion: &clusterv1.MachineDeletionStatus{NodeDeletionStartTime: metav1.Time{Time: anyTime}},
+		},
+		{
+			// Note: The Node is not retrieved by providerID when the connection is down, so there is no Node to drain and delete.
+			name:           "Complete deletion without retrieving the Node if status.nodeRef is not set and the connection is down",
+			connectionDown: true,
+			modifyMachine: func(m *clusterv1.Machine) {
+				m.Spec.ProviderID = "test://id-1"
+				m.Status.NodeRef = clusterv1.MachineNodeReference{}
+			},
+			wantDeletingReason:   clusterv1.MachineDeletingDeletionCompletedReason,
+			wantDeletingMessage:  "Deletion completed",
+			wantFinalizerRemoved: true,
+		},
 	}
 
 	for _, tc := range testCases {
@@ -4277,6 +4381,9 @@ func TestReconcileDelete(t *testing.T) {
 
 			m := testMachine.DeepCopy()
 			m.Annotations = tc.annotations
+			if tc.modifyMachine != nil {
+				tc.modifyMachine(m)
+			}
 			if tc.machineStatusDeletion != nil {
 				m.Status.Deletion = tc.machineStatusDeletion.DeepCopy()
 			}
@@ -4320,7 +4427,12 @@ func TestReconcileDelete(t *testing.T) {
 				objs = append(objs, contractapi.ToUnstructuredForDelete(bootstrapConfigGVK, tc.bootstrapConfig))
 			}
 
+			scheme := runtime.NewScheme()
+			g.Expect(apiextensionsv1.AddToScheme(scheme)).To(Succeed())
+			g.Expect(corev1.AddToScheme(scheme)).To(Succeed())
+			g.Expect(clusterv1.AddToScheme(scheme)).To(Succeed())
 			fakeClient := fake.NewClientBuilder().
+				WithScheme(scheme).
 				WithObjects(objs...).
 				WithStatusSubresource(&clusterv1.Machine{}).
 				Build()
@@ -4328,10 +4440,14 @@ func TestReconcileDelete(t *testing.T) {
 			fc := capicontrollerutil.NewFakeController()
 			recorder := record.NewFakeRecorder(10)
 
+			clusterCache := clustercache.NewFakeClusterCache(interceptor.NewClient(remoteClient, tc.remoteInterceptorFuncs), client.ObjectKeyFromObject(&testCluster))
+			if tc.connectionDown {
+				clusterCache = clustercache.NewFakeEmptyClusterCache()
+			}
 			r := &Reconciler{
 				// Note: The interceptors are only used by the Reconciler. The assertions below use the clients without interceptors.
 				Client:       interceptor.NewClient(fakeClient, tc.interceptorFuncs),
-				ClusterCache: clustercache.NewFakeClusterCache(interceptor.NewClient(remoteClient, tc.remoteInterceptorFuncs), client.ObjectKeyFromObject(&testCluster)),
+				ClusterCache: clusterCache,
 				controller:   fc,
 				recorder:     recorder,
 			}
@@ -4348,7 +4464,12 @@ func TestReconcileDelete(t *testing.T) {
 			}
 			res, err := r.reconcileDelete(ctx, s)
 
-			g.Expect(res).To(BeComparableTo(tc.wantResult))
+			wantResult := tc.wantResult
+			if tc.wantRequeueAfterTolerance > 0 {
+				g.Expect(res.RequeueAfter).To(BeNumerically("~", wantResult.RequeueAfter, tc.wantRequeueAfterTolerance))
+				res.RequeueAfter, wantResult.RequeueAfter = 0, 0
+			}
+			g.Expect(res).To(BeComparableTo(wantResult))
 			if tc.wantErr == "" {
 				g.Expect(err).ToNot(HaveOccurred())
 			} else {

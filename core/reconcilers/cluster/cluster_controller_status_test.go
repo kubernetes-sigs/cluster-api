@@ -17,6 +17,7 @@ limitations under the License.
 package cluster
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -413,6 +414,36 @@ func TestSetRemoteConnectionProbeCondition(t *testing.T) {
 			},
 		},
 		{
+			name:    "Connection down, tried to connect, but failed < 5 times and never succeeded",
+			cluster: fakeCluster("c"),
+			healthCheckingState: clustercache.HealthCheckingState{
+				LastProbeTime:        time.Now(),
+				LastProbeSuccessTime: time.Time{},
+				ConsecutiveFailures:  4,
+			},
+			expectCondition: metav1.Condition{
+				Type:    clusterv1.ClusterRemoteConnectionProbeCondition,
+				Status:  metav1.ConditionFalse,
+				Reason:  clusterv1.ClusterRemoteConnectionProbeFailedReason,
+				Message: "Remote connection not established yet",
+			},
+		},
+		{
+			name:    "Connection down, tried to connect, but failed >= 5 times and never succeeded",
+			cluster: fakeCluster("c"),
+			healthCheckingState: clustercache.HealthCheckingState{
+				LastProbeTime:        time.Now(),
+				LastProbeSuccessTime: time.Time{},
+				ConsecutiveFailures:  5,
+			},
+			expectCondition: metav1.Condition{
+				Type:    clusterv1.ClusterRemoteConnectionProbeCondition,
+				Status:  metav1.ConditionFalse,
+				Reason:  clusterv1.ClusterRemoteConnectionProbeFailedReason,
+				Message: "Connection down",
+			},
+		},
+		{
 			name:    "Connection down, connection grace period not yet expired",
 			cluster: fakeCluster("c"),
 			healthCheckingState: clustercache.HealthCheckingState{
@@ -438,7 +469,7 @@ func TestSetRemoteConnectionProbeCondition(t *testing.T) {
 				Type:    clusterv1.ClusterRemoteConnectionProbeCondition,
 				Status:  metav1.ConditionFalse,
 				Reason:  clusterv1.ClusterRemoteConnectionProbeFailedReason,
-				Message: connectionIssueDetectedMessage(now.Add(-2 * time.Minute)),
+				Message: fmt.Sprintf("Connection issue detected, last successful probe at %s", now.Add(-2*time.Minute).Format(time.RFC3339)),
 			},
 		},
 		{
@@ -462,7 +493,7 @@ func TestSetRemoteConnectionProbeCondition(t *testing.T) {
 				Type:    clusterv1.ClusterRemoteConnectionProbeCondition,
 				Status:  metav1.ConditionFalse,
 				Reason:  clusterv1.ClusterRemoteConnectionProbeFailedReason,
-				Message: connectionIssueDetectedMessage(now.Add(-50 * time.Minute)),
+				Message: fmt.Sprintf("Connection issue detected, last successful probe at %s", now.Add(-50*time.Minute).Format(time.RFC3339)),
 			},
 		},
 		{
@@ -477,7 +508,7 @@ func TestSetRemoteConnectionProbeCondition(t *testing.T) {
 				Type:    clusterv1.ClusterRemoteConnectionProbeCondition,
 				Status:  metav1.ConditionFalse,
 				Reason:  clusterv1.ClusterRemoteConnectionProbeFailedReason,
-				Message: connectionDownMessage(now.Add(-50 * time.Minute)),
+				Message: fmt.Sprintf("Connection down, last successful probe at %s", now.Add(-50*time.Minute).Format(time.RFC3339)),
 			},
 		},
 	}
@@ -2462,12 +2493,127 @@ func TestDeletingCondition(t *testing.T) {
 
 func TestSetAvailableCondition(t *testing.T) {
 	testCases := []struct {
-		name                     string
-		cluster                  *clusterv1.Cluster
-		clusterClass             *clusterv1.ClusterClass
-		consecutiveProbeFailures int
-		expectCondition          metav1.Condition
+		name            string
+		cluster         *clusterv1.Cluster
+		clusterClass    *clusterv1.ClusterClass
+		expectCondition metav1.Condition
 	}{
+		{
+			name: "Available",
+			cluster: &clusterv1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "machine-test",
+					Namespace: metav1.NamespaceDefault,
+				},
+				Spec: clusterv1.ClusterSpec{
+					Topology: clusterv1.Topology{ // using CC
+						ClassRef: clusterv1.ClusterClassRef{
+							Name: "class",
+						},
+					},
+				},
+				Status: clusterv1.ClusterStatus{
+					Conditions: []metav1.Condition{
+						{
+							Type:   clusterv1.ClusterInfrastructureReadyCondition,
+							Status: metav1.ConditionTrue,
+							Reason: "Foo",
+						},
+						{
+							Type:   clusterv1.ClusterControlPlaneAvailableCondition,
+							Status: metav1.ConditionTrue,
+							Reason: "Foo",
+						},
+						{
+							Type:   clusterv1.ClusterWorkersAvailableCondition,
+							Status: metav1.ConditionTrue,
+							Reason: "Foo",
+						},
+						{
+							Type:   clusterv1.ClusterRemoteConnectionProbeCondition,
+							Status: metav1.ConditionTrue,
+							Reason: "Foo",
+						},
+						{
+							Type:   clusterv1.ClusterDeletingCondition,
+							Status: metav1.ConditionFalse,
+							Reason: "Foo",
+						},
+						{
+							Type:   clusterv1.ClusterTopologyReconciledCondition,
+							Status: metav1.ConditionTrue,
+							Reason: "Foo",
+						},
+					},
+				},
+			},
+			expectCondition: metav1.Condition{
+				Type:    clusterv1.ClusterAvailableCondition,
+				Status:  metav1.ConditionTrue,
+				Reason:  clusterv1.ClusterAvailableReason,
+				Message: "",
+			},
+		},
+
+		// Connection down
+
+		{
+			name: "Connection down does not affect Available",
+			cluster: &clusterv1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "machine-test",
+					Namespace: metav1.NamespaceDefault,
+				},
+				Spec: clusterv1.ClusterSpec{
+					Topology: clusterv1.Topology{ // using CC
+						ClassRef: clusterv1.ClusterClassRef{
+							Name: "class",
+						},
+					},
+				},
+				Status: clusterv1.ClusterStatus{
+					Conditions: []metav1.Condition{
+						{
+							Type:   clusterv1.ClusterInfrastructureReadyCondition,
+							Status: metav1.ConditionTrue,
+							Reason: "Foo",
+						},
+						{
+							Type:   clusterv1.ClusterControlPlaneAvailableCondition,
+							Status: metav1.ConditionTrue,
+							Reason: "Foo",
+						},
+						{
+							Type:   clusterv1.ClusterWorkersAvailableCondition,
+							Status: metav1.ConditionTrue,
+							Reason: "Foo",
+						},
+						{
+							Type:    clusterv1.ClusterRemoteConnectionProbeCondition,
+							Status:  metav1.ConditionFalse,
+							Reason:  "Foo",
+							Message: "Bar",
+						},
+						{
+							Type:   clusterv1.ClusterDeletingCondition,
+							Status: metav1.ConditionFalse,
+							Reason: "Foo",
+						},
+						{
+							Type:   clusterv1.ClusterTopologyReconciledCondition,
+							Status: metav1.ConditionTrue,
+							Reason: "Foo",
+						},
+					},
+				},
+			},
+			expectCondition: metav1.Condition{
+				Type:    clusterv1.ClusterAvailableCondition,
+				Status:  metav1.ConditionTrue,
+				Reason:  clusterv1.ClusterAvailableReason,
+				Message: "* RemoteConnectionProbe: Bar",
+			},
+		},
 		{
 			name: "Takes into account all the required conditions",
 			cluster: &clusterv1.Cluster{
@@ -3081,132 +3227,13 @@ func TestSetAvailableCondition(t *testing.T) {
 					"* TopologyReconciled: ClusterClass not reconciled. If this condition persists please check ClusterClass status. A ClusterClass is reconciled if.status.observedGeneration == .metadata.generation is true. If this is not the case either ClusterClass reconciliation failed or the ClusterClass is paused",
 			},
 		},
-		{
-			name: "Available",
-			cluster: &clusterv1.Cluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "machine-test",
-					Namespace: metav1.NamespaceDefault,
-				},
-				Spec: clusterv1.ClusterSpec{
-					Topology: clusterv1.Topology{ // using CC
-						ClassRef: clusterv1.ClusterClassRef{
-							Name: "class",
-						},
-					},
-				},
-				Status: clusterv1.ClusterStatus{
-					Conditions: []metav1.Condition{
-						{
-							Type:   clusterv1.ClusterInfrastructureReadyCondition,
-							Status: metav1.ConditionTrue,
-							Reason: "Foo",
-						},
-						{
-							Type:   clusterv1.ClusterControlPlaneAvailableCondition,
-							Status: metav1.ConditionTrue,
-							Reason: "Foo",
-						},
-						{
-							Type:   clusterv1.ClusterWorkersAvailableCondition,
-							Status: metav1.ConditionTrue,
-							Reason: "Foo",
-						},
-						{
-							Type:   clusterv1.ClusterRemoteConnectionProbeCondition,
-							Status: metav1.ConditionTrue,
-							Reason: "Foo",
-						},
-						{
-							Type:   clusterv1.ClusterDeletingCondition,
-							Status: metav1.ConditionFalse,
-							Reason: "Foo",
-						},
-						{
-							Type:   clusterv1.ClusterTopologyReconciledCondition,
-							Status: metav1.ConditionTrue,
-							Reason: "Foo",
-						},
-					},
-				},
-			},
-			expectCondition: metav1.Condition{
-				Type:    clusterv1.ClusterAvailableCondition,
-				Status:  metav1.ConditionTrue,
-				Reason:  clusterv1.ClusterAvailableReason,
-				Message: "",
-			},
-		},
-
-		// Connection down
-
-		{
-			name: "Connection down does not affect Available",
-			cluster: &clusterv1.Cluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "machine-test",
-					Namespace: metav1.NamespaceDefault,
-				},
-				Spec: clusterv1.ClusterSpec{
-					Topology: clusterv1.Topology{ // using CC
-						ClassRef: clusterv1.ClusterClassRef{
-							Name: "class",
-						},
-					},
-				},
-				Status: clusterv1.ClusterStatus{
-					Conditions: []metav1.Condition{
-						{
-							Type:   clusterv1.ClusterInfrastructureReadyCondition,
-							Status: metav1.ConditionTrue,
-							Reason: "Foo",
-						},
-						{
-							Type:   clusterv1.ClusterControlPlaneAvailableCondition,
-							Status: metav1.ConditionTrue,
-							Reason: "Foo",
-						},
-						{
-							Type:   clusterv1.ClusterWorkersAvailableCondition,
-							Status: metav1.ConditionTrue,
-							Reason: "Foo",
-						},
-						{
-							Type:    clusterv1.ClusterRemoteConnectionProbeCondition,
-							Status:  metav1.ConditionFalse,
-							Reason:  "Foo",
-							Message: "Bar",
-						},
-						{
-							Type:   clusterv1.ClusterDeletingCondition,
-							Status: metav1.ConditionFalse,
-							Reason: "Foo",
-						},
-						{
-							Type:   clusterv1.ClusterTopologyReconciledCondition,
-							Status: metav1.ConditionTrue,
-							Reason: "Foo",
-						},
-					},
-				},
-			},
-			expectCondition: metav1.Condition{
-				Type:    clusterv1.ClusterAvailableCondition,
-				Status:  metav1.ConditionTrue,
-				Reason:  clusterv1.ClusterAvailableReason,
-				Message: "* RemoteConnectionProbe: Bar",
-			},
-		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			healthCheckingState := clustercache.HealthCheckingState{
-				ConsecutiveFailures: tc.consecutiveProbeFailures,
-			}
-			setAvailableCondition(ctx, tc.cluster, tc.clusterClass, healthCheckingState, 5*time.Minute)
+			setAvailableCondition(ctx, tc.cluster, tc.clusterClass)
 
 			condition := conditions.Get(tc.cluster, clusterv1.ClusterAvailableCondition)
 			g.Expect(condition).ToNot(BeNil())

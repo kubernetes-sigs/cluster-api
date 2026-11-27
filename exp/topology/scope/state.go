@@ -47,6 +47,46 @@ type ClusterState struct {
 	MachinePools MachinePoolsStateMap
 }
 
+// DeepCopy returns a deep copy of the ClusterState.
+func (s *ClusterState) DeepCopy() *ClusterState {
+	if s == nil {
+		return nil
+	}
+	out := &ClusterState{
+		Cluster:               s.Cluster.DeepCopy(),
+		InfrastructureCluster: s.InfrastructureCluster.DeepCopy(),
+	}
+	if s.ControlPlane != nil {
+		out.ControlPlane = &ControlPlaneState{
+			Object:                        s.ControlPlane.Object.DeepCopy(),
+			InfrastructureMachineTemplate: s.ControlPlane.InfrastructureMachineTemplate.DeepCopy(),
+			MachineHealthCheck:            s.ControlPlane.MachineHealthCheck.DeepCopy(),
+		}
+	}
+	if s.MachineDeployments != nil {
+		out.MachineDeployments = make(MachineDeploymentsStateMap, len(s.MachineDeployments))
+		for name, md := range s.MachineDeployments {
+			out.MachineDeployments[name] = &MachineDeploymentState{
+				Object:                        md.Object.DeepCopy(),
+				BootstrapTemplate:             md.BootstrapTemplate.DeepCopy(),
+				InfrastructureMachineTemplate: md.InfrastructureMachineTemplate.DeepCopy(),
+				MachineHealthCheck:            md.MachineHealthCheck.DeepCopy(),
+			}
+		}
+	}
+	if s.MachinePools != nil {
+		out.MachinePools = make(MachinePoolsStateMap, len(s.MachinePools))
+		for name, mp := range s.MachinePools {
+			out.MachinePools[name] = &MachinePoolState{
+				Object:                          mp.Object.DeepCopy(),
+				BootstrapObject:                 mp.BootstrapObject.DeepCopy(),
+				InfrastructureMachinePoolObject: mp.InfrastructureMachinePoolObject.DeepCopy(),
+			}
+		}
+	}
+	return out
+}
+
 // ControlPlaneState holds all the objects representing the state of a managed control plane.
 type ControlPlaneState struct {
 	// Object holds the ControlPlane object.

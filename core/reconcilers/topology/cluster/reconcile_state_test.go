@@ -1687,6 +1687,14 @@ func testReconcileControlPlane(t *testing.T, controlPlaneContractVersion string)
 	infrastructureMachineTemplateWithChanges := infrastructureMachineTemplate.DeepCopy()
 	g.Expect(unstructured.SetNestedField(infrastructureMachineTemplateWithChanges.UnstructuredContent(), "foo-changed", "spec", "template", "spec", "foo")).To(Succeed())
 
+	// Create desired controlPlaneInfrastructure with some change, which has already been rotated when computing the desired state.
+	rotatedInfrastructureMachineTemplateWithChanges := infrastructureMachineTemplateWithChanges.DeepCopy()
+	rotatedInfrastructureMachineTemplateWithChanges.SetName(topologynames.ControlPlaneInfrastructureMachineTemplateNamePrefix("cluster1") + "rotated")
+	controlPlaneWithRotatedInfrastructure := builder.ControlPlane(metav1.NamespaceDefault, "cp1").
+		WithInfrastructureMachineTemplate(rotatedInfrastructureMachineTemplateWithChanges, controlPlaneContractVersion).
+		WithSpecFields(map[string]any{"spec.foo": "foo"}).
+		Build()
+
 	// Build a patch used to simulate instance specific changes made by an external controller, and build the expected machine infrastructure object.
 	infrastructureMachineTemplateExternalChanges := "{ \"spec\": { \"template\": { \"spec\": { \"bar\": \"bar\" } } }}"
 	infrastructureMachineTemplateWithExternalChanges := infrastructureMachineTemplate.DeepCopy()
@@ -1792,6 +1800,15 @@ func testReconcileControlPlane(t *testing.T, controlPlaneContractVersion string)
 			original:     &scope.ControlPlaneState{Object: controlPlaneWithInfrastructure.DeepCopy(), InfrastructureMachineTemplate: infrastructureMachineTemplate.DeepCopy()},
 			desired:      &scope.ControlPlaneState{Object: controlPlaneWithInfrastructure.DeepCopy(), InfrastructureMachineTemplate: infrastructureMachineTemplateWithChanges.DeepCopy()},
 			want:         &scope.ControlPlaneState{Object: controlPlaneWithInfrastructure.DeepCopy(), InfrastructureMachineTemplate: infrastructureMachineTemplateWithChanges.DeepCopy()},
+			wantRotation: true,
+			wantErr:      false,
+		},
+		{
+			name:         "Should create the rotated machine infrastructure if the desired template has already been rotated",
+			class:        ccWithControlPlaneInfrastructure,
+			original:     &scope.ControlPlaneState{Object: controlPlaneWithInfrastructure.DeepCopy(), InfrastructureMachineTemplate: infrastructureMachineTemplate.DeepCopy()},
+			desired:      &scope.ControlPlaneState{Object: controlPlaneWithRotatedInfrastructure.DeepCopy(), InfrastructureMachineTemplate: rotatedInfrastructureMachineTemplateWithChanges.DeepCopy()},
+			want:         &scope.ControlPlaneState{Object: controlPlaneWithRotatedInfrastructure.DeepCopy(), InfrastructureMachineTemplate: rotatedInfrastructureMachineTemplateWithChanges.DeepCopy()},
 			wantRotation: true,
 			wantErr:      false,
 		},
@@ -1995,6 +2012,7 @@ func testReconcileControlPlane(t *testing.T, controlPlaneContractVersion string)
 					ok, err := regexp.MatchString(pattern, gotInfrastructureMachineRef.Name)
 					g.Expect(err).ToNot(HaveOccurred())
 					g.Expect(ok).To(BeTrue())
+					g.Expect(gotInfrastructureMachineRef.Name).To(Equal(tt.desired.InfrastructureMachineTemplate.GetName()))
 				}
 
 				// Create object to hold the queried InfrastructureMachineTemplate

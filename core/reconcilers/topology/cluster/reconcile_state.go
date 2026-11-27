@@ -1266,6 +1266,14 @@ func (r *Reconciler) reconcileReferencedTemplate(ctx context.Context, in reconci
 	log = log.WithValues(in.current.GetKind(), klog.KObj(in.current))
 	ctx = ctrl.LoggerInto(ctx, log)
 
+	// If the desired state already has a new name, the template rotation has been decided when computing the desired state.
+	// Note: This is the case for the InfrastructureMachineTemplate of the ControlPlane, because patches have to be
+	// computed with the name of the new template.
+	if in.current.GetName() != in.desired.GetName() {
+		log.Info(fmt.Sprintf("Rotating %s %s, new name %s", in.current.GetKind(), in.current.GetName(), in.desired.GetName()))
+		return r.createRotatedTemplate(ctx, in)
+	}
+
 	// Check differences between current and desired objects, and if there are changes eventually start the template rotation.
 	patchHelper, err := structuredmerge.NewServerSidePatchHelper(ctx, in.current, in.desired, r.Client, r.ssaCache)
 	if err != nil {
@@ -1297,7 +1305,15 @@ func (r *Reconciler) reconcileReferencedTemplate(ctx context.Context, in reconci
 	in.desired.SetName(newName)
 
 	logPatch(log, fmt.Sprintf("Rotating %s %s, new name %s", in.current.GetKind(), in.current.GetName(), newName), patchHelper)
-	log.Info(fmt.Sprintf("Creating %s %s", in.desired.GetKind(), newName))
+	return r.createRotatedTemplate(ctx, in)
+}
+
+// createRotatedTemplate creates the desired template as a replacement of the current template and updates the reference
+// with the name of the new template.
+func (r *Reconciler) createRotatedTemplate(ctx context.Context, in reconcileReferencedTemplateInput) (bool, error) {
+	log := ctrl.LoggerFrom(ctx)
+
+	log.Info(fmt.Sprintf("Creating %s %s", in.desired.GetKind(), in.desired.GetName()))
 	helper, err := structuredmerge.NewServerSidePatchHelper(ctx, nil, in.desired, r.Client, r.ssaCache)
 	if err != nil {
 		return false, pkgerrors.Wrap(createErrorWithoutObjectName(ctx, err, in.desired), "failed to create patch helper")
@@ -1305,12 +1321,12 @@ func (r *Reconciler) reconcileReferencedTemplate(ctx context.Context, in reconci
 	if _, err := helper.Patch(ctx); err != nil {
 		return false, createErrorWithoutObjectName(ctx, err, in.desired)
 	}
-	r.recorder.Eventf(in.cluster, corev1.EventTypeNormal, createEventReason, "Created %s %q as a replacement for %q (template rotation)", in.desired.GetKind(), klog.KObj(in.desired), in.ref.Name)
+	r.recorder.Eventf(in.cluster, corev1.EventTypeNormal, createEventReason, "Created %s %q as a replacement for %q (template rotation)", in.desired.GetKind(), klog.KObj(in.desired), in.current.GetName())
 
 	// Update the reference with the new name.
 	// NOTE: Updating the object hosting reference to the template is executed outside this func.
 	// TODO: find a way to make side effect more explicit
-	in.ref.Name = newName
+	in.ref.Name = in.desired.GetName()
 
 	return true, nil
 }

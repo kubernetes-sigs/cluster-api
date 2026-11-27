@@ -17,6 +17,7 @@ limitations under the License.
 package machinedeployment
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -26,6 +27,7 @@ import (
 	"k8s.io/utils/ptr"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	"sigs.k8s.io/cluster-api/util/collections"
 	"sigs.k8s.io/cluster-api/util/conditions"
 )
@@ -105,10 +107,13 @@ func Test_setReplicas(t *testing.T) {
 }
 
 func Test_setAvailableCondition(t *testing.T) {
+	reconcileTime := time.Now()
+
 	tests := []struct {
 		name                                         string
 		machineDeployment                            *clusterv1.MachineDeployment
 		getAndAdoptMachineSetsForDeploymentSucceeded bool
+		lastProbeSuccessTime                         time.Time
 		expectCondition                              metav1.Condition
 	}{
 		{
@@ -247,12 +252,106 @@ func Test_setAvailableCondition(t *testing.T) {
 				Message: "Deletion in progress",
 			},
 		},
+
+		// Connection down
+
+		{
+			name: "Connection down, connection grace period not yet expired",
+			machineDeployment: &clusterv1.MachineDeployment{
+				Spec: clusterv1.MachineDeploymentSpec{
+					Replicas: new(int32(5)),
+					Rollout: clusterv1.MachineDeploymentRolloutSpec{
+						Strategy: clusterv1.MachineDeploymentRolloutStrategy{
+							Type: clusterv1.RollingUpdateMachineDeploymentStrategyType,
+							RollingUpdate: clusterv1.MachineDeploymentRolloutStrategyRollingUpdate{
+								MaxSurge:       new(intstr.FromInt32(1)),
+								MaxUnavailable: new(intstr.FromInt32(0)),
+							},
+						},
+					},
+				},
+				Status: clusterv1.MachineDeploymentStatus{AvailableReplicas: new(int32(5))},
+			},
+			getAndAdoptMachineSetsForDeploymentSucceeded: true,
+			lastProbeSuccessTime:                         reconcileTime.Add(-30 * time.Second),
+			expectCondition: metav1.Condition{
+				Type:   clusterv1.MachineDeploymentAvailableCondition,
+				Status: metav1.ConditionTrue,
+				Reason: clusterv1.MachineDeploymentAvailableReason,
+			},
+		},
+		{
+			name: "Connection down, connection grace period expired, condition grace period not yet expired",
+			machineDeployment: &clusterv1.MachineDeployment{
+				Spec: clusterv1.MachineDeploymentSpec{
+					Replicas: new(int32(5)),
+					Rollout: clusterv1.MachineDeploymentRolloutSpec{
+						Strategy: clusterv1.MachineDeploymentRolloutStrategy{
+							Type: clusterv1.RollingUpdateMachineDeploymentStrategyType,
+							RollingUpdate: clusterv1.MachineDeploymentRolloutStrategyRollingUpdate{
+								MaxSurge:       new(intstr.FromInt32(1)),
+								MaxUnavailable: new(intstr.FromInt32(0)),
+							},
+						},
+					},
+				},
+				Status: clusterv1.MachineDeploymentStatus{AvailableReplicas: new(int32(5))},
+			},
+			getAndAdoptMachineSetsForDeploymentSucceeded: true,
+			lastProbeSuccessTime:                         reconcileTime.Add(-2 * time.Minute),
+			expectCondition: metav1.Condition{
+				Type:    clusterv1.MachineDeploymentAvailableCondition,
+				Status:  metav1.ConditionTrue,
+				Reason:  clusterv1.MachineDeploymentAvailableReason,
+				Message: fmt.Sprintf("Connection issue detected, last successful probe at %s", reconcileTime.Add(-2*time.Minute).Format(time.RFC3339)),
+			},
+		},
+		{
+			name: "Connection down, condition grace period expired",
+			machineDeployment: &clusterv1.MachineDeployment{
+				Spec: clusterv1.MachineDeploymentSpec{
+					Replicas: new(int32(5)),
+					Rollout: clusterv1.MachineDeploymentRolloutSpec{
+						Strategy: clusterv1.MachineDeploymentRolloutStrategy{
+							Type: clusterv1.RollingUpdateMachineDeploymentStrategyType,
+							RollingUpdate: clusterv1.MachineDeploymentRolloutStrategyRollingUpdate{
+								MaxSurge:       new(intstr.FromInt32(1)),
+								MaxUnavailable: new(intstr.FromInt32(0)),
+							},
+						},
+					},
+				},
+				Status: clusterv1.MachineDeploymentStatus{AvailableReplicas: new(int32(0))},
+			},
+			getAndAdoptMachineSetsForDeploymentSucceeded: true,
+			lastProbeSuccessTime:                         reconcileTime.Add(-5 * time.Minute),
+			expectCondition: metav1.Condition{
+				Type:   clusterv1.MachineDeploymentAvailableCondition,
+				Status: metav1.ConditionFalse,
+				Reason: clusterv1.MachineDeploymentNotAvailableReason,
+				Message: "* " + fmt.Sprintf("Connection down, last successful probe at %s", reconcileTime.Add(-5*time.Minute).Format(time.RFC3339)) + "\n" +
+					"* 0 available replicas, at least 5 required (spec.strategy.rollout.maxUnavailable is 0, spec.replicas is 5)",
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			setAvailableCondition(ctx, tt.machineDeployment, tt.getAndAdoptMachineSetsForDeploymentSucceeded)
+			cluster := &clusterv1.Cluster{
+				Status: clusterv1.ClusterStatus{Conditions: []metav1.Condition{
+					{
+						Type:               clusterv1.ClusterControlPlaneInitializedCondition,
+						Status:             metav1.ConditionTrue,
+						Reason:             clusterv1.ClusterControlPlaneInitializedReason,
+						LastTransitionTime: metav1.Time{Time: reconcileTime.Add(-1 * time.Hour)},
+					},
+				}},
+			}
+			healthCheckingState := clustercache.HealthCheckingState{
+				LastProbeSuccessTime: tt.lastProbeSuccessTime,
+			}
+			setAvailableCondition(ctx, cluster, tt.machineDeployment, tt.getAndAdoptMachineSetsForDeploymentSucceeded, healthCheckingState, 50*time.Second, 5*time.Minute)
 
 			condition := conditions.Get(tt.machineDeployment, clusterv1.MachineDeploymentAvailableCondition)
 			g.Expect(condition).ToNot(BeNil())

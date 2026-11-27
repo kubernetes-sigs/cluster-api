@@ -29,8 +29,10 @@ import (
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	"sigs.k8s.io/cluster-api/core/reconcilers/machinedeployment/mdutil"
 	internalversion "sigs.k8s.io/cluster-api/internal/util/version"
 	"sigs.k8s.io/cluster-api/util/collections"
@@ -57,7 +59,8 @@ func (r *Reconciler) updateStatus(ctx context.Context, s *scope) (retErr error) 
 	}
 	setPhase(ctx, s.machineDeployment, s.machineSets, s.getAndAdoptMachineSetsForDeploymentSucceeded)
 
-	setAvailableCondition(ctx, s.machineDeployment, s.getAndAdoptMachineSetsForDeploymentSucceeded)
+	healthCheckingState := r.ClusterCache.GetHealthCheckingState(ctx, client.ObjectKeyFromObject(s.cluster))
+	setAvailableCondition(ctx, s.cluster, s.machineDeployment, s.getAndAdoptMachineSetsForDeploymentSucceeded, healthCheckingState, r.RemoteConnectionGracePeriod, r.RemoteConditionsGracePeriod)
 
 	setRollingOutCondition(ctx, s.machineDeployment, s.machines, s.canUpdateMachineSetResults, s.rolloutReconciled)
 	setScalingUpCondition(ctx, s.machineDeployment, s.machineSets, s.bootstrapTemplateNotFound, s.infrastructureTemplateNotFound, s.getAndAdoptMachineSetsForDeploymentSucceeded)
@@ -125,7 +128,18 @@ func setPhase(_ context.Context, machineDeployment *clusterv1.MachineDeployment,
 	}
 }
 
-func setAvailableCondition(_ context.Context, machineDeployment *clusterv1.MachineDeployment, getAndAdoptMachineSetsForDeploymentSucceeded bool) {
+func setAvailableCondition(_ context.Context, cluster *clusterv1.Cluster, machineDeployment *clusterv1.MachineDeployment, getAndAdoptMachineSetsForDeploymentSucceeded bool, healthCheckingState clustercache.HealthCheckingState, remoteConnectionGracePeriod, remoteConditionsGracePeriod time.Duration) {
+	controlPlaneInitialized := conditions.Get(cluster, clusterv1.ClusterControlPlaneInitializedCondition)
+	if controlPlaneInitialized == nil || controlPlaneInitialized.Status != metav1.ConditionTrue {
+		conditions.Set(machineDeployment, metav1.Condition{
+			Type:    clusterv1.MachineDeploymentAvailableCondition,
+			Status:  metav1.ConditionFalse,
+			Reason:  clusterv1.MachineDeploymentNotAvailableReason,
+			Message: "Waiting for Cluster control plane to be initialized",
+		})
+		return
+	}
+
 	// If we got unexpected errors in listing the machine sets (this should never happen), surface them.
 	if !getAndAdoptMachineSetsForDeploymentSucceeded {
 		conditions.Set(machineDeployment, metav1.Condition{
@@ -159,14 +173,26 @@ func setAvailableCondition(_ context.Context, machineDeployment *clusterv1.Machi
 		return
 	}
 
+	// If remote connection down and only remoteConnectionGracePeriod expired, surface the warning only as a message on top of the normal condition state.
+	lastProbeMessage := ""
+	if !healthCheckingState.LastProbeSuccessTime.IsZero() && time.Since(healthCheckingState.LastProbeSuccessTime) > remoteConnectionGracePeriod {
+		lastProbeMessage = fmt.Sprintf("Connection issue detected, last successful probe at %s", healthCheckingState.LastProbeSuccessTime.Format(time.RFC3339))
+	}
+
+	// If remote connection down and remoteConditionsGracePeriod expired, report it on top of NotAvailable (Machine Available condition also flips when remoteConditionsGracePeriod expired).
+	// Remote conditions grace period is counted from the latter of last probe success and control plane initialized.
+	if !healthCheckingState.LastProbeSuccessTime.IsZero() && time.Since(maxTime(healthCheckingState.LastProbeSuccessTime, controlPlaneInitialized.LastTransitionTime.Time)) > remoteConditionsGracePeriod {
+		lastProbeMessage = fmt.Sprintf("Connection down, last successful probe at %s", healthCheckingState.LastProbeSuccessTime.Format(time.RFC3339))
+	}
+
 	// minReplicasNeeded will be equal to md.Spec.Replicas when the strategy is not RollingUpdateMachineDeploymentStrategyType.
 	minReplicasNeeded := *(machineDeployment.Spec.Replicas) - mdutil.MaxUnavailable(*machineDeployment)
-
 	if *machineDeployment.Status.AvailableReplicas >= minReplicasNeeded {
 		conditions.Set(machineDeployment, metav1.Condition{
-			Type:   clusterv1.MachineDeploymentAvailableCondition,
-			Status: metav1.ConditionTrue,
-			Reason: clusterv1.MachineDeploymentAvailableReason,
+			Type:    clusterv1.MachineDeploymentAvailableCondition,
+			Status:  metav1.ConditionTrue,
+			Reason:  clusterv1.MachineDeploymentAvailableReason,
+			Message: lastProbeMessage,
 		})
 		return
 	}
@@ -179,6 +205,11 @@ func setAvailableCondition(_ context.Context, machineDeployment *clusterv1.Machi
 	if !machineDeployment.DeletionTimestamp.IsZero() {
 		message = "Deletion in progress"
 	}
+
+	if lastProbeMessage != "" {
+		message = fmt.Sprintf("* %s\n* %s", lastProbeMessage, message)
+	}
+
 	conditions.Set(machineDeployment, metav1.Condition{
 		Type:    clusterv1.MachineDeploymentAvailableCondition,
 		Status:  metav1.ConditionFalse,
@@ -676,4 +707,11 @@ func aggregateUnhealthyMachines(machines collections.Machines) string {
 	message += "not healthy (not to be remediated by MachineDeployment/MachineSet)"
 
 	return message
+}
+
+func maxTime(t1, t2 time.Time) time.Time {
+	if t1.After(t2) {
+		return t1
+	}
+	return t2
 }

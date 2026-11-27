@@ -683,10 +683,13 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager, watchNamespace stri
 		os.Exit(1)
 	}
 	if err := (&machinedeployment.Reconciler{
-		Client:           mgr.GetClient(),
-		APIReader:        mgr.GetAPIReader(),
-		RuntimeClient:    runtimeClient,
-		WatchFilterValue: watchFilterValue,
+		Client:                      mgr.GetClient(),
+		APIReader:                   mgr.GetAPIReader(),
+		ClusterCache:                clusterCache,
+		RuntimeClient:               runtimeClient,
+		WatchFilterValue:            watchFilterValue,
+		RemoteConnectionGracePeriod: remoteConnectionGracePeriod,
+		RemoteConditionsGracePeriod: remoteConditionsGracePeriod,
 	}).SetupWithManager(ctx, mgr, concurrency(machineDeploymentConcurrency)); err != nil {
 		setupLog.Error(err, "Unable to create controller", "controller", "MachineDeployment")
 		os.Exit(1)

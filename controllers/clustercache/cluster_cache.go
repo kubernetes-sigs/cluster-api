@@ -537,7 +537,8 @@ func (cc *clusterCache) Reconcile(ctx context.Context, req reconcile.Request) (r
 		} else {
 			if err := accessor.Connect(ctx); err != nil {
 				// Requeue, if the connect failed.
-				log.Error(err, fmt.Sprintf("Requeuing after %s (connection creation failed)",
+				// Note: Error is already logged by Connect.
+				log.V(6).Info(fmt.Sprintf("Requeuing after %s (connection creation failed)",
 					accessor.config.ConnectionCreationRetryInterval))
 				requeueAfterDurations = append(requeueAfterDurations, accessor.config.ConnectionCreationRetryInterval)
 			} else {

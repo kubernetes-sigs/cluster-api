@@ -96,6 +96,7 @@ func TestMain(m *testing.M) {
 			APIReader:                   mgr.GetClient(),
 			ClusterCache:                clusterCache,
 			RemoteConnectionGracePeriod: 50 * time.Second,
+			RemoteConditionsGracePeriod: 5 * time.Minute,
 		}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: 1}); err != nil {
 			panic(fmt.Sprintf("Failed to start ClusterReconciler: %v", err))
 		}

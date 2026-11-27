@@ -75,7 +75,7 @@ func (r *Reconciler) updateStatus(ctx context.Context, s *scope) error {
 
 	// conditions
 	healthCheckingState := r.ClusterCache.GetHealthCheckingState(ctx, client.ObjectKeyFromObject(s.cluster))
-	setRemoteConnectionProbeCondition(ctx, s.cluster, healthCheckingState, r.RemoteConnectionGracePeriod)
+	setRemoteConnectionProbeCondition(ctx, s.cluster, healthCheckingState, r.RemoteConnectionGracePeriod, r.RemoteConditionsGracePeriod)
 	setInfrastructureReadyCondition(ctx, s.cluster, s.infraCluster, s.infraClusterIsNotFound)
 	setControlPlaneAvailableCondition(ctx, s.cluster, s.controlPlane, s.controlPlaneIsNotFound)
 	setControlPlaneInitializedCondition(ctx, s.cluster, s.controlPlane, controlPlaneContractVersion, s.descendants.controlPlaneMachines, s.controlPlaneIsNotFound, s.getDescendantsSucceeded)
@@ -308,7 +308,7 @@ func setWorkersReplicas(_ context.Context, cluster *clusterv1.Cluster, machinePo
 	cluster.Status.Workers.Versions = internalversion.AggregateStatusVersions(workerVersions)
 }
 
-func setRemoteConnectionProbeCondition(_ context.Context, cluster *clusterv1.Cluster, healthCheckingState clustercache.HealthCheckingState, remoteConnectionGracePeriod time.Duration) {
+func setRemoteConnectionProbeCondition(_ context.Context, cluster *clusterv1.Cluster, healthCheckingState clustercache.HealthCheckingState, remoteConnectionGracePeriod, remoteConditionsGracePeriod time.Duration) {
 	// ClusterCache did not try to connect often enough yet, either during controller startup or when a new Cluster is created.
 	if healthCheckingState.LastProbeSuccessTime.IsZero() && healthCheckingState.ConsecutiveFailures < 5 {
 		// If condition is not set, set it.
@@ -323,18 +323,28 @@ func setRemoteConnectionProbeCondition(_ context.Context, cluster *clusterv1.Clu
 		return
 	}
 
+	// Note: In case of remote connection down, this condition flips after remoteConnectionGracePeriod expires.
+	// All the other conditions will be preserved until after remoteConditionsGracePeriod expires (only Available conditions will start reporting a warning).
 	if time.Since(healthCheckingState.LastProbeSuccessTime) > remoteConnectionGracePeriod {
-		var msg string
-		if healthCheckingState.LastProbeSuccessTime.IsZero() {
-			msg = "Remote connection probe failed"
-		} else {
-			msg = fmt.Sprintf("Remote connection probe failed, probe last succeeded at %s", healthCheckingState.LastProbeSuccessTime.Format(time.RFC3339))
+		// Note: LastProbeSuccessTime is zero if the connection never succeeded.
+		lastProbeSuccess := ""
+		if !healthCheckingState.LastProbeSuccessTime.IsZero() {
+			lastProbeSuccess = fmt.Sprintf(", last successful probe at %s", healthCheckingState.LastProbeSuccessTime.Format(time.RFC3339))
+		}
+		message := "Connection issue detected" + lastProbeSuccess
+		controlPlaneInitialized := conditions.Get(cluster, clusterv1.ClusterControlPlaneInitializedCondition)
+		var controlPlaneInitializedTime time.Time
+		if controlPlaneInitialized != nil {
+			controlPlaneInitializedTime = controlPlaneInitialized.LastTransitionTime.Time
+		}
+		if time.Since(maxTime(healthCheckingState.LastProbeSuccessTime, controlPlaneInitializedTime)) > remoteConditionsGracePeriod {
+			message = "Connection down" + lastProbeSuccess
 		}
 		conditions.Set(cluster, metav1.Condition{
 			Type:    clusterv1.ClusterRemoteConnectionProbeCondition,
 			Status:  metav1.ConditionFalse,
 			Reason:  clusterv1.ClusterRemoteConnectionProbeFailedReason,
-			Message: msg,
+			Message: message,
 		})
 		return
 	}
@@ -1154,6 +1164,15 @@ func (c clusterConditionCustomMergeStrategy) Merge(operation conditions.MergeOpe
 				condition.Reason != clusterv1.ClusterTopologyReconciledFailedReason && condition.Reason != clusterv1.ClusterTopologyReconciledClusterClassNotReconciledReason {
 				return conditions.InfoMergePriority
 			}
+
+			// ClusterRemoteConnectionProbeCondition should be considered as info when false, so
+			// we avoid surfacing the message about last connection probe on top of the same message
+			// from ControlPlaneAvailable and WorkerAvailable.
+			// Note: after remoteConditionsGracePeriod expires, ControlPlaneAvailable or WorkerAvailable conditions will report False / impact cluster Availability.
+			if condition.Type == clusterv1.ClusterRemoteConnectionProbeCondition && condition.Status == metav1.ConditionFalse {
+				return conditions.InfoMergePriority
+			}
+
 			return conditions.GetDefaultMergePriorityFunc(c.negativePolarityConditionTypes...)(condition)
 		}),
 		conditions.ComputeReasonFunc(conditions.GetDefaultComputeMergeReasonFunc(
@@ -1348,4 +1367,11 @@ func (w aggregationWrapper) GetLabels() map[string]string {
 		return w.ms.GetLabels()
 	}
 	panic("not supported")
+}
+
+func maxTime(t1, t2 time.Time) time.Time {
+	if t1.After(t2) {
+		return t1
+	}
+	return t2
 }

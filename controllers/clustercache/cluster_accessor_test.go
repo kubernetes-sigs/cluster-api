@@ -91,7 +91,35 @@ func TestConnect(t *testing.T) {
 	g.Expect(err).To(HaveOccurred())
 	g.Expect(err.Error()).To(Equal("error getting kubeconfig secret: Secret \"test-cluster-kubeconfig\" not found"))
 	g.Expect(accessor.Connected(ctx)).To(BeFalse())
-	g.Expect(accessor.lockedState).To(Equal(clusterAccessorLockedState{}))
+	g.Expect(accessor.lockedState.lastConnectionCreationErrorTime.IsZero()).To(BeFalse())
+	g.Expect(accessor.lockedState).To(Equal(clusterAccessorLockedState{
+		lastConnectionCreationErrorTime: accessor.lockedState.lastConnectionCreationErrorTime,
+		healthChecking: clusterAccessorLockedHealthCheckingState{
+			lastProbeTime:       accessor.lockedState.healthChecking.lastProbeTime,
+			consecutiveFailures: 1,
+		},
+	}))
+
+	// Create kubeconfig Secret that cannot be parsed
+	unparsableKubeconfigSecret := kubeconfig.GenerateSecret(testCluster, []byte("key: [unclosed"))
+	g.Expect(env.CreateAndWait(ctx, unparsableKubeconfigSecret)).To(Succeed())
+
+	// Connect with unparsable kubeconfig Secret
+	err = accessor.Connect(ctx)
+	g.Expect(err).To(HaveOccurred())
+	g.Expect(err.Error()).To(Equal("error parsing kubeconfig (error details are omitted as they might contain credentials)"))
+	g.Expect(accessor.Connected(ctx)).To(BeFalse())
+	g.Expect(accessor.lockedState.lastConnectionCreationErrorTime.IsZero()).To(BeFalse())
+	g.Expect(accessor.lockedState).To(Equal(clusterAccessorLockedState{
+		lastConnectionCreationErrorTime: accessor.lockedState.lastConnectionCreationErrorTime,
+		healthChecking: clusterAccessorLockedHealthCheckingState{
+			lastProbeTime:       accessor.lockedState.healthChecking.lastProbeTime,
+			consecutiveFailures: 2,
+		},
+	}))
+
+	// Cleanup unparsable kubeconfig Secret
+	g.Expect(env.CleanupAndWait(ctx, unparsableKubeconfigSecret)).To(Succeed())
 
 	// Create invalid kubeconfig Secret
 	kubeconfigBytes := kubeconfig.FromEnvTestConfig(env.Config, testCluster)
@@ -113,7 +141,7 @@ func TestConnect(t *testing.T) {
 		lastConnectionCreationErrorTime: accessor.lockedState.lastConnectionCreationErrorTime,
 		healthChecking: clusterAccessorLockedHealthCheckingState{
 			lastProbeTime:       accessor.lockedState.healthChecking.lastProbeTime,
-			consecutiveFailures: 1,
+			consecutiveFailures: 3,
 		},
 	}))
 

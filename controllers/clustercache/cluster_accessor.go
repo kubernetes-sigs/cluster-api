@@ -270,10 +270,17 @@ func (ca *clusterAccessor) Connect(ctx context.Context) error {
 
 	kubeconfigResourceVersion, kubeconfigData, err := getKubeconfigSecret(ctx, ca.config.SecretCachingClient, ca.cluster)
 	if err != nil {
-		return pkgerrors.WithMessage(err, "error getting kubeconfig secret")
+		err = pkgerrors.WithMessage(err, "error getting kubeconfig secret")
+		ca.lock(ctx)
+		defer ca.unlock(ctx)
+		ca.recordConnectFailureLocked(ctx, err, 0)
+		return err
 	}
 	kubeconfig, err := loadKubeconfig(kubeconfigData)
 	if err != nil {
+		ca.lock(ctx)
+		defer ca.unlock(ctx)
+		ca.recordConnectFailureLocked(ctx, err, 0)
 		return err
 	}
 
@@ -305,13 +312,7 @@ func (ca *clusterAccessor) connect(ctx context.Context, kubeconfigResourceVersio
 
 	defer func() {
 		if retErr != nil {
-			log.Error(retErr, "Connect failed", "duration", duration)
-			connectionUp.WithLabelValues(ca.cluster.Name, ca.cluster.Namespace).Set(0)
-			ca.lockedState.lastConnectionCreationErrorTime = time.Now()
-			// A client creation just failed, so let's count this as a failed probe.
-			ca.lockedState.healthChecking.lastProbeTime = time.Now()
-			// Note: Intentionally not modifying lastProbeSuccessTime.
-			ca.lockedState.healthChecking.consecutiveFailures++
+			ca.recordConnectFailureLocked(ctx, retErr, duration)
 		} else {
 			connectionUp.WithLabelValues(ca.cluster.Name, ca.cluster.Namespace).Set(1)
 		}
@@ -352,6 +353,20 @@ func (ca *clusterAccessor) connect(ctx context.Context, kubeconfigResourceVersio
 	}
 
 	return nil
+}
+
+func (ca *clusterAccessor) recordConnectFailureLocked(ctx context.Context, err error, duration time.Duration) {
+	log := ctrl.LoggerFrom(ctx)
+	if duration != 0 {
+		log = log.WithValues("duration", duration)
+	}
+	log.Error(err, "Connect failed")
+	connectionUp.WithLabelValues(ca.cluster.Name, ca.cluster.Namespace).Set(0)
+	ca.lockedState.lastConnectionCreationErrorTime = time.Now()
+	// A client creation just failed, so let's count this as a failed probe.
+	ca.lockedState.healthChecking.lastProbeTime = time.Now()
+	// Note: Intentionally not modifying lastProbeSuccessTime.
+	ca.lockedState.healthChecking.consecutiveFailures++
 }
 
 // Disconnect disconnects a connection to the workload cluster.

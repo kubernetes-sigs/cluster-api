@@ -166,6 +166,18 @@ func TestReconcile(t *testing.T) {
 	g.Expect(env.CreateAndWait(ctx, kubeconfigSecret)).To(Succeed())
 	defer func() { g.Expect(env.CleanupAndWait(ctx, kubeconfigSecret)).To(Succeed()) }()
 
+	// Reconcile again
+	// => accessor.Connect just failed because the kubeconfig Secret didn't exist, so because of rate-limiting
+	//    we expect a retry with slightly less than ConnectionCreationRetryInterval.
+	res, err = cc.Reconcile(ctx, reconcile.Request{NamespacedName: clusterKey})
+	g.Expect(err).ToNot(HaveOccurred())
+	g.Expect(res.RequeueAfter >= accessorConfig.ConnectionCreationRetryInterval-2*time.Second).To(BeTrue())
+	g.Expect(res.RequeueAfter <= accessorConfig.ConnectionCreationRetryInterval).To(BeTrue())
+	g.Expect(cc.getClusterAccessor(clusterKey).Connected(ctx)).To(BeFalse())
+
+	// Set lastConnectionCreationErrorTime to now - ConnectionCreationRetryInterval to skip over rate-limiting
+	cc.getClusterAccessor(clusterKey).lockedState.lastConnectionCreationErrorTime = time.Now().Add(-1 * accessorConfig.ConnectionCreationRetryInterval)
+
 	// Reconcile, kubeconfig Secret has an invalid server URL
 	// => accessor.Connect will fail so we expect a retry with ConnectionCreationRetryInterval.
 	res, err = cc.Reconcile(ctx, reconcile.Request{NamespacedName: clusterKey})

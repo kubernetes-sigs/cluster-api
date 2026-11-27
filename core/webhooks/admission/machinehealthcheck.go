@@ -177,6 +177,11 @@ func validateMachineHealthCheckUnhealthyLessThanOrEqualTo(fldPath *field.Path, u
 				allErrs,
 				field.Invalid(fldPath.Child("remediation", "triggerIf", "unhealthyLessThanOrEqualTo"), unhealthyLessThanOrEqualTo.String(), fmt.Sprintf("must be either an int or a percentage: %v", err.Error())),
 			)
+		} else if isNegativeIntOrPercent(unhealthyLessThanOrEqualTo) {
+			allErrs = append(
+				allErrs,
+				field.Invalid(fldPath.Child("remediation", "triggerIf", "unhealthyLessThanOrEqualTo"), unhealthyLessThanOrEqualTo.String(), "must be greater than or equal to 0"),
+			)
 		}
 	}
 	return allErrs

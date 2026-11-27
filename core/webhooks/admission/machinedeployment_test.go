@@ -361,6 +361,9 @@ func TestMachineDeploymentValidation(t *testing.T) {
 	goodMaxSurgeInt := intstr.FromInt32(1)
 	goodMaxUnavailableInt := intstr.FromInt32(0)
 	goodMaxInFlightInt := intstr.FromInt32(5)
+
+	negativeInt := intstr.FromInt32(-1)
+	negativePercentage := intstr.FromString("-10%")
 	tests := []struct {
 		name          string
 		md            *clusterv1.MachineDeployment
@@ -459,11 +462,81 @@ func TestMachineDeploymentValidation(t *testing.T) {
 			expectErr: true,
 		},
 		{
+			name:      "should return error for negative int maxUnavailable",
+			selectors: map[string]string{"foo": "bar"},
+			labels:    map[string]string{"foo": "bar"},
+			strategy: clusterv1.MachineDeploymentRolloutStrategy{
+				Type: clusterv1.RollingUpdateMachineDeploymentStrategyType,
+				RollingUpdate: clusterv1.MachineDeploymentRolloutStrategyRollingUpdate{
+					MaxUnavailable: &negativeInt,
+					MaxSurge:       &goodMaxSurgeInt,
+				},
+			},
+			expectErr: true,
+		},
+		{
+			name:      "should return error for negative percentage maxUnavailable",
+			selectors: map[string]string{"foo": "bar"},
+			labels:    map[string]string{"foo": "bar"},
+			strategy: clusterv1.MachineDeploymentRolloutStrategy{
+				Type: clusterv1.RollingUpdateMachineDeploymentStrategyType,
+				RollingUpdate: clusterv1.MachineDeploymentRolloutStrategyRollingUpdate{
+					MaxUnavailable: &negativePercentage,
+					MaxSurge:       &goodMaxSurgeInt,
+				},
+			},
+			expectErr: true,
+		},
+		{
+			name:      "should return error for negative int maxSurge",
+			selectors: map[string]string{"foo": "bar"},
+			labels:    map[string]string{"foo": "bar"},
+			strategy: clusterv1.MachineDeploymentRolloutStrategy{
+				Type: clusterv1.RollingUpdateMachineDeploymentStrategyType,
+				RollingUpdate: clusterv1.MachineDeploymentRolloutStrategyRollingUpdate{
+					MaxUnavailable: &goodMaxSurgeInt,
+					MaxSurge:       &negativeInt,
+				},
+			},
+			expectErr: true,
+		},
+		{
+			name:      "should return error for negative percentage maxSurge",
+			selectors: map[string]string{"foo": "bar"},
+			labels:    map[string]string{"foo": "bar"},
+			strategy: clusterv1.MachineDeploymentRolloutStrategy{
+				Type: clusterv1.RollingUpdateMachineDeploymentStrategyType,
+				RollingUpdate: clusterv1.MachineDeploymentRolloutStrategyRollingUpdate{
+					MaxUnavailable: &goodMaxSurgeInt,
+					MaxSurge:       &negativePercentage,
+				},
+			},
+			expectErr: true,
+		},
+		{
 			name:      "should return error for invalid remediation maxInFlight",
 			selectors: map[string]string{"foo": "bar"},
 			labels:    map[string]string{"foo": "bar"},
 			remediation: clusterv1.MachineDeploymentRemediationSpec{
 				MaxInFlight: &badMaxInFlight,
+			},
+			expectErr: true,
+		},
+		{
+			name:      "should return error for negative remediation maxInFlight",
+			selectors: map[string]string{"foo": "bar"},
+			labels:    map[string]string{"foo": "bar"},
+			remediation: clusterv1.MachineDeploymentRemediationSpec{
+				MaxInFlight: &negativeInt,
+			},
+			expectErr: true,
+		},
+		{
+			name:      "should return error for negative percentage remediation maxInFlight",
+			selectors: map[string]string{"foo": "bar"},
+			labels:    map[string]string{"foo": "bar"},
+			remediation: clusterv1.MachineDeploymentRemediationSpec{
+				MaxInFlight: &negativePercentage,
 			},
 			expectErr: true,
 		},

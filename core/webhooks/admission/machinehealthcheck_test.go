@@ -556,6 +556,16 @@ func TestMachineHealthCheckMaxUnhealthy(t *testing.T) {
 			value:     intstr.FromString("10"),
 			expectErr: true,
 		},
+		{
+			name:      "when the value is a negative integer",
+			value:     intstr.Parse("-1"),
+			expectErr: true,
+		},
+		{
+			name:      "when the value is a negative percentage",
+			value:     intstr.Parse("-10%"),
+			expectErr: true,
+		},
 	}
 
 	for _, tt := range tests {

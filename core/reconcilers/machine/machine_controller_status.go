@@ -408,10 +408,9 @@ func setNodeConditions(machine *clusterv1.Machine, status metav1.ConditionStatus
 	}
 }
 
-const (
-	connectionIssueDetectedPrefix = "Connection issue detected"
-	connectionDownPrefix          = "Connection down"
-)
+// connectionDownPrefix is shared by connectionDownMessage and groupConnectionDownConditions, which uses it to detect
+// the conditions that cannot be computed because the connection is down.
+const connectionDownPrefix = "Connection down"
 
 // lastProbeSuccessMessage returns the time of the last successful probe of the connection to the workload cluster, if any.
 func lastProbeSuccessMessage(lastProbeSuccessTime time.Time) string {
@@ -424,7 +423,7 @@ func lastProbeSuccessMessage(lastProbeSuccessTime time.Time) string {
 // connectionIssueDetectedMessage is the message surfaced while the connection to the workload cluster is down, but the
 // remote conditions grace period is not expired yet: conditions keep reporting the last known state.
 func connectionIssueDetectedMessage(lastProbeSuccessTime time.Time) string {
-	return withLastProbeSuccess(connectionIssueDetectedPrefix, lastProbeSuccessTime)
+	return withLastProbeSuccess("Connection issue detected", lastProbeSuccessTime)
 }
 
 // connectionDownMessage is the message surfaced when the connection to the workload cluster is down and

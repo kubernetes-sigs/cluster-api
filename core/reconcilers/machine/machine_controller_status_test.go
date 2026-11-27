@@ -1056,13 +1056,13 @@ func TestSetNodeHealthyAndReadyConditions(t *testing.T) {
 					Type:    clusterv1.MachineNodeReadyCondition,
 					Status:  metav1.ConditionUnknown,
 					Reason:  clusterv1.MachineNodeConnectionDownReason,
-					Message: connectionIssueDetectedMessage(now.Add(-3 * time.Minute)),
+					Message: fmt.Sprintf("Connection issue detected, last successful probe at %s", now.Add(-3*time.Minute).Format(time.RFC3339)),
 				},
 				{
 					Type:    clusterv1.MachineNodeHealthyCondition,
 					Status:  metav1.ConditionUnknown,
 					Reason:  clusterv1.MachineNodeConnectionDownReason,
-					Message: connectionIssueDetectedMessage(now.Add(-3 * time.Minute)),
+					Message: fmt.Sprintf("Connection issue detected, last successful probe at %s", now.Add(-3*time.Minute).Format(time.RFC3339)),
 				},
 			},
 		},
@@ -1103,13 +1103,13 @@ func TestSetNodeHealthyAndReadyConditions(t *testing.T) {
 					Type:    clusterv1.MachineNodeReadyCondition,
 					Status:  metav1.ConditionUnknown,
 					Reason:  clusterv1.MachineNodeConnectionDownReason,
-					Message: connectionDownMessage(now.Add(-6 * time.Minute)),
+					Message: fmt.Sprintf("Connection down, last successful probe at %s", now.Add(-6*time.Minute).Format(time.RFC3339)),
 				},
 				{
 					Type:    clusterv1.MachineNodeHealthyCondition,
 					Status:  metav1.ConditionUnknown,
 					Reason:  clusterv1.MachineNodeConnectionDownReason,
-					Message: connectionDownMessage(now.Add(-6 * time.Minute)),
+					Message: fmt.Sprintf("Connection down, last successful probe at %s", now.Add(-6*time.Minute).Format(time.RFC3339)),
 				},
 			},
 		},
@@ -1241,8 +1241,7 @@ func TestDeletingCondition(t *testing.T) {
 }
 
 func TestTransformSummaryMessage(t *testing.T) {
-	lastProbeSuccessTime := time.Date(2026, time.November, 20, 21, 49, 10, 0, time.UTC)
-	downMessage := connectionDownMessage(lastProbeSuccessTime)
+	downMessage := "Connection down, last successful probe at 2026-11-20T21:49:10Z"
 
 	testCases := []struct {
 		name           string
@@ -1350,18 +1349,18 @@ func TestTransformSummaryMessage(t *testing.T) {
 			name: "group all the conditions that cannot be computed because the connection is down in a single message",
 			messages: []string{
 				fmt.Sprintf("* %s: Foo", clusterv1.MachineBootstrapConfigReadyCondition),
-				"* NodeHealthy: " + downMessage,
-				"* NodeKubeadmLabelsAndTaintsSet: " + downMessage,
-				"* EtcdPodHealthy: " + downMessage,
-				"* EtcdMemberHealthy: " + downMessage,
-				"* APIServerPodHealthy: " + downMessage,
-				"* ControllerManagerPodHealthy: " + downMessage,
-				"* SchedulerPodHealthy: " + downMessage,
+				"* NodeHealthy: Connection down, last successful probe at 2026-11-20T21:49:10Z",
+				"* NodeKubeadmLabelsAndTaintsSet: Connection down, last successful probe at 2026-11-20T21:49:10Z",
+				"* EtcdPodHealthy: Connection down, last successful probe at 2026-11-20T21:49:10Z",
+				"* EtcdMemberHealthy: Connection down, last successful probe at 2026-11-20T21:49:10Z",
+				"* APIServerPodHealthy: Connection down, last successful probe at 2026-11-20T21:49:10Z",
+				"* ControllerManagerPodHealthy: Connection down, last successful probe at 2026-11-20T21:49:10Z",
+				"* SchedulerPodHealthy: Connection down, last successful probe at 2026-11-20T21:49:10Z",
 				fmt.Sprintf("* %s: Bar", clusterv1.MachineDeletingCondition),
 			},
 			expectMessages: []string{
 				fmt.Sprintf("* %s: Foo", clusterv1.MachineBootstrapConfigReadyCondition),
-				"* " + downMessage,
+				"* Connection down, last successful probe at 2026-11-20T21:49:10Z",
 				fmt.Sprintf("* %s: Bar", clusterv1.MachineDeletingCondition),
 			},
 		},
@@ -1381,12 +1380,12 @@ func TestTransformSummaryMessage(t *testing.T) {
 		{
 			name: "don't group conditions when the connection is only reported as an issue (remote conditions grace period not yet expired)",
 			messages: []string{
-				"* NodeHealthy: " + connectionIssueDetectedMessage(lastProbeSuccessTime),
-				"* EtcdMemberHealthy: " + connectionIssueDetectedMessage(lastProbeSuccessTime),
+				"* NodeHealthy: Connection issue detected, last successful probe at 2026-11-20T21:49:10Z",
+				"* EtcdMemberHealthy: Connection issue detected, last successful probe at 2026-11-20T21:49:10Z",
 			},
 			expectMessages: []string{
-				"* NodeHealthy: " + connectionIssueDetectedMessage(lastProbeSuccessTime),
-				"* EtcdMemberHealthy: " + connectionIssueDetectedMessage(lastProbeSuccessTime),
+				"* NodeHealthy: Connection issue detected, last successful probe at 2026-11-20T21:49:10Z",
+				"* EtcdMemberHealthy: Connection issue detected, last successful probe at 2026-11-20T21:49:10Z",
 			},
 		},
 		{
@@ -1404,9 +1403,9 @@ func TestTransformSummaryMessage(t *testing.T) {
 			name: "group connection down messages even if the time of the last successful probe is different, using the first message",
 			messages: []string{
 				"* NodeHealthy: " + downMessage,
-				"* NodeKubeadmLabelsAndTaintsSet: " + connectionDownMessage(lastProbeSuccessTime.Add(8*time.Second)),
-				"* EtcdMemberHealthy: " + connectionDownMessage(lastProbeSuccessTime.Add(-time.Minute)),
-				"* APIServerPodHealthy: " + connectionDownMessage(lastProbeSuccessTime.Add(8*time.Second)),
+				"* NodeKubeadmLabelsAndTaintsSet: Connection down, last successful probe at 2026-11-20T21:49:18Z",
+				"* EtcdMemberHealthy: Connection down, last successful probe at 2026-11-20T21:48:10Z",
+				"* APIServerPodHealthy: Connection down, last successful probe at 2026-11-20T21:49:18Z",
 			},
 			expectMessages: []string{
 				"* " + downMessage,
@@ -2789,7 +2788,7 @@ func TestAvailableCondition(t *testing.T) {
 				Type:    clusterv1.MachineAvailableCondition,
 				Status:  metav1.ConditionTrue,
 				Reason:  clusterv1.MachineAvailableReason,
-				Message: connectionIssueDetectedMessage(reconcileTime.Add(-2 * time.Minute)),
+				Message: fmt.Sprintf("Connection issue detected, last successful probe at %s", reconcileTime.Add(-2*time.Minute).Format(time.RFC3339)),
 			},
 			expectRes: ctrl.Result{},
 		},
@@ -2816,7 +2815,7 @@ func TestAvailableCondition(t *testing.T) {
 				Type:    clusterv1.MachineAvailableCondition,
 				Status:  metav1.ConditionFalse,
 				Reason:  clusterv1.MachineNotReadyReason,
-				Message: connectionDownMessage(reconcileTime.Add(-5 * time.Minute)),
+				Message: fmt.Sprintf("Connection down, last successful probe at %s", reconcileTime.Add(-5*time.Minute).Format(time.RFC3339)),
 			},
 			expectRes: ctrl.Result{},
 		},

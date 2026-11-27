@@ -17,7 +17,11 @@ limitations under the License.
 package clustercache
 
 import (
+	"context"
 	"fmt"
+	"io"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"testing"
@@ -26,12 +30,57 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/rest"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
+	"k8s.io/client-go/transport"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-
-	"sigs.k8s.io/cluster-api/util/secret"
 )
+
+func TestTokenHolder(t *testing.T) {
+	g := NewWithT(t)
+
+	var authorizationHeaders []string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		authorizationHeaders = append(authorizationHeaders, r.Header.Get("Authorization"))
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	holder := newTokenHolder("stale-token")
+	config := &rest.Config{Host: server.URL}
+	config.Wrap(transport.TokenSourceWrapTransport(holder))
+
+	httpClient, err := rest.HTTPClientFor(config)
+	g.Expect(err).ToNot(HaveOccurred())
+
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, server.URL, http.NoBody)
+	g.Expect(err).ToNot(HaveOccurred())
+	resp, err := httpClient.Do(req)
+	g.Expect(err).ToNot(HaveOccurred())
+	g.Expect(resp.Body.Close()).To(Succeed())
+	g.Expect(authorizationHeaders).To(Equal([]string{"Bearer stale-token"}))
+
+	holder.store("rotated-token")
+
+	req, err = http.NewRequestWithContext(context.Background(), http.MethodGet, server.URL, http.NoBody)
+	g.Expect(err).ToNot(HaveOccurred())
+	resp, err = httpClient.Do(req)
+	g.Expect(err).ToNot(HaveOccurred())
+	body, err := io.ReadAll(resp.Body)
+	g.Expect(err).ToNot(HaveOccurred())
+	g.Expect(resp.Body.Close()).To(Succeed())
+	g.Expect(body).To(BeEmpty())
+	g.Expect(authorizationHeaders).To(Equal([]string{"Bearer stale-token", "Bearer rotated-token"}))
+
+	req, err = http.NewRequestWithContext(context.Background(), http.MethodGet, server.URL, http.NoBody)
+	g.Expect(err).ToNot(HaveOccurred())
+	req.Header.Set("Authorization", "Bearer request-token")
+	resp, err = httpClient.Do(req)
+	g.Expect(err).ToNot(HaveOccurred())
+	g.Expect(resp.Body.Close()).To(Succeed())
+	g.Expect(authorizationHeaders).To(Equal([]string{"Bearer stale-token", "Bearer rotated-token", "Bearer request-token"}))
+}
 
 func TestRunningOnWorkloadCluster(t *testing.T) {
 	tests := []struct {
@@ -151,12 +200,7 @@ func TestRunningOnWorkloadCluster(t *testing.T) {
 	}
 }
 
-func TestCreateRESTConfig(t *testing.T) {
-	const (
-		namespace   = "default"
-		clusterName = "test-cluster"
-	)
-
+func TestRESTConfigFromKubeconfig(t *testing.T) {
 	kubeconfig := func(clusterFields, userFields string) string {
 		return fmt.Sprintf(`apiVersion: v1
 kind: Config
@@ -198,10 +242,12 @@ users:
 		wantErr                     string
 		allowedExecProviderCommands []string
 		wantPluginPolicy            *clientcmdapi.PluginPolicy
+		wantToken                   string
 	}{
 		{
 			name:       "inline credentials are accepted",
 			kubeconfig: kubeconfig("    insecure-skip-tls-verify: true", "    token: token"),
+			wantToken:  "token",
 		},
 		{
 			name:       "tokenFile is rejected",
@@ -240,36 +286,53 @@ users:
 				},
 			},
 		},
+		{
+			name:                        "exec provider with bearer token is rejected",
+			kubeconfig:                  kubeconfig("    insecure-skip-tls-verify: true", execUser("/usr/local/bin/workload-identity")+"\n    token: token"),
+			allowedExecProviderCommands: []string{"/usr/local/bin/workload-identity"},
+			wantErr:                     "ExecProvider and bearer token cannot be used together in ClusterCache",
+		},
+		{
+			// clientcmd includes the whole users list in the error for duplicate user names.
+			name: "parsing error does not contain credentials",
+			kubeconfig: kubeconfig("    insecure-skip-tls-verify: true", "    token: credential-that-must-not-be-logged\n"+
+				"- name: u\n  user:\n    token: credential-that-must-not-be-logged"),
+			wantErr: "error parsing kubeconfig",
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			kubeconfigSecret := &corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      secret.Name(clusterName, secret.Kubeconfig),
-					Namespace: namespace,
-				},
-				Data: map[string][]byte{
-					secret.KubeconfigDataName: []byte(tt.kubeconfig),
-				},
+			var restConfig *rest.Config
+			var holder *tokenHolder
+			config, err := loadKubeconfig([]byte(tt.kubeconfig))
+			if err == nil {
+				clientConfig := &clusterAccessorClientConfig{AllowedExecProviderCommands: tt.allowedExecProviderCommands}
+				restConfig, holder, err = restConfigFromKubeconfig(clientConfig, config)
 			}
-			c := fake.NewClientBuilder().WithObjects(kubeconfigSecret).Build()
-
-			clientConfig := &clusterAccessorClientConfig{AllowedExecProviderCommands: tt.allowedExecProviderCommands}
-			restConfig, err := createRESTConfig(ctx, clientConfig, c, client.ObjectKey{Namespace: namespace, Name: clusterName})
 			if tt.wantErr != "" {
 				g.Expect(err).To(MatchError(ContainSubstring(tt.wantErr)))
+				g.Expect(err.Error()).ToNot(ContainSubstring("credential-that-must-not-be-logged"))
 				g.Expect(restConfig).To(BeNil())
 				return
 			}
 			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(restConfig).ToNot(BeNil())
+			// The kubeconfig must not be modified, as it is stored in the connection to detect changes.
+			g.Expect(config).To(Equal(mustLoadKubeconfig([]byte(tt.kubeconfig))))
 			if tt.wantPluginPolicy != nil {
 				g.Expect(restConfig.ExecProvider).ToNot(BeNil())
 				g.Expect(restConfig.ExecProvider.PluginPolicy).To(Equal(*tt.wantPluginPolicy))
 			}
+			if tt.wantToken == "" {
+				g.Expect(holder).To(BeNil())
+				return
+			}
+			// The token is served by the tokenHolder instead of the static BearerToken of the rest.Config.
+			g.Expect(restConfig.BearerToken).To(BeEmpty())
+			g.Expect(holder.Token()).To(HaveField("AccessToken", tt.wantToken))
 		})
 	}
 }

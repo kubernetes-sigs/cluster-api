@@ -21,9 +21,11 @@ import (
 	"fmt"
 	"net/http"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	pkgerrors "github.com/pkg/errors"
+	"golang.org/x/oauth2"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -34,28 +36,32 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
+	"k8s.io/client-go/transport"
 	ctrl "sigs.k8s.io/controller-runtime"
 	ctrlcache "sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 
-	kcfg "sigs.k8s.io/cluster-api/util/kubeconfig"
+	"sigs.k8s.io/cluster-api/util/secret"
 )
 
 type createConnectionResult struct {
-	RESTConfig     *rest.Config
-	RESTClient     *rest.RESTClient
-	CachedClient   client.Client
-	UncachedClient client.Client
-	Cache          *stoppableCache
+	RESTConfig                *rest.Config
+	KubeconfigResourceVersion string
+	Kubeconfig                *clientcmdapi.Config
+	TokenHolder               *tokenHolder
+	RESTClient                *rest.RESTClient
+	CachedClient              client.Client
+	UncachedClient            client.Client
+	Cache                     *stoppableCache
 }
 
-func (ca *clusterAccessor) createConnection(ctx context.Context) (*createConnectionResult, error) {
+func (ca *clusterAccessor) createConnection(ctx context.Context, kubeconfigResourceVersion string, kubeconfig *clientcmdapi.Config) (*createConnectionResult, error) {
 	log := ctrl.LoggerFrom(ctx)
 	log.V(6).Info("Creating connection")
 
 	log.V(6).Info("Creating REST config")
-	restConfig, err := createRESTConfig(ctx, ca.config.Client, ca.config.SecretClient, ca.cluster)
+	restConfig, tokenHolder, err := restConfigFromKubeconfig(ca.config.Client, kubeconfig)
 	if err != nil {
 		return nil, err
 	}
@@ -114,31 +120,34 @@ func (ca *clusterAccessor) createConnection(ctx context.Context) (*createConnect
 	}
 
 	return &createConnectionResult{
-		RESTConfig:     restConfig,
-		RESTClient:     restClient,
-		CachedClient:   cachedClient,
-		UncachedClient: uncachedClient,
-		Cache:          cache,
+		RESTConfig:                restConfig,
+		KubeconfigResourceVersion: kubeconfigResourceVersion,
+		Kubeconfig:                kubeconfig,
+		TokenHolder:               tokenHolder,
+		RESTClient:                restClient,
+		CachedClient:              cachedClient,
+		UncachedClient:            uncachedClient,
+		Cache:                     cache,
 	}, nil
 }
 
-// createRESTConfig returns a REST config created based on the kubeconfig Secret.
-func createRESTConfig(ctx context.Context, clientConfig *clusterAccessorClientConfig, c client.Reader, cluster client.ObjectKey) (*rest.Config, error) {
-	kubeConfig, err := kcfg.FromSecret(ctx, c, cluster)
+// restConfigFromKubeconfig returns a REST config created based on the given kubeconfig.
+func restConfigFromKubeconfig(clientConfig *clusterAccessorClientConfig, kubeconfig *clientcmdapi.Config) (*rest.Config, *tokenHolder, error) {
+	// Note: The kubeconfig is copied because the REST config shares fields like the exec config with it,
+	// and the kubeconfig is stored in the connection to detect changes.
+	restConfig, err := clientcmd.NewNonInteractiveClientConfig(*kubeconfig.DeepCopy(), "", &clientcmd.ConfigOverrides{}, nil).ClientConfig()
 	if err != nil {
-		return nil, pkgerrors.WithMessage(err, "error creating REST config: error getting kubeconfig secret")
-	}
-
-	restConfig, err := clientcmd.RESTConfigFromKubeConfig(kubeConfig)
-	if err != nil {
-		return nil, pkgerrors.WithMessage(err, "error creating REST config: error parsing kubeconfig")
+		return nil, nil, pkgerrors.WithMessage(err, "error creating REST config")
 	}
 
 	// Note: Using ExecProvider is not supported in ClusterCache as we don't want our controllers to exec,
 	// except for the exec plugin commands explicitly allowed by the controller.
 	if restConfig.ExecProvider != nil {
 		if len(clientConfig.AllowedExecProviderCommands) == 0 {
-			return nil, pkgerrors.New("ExecProvider is not supported in ClusterCache")
+			return nil, nil, pkgerrors.New("ExecProvider is not supported in ClusterCache")
+		}
+		if restConfig.BearerToken != "" {
+			return nil, nil, pkgerrors.New("ExecProvider and bearer token cannot be used together in ClusterCache")
 		}
 
 		allowlist := make([]clientcmdapi.AllowlistEntry, 0, len(clientConfig.AllowedExecProviderCommands))
@@ -152,21 +161,21 @@ func createRESTConfig(ctx context.Context, clientConfig *clusterAccessorClientCo
 	}
 	// Note: Using AuthProvider is not supported as we are not registering plugins like e.g. oidc in Cluster API.
 	if restConfig.AuthProvider != nil {
-		return nil, pkgerrors.New("AuthProvider is not supported in ClusterCache")
+		return nil, nil, pkgerrors.New("AuthProvider is not supported in ClusterCache")
 	}
 	// Note: File-based credentials are not supported, as file paths would be resolved against the
 	// controller's own filesystem. The kubeconfig Secret must contain all credential data inline.
 	if restConfig.BearerTokenFile != "" {
-		return nil, pkgerrors.New("BearerTokenFile is not supported in ClusterCache")
+		return nil, nil, pkgerrors.New("BearerTokenFile is not supported in ClusterCache")
 	}
 	if restConfig.CertFile != "" {
-		return nil, pkgerrors.New("TLSClientConfig.CertFile is not supported in ClusterCache")
+		return nil, nil, pkgerrors.New("TLSClientConfig.CertFile is not supported in ClusterCache")
 	}
 	if restConfig.KeyFile != "" {
-		return nil, pkgerrors.New("TLSClientConfig.KeyFile is not supported in ClusterCache")
+		return nil, nil, pkgerrors.New("TLSClientConfig.KeyFile is not supported in ClusterCache")
 	}
 	if restConfig.CAFile != "" {
-		return nil, pkgerrors.New("TLSClientConfig.CAFile is not supported in ClusterCache")
+		return nil, nil, pkgerrors.New("TLSClientConfig.CAFile is not supported in ClusterCache")
 	}
 
 	restConfig.UserAgent = clientConfig.UserAgent
@@ -174,7 +183,63 @@ func createRESTConfig(ctx context.Context, clientConfig *clusterAccessorClientCo
 	restConfig.QPS = clientConfig.QPS
 	restConfig.Burst = clientConfig.Burst
 
-	return restConfig, nil
+	var holder *tokenHolder
+	if restConfig.BearerToken != "" {
+		// Get the bearer token from the tokenHolder, so it can be rotated without re-creating the connection.
+		holder = newTokenHolder(restConfig.BearerToken)
+		restConfig.BearerToken = ""
+		restConfig.Wrap(transport.TokenSourceWrapTransport(holder))
+	}
+
+	return restConfig, holder, nil
+}
+
+// loadKubeconfig parses the given kubeconfig.
+func loadKubeconfig(kubeconfig []byte) (*clientcmdapi.Config, error) {
+	config, err := clientcmd.Load(kubeconfig)
+	if err != nil {
+		// Note: The error returned by clientcmd.Load is intentionally not returned, as it can contain
+		// the content of the kubeconfig including credentials, which must not end up in logs.
+		return nil, pkgerrors.New("error parsing kubeconfig (error details are omitted as they might contain credentials)")
+	}
+	return config, nil
+}
+
+// getKubeconfigSecret returns the resourceVersion and the kubeconfig of the kubeconfig Secret.
+func getKubeconfigSecret(ctx context.Context, c client.Reader, cluster client.ObjectKey) (string, []byte, error) {
+	kubeconfigSecret, err := secret.Get(ctx, c, cluster, secret.Kubeconfig)
+	if err != nil {
+		return "", nil, err
+	}
+
+	kubeConfig, ok := kubeconfigSecret.Data[secret.KubeconfigDataName]
+	if !ok {
+		return "", nil, pkgerrors.Errorf("missing key %q in secret data", secret.KubeconfigDataName)
+	}
+
+	return kubeconfigSecret.ResourceVersion, kubeConfig, nil
+}
+
+// tokenHolder holds the bearer token of a connection and is used as oauth2.TokenSource by all its transports.
+type tokenHolder struct {
+	value atomic.Pointer[string]
+}
+
+var _ oauth2.TokenSource = &tokenHolder{}
+
+func newTokenHolder(token string) *tokenHolder {
+	holder := &tokenHolder{}
+	holder.store(token)
+	return holder
+}
+
+func (h *tokenHolder) store(token string) {
+	h.value.Store(&token)
+}
+
+// Token implements oauth2.TokenSource.
+func (h *tokenHolder) Token() (*oauth2.Token, error) {
+	return &oauth2.Token{AccessToken: *h.value.Load()}, nil
 }
 
 // runningOnWorkloadCluster detects if the current controller runs on the workload cluster.

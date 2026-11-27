@@ -67,6 +67,7 @@ func (webhook *KubeadmControlPlaneTemplate) ValidateCreate(_ context.Context, k 
 	allErrs := validateKubeadmControlPlaneTemplateResourceSpec(spec, field.NewPath("spec", "template", "spec"))
 	allErrs = append(allErrs, validateClusterConfiguration(nil, &spec.KubeadmConfigSpec.ClusterConfiguration, field.NewPath("spec", "template", "spec", "kubeadmConfigSpec", "clusterConfiguration"))...)
 	allErrs = append(allErrs, bootstrapadmission.Validate(&spec.KubeadmConfigSpec, true, field.NewPath("spec", "template", "spec", "kubeadmConfigSpec"))...)
+	allErrs = append(allErrs, bootstrapadmission.ValidateImageRepositories(&spec.KubeadmConfigSpec, nil, field.NewPath("spec", "template", "spec", "kubeadmConfigSpec"))...)
 	// Validate the metadata of the KubeadmControlPlaneTemplateResource
 	allErrs = append(allErrs, validationutil.ValidateObjectMeta(k.Spec.Template.ObjectMeta, field.NewPath("spec", "template", "metadata"))...)
 	if len(allErrs) > 0 {

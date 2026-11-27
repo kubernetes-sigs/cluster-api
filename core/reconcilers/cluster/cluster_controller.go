@@ -457,7 +457,7 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (reconcile.R
 
 			// Return here so we don't remove the finalizer yet.
 			s.deletingReason = clusterv1.ClusterDeletingWaitingForControlPlaneDeletionReason
-			s.deletingMessage = fmt.Sprintf("Waiting for %s to be deleted", cluster.Spec.ControlPlaneRef.Kind)
+			s.deletingMessage = conditions.AppendDeletingMessage(fmt.Sprintf("Waiting for %s to be deleted", cluster.Spec.ControlPlaneRef.Kind), s.controlPlane)
 
 			// We are watching it, will try again when it is deleted.
 			ref := cluster.Spec.ControlPlaneRef
@@ -498,7 +498,7 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (reconcile.R
 
 			// Return here so we don't remove the finalizer yet.
 			s.deletingReason = clusterv1.ClusterDeletingWaitingForInfrastructureDeletionReason
-			s.deletingMessage = fmt.Sprintf("Waiting for %s to be deleted", cluster.Spec.InfrastructureRef.Kind)
+			s.deletingMessage = conditions.AppendDeletingMessage(fmt.Sprintf("Waiting for %s to be deleted", cluster.Spec.InfrastructureRef.Kind), s.infraCluster)
 
 			// We are watching it, will try again when it is deleted.
 			ref := cluster.Spec.InfrastructureRef

@@ -226,6 +226,9 @@ func filterPods(ctx context.Context, allPods []*corev1.Pod, filters []PodFilter)
 		var deleteWarnings []string
 		for _, filter := range filters {
 			status = filter(ctx, pod)
+			if status.Reason == PodDeleteStatusTypeError {
+				break
+			}
 			if status.DrainBehavior == clusterv1.MachineDrainRuleDrainBehaviorSkip ||
 				status.DrainBehavior == clusterv1.MachineDrainRuleDrainBehaviorWaitCompleted {
 				// short-circuit as soon as pod is filtered out

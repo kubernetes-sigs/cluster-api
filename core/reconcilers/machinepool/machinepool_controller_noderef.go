@@ -100,8 +100,22 @@ func (r *Reconciler) reconcileNodeRefs(ctx context.Context, s *scope) (ctrl.Resu
 		}
 	}
 
-	// Check that the MachinePool has valid ProviderIDList.
-	if len(mp.Spec.ProviderIDList) == 0 && (mp.Spec.Replicas == nil || *mp.Spec.Replicas != 0) {
+	// An empty ProviderIDList with unset or non-zero spec.replicas usually means the
+	// infrastructure provider has not reported instance IDs yet. Leave NodeRefs unchanged
+	// in that case, including while infrastructure is still provisioning.
+	//
+	// Continue when the provider has reported that no instances remain: infrastructure is
+	// provisioned, status.replicas is 0, and NodeRefs are still set, even if spec.replicas
+	// is greater than 0. reconcileInfrastructure adopts an empty ProviderIDList only when
+	// status.replicas == 0; it refuses an empty list while status.replicas > 0, which
+	// covers instances that exist before ProviderIDs are populated. Continuing removes the
+	// retired NodeRefs and deleteRetiredNodes deletes the corresponding Nodes.
+	providerReportedNoInstances := len(mp.Status.NodeRefs) > 0 &&
+		ptr.Deref(mp.Status.Initialization.InfrastructureProvisioned, false) &&
+		ptr.Deref(mp.Status.Replicas, 0) == 0
+	if len(mp.Spec.ProviderIDList) == 0 &&
+		(mp.Spec.Replicas == nil || *mp.Spec.Replicas != 0) &&
+		!providerReportedNoInstances {
 		log.V(2).Info("MachinePool doesn't have any ProviderIDs yet")
 		return ctrl.Result{}, nil
 	}

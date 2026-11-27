@@ -21,13 +21,17 @@ import (
 
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/client-go/tools/record"
+	"k8s.io/utils/ptr"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	"sigs.k8s.io/cluster-api/controllers/clustercache"
 )
 
 func TestMachinePoolGetNodeReference(t *testing.T) {
@@ -575,4 +579,257 @@ func TestMachinePoolPatchNodes(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestReconcileNodeRefsEmptyProviderIDList(t *testing.T) {
+	cluster := &clusterv1.Cluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-cluster",
+			Namespace: metav1.NamespaceDefault,
+		},
+	}
+
+	t.Run("deletes retired nodes and clears nodeRefs when the provider reports no instances", func(t *testing.T) {
+		g := NewWithT(t)
+
+		retiredNodes := []*corev1.Node{
+			{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "node-1",
+				},
+				Spec: corev1.NodeSpec{
+					ProviderID: "aws://us-east-1/id-node-1",
+				},
+			},
+			{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "node-2",
+				},
+				Spec: corev1.NodeSpec{
+					ProviderID: "aws://us-east-1/id-node-2",
+				},
+			},
+		}
+		unrelatedNode := &corev1.Node{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "unrelated-node",
+			},
+			Spec: corev1.NodeSpec{
+				ProviderID: "aws://us-east-1/id-unrelated",
+			},
+		}
+
+		workloadObjects := []client.Object{unrelatedNode}
+		nodeRefMap := make(map[string]*corev1.Node, len(retiredNodes))
+		nodeRefs := make([]corev1.ObjectReference, 0, len(retiredNodes))
+		for _, node := range retiredNodes {
+			workloadObjects = append(workloadObjects, node)
+			nodeRefMap[node.Spec.ProviderID] = node
+			nodeRefs = append(nodeRefs, corev1.ObjectReference{
+				APIVersion: corev1.SchemeGroupVersion.String(),
+				Kind:       "Node",
+				Name:       node.Name,
+			})
+		}
+
+		workloadClient := fake.NewClientBuilder().WithObjects(workloadObjects...).Build()
+		r := &Reconciler{
+			Client:       fake.NewClientBuilder().Build(),
+			ClusterCache: clustercache.NewFakeClusterCache(workloadClient, client.ObjectKeyFromObject(cluster)),
+			recorder:     record.NewFakeRecorder(32),
+		}
+
+		// Desired replicas stay above zero. The provider has reported that every
+		// instance is gone: an empty ProviderIDList and status.replicas == 0.
+		// Previously this returned before deleteRetiredNodes because spec.replicas != 0.
+		mp := &clusterv1.MachinePool{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "machinepool-1",
+				Namespace: metav1.NamespaceDefault,
+			},
+			Spec: clusterv1.MachinePoolSpec{
+				ClusterName:    cluster.Name,
+				Replicas:       ptr.To[int32](2),
+				ProviderIDList: []string{},
+			},
+			Status: clusterv1.MachinePoolStatus{
+				Initialization: clusterv1.MachinePoolInitializationStatus{
+					InfrastructureProvisioned: ptr.To(true),
+				},
+				Replicas: ptr.To[int32](0),
+				NodeRefs: nodeRefs,
+				Deprecated: &clusterv1.MachinePoolDeprecatedStatus{
+					V1Beta1: &clusterv1.MachinePoolV1Beta1DeprecatedStatus{
+						ReadyReplicas: 2,
+					},
+				},
+			},
+		}
+
+		res, err := r.reconcileNodeRefs(ctx, &scope{
+			cluster:     cluster,
+			machinePool: mp,
+			nodeRefMap:  nodeRefMap,
+		})
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(res).To(Equal(ctrl.Result{}))
+		g.Expect(mp.Status.NodeRefs).To(BeEmpty())
+		g.Expect(mp.Status.Deprecated.V1Beta1.ReadyReplicas).To(Equal(int32(0)))
+		g.Expect(mp.Status.Deprecated.V1Beta1.AvailableReplicas).To(Equal(int32(0)))
+
+		for _, node := range retiredNodes {
+			err := workloadClient.Get(ctx, client.ObjectKey{Name: node.Name}, &corev1.Node{})
+			g.Expect(apierrors.IsNotFound(err)).To(BeTrue(), "retired Node %s should be deleted", node.Name)
+		}
+		g.Expect(workloadClient.Get(ctx, client.ObjectKey{Name: unrelatedNode.Name}, &corev1.Node{})).To(Succeed())
+
+		r.reconcilePhase(mp)
+		g.Expect(mp.Status.GetTypedPhase()).To(Equal(clusterv1.MachinePoolPhaseScalingUp))
+	})
+
+	t.Run("is a no-op when providerIDList and nodeRefs are empty", func(t *testing.T) {
+		g := NewWithT(t)
+
+		// spec.replicas is still set, which is the case the previous guard treated as
+		// "ProviderIDs are not ready yet". With no NodeRefs there is nothing to retire.
+		node := &corev1.Node{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "preexisting-node",
+			},
+			Spec: corev1.NodeSpec{
+				ProviderID: "aws://us-east-1/id-preexisting",
+			},
+		}
+		workloadClient := fake.NewClientBuilder().WithObjects(node).Build()
+		r := &Reconciler{
+			Client:       fake.NewClientBuilder().Build(),
+			ClusterCache: clustercache.NewFakeClusterCache(workloadClient, client.ObjectKeyFromObject(cluster)),
+			recorder:     record.NewFakeRecorder(32),
+		}
+
+		mp := &clusterv1.MachinePool{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "machinepool-2",
+				Namespace: metav1.NamespaceDefault,
+			},
+			Spec: clusterv1.MachinePoolSpec{
+				ClusterName:    cluster.Name,
+				Replicas:       ptr.To[int32](1),
+				ProviderIDList: []string{},
+			},
+			Status: clusterv1.MachinePoolStatus{
+				NodeRefs: []corev1.ObjectReference{},
+			},
+		}
+
+		res, err := r.reconcileNodeRefs(ctx, &scope{
+			cluster:     cluster,
+			machinePool: mp,
+			// A nil nodeRefMap skips the "already reconciled" return so this case
+			// reaches the empty ProviderIDList guard.
+		})
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(res).To(Equal(ctrl.Result{}))
+		g.Expect(mp.Status.NodeRefs).To(BeEmpty())
+		g.Expect(mp.Status.Deprecated).To(BeNil())
+		g.Expect(workloadClient.Get(ctx, client.ObjectKey{Name: node.Name}, &corev1.Node{})).To(Succeed())
+	})
+
+	t.Run("keeps nodeRefs when infrastructure is not provisioned", func(t *testing.T) {
+		g := NewWithT(t)
+
+		node := &corev1.Node{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "node-1",
+			},
+			Spec: corev1.NodeSpec{
+				ProviderID: "aws://us-east-1/id-node-1",
+			},
+		}
+		nodeRefs := []corev1.ObjectReference{{
+			APIVersion: corev1.SchemeGroupVersion.String(),
+			Kind:       "Node",
+			Name:       node.Name,
+		}}
+		workloadClient := fake.NewClientBuilder().WithObjects(node).Build()
+		r := &Reconciler{
+			Client:       fake.NewClientBuilder().Build(),
+			ClusterCache: clustercache.NewFakeClusterCache(workloadClient, client.ObjectKeyFromObject(cluster)),
+			recorder:     record.NewFakeRecorder(32),
+		}
+		mp := &clusterv1.MachinePool{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "machinepool-3",
+				Namespace: metav1.NamespaceDefault,
+			},
+			Spec: clusterv1.MachinePoolSpec{
+				ClusterName:    cluster.Name,
+				Replicas:       ptr.To[int32](1),
+				ProviderIDList: []string{},
+			},
+			Status: clusterv1.MachinePoolStatus{
+				NodeRefs: nodeRefs,
+			},
+		}
+
+		res, err := r.reconcileNodeRefs(ctx, &scope{
+			cluster:     cluster,
+			machinePool: mp,
+		})
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(res).To(Equal(ctrl.Result{}))
+		g.Expect(mp.Status.NodeRefs).To(Equal(nodeRefs))
+		g.Expect(workloadClient.Get(ctx, client.ObjectKey{Name: node.Name}, &corev1.Node{})).To(Succeed())
+	})
+
+	t.Run("keeps nodeRefs when instances exist but provider IDs are empty", func(t *testing.T) {
+		g := NewWithT(t)
+
+		node := &corev1.Node{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "node-1",
+			},
+			Spec: corev1.NodeSpec{
+				ProviderID: "aws://us-east-1/id-node-1",
+			},
+		}
+		nodeRefs := []corev1.ObjectReference{{
+			APIVersion: corev1.SchemeGroupVersion.String(),
+			Kind:       "Node",
+			Name:       node.Name,
+		}}
+		workloadClient := fake.NewClientBuilder().WithObjects(node).Build()
+		r := &Reconciler{
+			Client:       fake.NewClientBuilder().Build(),
+			ClusterCache: clustercache.NewFakeClusterCache(workloadClient, client.ObjectKeyFromObject(cluster)),
+			recorder:     record.NewFakeRecorder(32),
+		}
+		mp := &clusterv1.MachinePool{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "machinepool-4",
+				Namespace: metav1.NamespaceDefault,
+			},
+			Spec: clusterv1.MachinePoolSpec{
+				ClusterName:    cluster.Name,
+				Replicas:       ptr.To[int32](1),
+				ProviderIDList: []string{},
+			},
+			Status: clusterv1.MachinePoolStatus{
+				Initialization: clusterv1.MachinePoolInitializationStatus{
+					InfrastructureProvisioned: ptr.To(true),
+				},
+				Replicas: ptr.To[int32](1),
+				NodeRefs: nodeRefs,
+			},
+		}
+
+		res, err := r.reconcileNodeRefs(ctx, &scope{
+			cluster:     cluster,
+			machinePool: mp,
+		})
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(res).To(Equal(ctrl.Result{}))
+		g.Expect(mp.Status.NodeRefs).To(Equal(nodeRefs))
+		g.Expect(workloadClient.Get(ctx, client.ObjectKey{Name: node.Name}, &corev1.Node{})).To(Succeed())
+	})
 }

@@ -29,6 +29,7 @@
             - [Using Custom Certificates](./user/guide/configuration/control-plane/using-custom-certificates.md)
         - [Workers Configuration](./user/guide/configuration/workers/index.md)
             - [MachinePools](./user/guide/configuration/workers/machine-pools.md)
+        - [Failure Domains](./user/guide/configuration/failure-domains.md)
         - [Create a Cluster](./user/guide/configuration/create-cluster/index.md)
             - [Using Kustomize](./user/guide/configuration/create-cluster/using-kustomize.md)
         - [ClusterClass](./user/guide/configuration/cluster-class/index.md)

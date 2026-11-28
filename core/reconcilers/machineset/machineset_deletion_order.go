@@ -17,7 +17,6 @@ limitations under the License.
 package machineset
 
 import (
-	"math"
 	"sort"
 
 	pkgerrors "github.com/pkg/errors"
@@ -44,7 +43,7 @@ const (
 	secondsPerTenDays float64 = 864000
 )
 
-// oldestDeletionOrder maps the creation timestamp onto the 0-100 priority range.
+// oldestDeletionOrder maps the creation timestamp onto the 0-50 priority range.
 func oldestDeletionOrder(machine *clusterv1.Machine) deletePriority {
 	// Deleting machines must go first, otherwise deletion code will delete more machines while previously deleted machines
 	// are still deleting.
@@ -72,7 +71,9 @@ func oldestDeletionOrder(machine *clusterv1.Machine) deletePriority {
 	if d.Seconds() < 0 {
 		return mustNotDelete
 	}
-	return deletePriority(float64(betterDelete) * (1.0 - math.Exp(-d.Seconds()/secondsPerTenDays)))
+	// Note: age / (age + 10 days) keeps sub-second precision and stays below 1 even for Machines that are a century old,
+	// so an older Machine always gets a higher priority, and the priority stays below betterDelete.
+	return deletePriority(float64(betterDelete) * d.Seconds() / (d.Seconds() + secondsPerTenDays))
 }
 
 func newestDeletionOrder(machine *clusterv1.Machine) deletePriority {

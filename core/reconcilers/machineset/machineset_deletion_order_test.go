@@ -19,6 +19,7 @@ package machineset
 import (
 	"fmt"
 	"testing"
+	"time"
 
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -373,6 +374,25 @@ func TestMachineNewestDelete(t *testing.T) {
 		},
 	}
 
+	// The names of these Machines sort in the opposite order of their expected deletion, so that ordering by name
+	// instead of by creation time fails the test.
+	machine800DaysOld := &clusterv1.Machine{
+		ObjectMeta: metav1.ObjectMeta{CreationTimestamp: metav1.NewTime(currentTime.AddDate(0, 0, -800)), Name: "a-800-days-old"},
+		Status:     clusterv1.MachineStatus{NodeRef: nodeRef},
+	}
+	machine400DaysOld := &clusterv1.Machine{
+		ObjectMeta: metav1.ObjectMeta{CreationTimestamp: metav1.NewTime(currentTime.AddDate(0, 0, -400)), Name: "z-400-days-old"},
+		Status:     clusterv1.MachineStatus{NodeRef: nodeRef},
+	}
+	machineCreatedFirst := &clusterv1.Machine{
+		ObjectMeta: metav1.ObjectMeta{CreationTimestamp: metav1.NewTime(currentTime.AddDate(0, 0, -300).Add(-time.Minute)), Name: "a-created-first"},
+		Status:     clusterv1.MachineStatus{NodeRef: nodeRef},
+	}
+	machineCreatedSecond := &clusterv1.Machine{
+		ObjectMeta: metav1.ObjectMeta{CreationTimestamp: metav1.NewTime(currentTime.AddDate(0, 0, -300)), Name: "z-created-second"},
+		Status:     clusterv1.MachineStatus{NodeRef: nodeRef},
+	}
+
 	tests := []struct {
 		desc     string
 		machines []*clusterv1.Machine
@@ -451,6 +471,22 @@ func TestMachineNewestDelete(t *testing.T) {
 				secondNewest, oldest, secondOldest, newest, nodeHealthyConditionUnknownMachine,
 			},
 			expect: []*clusterv1.Machine{newest},
+		},
+		{
+			desc: "func=newestDeletionOrder, diff=1 (Machines older than a year)",
+			diff: 1,
+			machines: []*clusterv1.Machine{
+				machine800DaysOld, machine400DaysOld,
+			},
+			expect: []*clusterv1.Machine{machine400DaysOld},
+		},
+		{
+			desc: "func=newestDeletionOrder, diff=1 (Machines created one minute apart)",
+			diff: 1,
+			machines: []*clusterv1.Machine{
+				machineCreatedFirst, machineCreatedSecond,
+			},
+			expect: []*clusterv1.Machine{machineCreatedSecond},
 		},
 	}
 
@@ -562,6 +598,37 @@ func TestMachineOldestDelete(t *testing.T) {
 		},
 	}
 
+	// The names of these Machines sort in the opposite order of their expected deletion, so that ordering by name
+	// instead of by creation time fails the test.
+	machine800DaysOld := &clusterv1.Machine{
+		ObjectMeta: metav1.ObjectMeta{CreationTimestamp: metav1.NewTime(currentTime.AddDate(0, 0, -800)), Name: "z-800-days-old"},
+		Status:     clusterv1.MachineStatus{NodeRef: nodeRef},
+	}
+	machine400DaysOld := &clusterv1.Machine{
+		ObjectMeta: metav1.ObjectMeta{CreationTimestamp: metav1.NewTime(currentTime.AddDate(0, 0, -400)), Name: "a-400-days-old"},
+		Status:     clusterv1.MachineStatus{NodeRef: nodeRef},
+	}
+	unhealthyMachine400DaysOld := &clusterv1.Machine{
+		ObjectMeta: metav1.ObjectMeta{CreationTimestamp: metav1.NewTime(currentTime.AddDate(0, 0, -400)), Name: "z-unhealthy-400-days-old"},
+		Status: clusterv1.MachineStatus{
+			Conditions: []metav1.Condition{
+				{
+					Type:   clusterv1.MachineNodeHealthyCondition,
+					Status: metav1.ConditionFalse,
+				},
+			},
+			NodeRef: nodeRef,
+		},
+	}
+	machineCreatedFirst := &clusterv1.Machine{
+		ObjectMeta: metav1.ObjectMeta{CreationTimestamp: metav1.NewTime(currentTime.AddDate(0, 0, -300).Add(-time.Minute)), Name: "z-created-first"},
+		Status:     clusterv1.MachineStatus{NodeRef: nodeRef},
+	}
+	machineCreatedSecond := &clusterv1.Machine{
+		ObjectMeta: metav1.ObjectMeta{CreationTimestamp: metav1.NewTime(currentTime.AddDate(0, 0, -300)), Name: "a-created-second"},
+		Status:     clusterv1.MachineStatus{NodeRef: nodeRef},
+	}
+
 	tests := []struct {
 		desc     string
 		machines []*clusterv1.Machine
@@ -665,6 +732,38 @@ func TestMachineOldestDelete(t *testing.T) {
 				empty, secondNewest, oldest, secondOldest, newest, mustDeleteMachine, unhealthyMachineZ,
 			},
 			expect: []*clusterv1.Machine{mustDeleteMachine},
+		},
+		{
+			desc: "func=oldestDeletionOrder, diff=1 (Machines older than a year)",
+			diff: 1,
+			machines: []*clusterv1.Machine{
+				machine400DaysOld, machine800DaysOld,
+			},
+			expect: []*clusterv1.Machine{machine800DaysOld},
+		},
+		{
+			desc: "func=oldestDeletionOrder, diff=1 (Machines created one minute apart)",
+			diff: 1,
+			machines: []*clusterv1.Machine{
+				machineCreatedSecond, machineCreatedFirst,
+			},
+			expect: []*clusterv1.Machine{machineCreatedFirst},
+		},
+		{
+			desc: "func=oldestDeletionOrder, diff=1 (healthy and unhealthy Machine older than a year)",
+			diff: 1,
+			machines: []*clusterv1.Machine{
+				machine400DaysOld, unhealthyMachine400DaysOld,
+			},
+			expect: []*clusterv1.Machine{unhealthyMachine400DaysOld},
+		},
+		{
+			desc: "func=oldestDeletionOrder, diff=3 (unhealthy Machine first, then healthy Machines by creation time)",
+			diff: 3,
+			machines: []*clusterv1.Machine{
+				machine400DaysOld, machine800DaysOld, unhealthyMachine400DaysOld,
+			},
+			expect: []*clusterv1.Machine{unhealthyMachine400DaysOld, machine800DaysOld, machine400DaysOld},
 		},
 	}
 
